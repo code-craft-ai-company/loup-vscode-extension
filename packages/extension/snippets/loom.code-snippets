@@ -1,0 +1,364 @@
+{
+  "Function Declaration": {
+    "prefix": "fun",
+    "body": [
+      "fun ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Loom function declaration"
+  },
+  "Async Function Declaration": {
+    "prefix": "afun",
+    "body": [
+      "async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "  $0",
+      "}"
+    ],
+    "description": "Loom async function declaration"
+  },
+  "Public Function": {
+    "prefix": "pfun",
+    "body": [
+      "pub fun ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Public function declaration"
+  },
+  "Public Async Function": {
+    "prefix": "pafun",
+    "body": [
+      "pub async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "  $0",
+      "}"
+    ],
+    "description": "Public async function declaration"
+  },
+  "Enum Declaration": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "  ${2:Variant1},",
+      "  ${3:Variant2},",
+      "}"
+    ],
+    "description": "Loom enum (sum type) declaration"
+  },
+  "Enum with Payload": {
+    "prefix": "enump",
+    "body": [
+      "enum ${1:Name} {",
+      "  ${2:Variant1}(${3:payload}: ${4:type}),",
+      "  ${5:Variant2},",
+      "}"
+    ],
+    "description": "Loom enum with payload variant"
+  },
+  "Class Declaration": {
+    "prefix": "class",
+    "body": [
+      "class ${1:Name} : ${2:Any} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Loom class declaration"
+  },
+  "Dynamic Class": {
+    "prefix": "dclass",
+    "body": [
+      "dynamic class ${1:Name} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Loom dynamic class (opt-in dynamic fields)"
+  },
+  "Interface Declaration": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:Name} {",
+      "  fun ${2:method}(${3:params}): ${4:void};",
+      "}"
+    ],
+    "description": "Loom interface declaration"
+  },
+  "Match Expression": {
+    "prefix": "match",
+    "body": [
+      "match ${1:expr} {",
+      "  ${2:Pattern1} => ${3:result1},",
+      "  ${4:Pattern2} => ${5:result2},",
+      "  _ => ${6:default},",
+      "}"
+    ],
+    "description": "Pattern matching expression"
+  },
+  "Match Option": {
+    "prefix": "matcho",
+    "body": [
+      "match ${1:expr} {",
+      "  Some(${2:value}) => ${3:result},",
+      "  None => ${4:default},",
+      "}"
+    ],
+    "description": "Match over Option[T]"
+  },
+  "Match Result": {
+    "prefix": "matchr",
+    "body": [
+      "match ${1:expr} {",
+      "  Ok(${2:value}) => ${3:result},",
+      "  Err(${4:err}) => ${5:handleError},",
+      "}"
+    ],
+    "description": "Match over Result[T, E]"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if (${1:condition}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "If statement"
+  },
+  "If-Else Statement": {
+    "prefix": "ife",
+    "body": [
+      "if (${1:condition}) {",
+      "  $2",
+      "} else {",
+      "  $0",
+      "}"
+    ],
+    "description": "If-else statement"
+  },
+  "For-In Loop": {
+    "prefix": "forin",
+    "body": [
+      "for (${1:item} in ${2:collection}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "For-in loop (iterates Iterable[T])"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for (let ${1:i} = ${2:0}; ${1:i} < ${3:n}; ${1:i} = ${1:i} + 1) {",
+      "  $0",
+      "}"
+    ],
+    "description": "C-style for loop"
+  },
+  "For Await Loop": {
+    "prefix": "forawait",
+    "body": [
+      "for await (${1:item} in ${2:asyncIterable}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Async for-await loop (iterates AsyncIterable[T])"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while (${1:condition}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "While loop"
+  },
+  "Await Group": {
+    "prefix": "awaitgroup",
+    "body": [
+      "await group {",
+      "  ${1:result1} = spawn ${2:task1()};",
+      "  ${3:result2} = spawn ${4:task2()};",
+      "}"
+    ],
+    "description": "Structured concurrency: await group with spawn"
+  },
+  "Try-Catch": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "  $1",
+      "} catch (${2:Error} as ${3:err}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Try-catch block"
+  },
+  "Try-Catch-Finally": {
+    "prefix": "tryf",
+    "body": [
+      "try {",
+      "  $1",
+      "} catch (${2:Error} as ${3:err}) {",
+      "  $4",
+      "} finally {",
+      "  $0",
+      "}"
+    ],
+    "description": "Try-catch-finally block"
+  },
+  "Defer Call": {
+    "prefix": "defer",
+    "body": "defer ${1:cleanup()};",
+    "description": "Defer a cleanup call (LIFO on block exit)"
+  },
+  "Defer Block": {
+    "prefix": "deferb",
+    "body": [
+      "defer {",
+      "  $0",
+      "}"
+    ],
+    "description": "Defer block (LIFO on block exit)"
+  },
+  "With Statement": {
+    "prefix": "with",
+    "body": [
+      "with (${1:handle} = ${2:resource}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Scoped resource management with auto-close"
+  },
+  "Portal Statement": {
+    "prefix": "portal",
+    "body": [
+      "portal ${1:name} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Time-travel activation point"
+  },
+  "Import From": {
+    "prefix": "from",
+    "body": "from ${1:package.module} import (${2:Name});",
+    "description": "Import from a module"
+  },
+  "Import Block": {
+    "prefix": "fromb",
+    "body": [
+      "from ${1:package} {",
+      "  ${2:module} import (${3:Name});",
+      "}"
+    ],
+    "description": "Block import from a package"
+  },
+  "Template Fence HTML": {
+    "prefix": "tmplhtml",
+    "body": [
+      "```(html):(${1:none})",
+      "  $0",
+      "```"
+    ],
+    "description": "HTML template fence"
+  },
+  "Template Fence with Components": {
+    "prefix": "tmplcomp",
+    "body": [
+      "```(html):(components=${1:registry})",
+      "  $0",
+      "```"
+    ],
+    "description": "HTML template fence with component registry"
+  },
+  "Template Fence Generic": {
+    "prefix": "tmpl",
+    "body": [
+      "```(${1:language}):(${2:none})",
+      "  $0",
+      "```"
+    ],
+    "description": "Template fence for any language"
+  },
+  "Extern JS Function": {
+    "prefix": "externjs",
+    "body": "extern js fun ${1:name}(${2:params}): ${3:Any};",
+    "description": "JavaScript FFI function binding"
+  },
+  "Extern JS Value": {
+    "prefix": "externjsval",
+    "body": "extern js val ${1:name}: ${2:Any};",
+    "description": "JavaScript FFI value binding"
+  },
+  "Extern Native Function": {
+    "prefix": "externnative",
+    "body": "extern native \"${1:libname}\" fun ${2:name}(${3:params}): ${4:int};",
+    "description": "Native shared library FFI function binding"
+  },
+  "JS Export": {
+    "prefix": "jsexport",
+    "body": [
+      "@jsexport",
+      "fun ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Export a Loom function to JavaScript"
+  },
+  "JS Export Async": {
+    "prefix": "jsexporta",
+    "body": [
+      "@jsexport",
+      "async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "  $0",
+      "}"
+    ],
+    "description": "Export an async Loom function to JavaScript"
+  },
+  "Signal": {
+    "prefix": "signal",
+    "body": "let ${1:name} = signal(${2:initialValue});",
+    "description": "Create a reactive signal (system.ui)"
+  },
+  "Derived Signal": {
+    "prefix": "derived",
+    "body": "let ${1:name} = derived(fun() => ${2:expr});",
+    "description": "Create a derived (computed) signal"
+  },
+  "Effect": {
+    "prefix": "effect",
+    "body": [
+      "effect(fun() {",
+      "  $0",
+      "});"
+    ],
+    "description": "Create a reactive effect (system.ui)"
+  },
+  "Component": {
+    "prefix": "component",
+    "body": [
+      "fun ${1:Name}(${2:props}): View {",
+      "  $3",
+      "  return ```(html):(components=${4:registry})",
+      "    $0",
+      "  ```;",
+      "}"
+    ],
+    "description": "Reactive UI component returning View"
+  },
+  "Loom Package Manifest": {
+    "prefix": "loompkg",
+    "body": [
+      "package   ${1:my-app}",
+      "version   ${2:0.1.0}",
+      "loom      \">=0.4\"",
+      "",
+      "[deps]",
+      "${3:# dependency = \"^1.0\"}",
+      "",
+      "[dev-deps]",
+      "${4:# test-runner = \"^3.1\"}",
+      "",
+      "[target.${5:cli}]",
+      "${6:include system.fs}",
+      "${7:include system.proc}"
+    ],
+    "description": "loom.pkg package manifest scaffold"
+  }
+}

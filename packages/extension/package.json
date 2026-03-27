@@ -1,0 +1,357 @@
+{
+  "name": "loom-lang",
+  "displayName": "Loom Language",
+  "description": "Full language support for the Loom programming language — syntax highlighting, language intelligence, and debugging with time-travel capabilities.",
+  "version": "0.1.0",
+  "publisher": "loom-lang",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Debuggers",
+    "Snippets",
+    "Formatters"
+  ],
+  "keywords": [
+    "loom",
+    "programming language",
+    "template",
+    "async",
+    "debugging"
+  ],
+  "activationEvents": [
+    "onDebugResolve:loom"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "loom",
+        "aliases": ["Loom", "loom"],
+        "extensions": [".loom"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/loom-light.png",
+          "dark": "./icons/loom-dark.png"
+        }
+      },
+      {
+        "id": "loom-pkg",
+        "aliases": ["Loom Package"],
+        "filenames": ["loom.pkg"],
+        "configuration": "./loom-pkg-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "loom",
+        "scopeName": "source.loom",
+        "path": "./syntaxes/loom.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.shell": "shellscript"
+        }
+      },
+      {
+        "language": "loom-pkg",
+        "scopeName": "source.loom-pkg",
+        "path": "./syntaxes/loom-pkg.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "loom",
+        "path": "./snippets/loom.code-snippets"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "loom"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "loom",
+        "label": "Loom Debug",
+        "languages": ["loom"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the Loom file to run.",
+                "default": "${file}"
+              },
+              "args": {
+                "type": "array",
+                "description": "Arguments passed to the Loom program.",
+                "items": { "type": "string" },
+                "default": []
+              },
+              "target": {
+                "type": "string",
+                "description": "Target platform: cli, browser, or service.",
+                "enum": ["cli", "browser", "service"],
+                "default": "cli"
+              },
+              "enableTimeTravel": {
+                "type": "boolean",
+                "description": "Start a time-travel capture server on launch.",
+                "default": false
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables for the Loom process.",
+                "additionalProperties": { "type": "string" },
+                "default": {}
+              }
+            }
+          },
+          "attach": {
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "Debug port of the running Loom process.",
+                "default": 9229
+              },
+              "host": {
+                "type": "string",
+                "description": "Hostname of the running Loom process.",
+                "default": "localhost"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "loom",
+            "request": "launch",
+            "name": "Run Loom Script",
+            "program": "${file}",
+            "target": "cli"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Loom: Launch Script",
+            "description": "Launch a Loom script with debugging.",
+            "body": {
+              "type": "loom",
+              "request": "launch",
+              "name": "Run ${1:script}",
+              "program": "^\"\\${file}\"",
+              "target": "${2|cli,browser,service|}"
+            }
+          },
+          {
+            "label": "Loom: Attach to Process",
+            "description": "Attach the debugger to a running Loom process.",
+            "body": {
+              "type": "loom",
+              "request": "attach",
+              "name": "Attach to Loom",
+              "port": 9229,
+              "host": "localhost"
+            }
+          }
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "loom-debug",
+          "title": "Loom",
+          "icon": "$(debug-alt)"
+        }
+      ]
+    },
+    "views": {
+      "debug": [
+        {
+          "id": "loomPortalBreakpoints",
+          "name": "Portal Breakpoints",
+          "when": "debugType == 'loom' || editorLangId == 'loom'"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "loomDependencies",
+          "name": "Loom Dependencies",
+          "when": "workspaceHas:**/loom.pkg",
+          "icon": "$(package)"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "loom.togglePortalBreakpoint",
+        "title": "Toggle Portal Breakpoint",
+        "category": "Loom"
+      },
+      {
+        "command": "loom.addPortalBreakpoint",
+        "title": "Add Portal Breakpoint",
+        "category": "Loom",
+        "icon": "$(add)"
+      },
+      {
+        "command": "loom.removePortalBreakpoint",
+        "title": "Remove Portal Breakpoint",
+        "category": "Loom",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "loom.clearPortalBreakpoints",
+        "title": "Clear All Portal Breakpoints",
+        "category": "Loom",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "loom.startCapture",
+        "title": "Start Time-Travel Capture",
+        "category": "Loom",
+        "icon": "$(record)"
+      },
+      {
+        "command": "loom.stopCapture",
+        "title": "Stop Time-Travel Capture",
+        "category": "Loom",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "loom.showTimeline",
+        "title": "Show Timeline",
+        "category": "Loom",
+        "icon": "$(timeline-open)"
+      },
+      {
+        "command": "loom.openTraceFile",
+        "title": "Open Trace File",
+        "category": "Loom"
+      },
+      {
+        "command": "loom.saveTrace",
+        "title": "Save Trace File",
+        "category": "Loom"
+      },
+      {
+        "command": "loom.showTaskGroups",
+        "title": "Show Task Group Visualizer",
+        "category": "Loom",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "loom.refreshDependencies",
+        "title": "Refresh Dependencies",
+        "category": "Loom",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "loom.openRepl",
+        "title": "Open Loom REPL",
+        "category": "Loom",
+        "icon": "$(terminal)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "loom.addPortalBreakpoint",
+          "when": "view == loomPortalBreakpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "loom.clearPortalBreakpoints",
+          "when": "view == loomPortalBreakpoints",
+          "group": "navigation"
+        },
+        {
+          "command": "loom.refreshDependencies",
+          "when": "view == loomDependencies",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "loom.removePortalBreakpoint",
+          "when": "view == loomPortalBreakpoints",
+          "group": "inline"
+        }
+      ]
+    },
+    "taskDefinitions": [
+      {
+        "type": "loom",
+        "required": ["command"],
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The loom command to run (run, build, test, script:name)"
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Working directory"
+          },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Additional arguments"
+          }
+        }
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "loom",
+        "owner": "loom",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [
+          {
+            "regexp": "^(error|warning|info):\\s+(.+)$",
+            "severity": 1,
+            "message": 2
+          },
+          {
+            "regexp": "^\\s+-->\\s+(.+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      }
+    ],
+    "terminal": {
+      "profiles": [
+        {
+          "id": "loom.repl",
+          "title": "Loom REPL",
+          "icon": "terminal"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --external:vscode-languageclient --format=cjs --platform=node",
+    "watch": "npm run build -- --watch",
+    "lint": "eslint src/**/*.ts",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

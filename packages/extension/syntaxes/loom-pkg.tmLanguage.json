@@ -9,8 +9,10 @@
     { "include": "#top-level-keys" },
     { "include": "#dependency-entry" },
     { "include": "#target-directive" },
+    { "include": "#native-directive" },
     { "include": "#strings" },
     { "include": "#version-constraint" },
+    { "include": "#boolean-value" },
     { "include": "#identifiers" }
   ],
   "repository": {
@@ -26,7 +28,7 @@
       }
     },
     "top-level-keys": {
-      "match": "^\\s*(package|version|loom)\\s+(.+)$",
+      "match": "^\\s*(package|version|loom|stable_abi|abi_version)\\s+(.+)$",
       "captures": {
         "1": { "name": "keyword.other.definition.loom-pkg" },
         "2": { "name": "string.unquoted.value.loom-pkg" }
@@ -46,6 +48,18 @@
         "2": { "name": "entity.name.namespace.loom-pkg" }
       }
     },
+    "native-directive": {
+      "comment": "Native build directives: link, link_path, framework (v0.6)",
+      "match": "^\\s*(link|link_path|framework)\\s+(.+)$",
+      "captures": {
+        "1": { "name": "keyword.control.native.loom-pkg" },
+        "2": { "name": "string.unquoted.value.loom-pkg" }
+      }
+    },
+    "boolean-value": {
+      "name": "constant.language.boolean.loom-pkg",
+      "match": "\\b(true|false)\\b"
+    },
     "strings": {
       "patterns": [
         {
@@ -62,7 +76,7 @@
     },
     "version-constraint": {
       "name": "constant.numeric.version.loom-pkg",
-      "match": "\\b[0-9]+\\.[0-9]+(\\.[0-9]+)?\\b"
+      "match": "\\b[0-9]+(\\.[0-9]+){0,2}\\b"
     },
     "identifiers": {
       "name": "variable.other.loom-pkg",

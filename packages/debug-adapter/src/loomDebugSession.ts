@@ -23,9 +23,10 @@ import * as path from 'path';
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   program: string;
   args?: string[];
-  target?: string;
+  target?: string; // cli | browser | service | desktop | native
   env?: Record<string, string>;
   enableTimeTravel?: boolean;
+  traceLevel?: 'off' | 'minimal' | 'full';
   portalBreakpoints?: string[];
   stopOnEntry?: boolean;
 }
@@ -165,7 +166,8 @@ export class LoomDebugSession extends LoggingDebugSession {
         args.args || [],
         args.target || 'cli',
         args.env || {},
-        args.enableTimeTravel || false
+        args.enableTimeTravel || false,
+        args.traceLevel || 'off'
       );
 
       // Set portal breakpoints if specified
@@ -276,6 +278,9 @@ export class LoomDebugSession extends LoggingDebugSession {
         );
         if (f.isPortal) {
           sf.presentationHint = 'subtle';
+        }
+        if (f.execMode === 'native') {
+          sf.presentationHint = 'label';
         }
         return sf;
       }),

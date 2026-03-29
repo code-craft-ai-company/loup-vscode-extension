@@ -19,8 +19,11 @@ export interface LoomStackFrame {
   source: string;
   line: number;
   column: number;
+  execMode?: 'interpreted' | 'compiled' | 'native';
+  traceLevel?: 'off' | 'minimal' | 'full';
   isPortal?: boolean;
   portalName?: string;
+  portalCondition?: string;
 }
 
 export interface LoomVariable {
@@ -69,10 +72,13 @@ export class LoomRuntime extends EventEmitter {
 
   // ---- Lifecycle ----
 
-  async launch(program: string, args: string[], target: string, env: Record<string, string>, enableTimeTravel: boolean): Promise<void> {
+  async launch(program: string, args: string[], target: string, env: Record<string, string>, enableTimeTravel: boolean, traceLevel?: string): Promise<void> {
     const loomArgs = ['run', program, '--target', target];
     if (enableTimeTravel) {
       loomArgs.push('--enable-time-travel');
+    }
+    if (traceLevel && traceLevel !== 'off') {
+      loomArgs.push('--trace-level', traceLevel);
     }
     if (args.length > 0) {
       loomArgs.push('--', ...args);
@@ -236,6 +242,10 @@ export class LoomRuntime extends EventEmitter {
     this.sendCommand({ command: 'deactivatePortal', name });
   }
 
+  activatePortalWithCondition(name: string, condition: string): void {
+    this.sendCommand({ command: 'activatePortal', name, condition });
+  }
+
   // ---- Internal ----
 
   private handleDebugMessage(msg: Record<string, unknown>): void {
@@ -252,8 +262,11 @@ export class LoomRuntime extends EventEmitter {
             source: String(f['source'] || ''),
             line: Number(f['line'] || 0),
             column: Number(f['column'] || 0),
+            execMode: (f['execMode'] as LoomStackFrame['execMode']) || 'interpreted',
+            traceLevel: (f['traceLevel'] as LoomStackFrame['traceLevel']) || 'off',
             isPortal: Boolean(f['isPortal']),
             portalName: f['portalName'] as string | undefined,
+            portalCondition: f['portalCondition'] as string | undefined,
           }));
         }
 

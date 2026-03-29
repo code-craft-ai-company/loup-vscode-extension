@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Lexer — Tokenizer for Loom v0.4
+// Loom Lexer — Tokenizer for Loom v0.6
 // ============================================================================
 
 export enum TokenKind {
@@ -8,6 +8,8 @@ export enum TokenKind {
   FloatLiteral = 'FloatLiteral',
   StringLiteral = 'StringLiteral',
   MultilineStringLiteral = 'MultilineStringLiteral',
+  BytesLiteral = 'BytesLiteral',
+  RawStringLiteral = 'RawStringLiteral',
   TemplateFenceOpen = 'TemplateFenceOpen',
   TemplateFenceClose = 'TemplateFenceClose',
 
@@ -31,19 +33,26 @@ export enum TokenKind {
   Finally = 'finally',
   Await = 'await',
   Spawn = 'spawn',
+  Yield = 'yield',
+  Suspend = 'suspend',
 
   // Keywords — declarations
   Let = 'let',
   Var = 'var',
   Fun = 'fun',
   Async = 'async',
+  Gen = 'gen',
   Class = 'class',
   Dynamic = 'dynamic',
+  Abstract = 'abstract',
   Interface = 'interface',
   Enum = 'enum',
+  Struct = 'struct',
   Extern = 'extern',
   Pub = 'pub',
   Static = 'static',
+  Type = 'type',
+  Macro = 'macro',
 
   // Keywords — misc
   From = 'from',
@@ -51,6 +60,9 @@ export enum TokenKind {
   As = 'as',
   In = 'in',
   Is = 'is',
+  Not = 'not',
+  Instanceof = 'instanceof',
+  Typeof = 'typeof',
   Defer = 'defer',
   With = 'with',
   Portal = 'portal',
@@ -58,10 +70,25 @@ export enum TokenKind {
   Js = 'js',
   Native = 'native',
   Val = 'val',
+  New = 'new',
+  Del = 'del',
+  Global = 'global',
+  Nonlocal = 'nonlocal',
+  Implements = 'implements',
+  Operator = 'operator',
+  Fn = 'fn',
+  Get = 'get',
+  Set = 'set',
+  Box = 'box',
 
-  // Booleans
+  // Field qualifiers
+  Weak = 'weak',
+  Unowned = 'unowned',
+
+  // Booleans & none
   True = 'true',
   False = 'false',
+  None = 'none',
 
   // Operators
   Plus = '+',
@@ -69,7 +96,24 @@ export enum TokenKind {
   Star = '*',
   Slash = '/',
   Percent = '%',
+  StarStar = '**',
+  Tilde = '~',
+  Ampersand = '&',
+  Caret = '^',
+  ShiftLeft = '<<',
+  ShiftRight = '>>',
   Assign = '=',
+  PlusAssign = '+=',
+  MinusAssign = '-=',
+  StarAssign = '*=',
+  SlashAssign = '/=',
+  PercentAssign = '%=',
+  StarStarAssign = '**=',
+  AmpersandAssign = '&=',
+  PipeAssign = '|=',
+  CaretAssign = '^=',
+  ShiftLeftAssign = '<<=',
+  ShiftRightAssign = '>>=',
   EqualEqual = '==',
   BangEqual = '!=',
   LessThan = '<',
@@ -97,6 +141,7 @@ export enum TokenKind {
   Comma = ',',
   Semicolon = ';',
   At = '@',
+  Hash = '#',
 
   // Dynamic field access
   BangLeftBrace = '!{',
@@ -109,6 +154,7 @@ export enum TokenKind {
 
   // Comments
   LineComment = 'LineComment',
+  DocComment = 'DocComment',
   BlockComment = 'BlockComment',
 
   // Special
@@ -141,22 +187,32 @@ const KEYWORDS: Record<string, TokenKind> = {
   'finally': TokenKind.Finally,
   'await': TokenKind.Await,
   'spawn': TokenKind.Spawn,
+  'yield': TokenKind.Yield,
+  'suspend': TokenKind.Suspend,
   'let': TokenKind.Let,
   'var': TokenKind.Var,
   'fun': TokenKind.Fun,
   'async': TokenKind.Async,
+  'gen': TokenKind.Gen,
   'class': TokenKind.Class,
   'dynamic': TokenKind.Dynamic,
+  'abstract': TokenKind.Abstract,
   'interface': TokenKind.Interface,
   'enum': TokenKind.Enum,
+  'struct': TokenKind.Struct,
   'extern': TokenKind.Extern,
   'pub': TokenKind.Pub,
   'static': TokenKind.Static,
+  'type': TokenKind.Type,
+  'macro': TokenKind.Macro,
   'from': TokenKind.From,
   'import': TokenKind.Import,
   'as': TokenKind.As,
   'in': TokenKind.In,
   'is': TokenKind.Is,
+  'not': TokenKind.Not,
+  'instanceof': TokenKind.Instanceof,
+  'typeof': TokenKind.Typeof,
   'defer': TokenKind.Defer,
   'with': TokenKind.With,
   'portal': TokenKind.Portal,
@@ -164,8 +220,21 @@ const KEYWORDS: Record<string, TokenKind> = {
   'js': TokenKind.Js,
   'native': TokenKind.Native,
   'val': TokenKind.Val,
+  'new': TokenKind.New,
+  'del': TokenKind.Del,
+  'global': TokenKind.Global,
+  'nonlocal': TokenKind.Nonlocal,
+  'implements': TokenKind.Implements,
+  'operator': TokenKind.Operator,
+  'fn': TokenKind.Fn,
+  'get': TokenKind.Get,
+  'set': TokenKind.Set,
+  'box': TokenKind.Box,
+  'weak': TokenKind.Weak,
+  'unowned': TokenKind.Unowned,
   'true': TokenKind.True,
   'false': TokenKind.False,
+  'none': TokenKind.None,
 };
 
 export class Lexer {
@@ -184,6 +253,14 @@ export class Lexer {
     this.pos = 0;
     this.line = 0;
     this.column = 0;
+
+    // Skip shebang on line 1
+    if (this.source.startsWith('#!')) {
+      while (this.pos < this.source.length && this.source[this.pos] !== '\n') {
+        this.pos++;
+        this.column++;
+      }
+    }
 
     while (this.pos < this.source.length) {
       this.skipWhitespace();
@@ -204,6 +281,10 @@ export class Lexer {
     const ch = this.source[this.pos];
     const next = this.pos + 1 < this.source.length ? this.source[this.pos + 1] : '';
 
+    // Doc comments (must come before line comments)
+    if (ch === '/' && next === '/' && this.peek(2) === '/') {
+      return this.readDocComment();
+    }
     // Line comments
     if (ch === '/' && next === '/') {
       return this.readLineComment();
@@ -226,6 +307,16 @@ export class Lexer {
       return this.readMultilineString("'");
     }
 
+    // Bytes literal: b"..." or b'...'
+    if (ch === 'b' && (next === '"' || next === "'")) {
+      return this.readBytesLiteral(next);
+    }
+
+    // Raw string literal: r"..." or r'...'
+    if (ch === 'r' && (next === '"' || next === "'")) {
+      return this.readRawString(next);
+    }
+
     // Strings
     if (ch === '"') return this.readString('"');
     if (ch === "'") return this.readString("'");
@@ -243,7 +334,23 @@ export class Lexer {
       return this.makeToken(TokenKind.At, '@', start);
     }
 
+    // Three-char operators
+    if (ch === '*' && next === '*' && this.peek(2) === '=') return this.readFixed(TokenKind.StarStarAssign, 3);
+    if (ch === '<' && next === '<' && this.peek(2) === '=') return this.readFixed(TokenKind.ShiftLeftAssign, 3);
+    if (ch === '>' && next === '>' && this.peek(2) === '=') return this.readFixed(TokenKind.ShiftRightAssign, 3);
+
     // Two-char operators
+    if (ch === '*' && next === '*') return this.readFixed(TokenKind.StarStar, 2);
+    if (ch === '<' && next === '<') return this.readFixed(TokenKind.ShiftLeft, 2);
+    if (ch === '>' && next === '>') return this.readFixed(TokenKind.ShiftRight, 2);
+    if (ch === '+' && next === '=') return this.readFixed(TokenKind.PlusAssign, 2);
+    if (ch === '-' && next === '=') return this.readFixed(TokenKind.MinusAssign, 2);
+    if (ch === '*' && next === '=') return this.readFixed(TokenKind.StarAssign, 2);
+    if (ch === '/' && next === '=') return this.readFixed(TokenKind.SlashAssign, 2);
+    if (ch === '%' && next === '=') return this.readFixed(TokenKind.PercentAssign, 2);
+    if (ch === '&' && next === '=') return this.readFixed(TokenKind.AmpersandAssign, 2);
+    if (ch === '|' && next === '=') return this.readFixed(TokenKind.PipeAssign, 2);
+    if (ch === '^' && next === '=') return this.readFixed(TokenKind.CaretAssign, 2);
     if (ch === '=' && next === '>') return this.readFixed(TokenKind.Arrow, 2);
     if (ch === '=' && next === '=') return this.readFixed(TokenKind.EqualEqual, 2);
     if (ch === '!' && next === '=') return this.readFixed(TokenKind.BangEqual, 2);
@@ -272,6 +379,9 @@ export class Lexer {
       '!': TokenKind.Bang,
       '?': TokenKind.Question,
       '|': TokenKind.Pipe,
+      '&': TokenKind.Ampersand,
+      '^': TokenKind.Caret,
+      '~': TokenKind.Tilde,
       '.': TokenKind.Dot,
       ':': TokenKind.Colon,
       '(': TokenKind.LeftParen,
@@ -295,6 +405,15 @@ export class Lexer {
     this.pos++;
     this.column++;
     return this.makeToken(TokenKind.Error, ch, start);
+  }
+
+  private readDocComment(): Token {
+    const start = this.pos;
+    while (this.pos < this.source.length && this.source[this.pos] !== '\n') {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken(TokenKind.DocComment, this.source.slice(start, this.pos), start);
   }
 
   private readLineComment(): Token {
@@ -355,6 +474,57 @@ export class Lexer {
       this.column++;
     }
     return this.makeToken(TokenKind.StringLiteral, this.source.slice(start, this.pos), start);
+  }
+
+  private readBytesLiteral(quote: string): Token {
+    const start = this.pos;
+    this.pos++; // skip 'b'
+    this.column++;
+    this.pos++; // skip opening quote
+    this.column++;
+    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
+      if (this.source[this.pos] === '\\') {
+        this.pos++;
+        this.column++;
+      }
+      if (this.pos < this.source.length) {
+        if (this.source[this.pos] === '\n') {
+          this.line++;
+          this.column = 0;
+        } else {
+          this.column++;
+        }
+        this.pos++;
+      }
+    }
+    if (this.pos < this.source.length) {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken(TokenKind.BytesLiteral, this.source.slice(start, this.pos), start);
+  }
+
+  private readRawString(quote: string): Token {
+    const start = this.pos;
+    this.pos++; // skip 'r'
+    this.column++;
+    this.pos++; // skip opening quote
+    this.column++;
+    // Raw strings do not process escapes
+    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
+      if (this.source[this.pos] === '\n') {
+        this.line++;
+        this.column = 0;
+      } else {
+        this.column++;
+      }
+      this.pos++;
+    }
+    if (this.pos < this.source.length) {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken(TokenKind.RawStringLiteral, this.source.slice(start, this.pos), start);
   }
 
   private readMultilineString(quote: string): Token {

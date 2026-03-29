@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Parser — Recursive-descent, error-recovering parser for Loom v0.4
+// Loom Parser — Recursive-descent, error-recovering parser for Loom v0.6
 // ============================================================================
 
 import { Lexer, Token, TokenKind } from './lexer.js';
@@ -15,7 +15,7 @@ export class Parser {
     this.source = source;
     const lexer = new Lexer(source);
     this.tokens = lexer.tokenize().filter(
-      t => t.kind !== TokenKind.LineComment && t.kind !== TokenKind.BlockComment
+      t => t.kind !== TokenKind.LineComment && t.kind !== TokenKind.BlockComment && t.kind !== TokenKind.DocComment
     );
     this.pos = 0;
     this.diagnostics = [];
@@ -34,6 +34,7 @@ export class Parser {
     const program: AST.Program = {
       kind: 'Program',
       statements,
+      isCompiled: false,
       range: {
         start: { line: 0, column: 0, offset: 0 },
         end: this.currentPos(),
@@ -67,16 +68,27 @@ export class Parser {
     switch (kind) {
       case TokenKind.Let: return this.parseLetDecl();
       case TokenKind.Var: return this.parseVarDecl();
-      case TokenKind.Fun: return this.parseFunDecl(false, false);
-      case TokenKind.Async: return this.parseAsyncFunDecl(false, false);
-      case TokenKind.Class: return this.parseClassDecl(false);
+      case TokenKind.Fun: return this.parseFunDecl(false, false, false);
+      case TokenKind.Async:
+        if (this.peekKind(1) === TokenKind.Gen) return this.parseAsyncGenFunDecl(false, false);
+        if (this.peekKind(1) === TokenKind.Fun) return this.parseAsyncFunDecl(false, false, false);
+        return this.parseExpressionStmt();
+      case TokenKind.Gen: return this.parseGenFunDecl(false, false);
+      case TokenKind.Class: return this.parseClassDecl(false, false);
+      case TokenKind.Abstract:
+        if (this.peekKind(1) === TokenKind.Class) return this.parseClassDecl(false, true);
+        return this.parseExpressionStmt();
       case TokenKind.Dynamic:
-        if (this.peekKind(1) === TokenKind.Class) return this.parseClassDecl(true);
+        if (this.peekKind(1) === TokenKind.Class) return this.parseClassDecl(true, false);
         return this.parseDynamicViewStmt();
       case TokenKind.Enum: return this.parseEnumDecl();
+      case TokenKind.Struct: return this.parseStructDecl();
       case TokenKind.Interface: return this.parseInterfaceDecl();
+      case TokenKind.Type: return this.parseTypeAliasDecl();
+      case TokenKind.Macro: return this.parseMacroDecl();
       case TokenKind.From: return this.parseImportStmt();
       case TokenKind.Extern: return this.parseExternDecl();
+      case TokenKind.Operator: return this.parseOperatorFunDecl(false, false);
       case TokenKind.If: return this.parseIfStmt();
       case TokenKind.While: return this.parseWhileStmt();
       case TokenKind.For: return this.parseForStmt();
@@ -85,6 +97,10 @@ export class Parser {
       case TokenKind.With: return this.parseWithStmt();
       case TokenKind.Defer: return this.parseDeferStmt();
       case TokenKind.Portal: return this.parsePortalStmt();
+      case TokenKind.Del: return this.parseDelStmt();
+      case TokenKind.Global: return this.parseGlobalDecl();
+      case TokenKind.Nonlocal: return this.parseNonlocalDecl();
+      case TokenKind.Yield: return this.parseYieldStmt();
       case TokenKind.Match: return this.parseMatchExprAsStmt();
       case TokenKind.Await:
         if (this.peekKind(1) === TokenKind.Group) return this.parseAwaitGroupStmt();
@@ -117,16 +133,27 @@ export class Parser {
 
   private parsePubDeclaration(): AST.Statement {
     this.advance(); // consume pub
+    if (this.check(TokenKind.From)) return this.parseReExportStmt();
     if (this.check(TokenKind.Static)) {
       this.advance(); // consume static
-      if (this.check(TokenKind.Fun)) return this.parseFunDecl(true, true);
-      if (this.check(TokenKind.Async)) return this.parseAsyncFunDecl(true, true);
+      if (this.check(TokenKind.Fun)) return this.parseFunDecl(true, true, false);
+      if (this.check(TokenKind.Async)) return this.parseAsyncFunDecl(true, true, false);
+      if (this.check(TokenKind.Operator)) return this.parseOperatorFunDecl(true, true);
     }
-    if (this.check(TokenKind.Fun)) return this.parseFunDecl(true, false);
-    if (this.check(TokenKind.Async)) return this.parseAsyncFunDecl(true, false);
+    if (this.check(TokenKind.Abstract)) {
+      this.advance();
+      if (this.check(TokenKind.Fun)) return this.parseFunDecl(true, false, true);
+      if (this.check(TokenKind.Class)) return this.parseClassDecl(false, true);
+    }
+    if (this.check(TokenKind.Fun)) return this.parseFunDecl(true, false, false);
+    if (this.check(TokenKind.Async)) {
+      if (this.peekKind(1) === TokenKind.Gen) return this.parseAsyncGenFunDecl(true, false);
+      return this.parseAsyncFunDecl(true, false, false);
+    }
+    if (this.check(TokenKind.Gen)) return this.parseGenFunDecl(true, false);
+    if (this.check(TokenKind.Operator)) return this.parseOperatorFunDecl(true, false);
     if (this.check(TokenKind.Let)) return this.parseLetDecl();
     if (this.check(TokenKind.Var)) return this.parseVarDecl();
-    // pub field: could be a class member
     return this.parseExpressionStmt();
   }
 
@@ -150,7 +177,7 @@ export class Parser {
     return { kind: 'VarDecl', name, typeAnnotation, initializer, range: this.rangeFrom(start) };
   }
 
-  private parseFunDecl(isPublic: boolean, isStatic: boolean): AST.FunDecl {
+  private parseFunDecl(isPublic: boolean, isStatic: boolean, isAbstract: boolean): AST.FunDecl {
     const start = this.current();
     this.expect(TokenKind.Fun);
     const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
@@ -160,10 +187,10 @@ export class Parser {
     this.expect(TokenKind.RightParen);
     const returnType = this.check(TokenKind.Colon) ? (this.advance(), this.parseTypeExpr()) : undefined;
     const body = this.parseBlock();
-    return { kind: 'FunDecl', name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
+    return { kind: 'FunDecl', name, params, returnType, body, isPublic, isStatic, isAbstract, isOperator: false, typeParams, range: this.rangeFrom(start) };
   }
 
-  private parseAsyncFunDecl(isPublic: boolean, isStatic: boolean): AST.AsyncFunDecl {
+  private parseAsyncFunDecl(isPublic: boolean, isStatic: boolean, isAbstract: boolean): AST.AsyncFunDecl {
     const start = this.current();
     this.expect(TokenKind.Async);
     this.expect(TokenKind.Fun);
@@ -174,19 +201,29 @@ export class Parser {
     this.expect(TokenKind.RightParen);
     const returnType = this.check(TokenKind.Colon) ? (this.advance(), this.parseTypeExpr()) : undefined;
     const body = this.parseBlock();
-    return { kind: 'AsyncFunDecl', name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
+    return { kind: 'AsyncFunDecl', name, params, returnType, body, isPublic, isStatic, isAbstract, typeParams, range: this.rangeFrom(start) };
   }
 
-  private parseClassDecl(isDynamic: boolean): AST.ClassDecl {
+  private parseClassDecl(isDynamic: boolean, isAbstract: boolean): AST.ClassDecl {
     const start = this.current();
     if (isDynamic) this.advance(); // consume 'dynamic'
+    if (isAbstract) this.advance(); // consume 'abstract'
     this.expect(TokenKind.Class);
     const name = this.expect(TokenKind.TypeIdentifier).text;
     const typeParams = this.parseOptionalTypeParams();
     let superClass: string | undefined;
+    const implementsList: string[] = [];
     if (this.check(TokenKind.Colon)) {
       this.advance();
       superClass = this.expect(TokenKind.TypeIdentifier).text;
+    }
+    if (this.check(TokenKind.Implements)) {
+      this.advance();
+      implementsList.push(this.expect(TokenKind.TypeIdentifier).text);
+      while (this.check(TokenKind.Comma)) {
+        this.advance();
+        implementsList.push(this.expect(TokenKind.TypeIdentifier).text);
+      }
     }
     this.expect(TokenKind.LeftBrace);
     const members: AST.Statement[] = [];
@@ -195,7 +232,7 @@ export class Parser {
       if (mem) members.push(mem);
     }
     this.expect(TokenKind.RightBrace);
-    return { kind: 'ClassDecl', name, isDynamic, superClass, members, typeParams, range: this.rangeFrom(start) };
+    return { kind: 'ClassDecl', name, isDynamic, isAbstract, superClass, implements: implementsList.length > 0 ? implementsList : undefined, members, typeParams, range: this.rangeFrom(start) };
   }
 
   private parseEnumDecl(): AST.EnumDecl {
@@ -330,15 +367,25 @@ export class Parser {
     if (this.check(TokenKind.Native)) {
       this.advance();
       const library = this.expect(TokenKind.StringLiteral).text.slice(1, -1);
-      this.expect(TokenKind.Fun);
-      const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
-      this.expect(TokenKind.LeftParen);
-      const params = this.parseParamList();
-      this.expect(TokenKind.RightParen);
-      this.expect(TokenKind.Colon);
-      const returnType = this.parseTypeExpr();
-      this.expect(TokenKind.Semicolon);
-      return { kind: 'ExternNativeFunDecl', library, name, params, returnType, range: this.rangeFrom(start) };
+      if (this.check(TokenKind.Fun)) {
+        this.expect(TokenKind.Fun);
+        const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
+        this.expect(TokenKind.LeftParen);
+        const params = this.parseParamList();
+        this.expect(TokenKind.RightParen);
+        this.expect(TokenKind.Colon);
+        const returnType = this.parseTypeExpr();
+        this.expect(TokenKind.Semicolon);
+        return { kind: 'ExternNativeFunDecl', library, name, params, returnType, range: this.rangeFrom(start) };
+      }
+      if (this.check(TokenKind.Val)) {
+        this.advance();
+        const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
+        this.expect(TokenKind.Colon);
+        const type = this.parseTypeExpr();
+        this.expect(TokenKind.Semicolon);
+        return { kind: 'ExternNativeValDecl', library, name, type, range: this.rangeFrom(start) };
+      }
     }
 
     this.addDiagnostic('Expected "js" or "native" after "extern"', start);
@@ -559,8 +606,181 @@ export class Parser {
     const start = this.current();
     this.expect(TokenKind.Throw);
     const value = this.parseExpression();
+    let from: AST.Expression | undefined;
+    if (this.check(TokenKind.From)) {
+      this.advance();
+      from = this.parseExpression();
+    }
     this.expect(TokenKind.Semicolon);
-    return { kind: 'ThrowStmt', value, range: this.rangeFrom(start) };
+    return { kind: 'ThrowStmt', value, from, range: this.rangeFrom(start) };
+  }
+
+  // ---- v0.6 new declaration parsers ----
+
+  private parseGenFunDecl(isPublic: boolean, isStatic: boolean): AST.GenFunDecl {
+    const start = this.current();
+    this.expect(TokenKind.Gen);
+    this.expect(TokenKind.Fun);
+    const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
+    const typeParams = this.parseOptionalTypeParams();
+    this.expect(TokenKind.LeftParen);
+    const params = this.parseParamList();
+    this.expect(TokenKind.RightParen);
+    const returnType = this.check(TokenKind.Colon) ? (this.advance(), this.parseTypeExpr()) : undefined;
+    const body = this.parseBlock();
+    return { kind: 'GenFunDecl', name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
+  }
+
+  private parseAsyncGenFunDecl(isPublic: boolean, isStatic: boolean): AST.AsyncGenFunDecl {
+    const start = this.current();
+    this.expect(TokenKind.Async);
+    this.expect(TokenKind.Gen);
+    this.expect(TokenKind.Fun);
+    const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
+    const typeParams = this.parseOptionalTypeParams();
+    this.expect(TokenKind.LeftParen);
+    const params = this.parseParamList();
+    this.expect(TokenKind.RightParen);
+    const returnType = this.check(TokenKind.Colon) ? (this.advance(), this.parseTypeExpr()) : undefined;
+    const body = this.parseBlock();
+    return { kind: 'AsyncGenFunDecl', name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
+  }
+
+  private parseOperatorFunDecl(isPublic: boolean, isStatic: boolean): AST.FunDecl {
+    const start = this.current();
+    this.expect(TokenKind.Operator);
+    this.expect(TokenKind.Fun);
+    const name = this.advance().text; // operator name (e.g., +, -, ==, [], etc.)
+    this.expect(TokenKind.LeftParen);
+    const params = this.parseParamList();
+    this.expect(TokenKind.RightParen);
+    const returnType = this.check(TokenKind.Colon) ? (this.advance(), this.parseTypeExpr()) : undefined;
+    const body = this.parseBlock();
+    return { kind: 'FunDecl', name, params, returnType, body, isPublic, isStatic, isAbstract: false, isOperator: true, range: this.rangeFrom(start) };
+  }
+
+  private parseStructDecl(): AST.StructDecl {
+    const start = this.current();
+    this.expect(TokenKind.Struct);
+    const name = this.expect(TokenKind.TypeIdentifier).text;
+    const typeParams = this.parseOptionalTypeParams();
+    const implementsList: string[] = [];
+    if (this.check(TokenKind.Implements)) {
+      this.advance();
+      implementsList.push(this.expect(TokenKind.TypeIdentifier).text);
+      while (this.check(TokenKind.Comma)) {
+        this.advance();
+        implementsList.push(this.expect(TokenKind.TypeIdentifier).text);
+      }
+    }
+    this.expect(TokenKind.LeftBrace);
+    const fields: AST.StructField[] = [];
+    const methods: (AST.FunDecl | AST.AsyncFunDecl)[] = [];
+    while (!this.check(TokenKind.RightBrace) && !this.isAtEnd()) {
+      if (this.check(TokenKind.Fun) || this.check(TokenKind.Pub) || this.check(TokenKind.Async) || this.check(TokenKind.Static) || this.check(TokenKind.Operator)) {
+        const stmt = this.parseStatement();
+        if (stmt && (stmt.kind === 'FunDecl' || stmt.kind === 'AsyncFunDecl')) {
+          methods.push(stmt as AST.FunDecl | AST.AsyncFunDecl);
+        }
+      } else {
+        // Parse field: [qualifier] name: Type [= default];
+        const fStart = this.current();
+        let qualifier: 'weak' | 'unowned' | undefined;
+        if (this.check(TokenKind.Weak)) { qualifier = 'weak'; this.advance(); }
+        else if (this.check(TokenKind.Unowned)) { qualifier = 'unowned'; this.advance(); }
+        const fName = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
+        this.expect(TokenKind.Colon);
+        const fType = this.parseTypeExpr();
+        let defaultValue: AST.Expression | undefined;
+        if (this.check(TokenKind.Assign)) {
+          this.advance();
+          defaultValue = this.parseExpression();
+        }
+        this.expect(TokenKind.Semicolon);
+        fields.push({ kind: 'StructField', name: fName, type: fType, defaultValue, qualifier, range: this.rangeFrom(fStart) });
+      }
+    }
+    this.expect(TokenKind.RightBrace);
+    return { kind: 'StructDecl', name, fields, methods, implements: implementsList.length > 0 ? implementsList : undefined, typeParams, range: this.rangeFrom(start) };
+  }
+
+  private parseTypeAliasDecl(): AST.TypeAliasDecl {
+    const start = this.current();
+    this.expect(TokenKind.Type);
+    const name = this.expect(TokenKind.TypeIdentifier).text;
+    const typeParams = this.parseOptionalTypeParams();
+    this.expect(TokenKind.Assign);
+    const value = this.parseTypeExpr();
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'TypeAliasDecl', name, typeParams, value, range: this.rangeFrom(start) };
+  }
+
+  private parseMacroDecl(): AST.MacroDecl {
+    const start = this.current();
+    this.expect(TokenKind.Macro);
+    const name = this.expect(TokenKind.Identifier).text;
+    this.expect(TokenKind.LeftParen);
+    const params = this.parseParamList();
+    this.expect(TokenKind.RightParen);
+    const body = this.parseBlock();
+    return { kind: 'MacroDecl', name, params, body, range: this.rangeFrom(start) };
+  }
+
+  private parseReExportStmt(): AST.ReExportStmt {
+    const start = this.current();
+    this.expect(TokenKind.From);
+    let path = '';
+    while (!this.check(TokenKind.Import) && !this.isAtEnd()) {
+      path += this.advance().text;
+    }
+    path = path.trim();
+    this.expect(TokenKind.Import);
+    this.expect(TokenKind.LeftParen);
+    const names = this.parseImportNames();
+    this.expect(TokenKind.RightParen);
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'ReExportStmt', path, names, range: this.rangeFrom(start) };
+  }
+
+  private parseDelStmt(): AST.DelStmt {
+    const start = this.current();
+    this.expect(TokenKind.Del);
+    const target = this.parseExpression();
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'DelStmt', target, range: this.rangeFrom(start) };
+  }
+
+  private parseGlobalDecl(): AST.GlobalDecl {
+    const start = this.current();
+    this.expect(TokenKind.Global);
+    const name = this.expect(TokenKind.Identifier).text;
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'GlobalDecl', name, range: this.rangeFrom(start) };
+  }
+
+  private parseNonlocalDecl(): AST.NonlocalDecl {
+    const start = this.current();
+    this.expect(TokenKind.Nonlocal);
+    const name = this.expect(TokenKind.Identifier).text;
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'NonlocalDecl', name, range: this.rangeFrom(start) };
+  }
+
+  private parseYieldStmt(): AST.YieldStmt | AST.YieldFromStmt {
+    const start = this.current();
+    this.expect(TokenKind.Yield);
+    if (this.check(TokenKind.Star)) {
+      this.advance();
+      const iterable = this.parseExpression();
+      this.expect(TokenKind.Semicolon);
+      return { kind: 'YieldFromStmt', iterable, range: this.rangeFrom(start) };
+    }
+    let value: AST.Expression | undefined;
+    if (!this.check(TokenKind.Semicolon) && !this.check(TokenKind.RightBrace)) {
+      value = this.parseExpression();
+    }
+    this.expect(TokenKind.Semicolon);
+    return { kind: 'YieldStmt', value, range: this.rangeFrom(start) };
   }
 
   private parseLabeledStmt(): AST.Statement {
@@ -594,14 +814,50 @@ export class Parser {
   }
 
   private parseAssignment(): AST.Expression {
-    const left = this.parseNullCoalesce();
+    const left = this.parseTernary();
     if (this.check(TokenKind.Assign)) {
       const start = this.tokens[this.pos - 1] || this.current();
       this.advance();
       const value = this.parseAssignment();
       return { kind: 'AssignExpr', target: left, value, range: this.rangeFrom(start) };
     }
+    // Compound assignment
+    const compoundOps = [
+      TokenKind.PlusAssign, TokenKind.MinusAssign, TokenKind.StarAssign,
+      TokenKind.SlashAssign, TokenKind.PercentAssign, TokenKind.StarStarAssign,
+      TokenKind.AmpersandAssign, TokenKind.PipeAssign, TokenKind.CaretAssign,
+      TokenKind.ShiftLeftAssign, TokenKind.ShiftRightAssign,
+    ];
+    for (const op of compoundOps) {
+      if (this.check(op)) {
+        const opText = this.advance().text;
+        const value = this.parseAssignment();
+        return { kind: 'CompoundAssignExpr', operator: opText, target: left, value, range: left.range };
+      }
+    }
     return left;
+  }
+
+  private parseTernary(): AST.Expression {
+    const condition = this.parseNullCoalesce();
+    if (this.check(TokenKind.Question) && !this.check(TokenKind.QuestionDot) && !this.check(TokenKind.QuestionQuestion)) {
+      // Look ahead to distinguish ternary (expr ? a : b) from propagation (expr?)
+      // If next-next is an expression followed by colon, it's ternary
+      const savedPos = this.pos;
+      this.advance(); // consume ?
+      try {
+        const consequent = this.parseExpression();
+        if (this.check(TokenKind.Colon)) {
+          this.advance();
+          const alternate = this.parseExpression();
+          return { kind: 'TernaryExpr', condition, consequent, alternate, range: condition.range };
+        }
+      } catch {
+        // Not a ternary, restore
+      }
+      this.pos = savedPos;
+    }
+    return condition;
   }
 
   private parseNullCoalesce(): AST.Expression {
@@ -627,12 +883,42 @@ export class Parser {
   }
 
   private parseAnd(): AST.Expression {
-    let left = this.parseEquality();
+    let left = this.parseBitwiseOr();
     while (this.check(TokenKind.And)) {
       const start = this.current();
       this.advance();
-      const right = this.parseEquality();
+      const right = this.parseBitwiseOr();
       left = { kind: 'BinaryExpr', operator: '&&', left, right, range: this.rangeFrom(start) };
+    }
+    return left;
+  }
+
+  private parseBitwiseOr(): AST.Expression {
+    let left = this.parseBitwiseXor();
+    while (this.check(TokenKind.Pipe)) {
+      this.advance();
+      const right = this.parseBitwiseXor();
+      left = { kind: 'BinaryExpr', operator: '|', left, right, range: left.range };
+    }
+    return left;
+  }
+
+  private parseBitwiseXor(): AST.Expression {
+    let left = this.parseBitwiseAnd();
+    while (this.check(TokenKind.Caret)) {
+      this.advance();
+      const right = this.parseBitwiseAnd();
+      left = { kind: 'BinaryExpr', operator: '^', left, right, range: left.range };
+    }
+    return left;
+  }
+
+  private parseBitwiseAnd(): AST.Expression {
+    let left = this.parseEquality();
+    while (this.check(TokenKind.Ampersand)) {
+      this.advance();
+      const right = this.parseEquality();
+      left = { kind: 'BinaryExpr', operator: '&', left, right, range: left.range };
     }
     return left;
   }
@@ -648,13 +934,23 @@ export class Parser {
   }
 
   private parseComparison(): AST.Expression {
-    let left = this.parseAddition();
+    let left = this.parseShift();
     while (
       this.check(TokenKind.LessThan) ||
       this.check(TokenKind.LessEqual) ||
       this.check(TokenKind.GreaterThan) ||
       this.check(TokenKind.GreaterEqual)
     ) {
+      const op = this.advance().text;
+      const right = this.parseShift();
+      left = { kind: 'BinaryExpr', operator: op, left, right, range: left.range };
+    }
+    return left;
+  }
+
+  private parseShift(): AST.Expression {
+    let left = this.parseAddition();
+    while (this.check(TokenKind.ShiftLeft) || this.check(TokenKind.ShiftRight)) {
       const op = this.advance().text;
       const right = this.parseAddition();
       left = { kind: 'BinaryExpr', operator: op, left, right, range: left.range };
@@ -673,21 +969,43 @@ export class Parser {
   }
 
   private parseMultiplication(): AST.Expression {
-    let left = this.parseUnary();
+    let left = this.parseExponentiation();
     while (this.check(TokenKind.Star) || this.check(TokenKind.Slash) || this.check(TokenKind.Percent)) {
       const op = this.advance().text;
-      const right = this.parseUnary();
+      const right = this.parseExponentiation();
       left = { kind: 'BinaryExpr', operator: op, left, right, range: left.range };
     }
     return left;
   }
 
+  private parseExponentiation(): AST.Expression {
+    const left = this.parseUnary();
+    if (this.check(TokenKind.StarStar)) {
+      const op = this.advance().text;
+      const right = this.parseExponentiation(); // right-associative
+      return { kind: 'BinaryExpr', operator: op, left, right, range: left.range };
+    }
+    return left;
+  }
+
   private parseUnary(): AST.Expression {
-    if (this.check(TokenKind.Bang) || this.check(TokenKind.Minus)) {
+    if (this.check(TokenKind.Bang) || this.check(TokenKind.Minus) || this.check(TokenKind.Tilde) || this.check(TokenKind.Not)) {
       const start = this.current();
       const op = this.advance().text;
       const operand = this.parseUnary();
       return { kind: 'UnaryExpr', operator: op, operand, range: this.rangeFrom(start) };
+    }
+    // Spread: *expr or **expr
+    if (this.check(TokenKind.Star)) {
+      const start = this.current();
+      this.advance();
+      if (this.check(TokenKind.Star)) {
+        this.advance();
+        const operand = this.parseUnary();
+        return { kind: 'SpreadExpr', operator: '**', expression: operand, range: this.rangeFrom(start) };
+      }
+      const operand = this.parseUnary();
+      return { kind: 'SpreadExpr', operator: '*', expression: operand, range: this.rangeFrom(start) };
     }
     return this.parsePostfix();
   }
@@ -716,9 +1034,30 @@ export class Parser {
         expr = { kind: 'OptionalChainExpr', object: expr, property, range: expr.range };
       } else if (this.check(TokenKind.LeftBracket)) {
         this.advance();
-        const index = this.parseExpression();
-        this.expect(TokenKind.RightBracket);
-        expr = { kind: 'IndexExpr', object: expr, index, range: expr.range };
+        // Check for slice: obj[start:end] or obj[start:end:step]
+        if (this.check(TokenKind.Colon)) {
+          // obj[:end] or obj[:end:step]
+          this.advance();
+          const end = this.check(TokenKind.RightBracket) || this.check(TokenKind.Colon) ? undefined : this.parseExpression();
+          let step: AST.Expression | undefined;
+          if (this.check(TokenKind.Colon)) { this.advance(); step = this.parseExpression(); }
+          this.expect(TokenKind.RightBracket);
+          expr = { kind: 'SliceExpr', object: expr, start: undefined, end, step, range: expr.range };
+        } else {
+          const first = this.parseExpression();
+          if (this.check(TokenKind.Colon)) {
+            // obj[start:end] or obj[start:end:step]
+            this.advance();
+            const end = this.check(TokenKind.RightBracket) || this.check(TokenKind.Colon) ? undefined : this.parseExpression();
+            let step: AST.Expression | undefined;
+            if (this.check(TokenKind.Colon)) { this.advance(); step = this.parseExpression(); }
+            this.expect(TokenKind.RightBracket);
+            expr = { kind: 'SliceExpr', object: expr, start: first, end, step, range: expr.range };
+          } else {
+            this.expect(TokenKind.RightBracket);
+            expr = { kind: 'IndexExpr', object: expr, index: first, range: expr.range };
+          }
+        }
       } else if (this.check(TokenKind.BangLeftBrace)) {
         this.advance();
         let field: string;
@@ -733,6 +1072,30 @@ export class Parser {
         // Propagation operator (postfix ?)
         this.advance();
         expr = { kind: 'PropagationExpr', expression: expr, range: expr.range };
+      } else if (this.check(TokenKind.As)) {
+        // Cast: expr as Type or expr as? Type
+        this.advance();
+        const safe = this.check(TokenKind.Question);
+        if (safe) this.advance();
+        const targetType = this.parseTypeExpr();
+        expr = { kind: 'CastExpr', expression: expr, targetType, safe, range: expr.range };
+      } else if (this.check(TokenKind.Is)) {
+        // Type check: expr is Type
+        this.advance();
+        // `is not` is a negated type check - but we handle it as a separate expression
+        if (this.check(TokenKind.Not)) {
+          this.advance();
+          const targetType = this.parseTypeExpr();
+          const isExpr: AST.IsExpr = { kind: 'IsExpr', expression: expr, targetType, range: expr.range };
+          expr = { kind: 'UnaryExpr', operator: 'not', operand: isExpr, range: expr.range };
+        } else {
+          const targetType = this.parseTypeExpr();
+          expr = { kind: 'IsExpr', expression: expr, targetType, range: expr.range };
+        }
+      } else if (this.check(TokenKind.Instanceof)) {
+        this.advance();
+        const targetType = this.parseTypeExpr();
+        expr = { kind: 'IsExpr', expression: expr, targetType, range: expr.range };
       } else {
         break;
       }
@@ -773,7 +1136,24 @@ export class Parser {
         this.advance();
         return { kind: 'BoolLiteral', value: false, range: this.tokenRange(token) };
 
+      case TokenKind.None:
+        this.advance();
+        return { kind: 'NoneLiteral', range: this.tokenRange(token) };
+
       case TokenKind.Identifier:
+        // Check for macro invocation: name!(...)
+        if (this.peekKind(1) === TokenKind.Bang && this.peekKind(2) === TokenKind.LeftParen) {
+          const macroName = this.advance().text;
+          this.advance(); // skip !
+          this.advance(); // skip (
+          const macroArgs: AST.Expression[] = [];
+          while (!this.check(TokenKind.RightParen) && !this.isAtEnd()) {
+            macroArgs.push(this.parseExpression());
+            if (this.check(TokenKind.Comma)) this.advance();
+          }
+          this.expect(TokenKind.RightParen);
+          return { kind: 'MacroInvocationExpr', name: macroName, args: macroArgs, range: this.tokenRange(token) };
+        }
         this.advance();
         return { kind: 'Identifier', name: token.text, range: this.tokenRange(token) };
 
@@ -806,6 +1186,35 @@ export class Parser {
         this.advance();
         return { kind: 'Identifier', name: 'async', range: this.tokenRange(token) };
 
+      case TokenKind.New: {
+        const start = token;
+        this.advance();
+        const className = this.advance().text;
+        this.expect(TokenKind.LeftParen);
+        const args: AST.Expression[] = [];
+        while (!this.check(TokenKind.RightParen) && !this.isAtEnd()) {
+          args.push(this.parseExpression());
+          if (this.check(TokenKind.Comma)) this.advance();
+        }
+        this.expect(TokenKind.RightParen);
+        return { kind: 'NewExpr', className, args, range: this.rangeFrom(start) };
+      }
+
+      case TokenKind.Box: {
+        const start = token;
+        this.advance();
+        const expression = this.parseUnary();
+        return { kind: 'BoxExpr', expression, range: this.rangeFrom(start) };
+      }
+
+      case TokenKind.BytesLiteral:
+        this.advance();
+        return { kind: 'BytesLiteral', value: token.text, range: this.tokenRange(token) };
+
+      case TokenKind.RawStringLiteral:
+        this.advance();
+        return { kind: 'StringLiteral', value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
+
       case TokenKind.LeftParen: {
         this.advance();
         const expression = this.parseExpression();
@@ -814,13 +1223,38 @@ export class Parser {
       }
 
       case TokenKind.LeftBracket: {
-        // List literal
+        // List literal or list comprehension
         const start = token;
         this.advance();
-        const elements: AST.Expression[] = [];
-        while (!this.check(TokenKind.RightBracket) && !this.isAtEnd()) {
+        if (this.check(TokenKind.RightBracket)) {
+          this.advance();
+          return { kind: 'ListLiteral', elements: [], range: this.rangeFrom(start) };
+        }
+        const firstExpr = this.parseExpression();
+        // Check for comprehension: [expr for (x in xs) if (cond)]
+        if (this.check(TokenKind.For)) {
+          this.advance();
+          this.expect(TokenKind.LeftParen);
+          const variable = this.expect(TokenKind.Identifier).text;
+          this.expect(TokenKind.In);
+          const iterable = this.parseExpression();
+          this.expect(TokenKind.RightParen);
+          let condition: AST.Expression | undefined;
+          if (this.check(TokenKind.If)) {
+            this.advance();
+            this.expect(TokenKind.LeftParen);
+            condition = this.parseExpression();
+            this.expect(TokenKind.RightParen);
+          }
+          this.expect(TokenKind.RightBracket);
+          return { kind: 'ComprehensionExpr', resultKind: 'list', body: firstExpr, variable, iterable, condition, range: this.rangeFrom(start) };
+        }
+        // Regular list literal
+        const elements: AST.Expression[] = [firstExpr];
+        while (this.check(TokenKind.Comma)) {
+          this.advance();
+          if (this.check(TokenKind.RightBracket)) break;
           elements.push(this.parseExpression());
-          if (this.check(TokenKind.Comma)) this.advance();
         }
         this.expect(TokenKind.RightBracket);
         return { kind: 'ListLiteral', elements, range: this.rangeFrom(start) };
@@ -948,7 +1382,7 @@ export class Parser {
     const token = this.current();
 
     // Function type: fn(params): ReturnType
-    if (this.check(TokenKind.Identifier) && token.text === 'fn') {
+    if (this.check(TokenKind.Fn)) {
       const start = token;
       this.advance();
       this.expect(TokenKind.LeftParen);
@@ -961,6 +1395,23 @@ export class Parser {
       this.expect(TokenKind.Colon);
       const returnType = this.parseTypeExpr();
       return { kind: 'FunctionType', params, returnType, range: this.rangeFrom(start) };
+    }
+
+    // Async function type: async fn(params): ReturnType
+    if (this.check(TokenKind.Async) && this.peekKind(1) === TokenKind.Fn) {
+      const start = token;
+      this.advance(); // async
+      this.advance(); // fn
+      this.expect(TokenKind.LeftParen);
+      const params: AST.TypeExpr[] = [];
+      while (!this.check(TokenKind.RightParen) && !this.isAtEnd()) {
+        params.push(this.parseTypeExpr());
+        if (this.check(TokenKind.Comma)) this.advance();
+      }
+      this.expect(TokenKind.RightParen);
+      this.expect(TokenKind.Colon);
+      const returnType = this.parseTypeExpr();
+      return { kind: 'AsyncFunctionType', params, returnType, range: this.rangeFrom(start) };
     }
 
     // Tuple: tuple[T1, T2]
@@ -1094,13 +1545,17 @@ export class Parser {
       const kind = this.current().kind;
       if (
         kind === TokenKind.Fun || kind === TokenKind.Async ||
+        kind === TokenKind.Gen || kind === TokenKind.Macro ||
         kind === TokenKind.Class || kind === TokenKind.Enum ||
-        kind === TokenKind.Interface || kind === TokenKind.Let ||
-        kind === TokenKind.Var || kind === TokenKind.For ||
-        kind === TokenKind.While || kind === TokenKind.If ||
-        kind === TokenKind.Return || kind === TokenKind.From ||
-        kind === TokenKind.Extern || kind === TokenKind.Portal ||
-        kind === TokenKind.At
+        kind === TokenKind.Struct || kind === TokenKind.Abstract ||
+        kind === TokenKind.Interface || kind === TokenKind.Type ||
+        kind === TokenKind.Let || kind === TokenKind.Var ||
+        kind === TokenKind.For || kind === TokenKind.While ||
+        kind === TokenKind.If || kind === TokenKind.Return ||
+        kind === TokenKind.From || kind === TokenKind.Extern ||
+        kind === TokenKind.Portal || kind === TokenKind.At ||
+        kind === TokenKind.Del || kind === TokenKind.Yield ||
+        kind === TokenKind.Operator
       ) {
         return;
       }

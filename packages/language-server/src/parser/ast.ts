@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom AST Node Types
+// Loom AST Node Types — v0.6
 // ============================================================================
 
 export interface Position {
@@ -24,6 +24,7 @@ export interface AstNode {
 export interface Program extends AstNode {
   kind: 'Program';
   statements: Statement[];
+  isCompiled?: boolean;
 }
 
 export type Statement =
@@ -31,14 +32,21 @@ export type Statement =
   | VarDecl
   | FunDecl
   | AsyncFunDecl
+  | GenFunDecl
+  | AsyncGenFunDecl
   | ClassDecl
   | EnumDecl
+  | StructDecl
   | InterfaceDecl
+  | TypeAliasDecl
   | ImportStmt
   | ImportBlockStmt
+  | ReExportStmt
   | ExternJsFunDecl
   | ExternJsValDecl
   | ExternNativeFunDecl
+  | ExternNativeValDecl
+  | MacroDecl
   | IfStmt
   | WhileStmt
   | ForStmt
@@ -53,6 +61,11 @@ export type Statement =
   | MatchExpr
   | AwaitGroupStmt
   | DynamicViewStmt
+  | DelStmt
+  | GlobalDecl
+  | NonlocalDecl
+  | YieldStmt
+  | YieldFromStmt
   | ReturnStmt
   | BreakStmt
   | ContinueStmt
@@ -85,11 +98,36 @@ export interface FunDecl extends AstNode {
   body: Block;
   isPublic: boolean;
   isStatic: boolean;
+  isAbstract: boolean;
+  isOperator: boolean;
   typeParams?: string[];
 }
 
 export interface AsyncFunDecl extends AstNode {
   kind: 'AsyncFunDecl';
+  name: string;
+  params: Parameter[];
+  returnType?: TypeExpr;
+  body: Block;
+  isPublic: boolean;
+  isStatic: boolean;
+  isAbstract: boolean;
+  typeParams?: string[];
+}
+
+export interface GenFunDecl extends AstNode {
+  kind: 'GenFunDecl';
+  name: string;
+  params: Parameter[];
+  returnType?: TypeExpr;
+  body: Block;
+  isPublic: boolean;
+  isStatic: boolean;
+  typeParams?: string[];
+}
+
+export interface AsyncGenFunDecl extends AstNode {
+  kind: 'AsyncGenFunDecl';
   name: string;
   params: Parameter[];
   returnType?: TypeExpr;
@@ -103,6 +141,7 @@ export interface ClassDecl extends AstNode {
   kind: 'ClassDecl';
   name: string;
   isDynamic: boolean;
+  isAbstract: boolean;
   superClass?: string;
   implements?: string[];
   members: Statement[];
@@ -122,11 +161,42 @@ export interface EnumVariant extends AstNode {
   fields: Parameter[];
 }
 
+export interface StructDecl extends AstNode {
+  kind: 'StructDecl';
+  name: string;
+  fields: StructField[];
+  methods: (FunDecl | AsyncFunDecl)[];
+  implements?: string[];
+  typeParams?: string[];
+}
+
+export interface StructField extends AstNode {
+  kind: 'StructField';
+  name: string;
+  type: TypeExpr;
+  defaultValue?: Expression;
+  qualifier?: 'weak' | 'unowned';
+}
+
 export interface InterfaceDecl extends AstNode {
   kind: 'InterfaceDecl';
   name: string;
   methods: FunDecl[];
   typeParams?: string[];
+}
+
+export interface TypeAliasDecl extends AstNode {
+  kind: 'TypeAliasDecl';
+  name: string;
+  typeParams?: string[];
+  value: TypeExpr;
+}
+
+export interface MacroDecl extends AstNode {
+  kind: 'MacroDecl';
+  name: string;
+  params: Parameter[];
+  body: Block;
 }
 
 export interface AnnotatedDecl extends AstNode {
@@ -237,6 +307,31 @@ export interface DynamicViewStmt extends AstNode {
   body: Block;
 }
 
+export interface DelStmt extends AstNode {
+  kind: 'DelStmt';
+  target: Expression;
+}
+
+export interface GlobalDecl extends AstNode {
+  kind: 'GlobalDecl';
+  name: string;
+}
+
+export interface NonlocalDecl extends AstNode {
+  kind: 'NonlocalDecl';
+  name: string;
+}
+
+export interface YieldStmt extends AstNode {
+  kind: 'YieldStmt';
+  value?: Expression;
+}
+
+export interface YieldFromStmt extends AstNode {
+  kind: 'YieldFromStmt';
+  iterable: Expression;
+}
+
 export interface ReturnStmt extends AstNode {
   kind: 'ReturnStmt';
   value?: Expression;
@@ -255,6 +350,7 @@ export interface ContinueStmt extends AstNode {
 export interface ThrowStmt extends AstNode {
   kind: 'ThrowStmt';
   value: Expression;
+  from?: Expression;
 }
 
 export interface ExpressionStmt extends AstNode {
@@ -282,6 +378,12 @@ export interface ImportName extends AstNode {
   alias?: string;
 }
 
+export interface ReExportStmt extends AstNode {
+  kind: 'ReExportStmt';
+  path: string;
+  names: ImportName[];
+}
+
 // --- FFI ---
 
 export interface ExternJsFunDecl extends AstNode {
@@ -305,20 +407,31 @@ export interface ExternNativeFunDecl extends AstNode {
   returnType: TypeExpr;
 }
 
+export interface ExternNativeValDecl extends AstNode {
+  kind: 'ExternNativeValDecl';
+  library: string;
+  name: string;
+  type: TypeExpr;
+}
+
 // --- Expressions ---
 
 export type Expression =
   | IntLiteral
   | FloatLiteral
   | StringLiteralExpr
+  | BytesLiteralExpr
   | BoolLiteral
+  | NoneLiteral
   | IdentifierExpr
   | BinaryExpr
   | UnaryExpr
   | CallExpr
   | MemberExpr
   | IndexExpr
+  | SliceExpr
   | AssignExpr
+  | CompoundAssignExpr
   | AwaitExpr
   | SpawnExpr
   | MatchExpr
@@ -328,12 +441,22 @@ export type Expression =
   | DictLiteral
   | SetLiteral
   | TupleLiteral
+  | ComprehensionExpr
   | TemplateFenceExpr
   | InterpolatedStringExpr
   | DynamicFieldExpr
   | OptionalChainExpr
   | NullCoalesceExpr
+  | TernaryExpr
   | PropagationExpr
+  | SpreadExpr
+  | BoxExpr
+  | CastExpr
+  | IsExpr
+  | InstanceofExpr
+  | TypeofExpr
+  | NewExpr
+  | MacroInvocationExpr
   | GroupExpr
   | ErrorNode;
 
@@ -353,9 +476,18 @@ export interface StringLiteralExpr extends AstNode {
   hasInterpolation: boolean;
 }
 
+export interface BytesLiteralExpr extends AstNode {
+  kind: 'BytesLiteral';
+  value: string;
+}
+
 export interface BoolLiteral extends AstNode {
   kind: 'BoolLiteral';
   value: boolean;
+}
+
+export interface NoneLiteral extends AstNode {
+  kind: 'NoneLiteral';
 }
 
 export interface IdentifierExpr extends AstNode {
@@ -395,8 +527,23 @@ export interface IndexExpr extends AstNode {
   index: Expression;
 }
 
+export interface SliceExpr extends AstNode {
+  kind: 'SliceExpr';
+  object: Expression;
+  start?: Expression;
+  end?: Expression;
+  step?: Expression;
+}
+
 export interface AssignExpr extends AstNode {
   kind: 'AssignExpr';
+  target: Expression;
+  value: Expression;
+}
+
+export interface CompoundAssignExpr extends AstNode {
+  kind: 'CompoundAssignExpr';
+  operator: string;
   target: Expression;
   value: Expression;
 }
@@ -456,6 +603,7 @@ export interface FunExpr extends AstNode {
   params: Parameter[];
   returnType?: TypeExpr;
   body: Block | Expression;
+  captureList?: CaptureItem[];
 }
 
 export interface AsyncFunExpr extends AstNode {
@@ -463,6 +611,13 @@ export interface AsyncFunExpr extends AstNode {
   params: Parameter[];
   returnType?: TypeExpr;
   body: Block | Expression;
+  captureList?: CaptureItem[];
+}
+
+export interface CaptureItem extends AstNode {
+  kind: 'CaptureItem';
+  qualifier: 'weak' | 'unowned';
+  name: string;
 }
 
 export interface ListLiteral extends AstNode {
@@ -483,6 +638,15 @@ export interface SetLiteral extends AstNode {
 export interface TupleLiteral extends AstNode {
   kind: 'TupleLiteral';
   elements: Expression[];
+}
+
+export interface ComprehensionExpr extends AstNode {
+  kind: 'ComprehensionExpr';
+  resultKind: 'list' | 'dict' | 'set';
+  body: Expression;
+  variable: string;
+  iterable: Expression;
+  condition?: Expression;
 }
 
 export interface TemplateFenceExpr extends AstNode {
@@ -516,9 +680,64 @@ export interface NullCoalesceExpr extends AstNode {
   right: Expression;
 }
 
+export interface TernaryExpr extends AstNode {
+  kind: 'TernaryExpr';
+  condition: Expression;
+  consequent: Expression;
+  alternate: Expression;
+}
+
 export interface PropagationExpr extends AstNode {
   kind: 'PropagationExpr';
   expression: Expression;
+}
+
+export interface SpreadExpr extends AstNode {
+  kind: 'SpreadExpr';
+  operator: '*' | '**';
+  expression: Expression;
+}
+
+export interface BoxExpr extends AstNode {
+  kind: 'BoxExpr';
+  expression: Expression;
+}
+
+export interface CastExpr extends AstNode {
+  kind: 'CastExpr';
+  expression: Expression;
+  targetType: TypeExpr;
+  safe: boolean; // true for `as?`, false for `as`
+}
+
+export interface IsExpr extends AstNode {
+  kind: 'IsExpr';
+  expression: Expression;
+  targetType: TypeExpr;
+}
+
+export interface InstanceofExpr extends AstNode {
+  kind: 'InstanceofExpr';
+  expression: Expression;
+  targetType: TypeExpr;
+}
+
+export interface TypeofExpr extends AstNode {
+  kind: 'TypeofExpr';
+  expression: Expression;
+}
+
+export interface NewExpr extends AstNode {
+  kind: 'NewExpr';
+  className: string;
+  typeArgs?: TypeExpr[];
+  args: Expression[];
+}
+
+export interface MacroInvocationExpr extends AstNode {
+  kind: 'MacroInvocationExpr';
+  name: string;
+  args: Expression[];
 }
 
 export interface GroupExpr extends AstNode {
@@ -532,7 +751,9 @@ export type TypeExpr =
   | SimpleType
   | GenericType
   | FunctionType
+  | AsyncFunctionType
   | OptionalType
+  | UnionType
   | TupleType;
 
 export interface SimpleType extends AstNode {
@@ -552,9 +773,20 @@ export interface FunctionType extends AstNode {
   returnType: TypeExpr;
 }
 
+export interface AsyncFunctionType extends AstNode {
+  kind: 'AsyncFunctionType';
+  params: TypeExpr[];
+  returnType: TypeExpr;
+}
+
 export interface OptionalType extends AstNode {
   kind: 'OptionalType';
   inner: TypeExpr;
+}
+
+export interface UnionType extends AstNode {
+  kind: 'UnionType';
+  members: TypeExpr[];
 }
 
 export interface TupleType extends AstNode {
@@ -569,6 +801,7 @@ export interface Parameter extends AstNode {
   name: string;
   type?: TypeExpr;
   defaultValue?: Expression;
+  qualifier?: 'weak' | 'unowned';
 }
 
 // --- Error recovery ---

@@ -17,6 +17,24 @@
     ],
     "description": "Loom async function declaration"
   },
+  "Generator Function": {
+    "prefix": "gfun",
+    "body": [
+      "gen fun ${1:name}(${2:params}): ${3:int} {",
+      "  yield $0;",
+      "}"
+    ],
+    "description": "Generator function declaration"
+  },
+  "Async Generator Function": {
+    "prefix": "agfun",
+    "body": [
+      "async gen fun ${1:name}(${2:params}): ${3:int} {",
+      "  yield $0;",
+      "}"
+    ],
+    "description": "Async generator function declaration"
+  },
   "Public Function": {
     "prefix": "pfun",
     "body": [
@@ -34,6 +52,15 @@
       "}"
     ],
     "description": "Public async function declaration"
+  },
+  "Operator Method": {
+    "prefix": "opfun",
+    "body": [
+      "operator fun ${1:op}(${2:other}: ${3:Self}): ${4:Self} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Operator overload method"
   },
   "Enum Declaration": {
     "prefix": "enum",
@@ -73,6 +100,39 @@
     ],
     "description": "Loom dynamic class (opt-in dynamic fields)"
   },
+  "Abstract Class": {
+    "prefix": "aclass",
+    "body": [
+      "abstract class ${1:Name} {",
+      "  pub abstract fun ${2:method}(${3:params}): ${4:void};",
+      "  $0",
+      "}"
+    ],
+    "description": "Abstract class declaration"
+  },
+  "Struct Declaration": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "  ${2:field}: ${3:type};",
+      "  $0",
+      "}"
+    ],
+    "description": "Loom struct declaration (value type)"
+  },
+  "Struct with Implements": {
+    "prefix": "structi",
+    "body": [
+      "struct ${1:Name} implements ${2:Interface} {",
+      "  ${3:field}: ${4:type};",
+      "",
+      "  fun ${5:method}(${6:params}): ${7:void} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Loom struct implementing an interface"
+  },
   "Interface Declaration": {
     "prefix": "interface",
     "body": [
@@ -81,6 +141,20 @@
       "}"
     ],
     "description": "Loom interface declaration"
+  },
+  "Type Alias": {
+    "prefix": "type",
+    "body": "type ${1:Name} = ${2:ExistingType};",
+    "description": "Type alias declaration"
+  },
+  "Macro Declaration": {
+    "prefix": "macro",
+    "body": [
+      "macro ${1:name}(${2:params}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Compile-time macro declaration"
   },
   "Match Expression": {
     "prefix": "match",
@@ -235,6 +309,21 @@
     ],
     "description": "Time-travel activation point"
   },
+  "Yield": {
+    "prefix": "yield",
+    "body": "yield ${1:value};",
+    "description": "Yield value from generator"
+  },
+  "Yield From": {
+    "prefix": "yieldf",
+    "body": "yield * ${1:iterable};",
+    "description": "Yield all values from another iterable"
+  },
+  "Delete Statement": {
+    "prefix": "del",
+    "body": "del ${1:target};",
+    "description": "Delete a dynamic field or dict entry"
+  },
   "Import From": {
     "prefix": "from",
     "body": "from ${1:package.module} import (${2:Name});",
@@ -248,6 +337,11 @@
       "}"
     ],
     "description": "Block import from a package"
+  },
+  "Re-export": {
+    "prefix": "pubfrom",
+    "body": "pub from ${1:.module} import (${2:Name});",
+    "description": "Re-export symbols from a module"
   },
   "Template Fence HTML": {
     "prefix": "tmplhtml",
@@ -266,6 +360,15 @@
       "```"
     ],
     "description": "HTML template fence with component registry"
+  },
+  "Template Fence UI": {
+    "prefix": "tmplui",
+    "body": [
+      "```(ui):(${1:none})",
+      "  $0",
+      "```"
+    ],
+    "description": "Cross-platform UI template fence"
   },
   "Template Fence Generic": {
     "prefix": "tmpl",
@@ -291,6 +394,11 @@
     "body": "extern native \"${1:libname}\" fun ${2:name}(${3:params}): ${4:int};",
     "description": "Native shared library FFI function binding"
   },
+  "Extern Native Value": {
+    "prefix": "externnativeval",
+    "body": "extern native \"${1:libname}\" val ${2:name}: ${3:NativeHandle};",
+    "description": "Native shared library FFI value binding"
+  },
   "JS Export": {
     "prefix": "jsexport",
     "body": [
@@ -310,6 +418,11 @@
       "}"
     ],
     "description": "Export an async Loom function to JavaScript"
+  },
+  "Compiled Directive": {
+    "prefix": "compiled",
+    "body": "@compiled",
+    "description": "File-level @compiled directive for AOT compilation"
   },
   "Signal": {
     "prefix": "signal",
@@ -342,12 +455,21 @@
     ],
     "description": "Reactive UI component returning View"
   },
+  "Capture List Lambda": {
+    "prefix": "funw",
+    "body": [
+      "fun [${1:weak} ${2:self}](${3:params}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Lambda with capture list (weak/unowned)"
+  },
   "Loom Package Manifest": {
     "prefix": "loompkg",
     "body": [
       "package   ${1:my-app}",
       "version   ${2:0.1.0}",
-      "loom      \">=0.4\"",
+      "loom      \">=0.6\"",
       "",
       "[deps]",
       "${3:# dependency = \"^1.0\"}",

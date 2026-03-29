@@ -141,19 +141,26 @@ function validateDocument(document: TextDocument): void {
 // ---- Completions ----
 
 const LOOM_KEYWORDS = [
-  'let', 'var', 'fun', 'async', 'await', 'return', 'if', 'else',
+  'let', 'var', 'fun', 'async', 'gen', 'await', 'return', 'if', 'else',
   'for', 'while', 'do', 'match', 'break', 'continue', 'throw',
   'try', 'catch', 'finally', 'defer', 'with', 'portal', 'spawn',
-  'class', 'dynamic', 'enum', 'interface', 'from', 'import', 'as',
-  'in', 'is', 'pub', 'static', 'extern', 'true', 'false',
+  'class', 'dynamic', 'abstract', 'struct', 'enum', 'interface',
+  'from', 'import', 'as', 'in', 'is', 'not', 'instanceof', 'typeof',
+  'pub', 'static', 'extern', 'true', 'false', 'none', 'new', 'del',
+  'global', 'nonlocal', 'yield', 'suspend', 'type', 'macro',
+  'implements', 'operator', 'fn', 'get', 'set', 'box',
+  'weak', 'unowned',
 ];
 
 const LOOM_TYPES = [
   'int', 'float', 'bool', 'string', 'bytes', 'void',
   'list', 'dict', 'set', 'tuple', 'fn',
-  'Any', 'Int', 'Float', 'Bool', 'String', 'Bytes',
-  'Task', 'Option', 'Result', 'Signal', 'View', 'Template', 'Type',
-  'None', 'Some', 'Ok', 'Err',
+  'Any', 'Task', 'Option', 'Result', 'Signal', 'View', 'Template', 'Type',
+  'None', 'Some', 'Ok', 'Err', 'Error',
+  'NativeHandle', 'StackFrame', 'Duration', 'Instant',
+  'Regex', 'Match', 'Actor', 'CancellationToken', 'TaskGroup',
+  'ComponentRegistry', 'MountHandle', 'EffectHandle',
+  'Window', 'WindowConfig', 'Tray',
 ];
 
 const SYSTEM_MODULES = [
@@ -165,8 +172,13 @@ const SYSTEM_MODULES = [
   { label: 'system.proc', detail: 'Process execution', items: ['run', 'runAsync'] },
   { label: 'system.net', detail: 'Networking', items: ['requestAsync'] },
   { label: 'system.debug', detail: 'Tracing and time-travel debugging', items: ['tracingAvailable', 'tracingActive', 'setTraceHook', 'activatePortal', 'deactivatePortal', 'activePortals', 'startCaptureServer', 'startMcpServer'] },
-  { label: 'system.ui', detail: 'Reactive UI (browser)', items: ['signal', 'derived', 'effect', 'mount', 'Signal', 'View', 'ComponentRegistry', 'EffectHandle', 'MountHandle'] },
-  { label: 'system.reflect', detail: 'Reflection', items: ['typeOf', 'is', 'as', 'fields', 'methods', 'constructors', 'annotations', 'variants', 'new', 'get', 'getAs', 'set', 'invoke', 'invokeAs'] },
+  { label: 'system.ui', detail: 'Reactive UI (universal)', items: ['signal', 'derived', 'effect', 'mount', 'Signal', 'View', 'ComponentRegistry', 'EffectHandle', 'MountHandle', 'MountTarget', 'Axis', 'Alignment', 'TextStyle', 'Color', 'Insets', 'Row', 'Column', 'Stack', 'Scroll', 'Text', 'Button', 'Image', 'Icon', 'Canvas', 'TextField', 'Checkbox', 'Slider', 'Select'] },
+  { label: 'system.ui.web', detail: 'Web-specific UI rendering', items: ['renderToString', 'hydrate', 'mount'] },
+  { label: 'system.ui.desktop', detail: 'Desktop window management', items: ['Window', 'WindowConfig', 'Tray', 'showWindow', 'showDialog', 'showNotification'] },
+  { label: 'system.reflect', detail: 'Structural reflection (universal)', items: ['typeOf', 'is', 'fields', 'methods', 'constructors', 'annotations', 'variants', 'callableName'] },
+  { label: 'system.inspect', detail: 'Dynamic introspection (interpreted-only)', items: ['new', 'get', 'getAs', 'set', 'invoke', 'invokeAs', 'as'] },
+  { label: 'system.regex', detail: 'Regular expressions', items: ['Regex', 'Match'] },
+  { label: 'system.env', detail: 'Environment variables', items: ['loadDotenv', 'get', 'getOrDefault', 'platform', 'validate'] },
   { label: 'system.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable'] },
   { label: 'system.interop', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
 ];
@@ -227,12 +239,18 @@ function symbolKindToCompletionKind(kind: SymbolKind): CompletionItemKind {
   switch (kind) {
     case SymbolKind.Function:
     case SymbolKind.AsyncFunction:
+    case SymbolKind.GenFunction:
+    case SymbolKind.AsyncGenFunction:
     case SymbolKind.ExternFunction:
+    case SymbolKind.Operator:
       return CompletionItemKind.Function;
     case SymbolKind.Class: return CompletionItemKind.Class;
+    case SymbolKind.Struct: return CompletionItemKind.Struct;
     case SymbolKind.Enum: return CompletionItemKind.Enum;
     case SymbolKind.EnumVariant: return CompletionItemKind.EnumMember;
     case SymbolKind.Interface: return CompletionItemKind.Interface;
+    case SymbolKind.TypeAlias: return CompletionItemKind.TypeParameter;
+    case SymbolKind.Macro: return CompletionItemKind.Function;
     case SymbolKind.Variable:
     case SymbolKind.ExternValue:
       return CompletionItemKind.Variable;
@@ -315,12 +333,18 @@ function symbolKindToLspKind(kind: SymbolKind): LspSymbolKind {
   switch (kind) {
     case SymbolKind.Function:
     case SymbolKind.AsyncFunction:
+    case SymbolKind.GenFunction:
+    case SymbolKind.AsyncGenFunction:
     case SymbolKind.ExternFunction:
+    case SymbolKind.Operator:
       return LspSymbolKind.Function;
     case SymbolKind.Class: return LspSymbolKind.Class;
+    case SymbolKind.Struct: return LspSymbolKind.Struct;
     case SymbolKind.Enum: return LspSymbolKind.Enum;
     case SymbolKind.EnumVariant: return LspSymbolKind.EnumMember;
     case SymbolKind.Interface: return LspSymbolKind.Interface;
+    case SymbolKind.TypeAlias: return LspSymbolKind.TypeParameter;
+    case SymbolKind.Macro: return LspSymbolKind.Function;
     case SymbolKind.Variable: return LspSymbolKind.Variable;
     case SymbolKind.ExternValue: return LspSymbolKind.Variable;
     case SymbolKind.Parameter: return LspSymbolKind.Variable;
@@ -455,13 +479,20 @@ connection.languages.semanticTokens.on((params) => {
       case 'if': case 'else': case 'for': case 'while': case 'do':
       case 'match': case 'break': case 'continue': case 'return':
       case 'throw': case 'try': case 'catch': case 'finally':
-      case 'await': case 'spawn': case 'let': case 'var':
-      case 'fun': case 'async': case 'class': case 'dynamic':
-      case 'interface': case 'enum': case 'extern': case 'pub':
-      case 'static': case 'from': case 'import': case 'as':
-      case 'in': case 'is': case 'defer': case 'with':
+      case 'await': case 'spawn': case 'yield': case 'suspend':
+      case 'let': case 'var':
+      case 'fun': case 'async': case 'gen': case 'macro':
+      case 'class': case 'dynamic': case 'abstract': case 'struct':
+      case 'interface': case 'enum': case 'extern': case 'type':
+      case 'pub': case 'static': case 'operator':
+      case 'from': case 'import': case 'as':
+      case 'in': case 'is': case 'not': case 'instanceof': case 'typeof':
+      case 'defer': case 'with':
       case 'portal': case 'group': case 'js': case 'native':
-      case 'val': case 'true': case 'false':
+      case 'val': case 'true': case 'false': case 'none':
+      case 'new': case 'del': case 'global': case 'nonlocal':
+      case 'implements': case 'fn': case 'get': case 'set': case 'box':
+      case 'weak': case 'unowned':
         tokenType = 0; // keyword
         break;
       case 'TypeIdentifier':
@@ -476,11 +507,14 @@ connection.languages.semanticTokens.on((params) => {
         break;
       case 'StringLiteral':
       case 'MultilineStringLiteral':
+      case 'BytesLiteral':
+      case 'RawStringLiteral':
       case 'TemplateFenceOpen':
         tokenType = 10; // string
         break;
       case 'LineComment':
       case 'BlockComment':
+      case 'DocComment':
         tokenType = 13; // comment
         break;
     }

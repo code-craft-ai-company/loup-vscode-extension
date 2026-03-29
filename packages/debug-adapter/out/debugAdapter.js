@@ -1428,10 +1428,13 @@ var LoomRuntime = class extends import_events.EventEmitter {
   nextVarRef = 1e3;
   running = false;
   // ---- Lifecycle ----
-  async launch(program, args, target, env, enableTimeTravel) {
+  async launch(program, args, target, env, enableTimeTravel, traceLevel) {
     const loomArgs = ["run", program, "--target", target];
     if (enableTimeTravel) {
       loomArgs.push("--enable-time-travel");
+    }
+    if (traceLevel && traceLevel !== "off") {
+      loomArgs.push("--trace-level", traceLevel);
     }
     if (args.length > 0) {
       loomArgs.push("--", ...args);
@@ -1559,6 +1562,9 @@ var LoomRuntime = class extends import_events.EventEmitter {
   deactivatePortal(name) {
     this.sendCommand({ command: "deactivatePortal", name });
   }
+  activatePortalWithCondition(name, condition) {
+    this.sendCommand({ command: "activatePortal", name, condition });
+  }
   // ---- Internal ----
   handleDebugMessage(msg) {
     switch (msg["event"]) {
@@ -1572,8 +1578,11 @@ var LoomRuntime = class extends import_events.EventEmitter {
             source: String(f["source"] || ""),
             line: Number(f["line"] || 0),
             column: Number(f["column"] || 0),
+            execMode: f["execMode"] || "interpreted",
+            traceLevel: f["traceLevel"] || "off",
             isPortal: Boolean(f["isPortal"]),
-            portalName: f["portalName"]
+            portalName: f["portalName"],
+            portalCondition: f["portalCondition"]
           }));
         }
         if (msg["locals"] && typeof msg["locals"] === "object") {
@@ -1731,7 +1740,8 @@ var LoomDebugSession = class extends import_debugadapter.LoggingDebugSession {
         args.args || [],
         args.target || "cli",
         args.env || {},
-        args.enableTimeTravel || false
+        args.enableTimeTravel || false,
+        args.traceLevel || "off"
       );
       if (args.portalBreakpoints && args.portalBreakpoints.length > 0) {
         for (const portal of args.portalBreakpoints) {
@@ -1803,6 +1813,9 @@ var LoomDebugSession = class extends import_debugadapter.LoggingDebugSession {
         );
         if (f.isPortal) {
           sf.presentationHint = "subtle";
+        }
+        if (f.execMode === "native") {
+          sf.presentationHint = "label";
         }
         return sf;
       }),

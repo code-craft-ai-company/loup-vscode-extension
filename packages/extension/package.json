@@ -50,6 +50,7 @@
         "path": "./syntaxes/loom.tmLanguage.json",
         "embeddedLanguages": {
           "meta.embedded.block.html": "html",
+          "meta.embedded.block.ui": "html",
           "meta.embedded.block.css": "css",
           "meta.embedded.block.javascript": "javascript",
           "meta.embedded.block.typescript": "typescript",
@@ -99,8 +100,8 @@
               },
               "target": {
                 "type": "string",
-                "description": "Target platform: cli, browser, or service.",
-                "enum": ["cli", "browser", "service"],
+                "description": "Target platform: cli, browser, service, desktop, or native.",
+                "enum": ["cli", "browser", "service", "desktop", "native"],
                 "default": "cli"
               },
               "enableTimeTravel": {

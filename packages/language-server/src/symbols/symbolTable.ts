@@ -17,10 +17,15 @@ export interface SymbolInfo {
 export enum SymbolKind {
   Function = 'Function',
   AsyncFunction = 'AsyncFunction',
+  GenFunction = 'GenFunction',
+  AsyncGenFunction = 'AsyncGenFunction',
   Class = 'Class',
   Enum = 'Enum',
   EnumVariant = 'EnumVariant',
+  Struct = 'Struct',
   Interface = 'Interface',
+  TypeAlias = 'TypeAlias',
+  Macro = 'Macro',
   Variable = 'Variable',
   Parameter = 'Parameter',
   Portal = 'Portal',
@@ -28,6 +33,7 @@ export enum SymbolKind {
   ExternValue = 'ExternValue',
   Import = 'Import',
   Field = 'Field',
+  Operator = 'Operator',
 }
 
 export interface Scope {
@@ -67,7 +73,7 @@ export class SymbolTable {
       case 'FunDecl': {
         const sym: SymbolInfo = {
           name: stmt.name,
-          kind: SymbolKind.Function,
+          kind: stmt.isOperator ? SymbolKind.Operator : SymbolKind.Function,
           range: stmt.range,
           selectionRange: stmt.range,
           type: this.formatFunType(stmt),
@@ -243,6 +249,133 @@ export class SymbolTable {
         return null;
       }
 
+      case 'ReExportStmt': {
+        for (const n of stmt.names) {
+          scope.symbols.set(n.alias || n.name, {
+            name: n.alias || n.name,
+            kind: SymbolKind.Import,
+            range: n.range,
+            selectionRange: n.range,
+          });
+        }
+        return null;
+      }
+
+      case 'GenFunDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.GenFunction,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          type: this.formatGenFunType(stmt),
+          children: [],
+        };
+        scope.symbols.set(stmt.name, sym);
+        const childScope = this.createChildScope(scope);
+        for (const p of stmt.params) {
+          childScope.symbols.set(p.name, {
+            name: p.name,
+            kind: SymbolKind.Parameter,
+            range: p.range,
+            selectionRange: p.range,
+            type: p.type ? this.formatType(p.type) : undefined,
+          });
+        }
+        for (const bodyStmt of stmt.body.statements) {
+          const childSym = this.collectSymbol(bodyStmt, childScope);
+          if (childSym) sym.children!.push(childSym);
+        }
+        return sym;
+      }
+
+      case 'AsyncGenFunDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.AsyncGenFunction,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          type: this.formatAsyncGenFunType(stmt),
+          children: [],
+        };
+        scope.symbols.set(stmt.name, sym);
+        const childScope = this.createChildScope(scope);
+        for (const p of stmt.params) {
+          childScope.symbols.set(p.name, {
+            name: p.name,
+            kind: SymbolKind.Parameter,
+            range: p.range,
+            selectionRange: p.range,
+            type: p.type ? this.formatType(p.type) : undefined,
+          });
+        }
+        for (const bodyStmt of stmt.body.statements) {
+          const childSym = this.collectSymbol(bodyStmt, childScope);
+          if (childSym) sym.children!.push(childSym);
+        }
+        return sym;
+      }
+
+      case 'StructDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.Struct,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          children: stmt.fields.map(f => ({
+            name: f.name,
+            kind: SymbolKind.Field,
+            range: f.range,
+            selectionRange: f.range,
+            type: this.formatType(f.type),
+          })),
+        };
+        scope.symbols.set(stmt.name, sym);
+        // Add method children
+        const childScope = this.createChildScope(scope);
+        for (const method of stmt.methods) {
+          const methodSym = this.collectSymbol(method, childScope);
+          if (methodSym) sym.children!.push(methodSym);
+        }
+        return sym;
+      }
+
+      case 'TypeAliasDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.TypeAlias,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          type: `type ${stmt.name} = ${this.formatType(stmt.value)}`,
+        };
+        scope.symbols.set(stmt.name, sym);
+        return sym;
+      }
+
+      case 'MacroDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.Macro,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          type: `macro ${stmt.name}(${stmt.params.map(p => p.name).join(', ')})`,
+          children: [],
+        };
+        scope.symbols.set(stmt.name, sym);
+        return sym;
+      }
+
+      case 'ExternNativeValDecl': {
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.ExternValue,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          type: `extern native "${stmt.library}" val`,
+        };
+        scope.symbols.set(stmt.name, sym);
+        return sym;
+      }
+
       case 'AnnotatedDecl':
         return this.collectSymbol(stmt.declaration, scope);
 
@@ -273,12 +406,30 @@ export class SymbolTable {
     return `async fun(${params})${ret}`;
   }
 
+  private formatGenFunType(fun: AST.GenFunDecl): string {
+    const params = fun.params
+      .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
+      .join(', ');
+    const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
+    return `gen fun(${params})${ret}`;
+  }
+
+  private formatAsyncGenFunType(fun: AST.AsyncGenFunDecl): string {
+    const params = fun.params
+      .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
+      .join(', ');
+    const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
+    return `async gen fun(${params})${ret}`;
+  }
+
   formatType(type: AST.TypeExpr): string {
     switch (type.kind) {
       case 'SimpleType': return type.name;
       case 'GenericType': return `${type.name}[${type.args.map(a => this.formatType(a)).join(', ')}]`;
       case 'FunctionType': return `fn(${type.params.map(p => this.formatType(p)).join(', ')}): ${this.formatType(type.returnType)}`;
+      case 'AsyncFunctionType': return `async fn(${type.params.map(p => this.formatType(p)).join(', ')}): ${this.formatType(type.returnType)}`;
       case 'OptionalType': return `${this.formatType(type.inner)}?`;
+      case 'UnionType': return type.members.map(m => this.formatType(m)).join(' | ');
       case 'TupleType': return `tuple[${type.elements.map(e => this.formatType(e)).join(', ')}]`;
     }
   }

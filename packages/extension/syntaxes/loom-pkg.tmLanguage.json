@@ -35,14 +35,14 @@
       }
     },
     "dependency-entry": {
-      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_.\\-]*)\\s*=\\s*(\"[^\"]*\"|'[^']*')",
+      "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_.\\-]*)\\s*=\\s*(\"[^\"]*\"|'[^']*'|\\[.*\\])",
       "captures": {
         "1": { "name": "entity.name.tag.dependency.loom-pkg" },
         "2": { "name": "string.quoted.version.loom-pkg" }
       }
     },
     "target-directive": {
-      "match": "^\\s*(include|exclude)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)",
+      "match": "^\\s*(include|exclude|state_integrity|csp)\\s+(.+)",
       "captures": {
         "1": { "name": "keyword.control.target.loom-pkg" },
         "2": { "name": "entity.name.namespace.loom-pkg" }

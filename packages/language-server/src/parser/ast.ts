@@ -74,18 +74,52 @@ export type Statement =
   | AnnotatedDecl
   | ErrorNode;
 
+// --- Destructuring ---
+
+export type DestructPattern = IdentifierPattern | TuplePattern | ListPattern | DictPattern;
+
+export interface IdentifierPattern extends AstNode {
+  kind: 'IdentifierPattern';
+  name: string;
+}
+
+export interface TuplePattern extends AstNode {
+  kind: 'TuplePattern';
+  elements: DestructPattern[];
+  rest?: string;
+}
+
+export interface ListPattern extends AstNode {
+  kind: 'ListPattern';
+  elements: DestructPattern[];
+  rest?: string;
+}
+
+export interface DictPattern extends AstNode {
+  kind: 'DictPattern';
+  fields: DictDestructField[];
+  rest?: string;
+}
+
+export interface DictDestructField extends AstNode {
+  kind: 'DictDestructField';
+  key: string;
+  alias?: string;
+  defaultValue?: Expression;
+}
+
 // --- Declarations ---
 
 export interface LetDecl extends AstNode {
   kind: 'LetDecl';
-  name: string;
+  pattern: DestructPattern;
   typeAnnotation?: TypeExpr;
   initializer?: Expression;
 }
 
 export interface VarDecl extends AstNode {
   kind: 'VarDecl';
-  name: string;
+  pattern: DestructPattern;
   typeAnnotation?: TypeExpr;
   initializer?: Expression;
 }
@@ -175,7 +209,7 @@ export interface StructField extends AstNode {
   name: string;
   type: TypeExpr;
   defaultValue?: Expression;
-  qualifier?: 'weak' | 'unowned';
+  qualifier?: 'weak' | 'unowned' | 'borrow';
 }
 
 export interface InterfaceDecl extends AstNode {
@@ -237,7 +271,7 @@ export interface ForStmt extends AstNode {
 
 export interface ForInStmt extends AstNode {
   kind: 'ForInStmt';
-  variable: string;
+  pattern: DestructPattern;
   iterable: Expression;
   body: Block;
   label?: string;
@@ -245,7 +279,7 @@ export interface ForInStmt extends AstNode {
 
 export interface ForAwaitStmt extends AstNode {
   kind: 'ForAwaitStmt';
-  variable: string;
+  pattern: DestructPattern;
   iterable: Expression;
   body: Block;
   label?: string;
@@ -274,9 +308,14 @@ export interface CatchClause extends AstNode {
 
 export interface WithStmt extends AstNode {
   kind: 'WithStmt';
+  bindings: WithBinding[];
+  body: Block;
+}
+
+export interface WithBinding extends AstNode {
+  kind: 'WithBinding';
   name: string;
   resource: Expression;
-  body: Block;
 }
 
 export interface DeferCallStmt extends AstNode {
@@ -364,6 +403,7 @@ export interface ImportStmt extends AstNode {
   kind: 'ImportStmt';
   path: string;
   names: ImportName[];
+  preferCompiled?: boolean;
 }
 
 export interface ImportBlockStmt extends AstNode {
@@ -525,6 +565,7 @@ export interface IndexExpr extends AstNode {
   kind: 'IndexExpr';
   object: Expression;
   index: Expression;
+  optional?: boolean;
 }
 
 export interface SliceExpr extends AstNode {
@@ -533,6 +574,7 @@ export interface SliceExpr extends AstNode {
   start?: Expression;
   end?: Expression;
   step?: Expression;
+  optional?: boolean;
 }
 
 export interface AssignExpr extends AstNode {
@@ -644,7 +686,7 @@ export interface ComprehensionExpr extends AstNode {
   kind: 'ComprehensionExpr';
   resultKind: 'list' | 'dict' | 'set';
   body: Expression;
-  variable: string;
+  pattern: DestructPattern;
   iterable: Expression;
   condition?: Expression;
 }
@@ -655,6 +697,9 @@ export interface TemplateFenceExpr extends AstNode {
   format?: string;
   descriptors: Record<string, string>;
   content: string;
+  fenceLength?: number; // v0.7: number of backticks (3+)
+  exprOpen?: string; // v0.7: custom expression open delimiter (replaces {$ when nested)
+  exprClose?: string; // v0.7: custom expression close delimiter (replaces $} when nested)
 }
 
 export interface InterpolatedStringExpr extends AstNode {
@@ -771,6 +816,7 @@ export interface FunctionType extends AstNode {
   kind: 'FunctionType';
   params: TypeExpr[];
   returnType: TypeExpr;
+  isNoescape?: boolean;
 }
 
 export interface AsyncFunctionType extends AstNode {
@@ -801,7 +847,7 @@ export interface Parameter extends AstNode {
   name: string;
   type?: TypeExpr;
   defaultValue?: Expression;
-  qualifier?: 'weak' | 'unowned';
+  qualifier?: 'weak' | 'unowned' | 'borrow';
 }
 
 // --- Error recovery ---

@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Lexer — Tokenizer for Loom v0.6
+// Loom Lexer — Tokenizer for Loom v0.7
 // ============================================================================
 
 export enum TokenKind {
@@ -57,6 +57,8 @@ export enum TokenKind {
   // Keywords — misc
   From = 'from',
   Import = 'import',
+  Prefer = 'prefer',
+  Compiled = 'compiled',
   As = 'as',
   In = 'in',
   Is = 'is',
@@ -80,10 +82,24 @@ export enum TokenKind {
   Get = 'get',
   Set = 'set',
   Box = 'box',
+  Self = 'self',
+  Bnot = 'bnot',
+  Final = 'final',
+  Lifetime = 'lifetime',
+  Module = 'module',
+  Override = 'override',
+  Package = 'package',
+  Sealed = 'sealed',
+  Super = 'super',
+  Trait = 'trait',
+  Volatile = 'volatile',
+  Where = 'where',
 
   // Field qualifiers
   Weak = 'weak',
   Unowned = 'unowned',
+  Borrow = 'borrow',
+  Noescape = 'noescape',
 
   // Booleans & none
   True = 'true',
@@ -192,6 +208,7 @@ const KEYWORDS: Record<string, TokenKind> = {
   'let': TokenKind.Let,
   'var': TokenKind.Var,
   'fun': TokenKind.Fun,
+  'func': TokenKind.Fun,
   'async': TokenKind.Async,
   'gen': TokenKind.Gen,
   'class': TokenKind.Class,
@@ -207,6 +224,8 @@ const KEYWORDS: Record<string, TokenKind> = {
   'macro': TokenKind.Macro,
   'from': TokenKind.From,
   'import': TokenKind.Import,
+  'prefer': TokenKind.Prefer,
+  'compiled': TokenKind.Compiled,
   'as': TokenKind.As,
   'in': TokenKind.In,
   'is': TokenKind.Is,
@@ -230,8 +249,24 @@ const KEYWORDS: Record<string, TokenKind> = {
   'get': TokenKind.Get,
   'set': TokenKind.Set,
   'box': TokenKind.Box,
+  'self': TokenKind.Self,
+  'bnot': TokenKind.Bnot,
+  'final': TokenKind.Final,
+  'lifetime': TokenKind.Lifetime,
+  'module': TokenKind.Module,
+  'override': TokenKind.Override,
+  'package': TokenKind.Package,
+  'sealed': TokenKind.Sealed,
+  'super': TokenKind.Super,
+  'trait': TokenKind.Trait,
+  'volatile': TokenKind.Volatile,
+  'where': TokenKind.Where,
+  'and': TokenKind.And,
+  'or': TokenKind.Or,
   'weak': TokenKind.Weak,
   'unowned': TokenKind.Unowned,
+  'borrow': TokenKind.Borrow,
+  'noescape': TokenKind.Noescape,
   'true': TokenKind.True,
   'false': TokenKind.False,
   'none': TokenKind.None,
@@ -565,10 +600,16 @@ export class Lexer {
 
   private readTemplateFence(): Token {
     const start = this.pos;
-    this.pos += 3;
-    this.column += 3;
 
-    // Read descriptor: (language):(format)
+    // Count opening backticks (3 or more)
+    let fenceLen = 0;
+    while (this.pos < this.source.length && this.source[this.pos] === '`') {
+      fenceLen++;
+      this.pos++;
+      this.column++;
+    }
+
+    // Read descriptor: (language):(format) or (language):(key=value,...)
     if (this.pos < this.source.length && this.source[this.pos] === '(') {
       while (this.pos < this.source.length && this.source[this.pos] !== '\n') {
         this.pos++;
@@ -576,15 +617,22 @@ export class Lexer {
       }
     }
 
-    // Find closing ```
+    // Find closing fence with exact same backtick count
     while (this.pos < this.source.length) {
-      if (this.source[this.pos] === '`' && this.peek(1) === '`' && this.peek(2) === '`') {
-        // Make sure it's not 4 backticks (doc syntax)
-        if (this.peek(3) !== '`') {
-          this.pos += 3;
-          this.column += 3;
+      if (this.source[this.pos] === '`') {
+        // Count consecutive backticks
+        let closeLen = 0;
+        const closeStart = this.pos;
+        while (this.pos < this.source.length && this.source[this.pos] === '`') {
+          closeLen++;
+          this.pos++;
+          this.column++;
+        }
+        if (closeLen === fenceLen) {
           break;
         }
+        // Not the right count — continue scanning
+        continue;
       }
       if (this.source[this.pos] === '\n') {
         this.line++;

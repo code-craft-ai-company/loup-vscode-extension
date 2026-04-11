@@ -40,6 +40,7 @@
         "id": "loom-pkg",
         "aliases": ["Loom Package"],
         "filenames": ["loom.pkg"],
+        "extensions": [".lmpkg"],
         "configuration": "./loom-pkg-language-configuration.json"
       }
     ],
@@ -188,7 +189,7 @@
         {
           "id": "loomDependencies",
           "name": "Loom Dependencies",
-          "when": "workspaceHas:**/loom.pkg",
+          "when": "workspaceHas:**/*.lmpkg || workspaceHas:**/loom.pkg",
           "icon": "$(package)"
         }
       ]

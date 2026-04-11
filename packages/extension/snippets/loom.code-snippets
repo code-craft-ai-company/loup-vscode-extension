@@ -1,62 +1,62 @@
 {
   "Function Declaration": {
-    "prefix": "fun",
+    "prefix": "func",
     "body": [
-      "fun ${1:name}(${2:params}): ${3:void} {",
+      "func ${1:name}(${2:params}): ${3:void} {",
       "  $0",
       "}"
     ],
     "description": "Loom function declaration"
   },
   "Async Function Declaration": {
-    "prefix": "afun",
+    "prefix": "afunc",
     "body": [
-      "async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "async func ${1:name}(${2:params}): Task[${3:void}] {",
       "  $0",
       "}"
     ],
     "description": "Loom async function declaration"
   },
   "Generator Function": {
-    "prefix": "gfun",
+    "prefix": "gfunc",
     "body": [
-      "gen fun ${1:name}(${2:params}): ${3:int} {",
+      "gen func ${1:name}(${2:params}): ${3:int} {",
       "  yield $0;",
       "}"
     ],
     "description": "Generator function declaration"
   },
   "Async Generator Function": {
-    "prefix": "agfun",
+    "prefix": "agfunc",
     "body": [
-      "async gen fun ${1:name}(${2:params}): ${3:int} {",
+      "async gen func ${1:name}(${2:params}): ${3:int} {",
       "  yield $0;",
       "}"
     ],
     "description": "Async generator function declaration"
   },
   "Public Function": {
-    "prefix": "pfun",
+    "prefix": "pfunc",
     "body": [
-      "pub fun ${1:name}(${2:params}): ${3:void} {",
+      "pub func ${1:name}(${2:params}): ${3:void} {",
       "  $0",
       "}"
     ],
     "description": "Public function declaration"
   },
   "Public Async Function": {
-    "prefix": "pafun",
+    "prefix": "pafunc",
     "body": [
-      "pub async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "pub async func ${1:name}(${2:params}): Task[${3:void}] {",
       "  $0",
       "}"
     ],
     "description": "Public async function declaration"
   },
   "Operator Method": {
-    "prefix": "opfun",
+    "prefix": "opfunc",
     "body": [
-      "operator fun ${1:op}(${2:other}: ${3:Self}): ${4:Self} {",
+      "operator func ${1:op}(${2:other}: ${3:Self}): ${4:Self} {",
       "  $0",
       "}"
     ],
@@ -104,7 +104,7 @@
     "prefix": "aclass",
     "body": [
       "abstract class ${1:Name} {",
-      "  pub abstract fun ${2:method}(${3:params}): ${4:void};",
+      "  pub abstract func ${2:method}(${3:params}): ${4:void};",
       "  $0",
       "}"
     ],
@@ -126,7 +126,7 @@
       "struct ${1:Name} implements ${2:Interface} {",
       "  ${3:field}: ${4:type};",
       "",
-      "  fun ${5:method}(${6:params}): ${7:void} {",
+      "  func ${5:method}(${6:params}): ${7:void} {",
       "    $0",
       "  }",
       "}"
@@ -137,7 +137,7 @@
     "prefix": "interface",
     "body": [
       "interface ${1:Name} {",
-      "  fun ${2:method}(${3:params}): ${4:void};",
+      "  func ${2:method}(${3:params}): ${4:void};",
       "}"
     ],
     "description": "Loom interface declaration"
@@ -381,7 +381,7 @@
   },
   "Extern JS Function": {
     "prefix": "externjs",
-    "body": "extern js fun ${1:name}(${2:params}): ${3:Any};",
+    "body": "extern js func ${1:name}(${2:params}): ${3:Any};",
     "description": "JavaScript FFI function binding"
   },
   "Extern JS Value": {
@@ -391,7 +391,7 @@
   },
   "Extern Native Function": {
     "prefix": "externnative",
-    "body": "extern native \"${1:libname}\" fun ${2:name}(${3:params}): ${4:int};",
+    "body": "extern native \"${1:libname}\" func ${2:name}(${3:params}): ${4:int};",
     "description": "Native shared library FFI function binding"
   },
   "Extern Native Value": {
@@ -403,7 +403,7 @@
     "prefix": "jsexport",
     "body": [
       "@jsexport",
-      "fun ${1:name}(${2:params}): ${3:void} {",
+      "func ${1:name}(${2:params}): ${3:void} {",
       "  $0",
       "}"
     ],
@@ -413,7 +413,7 @@
     "prefix": "jsexporta",
     "body": [
       "@jsexport",
-      "async fun ${1:name}(${2:params}): Task[${3:void}] {",
+      "async func ${1:name}(${2:params}): Task[${3:void}] {",
       "  $0",
       "}"
     ],
@@ -431,13 +431,13 @@
   },
   "Derived Signal": {
     "prefix": "derived",
-    "body": "let ${1:name} = derived(fun() => ${2:expr});",
+    "body": "let ${1:name} = derived(func() => ${2:expr});",
     "description": "Create a derived (computed) signal"
   },
   "Effect": {
     "prefix": "effect",
     "body": [
-      "effect(fun() {",
+      "effect(func() {",
       "  $0",
       "});"
     ],
@@ -446,7 +446,7 @@
   "Component": {
     "prefix": "component",
     "body": [
-      "fun ${1:Name}(${2:props}): View {",
+      "func ${1:Name}(${2:props}): View {",
       "  $3",
       "  return ```(html):(components=${4:registry})",
       "    $0",
@@ -456,9 +456,9 @@
     "description": "Reactive UI component returning View"
   },
   "Capture List Lambda": {
-    "prefix": "funw",
+    "prefix": "funcw",
     "body": [
-      "fun [${1:weak} ${2:self}](${3:params}) {",
+      "func [${1:weak} ${2:self}](${3:params}) {",
       "  $0",
       "}"
     ],
@@ -469,7 +469,7 @@
     "body": [
       "package   ${1:my-app}",
       "version   ${2:0.1.0}",
-      "loom      \">=0.6\"",
+      "loom      \">=0.7\"",
       "",
       "[deps]",
       "${3:# dependency = \"^1.0\"}",
@@ -482,5 +482,59 @@
       "${7:include system.proc}"
     ],
     "description": "loom.pkg package manifest scaffold"
+  },
+  "Safe HTML Interpolation": {
+    "prefix": "safehtml",
+    "body": "let ${1:html} = SafeHtml.of(${2:content});",
+    "description": "Wrap content in SafeHtml for safe template interpolation (v0.7)"
+  },
+  "Raw Filter": {
+    "prefix": "rawfilter",
+    "body": "{$ ${1:expr} | raw $}",
+    "description": "Unescaped interpolation using | raw filter (v0.7 — use with caution)"
+  },
+  "URL Validation": {
+    "prefix": "urlof",
+    "body": "let ${1:url} = Url.of(${2:urlString});",
+    "description": "Validate and create a safe Url value (v0.7)"
+  },
+  "Nested Fence (4-backtick)": {
+    "prefix": "tmpl4",
+    "body": [
+      "````(${1:html}):(${2:none})",
+      "  $0",
+      "````"
+    ],
+    "description": "4-backtick template fence for Loom-in-Loom generation (v0.7)"
+  },
+  "State Serializer": {
+    "prefix": "stateserializer",
+    "body": [
+      "let serializer = StateSerializer.new(stateIntegrity: ${1|true,false|});",
+      "let json = serializer.serialize(${2:state});"
+    ],
+    "description": "SSR state serializer with optional integrity hash (v0.7)"
+  },
+  "Browser Bootstrap HTML": {
+    "prefix": "loomhtml",
+    "body": [
+      "<!DOCTYPE html>",
+      "<html lang=\"${1:en}\">",
+      "<head>",
+      "  <meta charset=\"UTF-8\">",
+      "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+      "  <title>${2:Loom App}</title>",
+      "  <meta",
+      "    http-equiv=\"Content-Security-Policy\"",
+      "    content=\"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'\"",
+      "  >",
+      "  <script type=\"module\" src=\"loom-rt.js\"></script>",
+      "</head>",
+      "<body>",
+      "  <div id=\"root\"></div>",
+      "</body>",
+      "</html>"
+    ],
+    "description": "Minimal browser bootstrap HTML template for Loom (v0.7 §27.6)"
   }
 }

@@ -9147,6 +9147,7 @@ var KEYWORDS = {
   "let": "let" /* Let */,
   "var": "var" /* Var */,
   "fun": "fun" /* Fun */,
+  "func": "fun" /* Fun */,
   "async": "async" /* Async */,
   "gen": "gen" /* Gen */,
   "class": "class" /* Class */,
@@ -9162,6 +9163,8 @@ var KEYWORDS = {
   "macro": "macro" /* Macro */,
   "from": "from" /* From */,
   "import": "import" /* Import */,
+  "prefer": "prefer" /* Prefer */,
+  "compiled": "compiled" /* Compiled */,
   "as": "as" /* As */,
   "in": "in" /* In */,
   "is": "is" /* Is */,
@@ -9187,6 +9190,8 @@ var KEYWORDS = {
   "box": "box" /* Box */,
   "weak": "weak" /* Weak */,
   "unowned": "unowned" /* Unowned */,
+  "borrow": "borrow" /* Borrow */,
+  "noescape": "noescape" /* Noescape */,
   "true": "true" /* True */,
   "false": "false" /* False */,
   "none": "none" /* None */
@@ -9502,8 +9507,12 @@ var Lexer = class {
   }
   readTemplateFence() {
     const start = this.pos;
-    this.pos += 3;
-    this.column += 3;
+    let fenceLen = 0;
+    while (this.pos < this.source.length && this.source[this.pos] === "`") {
+      fenceLen++;
+      this.pos++;
+      this.column++;
+    }
     if (this.pos < this.source.length && this.source[this.pos] === "(") {
       while (this.pos < this.source.length && this.source[this.pos] !== "\n") {
         this.pos++;
@@ -9511,12 +9520,18 @@ var Lexer = class {
       }
     }
     while (this.pos < this.source.length) {
-      if (this.source[this.pos] === "`" && this.peek(1) === "`" && this.peek(2) === "`") {
-        if (this.peek(3) !== "`") {
-          this.pos += 3;
-          this.column += 3;
+      if (this.source[this.pos] === "`") {
+        let closeLen = 0;
+        const closeStart = this.pos;
+        while (this.pos < this.source.length && this.source[this.pos] === "`") {
+          closeLen++;
+          this.pos++;
+          this.column++;
+        }
+        if (closeLen === fenceLen) {
           break;
         }
+        continue;
       }
       if (this.source[this.pos] === "\n") {
         this.line++;
@@ -9822,23 +9837,91 @@ var Parser = class {
       return this.parseVarDecl();
     return this.parseExpressionStmt();
   }
+  parseDestructPattern() {
+    const start = this.current();
+    if (this.check("(" /* LeftParen */)) {
+      this.advance();
+      const elements = [];
+      let rest;
+      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+        if (this.check("*" /* Star */)) {
+          this.advance();
+          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+          break;
+        }
+        elements.push(this.parseDestructPattern());
+        if (this.check("," /* Comma */))
+          this.advance();
+      }
+      this.expect(")" /* RightParen */);
+      return { kind: "TuplePattern", elements, rest, range: this.rangeFrom(start) };
+    } else if (this.check("[" /* LeftBracket */)) {
+      this.advance();
+      const elements = [];
+      let rest;
+      while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
+        if (this.check("*" /* Star */)) {
+          this.advance();
+          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+          break;
+        }
+        elements.push(this.parseDestructPattern());
+        if (this.check("," /* Comma */))
+          this.advance();
+      }
+      this.expect("]" /* RightBracket */);
+      return { kind: "ListPattern", elements, rest, range: this.rangeFrom(start) };
+    } else if (this.check("{" /* LeftBrace */)) {
+      this.advance();
+      const fields = [];
+      let rest;
+      while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
+        if (this.check("*" /* Star */) && this.peekKind(1) === "*" /* Star */) {
+          this.advance();
+          this.advance();
+          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+          break;
+        }
+        const fStart = this.current();
+        const key = this.expect("StringLiteral" /* StringLiteral */, "Identifier" /* Identifier */).text.replace(/^"|"$/g, "");
+        let alias;
+        if (this.check(":" /* Colon */)) {
+          this.advance();
+          alias = this.expect("Identifier" /* Identifier */).text;
+        }
+        let defaultValue;
+        if (this.check("=" /* Assign */)) {
+          this.advance();
+          defaultValue = this.parseExpression();
+        }
+        fields.push({ kind: "DictDestructField", key, alias, defaultValue, range: this.rangeFrom(fStart) });
+        if (this.check("," /* Comma */))
+          this.advance();
+      }
+      this.expect("}" /* RightBrace */);
+      return { kind: "DictPattern", fields, rest, range: this.rangeFrom(start) };
+    } else {
+      const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+      return { kind: "IdentifierPattern", name, range: this.rangeFrom(start) };
+    }
+  }
   parseLetDecl() {
     const start = this.current();
     this.expect("let" /* Let */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+    const pattern = this.parseDestructPattern();
     const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
     const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
     this.expect(";" /* Semicolon */);
-    return { kind: "LetDecl", name, typeAnnotation, initializer, range: this.rangeFrom(start) };
+    return { kind: "LetDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
   }
   parseVarDecl() {
     const start = this.current();
     this.expect("var" /* Var */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+    const pattern = this.parseDestructPattern();
     const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
     const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
     this.expect(";" /* Semicolon */);
-    return { kind: "VarDecl", name, typeAnnotation, initializer, range: this.rangeFrom(start) };
+    return { kind: "VarDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
   }
   parseFunDecl(isPublic, isStatic, isAbstract) {
     const start = this.current();
@@ -9957,8 +10040,14 @@ var Parser = class {
       this.expect("(" /* LeftParen */);
       const names = this.parseImportNames();
       this.expect(")" /* RightParen */);
+      let preferCompiled = false;
+      if (this.check("prefer" /* Prefer */)) {
+        this.advance();
+        this.expect("compiled" /* Compiled */);
+        preferCompiled = true;
+      }
       this.expect(";" /* Semicolon */);
-      return { kind: "ImportStmt", path, names, range: this.rangeFrom(start) };
+      return { kind: "ImportStmt", path, names, preferCompiled, range: this.rangeFrom(start) };
     }
     this.expect("{" /* LeftBrace */);
     const imports = [];
@@ -9973,8 +10062,14 @@ var Parser = class {
         this.expect("(" /* LeftParen */);
         const names = this.parseImportNames();
         this.expect(")" /* RightParen */);
+        let preferCompiled = false;
+        if (this.check("prefer" /* Prefer */)) {
+          this.advance();
+          this.expect("compiled" /* Compiled */);
+          preferCompiled = true;
+        }
         this.expect(";" /* Semicolon */);
-        imports.push({ kind: "ImportStmt", path: subPath, names, range: this.rangeFrom(start) });
+        imports.push({ kind: "ImportStmt", path: subPath, names, preferCompiled, range: this.rangeFrom(start) });
       }
     }
     this.expect("}" /* RightBrace */);
@@ -10081,25 +10176,31 @@ var Parser = class {
     if (this.check("await" /* Await */)) {
       this.advance();
       this.expect("(" /* LeftParen */);
-      const variable = this.expect("Identifier" /* Identifier */).text;
+      let isVarOrLet = false;
+      if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
+        this.advance();
+        isVarOrLet = true;
+      }
+      const pattern = this.parseDestructPattern();
       this.expect("in" /* In */);
       const iterable = this.parseExpression();
       this.expect(")" /* RightParen */);
       const body2 = this.parseBlock();
-      return { kind: "ForAwaitStmt", variable, iterable, body: body2, label, range: this.rangeFrom(start) };
+      return { kind: "ForAwaitStmt", pattern, iterable, body: body2, label, range: this.rangeFrom(start) };
     }
     this.expect("(" /* LeftParen */);
-    if ((this.check("Identifier" /* Identifier */) || this.check("let" /* Let */)) && this.hasInAhead()) {
-      let variable;
-      if (this.check("let" /* Let */)) {
+    if ((this.check("Identifier" /* Identifier */) || this.check("let" /* Let */) || this.check("var" /* Var */) || this.check("[" /* LeftBracket */) || this.check("(" /* LeftParen */) || this.check("{" /* LeftBrace */)) && this.hasInAhead()) {
+      let isVarOrLet = false;
+      if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
         this.advance();
+        isVarOrLet = true;
       }
-      variable = this.expect("Identifier" /* Identifier */).text;
+      const pattern = this.parseDestructPattern();
       this.expect("in" /* In */);
       const iterable = this.parseExpression();
       this.expect(")" /* RightParen */);
       const body2 = this.parseBlock();
-      return { kind: "ForInStmt", variable, iterable, body: body2, label, range: this.rangeFrom(start) };
+      return { kind: "ForInStmt", pattern, iterable, body: body2, label, range: this.rangeFrom(start) };
     }
     const init = this.parseStatement();
     const condition = this.parseExpression();
@@ -10163,12 +10264,19 @@ var Parser = class {
     const start = this.current();
     this.expect("with" /* With */);
     this.expect("(" /* LeftParen */);
-    const name = this.expect("Identifier" /* Identifier */).text;
-    this.expect("=" /* Assign */);
-    const resource = this.parseExpression();
+    const bindings = [];
+    while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+      const bStart = this.current();
+      const name = this.expect("Identifier" /* Identifier */).text;
+      this.expect("=" /* Assign */);
+      const resource = this.parseExpression();
+      bindings.push({ kind: "WithBinding", name, resource, range: this.rangeFrom(bStart) });
+      if (this.check("," /* Comma */))
+        this.advance();
+    }
     this.expect(")" /* RightParen */);
     const body = this.parseBlock();
-    return { kind: "WithStmt", name, resource, body, range: this.rangeFrom(start) };
+    return { kind: "WithStmt", bindings, body, range: this.rangeFrom(start) };
   }
   parseDeferStmt() {
     const start = this.current();
@@ -10316,6 +10424,9 @@ var Parser = class {
           this.advance();
         } else if (this.check("unowned" /* Unowned */)) {
           qualifier = "unowned";
+          this.advance();
+        } else if (this.check("borrow" /* Borrow */)) {
+          qualifier = "borrow";
           this.advance();
         }
         const fName = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
@@ -10548,9 +10659,23 @@ var Parser = class {
     return left;
   }
   parseComparison() {
-    let left = this.parseShift();
+    let left = this.parseMembership();
     while (this.check("<" /* LessThan */) || this.check("<=" /* LessEqual */) || this.check(">" /* GreaterThan */) || this.check(">=" /* GreaterEqual */)) {
       const op = this.advance().text;
+      const right = this.parseMembership();
+      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
+    }
+    return left;
+  }
+  parseMembership() {
+    let left = this.parseShift();
+    while (this.check("in" /* In */) || this.check("not" /* Not */) && this.peekKind(1) === "in" /* In */) {
+      let op = "in";
+      if (this.check("not" /* Not */)) {
+        this.advance();
+        op = "not in";
+      }
+      this.expect("in" /* In */);
       const right = this.parseShift();
       left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
     }
@@ -10631,8 +10756,39 @@ var Parser = class {
         expr = { kind: "MemberExpr", object: expr, property, range: expr.range };
       } else if (this.check("?." /* QuestionDot */)) {
         this.advance();
-        const property = this.advance().text;
-        expr = { kind: "OptionalChainExpr", object: expr, property, range: expr.range };
+        if (this.check("[" /* LeftBracket */)) {
+          this.advance();
+          if (this.check(":" /* Colon */)) {
+            this.advance();
+            const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
+            let step;
+            if (this.check(":" /* Colon */)) {
+              this.advance();
+              step = this.check("]" /* RightBracket */) ? void 0 : this.parseExpression();
+            }
+            this.expect("]" /* RightBracket */);
+            expr = { kind: "SliceExpr", object: expr, start: void 0, end, step, optional: true, range: expr.range };
+          } else {
+            const index = this.parseExpression();
+            if (this.check(":" /* Colon */)) {
+              this.advance();
+              const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
+              let step;
+              if (this.check(":" /* Colon */)) {
+                this.advance();
+                step = this.check("]" /* RightBracket */) ? void 0 : this.parseExpression();
+              }
+              this.expect("]" /* RightBracket */);
+              expr = { kind: "SliceExpr", object: expr, start: index, end, step, optional: true, range: expr.range };
+            } else {
+              this.expect("]" /* RightBracket */);
+              expr = { kind: "IndexExpr", object: expr, index, optional: true, range: expr.range };
+            }
+          }
+        } else {
+          const property = this.advance().text;
+          expr = { kind: "OptionalChainExpr", object: expr, property, range: expr.range };
+        }
       } else if (this.check("[" /* LeftBracket */)) {
         this.advance();
         if (this.check(":" /* Colon */)) {
@@ -10797,10 +10953,26 @@ var Parser = class {
         this.advance();
         return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
       case "(" /* LeftParen */: {
+        const start = token;
         this.advance();
-        const expression = this.parseExpression();
+        if (this.check(")" /* RightParen */)) {
+          this.advance();
+          return { kind: "TupleLiteral", elements: [], range: this.rangeFrom(start) };
+        }
+        const firstExpr = this.parseExpression();
+        if (this.check("," /* Comma */)) {
+          this.advance();
+          const elements = [firstExpr];
+          while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+            elements.push(this.parseExpression());
+            if (this.check("," /* Comma */))
+              this.advance();
+          }
+          this.expect(")" /* RightParen */);
+          return { kind: "TupleLiteral", elements, range: this.rangeFrom(start) };
+        }
         this.expect(")" /* RightParen */);
-        return { kind: "GroupExpr", expression, range: expression.range };
+        return { kind: "GroupExpr", expression: firstExpr, range: firstExpr.range || this.rangeFrom(start) };
       }
       case "[" /* LeftBracket */: {
         const start = token;
@@ -10813,7 +10985,9 @@ var Parser = class {
         if (this.check("for" /* For */)) {
           this.advance();
           this.expect("(" /* LeftParen */);
-          const variable = this.expect("Identifier" /* Identifier */).text;
+          if (this.check("let" /* Let */) || this.check("var" /* Var */))
+            this.advance();
+          const pattern = this.parseDestructPattern();
           this.expect("in" /* In */);
           const iterable = this.parseExpression();
           this.expect(")" /* RightParen */);
@@ -10825,7 +10999,7 @@ var Parser = class {
             this.expect(")" /* RightParen */);
           }
           this.expect("]" /* RightBracket */);
-          return { kind: "ComprehensionExpr", resultKind: "list", body: firstExpr, variable, iterable, condition, range: this.rangeFrom(start) };
+          return { kind: "ComprehensionExpr", resultKind: "list", body: firstExpr, pattern, iterable, condition, range: this.rangeFrom(start) };
         }
         const elements = [firstExpr];
         while (this.check("," /* Comma */)) {
@@ -10840,17 +11014,77 @@ var Parser = class {
       case "{" /* LeftBrace */: {
         const start = token;
         this.advance();
-        const entries = [];
+        if (this.check("}" /* RightBrace */)) {
+          this.advance();
+          return { kind: "DictLiteral", entries: [], range: this.rangeFrom(start) };
+        }
+        const firstExpr = this.parseExpression();
+        if (this.check("for" /* For */)) {
+          this.advance();
+          this.expect("(" /* LeftParen */);
+          if (this.check("let" /* Let */) || this.check("var" /* Var */))
+            this.advance();
+          const pattern = this.parseDestructPattern();
+          this.expect("in" /* In */);
+          const iterable = this.parseExpression();
+          this.expect(")" /* RightParen */);
+          let condition;
+          if (this.check("if" /* If */)) {
+            this.advance();
+            this.expect("(" /* LeftParen */);
+            condition = this.parseExpression();
+            this.expect(")" /* RightParen */);
+          }
+          this.expect("}" /* RightBrace */);
+          return { kind: "ComprehensionExpr", resultKind: "set", body: firstExpr, pattern, iterable, condition, range: this.rangeFrom(start) };
+        }
+        if (this.check(":" /* Colon */)) {
+          this.advance();
+          const firstVal = this.parseExpression();
+          if (this.check("for" /* For */)) {
+            this.advance();
+            this.expect("(" /* LeftParen */);
+            if (this.check("let" /* Let */) || this.check("var" /* Var */))
+              this.advance();
+            const pattern = this.parseDestructPattern();
+            this.expect("in" /* In */);
+            const iterable = this.parseExpression();
+            this.expect(")" /* RightParen */);
+            let condition;
+            if (this.check("if" /* If */)) {
+              this.advance();
+              this.expect("(" /* LeftParen */);
+              condition = this.parseExpression();
+              this.expect(")" /* RightParen */);
+            }
+            this.expect("}" /* RightBrace */);
+            const bodyTup = { kind: "TupleLiteral", elements: [firstExpr, firstVal], range: this.rangeFrom(start) };
+            return { kind: "ComprehensionExpr", resultKind: "dict", body: bodyTup, pattern, iterable, condition, range: this.rangeFrom(start) };
+          }
+          const entries = [[firstExpr, firstVal]];
+          if (this.check("," /* Comma */))
+            this.advance();
+          while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
+            const key = this.parseExpression();
+            this.expect(":" /* Colon */);
+            const value = this.parseExpression();
+            entries.push([key, value]);
+            if (this.check("," /* Comma */))
+              this.advance();
+          }
+          this.expect("}" /* RightBrace */);
+          return { kind: "DictLiteral", entries, range: this.rangeFrom(start) };
+        }
+        const elements = [firstExpr];
+        if (this.check("," /* Comma */))
+          this.advance();
         while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-          const key = this.parseExpression();
-          this.expect(":" /* Colon */);
-          const value = this.parseExpression();
-          entries.push([key, value]);
+          elements.push(this.parseExpression());
           if (this.check("," /* Comma */))
             this.advance();
         }
         this.expect("}" /* RightBrace */);
-        return { kind: "DictLiteral", entries, range: this.rangeFrom(start) };
+        return { kind: "SetLiteral", elements, range: this.rangeFrom(start) };
       }
       default:
         this.addDiagnostic(`Unexpected token: ${token.text}`, token);
@@ -10945,6 +11179,11 @@ var Parser = class {
   }
   parseBaseType() {
     const token = this.current();
+    let isNoescape = false;
+    if (this.check("noescape" /* Noescape */)) {
+      isNoescape = true;
+      this.advance();
+    }
     if (this.check("fn" /* Fn */)) {
       const start = token;
       this.advance();
@@ -10958,7 +11197,7 @@ var Parser = class {
       this.expect(")" /* RightParen */);
       this.expect(":" /* Colon */);
       const returnType = this.parseTypeExpr();
-      return { kind: "FunctionType", params, returnType, range: this.rangeFrom(start) };
+      return { kind: "FunctionType", params, returnType, isNoescape, range: this.rangeFrom(start) };
     }
     if (this.check("async" /* Async */) && this.peekKind(1) === "fn" /* Fn */) {
       const start = token;
@@ -11031,6 +11270,17 @@ var Parser = class {
   }
   parseParam() {
     const start = this.current();
+    let qualifier;
+    if (this.check("weak" /* Weak */)) {
+      qualifier = "weak";
+      this.advance();
+    } else if (this.check("unowned" /* Unowned */)) {
+      qualifier = "unowned";
+      this.advance();
+    } else if (this.check("borrow" /* Borrow */)) {
+      qualifier = "borrow";
+      this.advance();
+    }
     const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
     let type;
     if (this.check(":" /* Colon */)) {
@@ -11276,15 +11526,40 @@ var SymbolTable = class {
       }
       case "LetDecl":
       case "VarDecl": {
-        const sym = {
-          name: stmt.name,
-          kind: "Variable" /* Variable */,
-          range: stmt.range,
-          selectionRange: stmt.range,
-          type: stmt.typeAnnotation ? this.formatType(stmt.typeAnnotation) : void 0
+        const typeStr = stmt.typeAnnotation ? this.formatType(stmt.typeAnnotation) : void 0;
+        let mainSym;
+        const extractNames = (pattern) => {
+          if (pattern.kind === "IdentifierPattern") {
+            const sym = {
+              name: pattern.name,
+              kind: "Variable" /* Variable */,
+              range: stmt.range,
+              selectionRange: stmt.range,
+              type: typeStr
+            };
+            scope.symbols.set(pattern.name, sym);
+            if (!mainSym)
+              mainSym = sym;
+          } else if (pattern.kind === "TuplePattern" || pattern.kind === "ListPattern") {
+            pattern.elements.forEach(extractNames);
+            if (pattern.rest) {
+              const sym = { name: pattern.rest, kind: "Variable" /* Variable */, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(pattern.rest, sym);
+            }
+          } else if (pattern.kind === "DictPattern") {
+            pattern.fields.forEach((f) => {
+              const name = f.alias || f.key;
+              const sym = { name, kind: "Variable" /* Variable */, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(name, sym);
+            });
+            if (pattern.rest) {
+              const sym = { name: pattern.rest, kind: "Variable" /* Variable */, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(pattern.rest, sym);
+            }
+          }
         };
-        scope.symbols.set(stmt.name, sym);
-        return sym;
+        extractNames(stmt.pattern);
+        return mainSym || { name: "_", kind: "Variable" /* Variable */, range: stmt.range, selectionRange: stmt.range };
       }
       case "PortalStmt": {
         const sym = {
@@ -11302,7 +11577,7 @@ var SymbolTable = class {
           kind: "ExternFunction" /* ExternFunction */,
           range: stmt.range,
           selectionRange: stmt.range,
-          type: `extern js fun`
+          type: `extern js func`
         };
         scope.symbols.set(stmt.name, sym);
         return sym;
@@ -11324,7 +11599,7 @@ var SymbolTable = class {
           kind: "ExternFunction" /* ExternFunction */,
           range: stmt.range,
           selectionRange: stmt.range,
-          type: `extern native "${stmt.library}" fun`
+          type: `extern native "${stmt.library}" func`
         };
         scope.symbols.set(stmt.name, sym);
         return sym;
@@ -11476,22 +11751,22 @@ var SymbolTable = class {
   formatFunType(fun) {
     const params = fun.params.map((p) => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name).join(", ");
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : "";
-    return `fun(${params})${ret}`;
+    return `func(${params})${ret}`;
   }
   formatAsyncFunType(fun) {
     const params = fun.params.map((p) => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name).join(", ");
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : "";
-    return `async fun(${params})${ret}`;
+    return `async func(${params})${ret}`;
   }
   formatGenFunType(fun) {
     const params = fun.params.map((p) => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name).join(", ");
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : "";
-    return `gen fun(${params})${ret}`;
+    return `gen func(${params})${ret}`;
   }
   formatAsyncGenFunType(fun) {
     const params = fun.params.map((p) => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name).join(", ");
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : "";
-    return `async gen fun(${params})${ret}`;
+    return `async gen func(${params})${ret}`;
   }
   formatType(type) {
     switch (type.kind) {
@@ -11597,10 +11872,36 @@ function validateDocument(document) {
   }));
   connection.sendDiagnostics({ uri, diagnostics });
 }
+var LOOM_BUILTINS = [
+  "print",
+  "println",
+  "len",
+  "assert",
+  "panic",
+  "args",
+  "env",
+  "readBytes",
+  "readText",
+  "writeBytes",
+  "writeText",
+  "exec",
+  "readBytesAsync",
+  "readTextAsync",
+  "writeBytesAsync",
+  "writeTextAsync",
+  "execAsync"
+];
+var LOOM_DUNDERS = [
+  "__name__",
+  "__file__",
+  "__execmode__",
+  "__module__"
+];
 var LOOM_KEYWORDS = [
   "let",
   "var",
   "fun",
+  "func",
   "async",
   "gen",
   "await",
@@ -11656,11 +11957,32 @@ var LOOM_KEYWORDS = [
   "set",
   "box",
   "weak",
-  "unowned"
+  "unowned",
+  "borrow",
+  "noescape",
+  "raw",
+  "group",
+  "js",
+  "native",
+  "val",
+  "prefer",
+  "compiled"
 ];
 var LOOM_TYPES = [
   "int",
+  "int8",
+  "int16",
+  "int32",
+  "int64",
+  "uint8",
+  "uint16",
+  "uint32",
+  "uint64",
+  "bigint",
   "float",
+  "float32",
+  "float64",
+  "decimal",
   "bool",
   "string",
   "bytes",
@@ -11697,7 +12019,28 @@ var LOOM_TYPES = [
   "EffectHandle",
   "Window",
   "WindowConfig",
-  "Tray"
+  "Tray",
+  "SafeHtml",
+  "Url",
+  "UrlError",
+  "StateSerializer",
+  "ModuleLoadError",
+  "Module",
+  "Sendable",
+  "Mutex",
+  "RwLock",
+  "Atomic",
+  "Thread",
+  "ThreadHandle",
+  "ThreadPool",
+  "ThreadLocal",
+  "TaskLocal",
+  "Vec",
+  "StyleSheet",
+  "ClassName",
+  "ThreadSafeHandle",
+  "ExecutorConfig",
+  "RuntimeConfig"
 ];
 var SYSTEM_MODULES = [
   { label: "system.text", detail: "String utilities", items: ["split", "join", "trim", "trimStart", "trimEnd", "startsWith", "endsWith", "contains", "indexOf", "toUpper", "toLower", "replace", "replaceAll", "padStart", "padEnd", "repeat", "reverse", "parseInt", "parseFloat", "parseBool", "toBytes", "fromBytes", "toHex", "fromHex", "toBase64", "fromBase64"] },
@@ -11709,17 +12052,32 @@ var SYSTEM_MODULES = [
   { label: "system.net", detail: "Networking", items: ["requestAsync"] },
   { label: "system.debug", detail: "Tracing and time-travel debugging", items: ["tracingAvailable", "tracingActive", "setTraceHook", "activatePortal", "deactivatePortal", "activePortals", "startCaptureServer", "startMcpServer"] },
   { label: "system.ui", detail: "Reactive UI (universal)", items: ["signal", "derived", "effect", "mount", "Signal", "View", "ComponentRegistry", "EffectHandle", "MountHandle", "MountTarget", "Axis", "Alignment", "TextStyle", "Color", "Insets", "Row", "Column", "Stack", "Scroll", "Text", "Button", "Image", "Icon", "Canvas", "TextField", "Checkbox", "Slider", "Select"] },
-  { label: "system.ui.web", detail: "Web-specific UI rendering", items: ["renderToString", "hydrate", "mount"] },
+  { label: "system.ui.web", detail: "Web-specific UI rendering and SSR", items: ["renderToString", "hydrate", "mount", "StateSerializer", "serializeState", "deserializeState"] },
   { label: "system.ui.desktop", detail: "Desktop window management", items: ["Window", "WindowConfig", "Tray", "showWindow", "showDialog", "showNotification"] },
   { label: "system.reflect", detail: "Structural reflection (universal)", items: ["typeOf", "is", "fields", "methods", "constructors", "annotations", "variants", "callableName"] },
   { label: "system.inspect", detail: "Dynamic introspection (interpreted-only)", items: ["new", "get", "getAs", "set", "invoke", "invokeAs", "as"] },
   { label: "system.regex", detail: "Regular expressions", items: ["Regex", "Match"] },
   { label: "system.env", detail: "Environment variables", items: ["loadDotenv", "get", "getOrDefault", "platform", "validate"] },
-  { label: "system.template", detail: "Templates and rendering", items: ["Template", "RenderContext", "Renderable"] },
-  { label: "system.interop", detail: "Typed JS/native facades", items: ["fetch", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "querySelector", "querySelectorAll", "Request", "Response", "Element", "Event", "TimerHandle"] }
+  { label: "system.template", detail: "Templates and rendering", items: ["Template", "RenderContext", "Renderable", "SafeHtml", "escapeHtml", "escapeAttribute", "Url"] },
+  { label: "system.lang.interop.js", detail: "Typed JS/native facades", items: ["fetch", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "querySelector", "querySelectorAll", "Request", "Response", "Element", "Event", "TimerHandle"] },
+  { label: "system.http", detail: "HTTP client and server", items: ["Client", "Server", "Request", "Response", "get", "post", "put", "patch", "delete"] },
+  { label: "system.ws", detail: "WebSockets", items: ["WebSocket", "connect", "Server", "Message"] },
+  { label: "system.simd", detail: "SIMD vector math", items: ["Vec", "add", "sub", "mul", "div", "dot", "sqrt", "abs", "max", "min"] },
+  { label: "system.css", detail: "CSS-in-Loom styling", items: ["StyleSheet", "ClassName", "css", "keyframes", "media"] },
+  { label: "system.thread", detail: "OS thread parallelism", items: ["Mutex", "MutexGuard", "RwLock", "Atomic", "Thread", "ThreadHandle", "ThreadPool", "spawnBlocking"] },
+  { label: "system.runtime", detail: "Runtime configuration", items: ["ExecutorConfig", "RuntimeConfig", "TaskLocal", "configure"] },
+  { label: "system.ffi", detail: "Foreign Function Interface", items: ["ThreadSafeHandle"] },
+  { label: "system.math", detail: "Extended numeric math", items: ["sin", "cos", "exp", "log", "tan", "atan", "sqrt", "pow"] },
+  { label: "system.gpu", detail: "WebGPU compute shaders", items: ["ComputeShader", "Buffer", "dispatch"] }
 ];
 connection.onCompletion((_params) => {
   const items = [];
+  for (const fn of LOOM_BUILTINS) {
+    items.push({ label: fn, kind: import_node.CompletionItemKind.Function, detail: "Built-in" });
+  }
+  for (const dunder of LOOM_DUNDERS) {
+    items.push({ label: dunder, kind: import_node.CompletionItemKind.Constant, detail: "Built-in Dunder" });
+  }
   for (const kw of LOOM_KEYWORDS) {
     items.push({ label: kw, kind: import_node.CompletionItemKind.Keyword });
   }
@@ -12274,7 +12632,7 @@ connection.onSignatureHelp((params) => {
   const sym = findSymbolByName(symbols, funcName);
   if (!sym || !sym.type)
     return null;
-  const sigMatch = sym.type.match(/^(?:async )?fun\((.*)\)(.*)$/);
+  const sigMatch = sym.type.match(/^(?:async )?(?:func|fun)\((.*)\)(.*)$/);
   if (!sigMatch)
     return null;
   const paramsStr = sigMatch[1];

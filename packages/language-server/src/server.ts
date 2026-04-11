@@ -140,8 +140,18 @@ function validateDocument(document: TextDocument): void {
 
 // ---- Completions ----
 
+const LOOM_BUILTINS = [
+  'print', 'println', 'len', 'assert', 'panic',
+  'args', 'env', 'readBytes', 'readText', 'writeBytes', 'writeText', 'exec',
+  'readBytesAsync', 'readTextAsync', 'writeBytesAsync', 'writeTextAsync', 'execAsync'
+];
+
+const LOOM_DUNDERS = [
+  '__name__', '__file__', '__execmode__', '__module__'
+];
+
 const LOOM_KEYWORDS = [
-  'let', 'var', 'fun', 'async', 'gen', 'await', 'return', 'if', 'else',
+  'let', 'var', 'fun', 'func', 'async', 'gen', 'await', 'return', 'if', 'else',
   'for', 'while', 'do', 'match', 'break', 'continue', 'throw',
   'try', 'catch', 'finally', 'defer', 'with', 'portal', 'spawn',
   'class', 'dynamic', 'abstract', 'struct', 'enum', 'interface',
@@ -149,11 +159,15 @@ const LOOM_KEYWORDS = [
   'pub', 'static', 'extern', 'true', 'false', 'none', 'new', 'del',
   'global', 'nonlocal', 'yield', 'suspend', 'type', 'macro',
   'implements', 'operator', 'fn', 'get', 'set', 'box',
-  'weak', 'unowned',
+  'weak', 'unowned', 'borrow', 'noescape', 'raw',
+  'group', 'js', 'native', 'val', 'prefer', 'compiled'
 ];
 
 const LOOM_TYPES = [
-  'int', 'float', 'bool', 'string', 'bytes', 'void',
+  'int', 'int8', 'int16', 'int32', 'int64',
+  'uint8', 'uint16', 'uint32', 'uint64', 'bigint',
+  'float', 'float32', 'float64', 'decimal',
+  'bool', 'string', 'bytes', 'void',
   'list', 'dict', 'set', 'tuple', 'fn',
   'Any', 'Task', 'Option', 'Result', 'Signal', 'View', 'Template', 'Type',
   'None', 'Some', 'Ok', 'Err', 'Error',
@@ -161,6 +175,10 @@ const LOOM_TYPES = [
   'Regex', 'Match', 'Actor', 'CancellationToken', 'TaskGroup',
   'ComponentRegistry', 'MountHandle', 'EffectHandle',
   'Window', 'WindowConfig', 'Tray',
+  'SafeHtml', 'Url', 'UrlError', 'StateSerializer', 'ModuleLoadError', 'Module',
+  'Sendable', 'Mutex', 'RwLock', 'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'ThreadLocal', 'TaskLocal',
+  'Vec', 'StyleSheet', 'ClassName',
+  'ThreadSafeHandle', 'ExecutorConfig', 'RuntimeConfig',
 ];
 
 const SYSTEM_MODULES = [
@@ -173,18 +191,37 @@ const SYSTEM_MODULES = [
   { label: 'system.net', detail: 'Networking', items: ['requestAsync'] },
   { label: 'system.debug', detail: 'Tracing and time-travel debugging', items: ['tracingAvailable', 'tracingActive', 'setTraceHook', 'activatePortal', 'deactivatePortal', 'activePortals', 'startCaptureServer', 'startMcpServer'] },
   { label: 'system.ui', detail: 'Reactive UI (universal)', items: ['signal', 'derived', 'effect', 'mount', 'Signal', 'View', 'ComponentRegistry', 'EffectHandle', 'MountHandle', 'MountTarget', 'Axis', 'Alignment', 'TextStyle', 'Color', 'Insets', 'Row', 'Column', 'Stack', 'Scroll', 'Text', 'Button', 'Image', 'Icon', 'Canvas', 'TextField', 'Checkbox', 'Slider', 'Select'] },
-  { label: 'system.ui.web', detail: 'Web-specific UI rendering', items: ['renderToString', 'hydrate', 'mount'] },
+  { label: 'system.ui.web', detail: 'Web-specific UI rendering and SSR', items: ['renderToString', 'hydrate', 'mount', 'StateSerializer', 'serializeState', 'deserializeState'] },
   { label: 'system.ui.desktop', detail: 'Desktop window management', items: ['Window', 'WindowConfig', 'Tray', 'showWindow', 'showDialog', 'showNotification'] },
   { label: 'system.reflect', detail: 'Structural reflection (universal)', items: ['typeOf', 'is', 'fields', 'methods', 'constructors', 'annotations', 'variants', 'callableName'] },
   { label: 'system.inspect', detail: 'Dynamic introspection (interpreted-only)', items: ['new', 'get', 'getAs', 'set', 'invoke', 'invokeAs', 'as'] },
   { label: 'system.regex', detail: 'Regular expressions', items: ['Regex', 'Match'] },
   { label: 'system.env', detail: 'Environment variables', items: ['loadDotenv', 'get', 'getOrDefault', 'platform', 'validate'] },
-  { label: 'system.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable'] },
-  { label: 'system.interop', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
+  { label: 'system.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable', 'SafeHtml', 'escapeHtml', 'escapeAttribute', 'Url'] },
+  { label: 'system.lang.interop.js', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
+  { label: 'system.http', detail: 'HTTP client and server', items: ['Client', 'Server', 'Request', 'Response', 'get', 'post', 'put', 'patch', 'delete'] },
+  { label: 'system.ws', detail: 'WebSockets', items: ['WebSocket', 'connect', 'Server', 'Message'] },
+  { label: 'system.simd', detail: 'SIMD vector math', items: ['Vec', 'add', 'sub', 'mul', 'div', 'dot', 'sqrt', 'abs', 'max', 'min'] },
+  { label: 'system.css', detail: 'CSS-in-Loom styling', items: ['StyleSheet', 'ClassName', 'css', 'keyframes', 'media'] },
+  { label: 'system.thread', detail: 'OS thread parallelism', items: ['Mutex', 'MutexGuard', 'RwLock', 'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'spawnBlocking'] },
+  { label: 'system.runtime', detail: 'Runtime configuration', items: ['ExecutorConfig', 'RuntimeConfig', 'TaskLocal', 'configure'] },
+  { label: 'system.ffi', detail: 'Foreign Function Interface', items: ['ThreadSafeHandle'] },
+  { label: 'system.math', detail: 'Extended numeric math', items: ['sin', 'cos', 'exp', 'log', 'tan', 'atan', 'sqrt', 'pow'] },
+  { label: 'system.gpu', detail: 'WebGPU compute shaders', items: ['ComputeShader', 'Buffer', 'dispatch'] },
 ];
 
 connection.onCompletion((_params: TextDocumentPositionParams): CompletionItem[] => {
   const items: CompletionItem[] = [];
+
+  // Built-ins
+  for (const fn of LOOM_BUILTINS) {
+    items.push({ label: fn, kind: CompletionItemKind.Function, detail: 'Built-in' });
+  }
+
+  // Dunders
+  for (const dunder of LOOM_DUNDERS) {
+    items.push({ label: dunder, kind: CompletionItemKind.Constant, detail: 'Built-in Dunder' });
+  }
 
   // Keywords
   for (const kw of LOOM_KEYWORDS) {
@@ -735,7 +772,7 @@ connection.onSignatureHelp((params: TextDocumentPositionParams): SignatureHelp |
   if (!sym || !sym.type) return null;
 
   // Parse signature from type string
-  const sigMatch = sym.type.match(/^(?:async )?fun\((.*)\)(.*)$/);
+  const sigMatch = sym.type.match(/^(?:async )?(?:func|fun)\((.*)\)(.*)$/);
   if (!sigMatch) return null;
 
   const paramsStr = sigMatch[1];

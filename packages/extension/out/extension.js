@@ -800,6 +800,20 @@ var LoomTaskProvider = class _LoomTaskProvider {
           dir,
           ["run", ".", "--target", target]
         ));
+        if (target === "browser") {
+          tasks2.push(this.createTask(
+            "build:browser",
+            `Build ${name} (browser)`,
+            dir,
+            ["build", "--target", "browser"]
+          ));
+          tasks2.push(this.createTask(
+            "serve",
+            `Serve ${name} (dev server)`,
+            dir,
+            ["serve"]
+          ));
+        }
       }
     }
     return tasks2;

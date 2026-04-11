@@ -42,6 +42,21 @@ export class LoomTaskProvider implements vscode.TaskProvider {
           dir,
           ['run', '.', '--target', target]
         ));
+        // v0.7: browser target gets build and serve tasks
+        if (target === 'browser') {
+          tasks.push(this.createTask(
+            'build:browser',
+            `Build ${name} (browser)`,
+            dir,
+            ['build', '--target', 'browser']
+          ));
+          tasks.push(this.createTask(
+            'serve',
+            `Serve ${name} (dev server)`,
+            dir,
+            ['serve']
+          ));
+        }
       }
     }
 

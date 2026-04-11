@@ -103,11 +103,11 @@
       "patterns": [
         {
           "name": "keyword.control.flow.loom",
-          "match": "\\b(if|else|for|while|do|match|break|continue|return|throw|try|catch|finally|await|spawn|yield|suspend)\\b"
+          "match": "\\b(if|else|for|while|do|match|break|continue|return|throw|try|catch|finally|await|spawn|yield|suspend|group)\\b"
         },
         {
           "name": "keyword.control.import.loom",
-          "match": "\\b(from|import|as)\\b"
+          "match": "\\b(from|import|as|prefer|compiled)\\b"
         },
         {
           "name": "keyword.control.defer.loom",
@@ -127,7 +127,7 @@
         },
         {
           "name": "keyword.operator.expression.loom",
-          "match": "\\b(in|is|not|instanceof|typeof)\\b"
+          "match": "\\b(in|is|not|and|or|bnot|instanceof|typeof)\\b"
         },
         {
           "name": "keyword.operator.cast.loom",
@@ -156,7 +156,7 @@
         },
         {
           "name": "storage.modifier.loom",
-          "match": "\\b(pub|static|abstract|operator|weak|unowned)\\b"
+          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime)\\b"
         }
       ]
     },
@@ -166,7 +166,7 @@
         {
           "comment": "Built-in primitive types (lowercase)",
           "name": "support.type.primitive.loom",
-          "match": "\\b(int|float|bool|string|bytes|void)\\b"
+          "match": "\\b(int|int8|int16|int32|int64|uint8|uint16|uint32|uint64|bigint|float|float32|float64|decimal|bool|char|string|bytes|void)\\b"
         },
         {
           "comment": "Built-in generic collection types (lowercase)",
@@ -176,7 +176,7 @@
         {
           "comment": "Built-in box / special types (PascalCase)",
           "name": "support.type.class.loom",
-          "match": "\\b(Any|Int|Float|Bool|String|Bytes|Task|Option|Result|Signal|View|Template|Type|None|Some|Ok|Err|Error|NativeHandle|StackFrame|ComponentRegistry|MountHandle|EffectHandle|Duration|Instant|Regex|Match|Actor|CancellationToken|TaskGroup|Window|WindowConfig|Tray)\\b"
+          "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|Animal|Any|AppError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Ok|Optimizer|Option|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SgdOptimizer|Shape|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|UiRuntime|Url|UrlError|User|Variable|VendorId|View|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
         },
         {
           "comment": "system.* namespace modules",
@@ -371,8 +371,8 @@
 
     "template-fence-html": {
       "name": "meta.template.fence.html.loom",
-      "begin": "(```)(\\()(html)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(html)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -392,10 +392,10 @@
     },
 
     "template-fence-ui": {
-      "comment": "Cross-platform UI fence (v0.6) — uses Loom component primitives",
+      "comment": "Cross-platform UI fence (v0.6+) — uses Loom component primitives",
       "name": "meta.template.fence.ui.loom",
-      "begin": "(```)(\\()(ui)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(ui)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -426,8 +426,8 @@
 
     "template-fence-javascript": {
       "name": "meta.template.fence.javascript.loom",
-      "begin": "(```)(\\()(js)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(js)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -448,8 +448,8 @@
 
     "template-fence-typescript": {
       "name": "meta.template.fence.typescript.loom",
-      "begin": "(```)(\\()(ts)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(ts)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -470,8 +470,8 @@
 
     "template-fence-python": {
       "name": "meta.template.fence.python.loom",
-      "begin": "(```)(\\()(py)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(py)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -492,8 +492,8 @@
 
     "template-fence-sql": {
       "name": "meta.template.fence.sql.loom",
-      "begin": "(```)(\\()(sql)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(sql)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -514,8 +514,8 @@
 
     "template-fence-css": {
       "name": "meta.template.fence.css.loom",
-      "begin": "(```)(\\()(css)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(css)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -536,8 +536,8 @@
 
     "template-fence-json": {
       "name": "meta.template.fence.json.loom",
-      "begin": "(```)(\\()(json)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(json)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -558,8 +558,8 @@
 
     "template-fence-markdown": {
       "name": "meta.template.fence.markdown.loom",
-      "begin": "(```)(\\()(md)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(md)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -580,8 +580,8 @@
 
     "template-fence-shell": {
       "name": "meta.template.fence.shell.loom",
-      "begin": "(```)(\\()(sh)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()(sh)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -603,8 +603,8 @@
     "template-fence-generic": {
       "comment": "Catch-all template fence for any language not specifically matched above",
       "name": "meta.template.fence.loom",
-      "begin": "(```)(\\()([a-zA-Z][a-zA-Z0-9_]*)(\\))(:\\([^)]*\\))?",
-      "end": "(```)",
+      "begin": "(`{3,})(\\()([a-zA-Z][a-zA-Z0-9_]*)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.template.begin.loom" },
         "2": { "name": "punctuation.definition.descriptor.begin.loom" },
@@ -644,6 +644,16 @@
       "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.loom" } },
       "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loom" } },
       "patterns": [
+        {
+          "comment": "v0.7 | raw filter for explicit unescaped output",
+          "name": "keyword.operator.filter.raw.loom",
+          "match": "\\|\\s*raw\\b"
+        },
+        {
+          "comment": "v0.7 other pipe filters",
+          "name": "keyword.operator.filter.loom",
+          "match": "\\|\\s*[a-zA-Z_][a-zA-Z0-9_]*"
+        },
         { "include": "source.loom" }
       ]
     },
@@ -653,7 +663,7 @@
         {
           "comment": "extern js fun / extern js val",
           "name": "meta.extern.js.loom",
-          "match": "\\b(extern)\\s+(js)\\s+(fun|val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "match": "\\b(extern)\\s+(js)\\s+(func|fun|val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
             "1": { "name": "storage.type.extern.loom" },
             "2": { "name": "storage.modifier.js.loom" },
@@ -664,7 +674,7 @@
         {
           "comment": "extern native \"lib\" fun",
           "name": "meta.extern.native.loom",
-          "match": "\\b(extern)\\s+(native)\\s+(\"[^\"]+\")\\s+(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "match": "\\b(extern)\\s+(native)\\s+(\"[^\"]+\")\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
             "1": { "name": "storage.type.extern.loom" },
             "2": { "name": "storage.modifier.native.loom" },
@@ -712,7 +722,7 @@
     "async-gen-function-declaration": {
       "comment": "async gen fun name",
       "name": "meta.function.async-gen.loom",
-      "match": "\\b(async)\\s+(gen)\\s+(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "match": "\\b(async)\\s+(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.async.loom" },
         "2": { "name": "storage.modifier.gen.loom" },
@@ -724,7 +734,7 @@
     "gen-function-declaration": {
       "comment": "gen fun name",
       "name": "meta.function.gen.loom",
-      "match": "\\b(gen)\\s+(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "match": "\\b(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.gen.loom" },
         "2": { "name": "storage.type.function.loom" },
@@ -734,7 +744,7 @@
 
     "function-declaration": {
       "name": "meta.function.loom",
-      "match": "\\b(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "match": "\\b(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.type.function.loom" },
         "2": { "name": "entity.name.function.loom" }
@@ -743,7 +753,7 @@
 
     "async-function-declaration": {
       "name": "meta.function.async.loom",
-      "match": "\\b(async)\\s+(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "match": "\\b(async)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.async.loom" },
         "2": { "name": "storage.type.function.loom" },
@@ -754,7 +764,7 @@
     "operator-method-declaration": {
       "comment": "operator fun +/- etc.",
       "name": "meta.function.operator.loom",
-      "match": "\\b(operator)\\s+(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*|\\+|-|\\*|/|%|\\*\\*|&|\\||\\^|~|<<|>>|\\[\\]|\\[\\]=|==|contains|\\(\\)|\\+=|-=|\\*=|/=|%=|\\*\\*=|<<=|>>=|&=|\\|=|\\^=)",
+      "match": "\\b(operator)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*|\\+|-|\\*|/|%|\\*\\*|&|\\||\\^|~|<<|>>|\\[\\]|\\[\\]=|==|contains|\\(\\)|\\+=|-=|\\*=|/=|%=|\\*\\*=|<<=|>>=|&=|\\|=|\\^=)",
       "captures": {
         "1": { "name": "storage.modifier.operator.loom" },
         "2": { "name": "storage.type.function.loom" },
@@ -1026,7 +1036,7 @@
         {
           "comment": "Dunder identifiers for module introspection",
           "name": "variable.language.dunder.loom",
-          "match": "\\b(__name__|__file__|__execmode__)\\b"
+          "match": "\\b(__name__|__file__|__execmode__|__module__)\\b"
         },
         {
           "comment": "this keyword for class instance reference",

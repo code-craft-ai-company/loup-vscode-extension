@@ -179,15 +179,41 @@ export class SymbolTable {
 
       case 'LetDecl':
       case 'VarDecl': {
-        const sym: SymbolInfo = {
-          name: stmt.name,
-          kind: SymbolKind.Variable,
-          range: stmt.range,
-          selectionRange: stmt.range,
-          type: stmt.typeAnnotation ? this.formatType(stmt.typeAnnotation) : undefined,
+        const typeStr = stmt.typeAnnotation ? this.formatType(stmt.typeAnnotation) : undefined;
+        let mainSym: SymbolInfo | undefined;
+        
+        const extractNames = (pattern: AST.DestructPattern) => {
+          if (pattern.kind === 'IdentifierPattern') {
+            const sym: SymbolInfo = {
+              name: pattern.name,
+              kind: SymbolKind.Variable,
+              range: stmt.range,
+              selectionRange: stmt.range,
+              type: typeStr,
+            };
+            scope.symbols.set(pattern.name, sym);
+            if (!mainSym) mainSym = sym;
+          } else if (pattern.kind === 'TuplePattern' || pattern.kind === 'ListPattern') {
+            pattern.elements.forEach(extractNames);
+            if (pattern.rest) {
+              const sym: SymbolInfo = { name: pattern.rest, kind: SymbolKind.Variable, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(pattern.rest, sym);
+            }
+          } else if (pattern.kind === 'DictPattern') {
+            pattern.fields.forEach(f => {
+              const name = f.alias || f.key;
+              const sym: SymbolInfo = { name, kind: SymbolKind.Variable, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(name, sym);
+            });
+            if (pattern.rest) {
+              const sym: SymbolInfo = { name: pattern.rest, kind: SymbolKind.Variable, range: stmt.range, selectionRange: stmt.range };
+              scope.symbols.set(pattern.rest, sym);
+            }
+          }
         };
-        scope.symbols.set(stmt.name, sym);
-        return sym;
+
+        extractNames(stmt.pattern);
+        return mainSym || { name: '_', kind: SymbolKind.Variable, range: stmt.range, selectionRange: stmt.range };
       }
 
       case 'PortalStmt': {
@@ -207,7 +233,7 @@ export class SymbolTable {
           kind: SymbolKind.ExternFunction,
           range: stmt.range,
           selectionRange: stmt.range,
-          type: `extern js fun`,
+          type: `extern js func`,
         };
         scope.symbols.set(stmt.name, sym);
         return sym;
@@ -231,7 +257,7 @@ export class SymbolTable {
           kind: SymbolKind.ExternFunction,
           range: stmt.range,
           selectionRange: stmt.range,
-          type: `extern native "${stmt.library}" fun`,
+          type: `extern native "${stmt.library}" func`,
         };
         scope.symbols.set(stmt.name, sym);
         return sym;
@@ -395,7 +421,7 @@ export class SymbolTable {
       .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
       .join(', ');
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
-    return `fun(${params})${ret}`;
+    return `func(${params})${ret}`;
   }
 
   private formatAsyncFunType(fun: AST.AsyncFunDecl): string {
@@ -403,7 +429,7 @@ export class SymbolTable {
       .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
       .join(', ');
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
-    return `async fun(${params})${ret}`;
+    return `async func(${params})${ret}`;
   }
 
   private formatGenFunType(fun: AST.GenFunDecl): string {
@@ -411,7 +437,7 @@ export class SymbolTable {
       .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
       .join(', ');
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
-    return `gen fun(${params})${ret}`;
+    return `gen func(${params})${ret}`;
   }
 
   private formatAsyncGenFunType(fun: AST.AsyncGenFunDecl): string {
@@ -419,7 +445,7 @@ export class SymbolTable {
       .map(p => p.type ? `${p.name}: ${this.formatType(p.type)}` : p.name)
       .join(', ');
     const ret = fun.returnType ? `: ${this.formatType(fun.returnType)}` : '';
-    return `async gen fun(${params})${ret}`;
+    return `async gen func(${params})${ret}`;
   }
 
   formatType(type: AST.TypeExpr): string {

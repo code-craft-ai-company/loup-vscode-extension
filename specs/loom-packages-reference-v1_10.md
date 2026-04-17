@@ -21,6 +21,7 @@
 - [§13.5 Package Registry](#135-package-registry)
 - [§13.8 Core Package Set (`loom.*`)](#138-core-package-set)
 - [§21.28 `loom.tensor` — High-Level Tensor Operations](#2128-loomtensor--high-level-tensor-operations)
+- [§21.29 `native.webgpu` — WebGPU API Facade](#2129-nativewebgpu--webgpu-api-facade)
 - [§21.30 `native.gpu` — Low-Level GPU Kernel Dispatch](#2130-nativegpu--low-level-gpu-kernel-dispatch)
 - [§21.31 `loom.autodiff` — Automatic Differentiation](#2131-loomautodiff--automatic-differentiation)
 - [§21.32 `native.hal` — Hardware Abstraction Layer](#2132-nativehal--hardware-abstraction-layer)
@@ -171,7 +172,7 @@ let rows = await pool.query(
   [true]
 );
 for (row in rows) {
-  print("{$ row.get("name") $}");
+  print(i"{$ row.get("name") $}");
 }
 ```
 
@@ -406,6 +407,140 @@ class TensorBackendError : Exception { pub let backend: Backend; pub let reason:
 
 ---
 
+
+
+## §21.29 `native.webgpu` — WebGPU API Facade
+
+*(This section is normative. Available on all targets.)*
+
+`native.webgpu` provides typed Loom facades over the WebGPU API, enabling GPU-accelerated compute and rendering from both browser (Wasm) and native contexts. It is the lower-level WebGPU API layer beneath `native.gpu` and `loom.tensor`.
+
+## Architecture
+
+### WebGPU API Facade
+
+The module wraps the W3C WebGPU API with typed Loom classes and structs. On browser targets, these map directly to JavaScript WebGPU objects via `extern js`. On native targets, they wrap a native WebGPU implementation (e.g., wgpu-native, Dawn).
+
+### Core Types
+
+```loom
+namespace native.webgpu;
+
+class GpuAdapter : Any {
+  pub let name: string;
+  pub let features: list[string];
+  pub let isFallbackAdapter: bool;
+  pub async func requestDevice(desc: GpuDeviceDescriptor? = None): Task[GpuDevice];
+}
+
+class GpuDevice : Any implements native.hal.AcceleratorDevice, Closeable {
+
+  // AcceleratorDevice implementation
+  pub func descriptor(): native.hal.AcceleratorDescriptor;
+  pub func features(): native.hal.AcceleratorFeatures;
+  pub func memoryInfo(): native.hal.AcceleratorMemoryInfo;
+  pub func submitGraph(graph: native.hal.ComputeGraph): Task[void];
+  pub func isAvailable(): bool;
+  pub func waitIdle(): Task[void];
+  pub let adapter: GpuAdapter;
+  pub let limits: dict[string, int];
+  pub let queue: GpuQueue;
+
+  pub func createBuffer(desc: GpuBufferDescriptor): GpuBuffer;
+  pub async func createBufferWithData[T](data: list[T], usage: GpuBufferUsage): Task[GpuBuffer];
+  pub func createShaderModule(code: string): GpuShaderModule;
+  pub func createComputePipeline(desc: GpuComputePipelineDescriptor): GpuComputePipeline;
+  pub func createBindGroupLayout(entries: list[GpuBindGroupLayoutEntry]): GpuBindGroupLayout;
+  pub func createBindGroup(layout: GpuBindGroupLayout, entries: list[GpuBindGroupEntry]): GpuBindGroup;
+  pub func createCommandEncoder(): GpuCommandEncoder;
+  pub func createTexture(desc: GpuTextureDescriptor): GpuTexture;
+  pub func createSampler(desc: GpuSamplerDescriptor = GpuSamplerDescriptor()): GpuSampler;
+  pub func close(): void;
+  pub async func waitForIdle(): Task[void];
+  pub static async func request(options: GpuRequestAdapterOptions? = None): Task[GpuDevice];
+}
+
+enum GpuBufferUsage {
+  Storage = 0x80; Uniform = 0x40; CopySrc = 0x04; CopyDst = 0x08;
+  MapRead = 0x01; MapWrite = 0x02;
+}
+
+class GpuBuffer : Any implements Closeable {
+  pub let size: int;
+  pub let usage: int;
+  pub async func mapRead(): Task[bytes];
+  pub async func mapWrite(data: bytes): Task[void];
+  pub func close(): void;
+}
+
+class GpuQueue : Any {
+  pub func submit(commandBuffers: list[GpuCommandBuffer]): void;
+  pub async func onSubmittedWorkDone(): Task[void];
+  pub func writeBuffer(buf: GpuBuffer, offset: int, data: bytes): void;
+}
+
+class GpuCommandEncoder : Any {
+  pub func beginComputePass(label: string = ""): GpuComputePassEncoder;
+  pub func finish(): GpuCommandBuffer;
+  pub func copyBufferToBuffer(src: GpuBuffer, srcOffset: int,
+                              dst: GpuBuffer, dstOffset: int, size: int): void;
+}
+
+class GpuComputePassEncoder : Any {
+  pub func setPipeline(pipeline: GpuComputePipeline): void;
+  pub func setBindGroup(index: int, bindGroup: GpuBindGroup): void;
+  pub func dispatchWorkgroups(x: int, y: int = 1, z: int = 1): void;
+  pub func end(): void;
+}
+```
+
+### Browser vs Native WebGPU Paths
+
+- **Browser:** Classes wrap JavaScript WebGPU objects via `extern js` bindings. `GpuDevice.request()` calls `navigator.gpu.requestAdapter()`.
+- **Native:** Classes wrap a native WebGPU implementation (wgpu-native or Dawn). The native library is linked at compile time via `loom build --feature webgpu`.
+
+### Buffer Management
+
+- `GpuBufferDescriptor` specifies size, usage flags, and optional mapped-at-creation.
+- `GpuBufferUsage` is a type-safe bitmask enum (was incorrectly typed as `int` in v1.6).
+- Buffer mapping is async: `mapRead()` and `mapWrite()` return `Task`.
+
+### Pipeline Creation
+
+1. Create shader module from WGSL source: `device.createShaderModule(code)`
+2. Define bind group layout: `device.createBindGroupLayout(entries)`
+3. Create compute pipeline: `device.createComputePipeline(desc)`
+4. Create bind group with buffer bindings: `device.createBindGroup(layout, entries)`
+5. Encode and dispatch: `encoder.beginComputePass()` → `setPipeline` → `setBindGroup` → `dispatchWorkgroups` → `end` → `encoder.finish()` → `queue.submit()`
+
+### Texture Types
+
+Texture support enables vision ML preprocessing, generative image pipelines, and rendering workloads:
+- `GpuTextureFormat`: 8 standard formats (RGBA, depth, BGRA variants)
+- `GpuTextureDimension`: 1D, 2D, 3D
+- `GpuTexture`: created via `device.createTexture()`, provides `createView()` and `close()`
+- `GpuSampler`: filtering and addressing modes for texture sampling
+
+### Error Types
+
+```loom
+class GpuUnavailableError : Exception { pub let reason: string; }
+class GpuOutOfMemoryError  : Exception { pub let requested: int; }
+class GpuValidationError   : Exception { pub let source: string; }
+class GpuTimestampError    : Exception { pub let reason: string; }
+```
+
+## Design Decisions
+
+- Typed `GpuBufferUsage` enum replaces raw `int` bitmask for type safety
+- Async buffer mapping matches the WebGPU spec's async model
+- `GpuDevice.request()` provides a single entry point for both browser and native
+- Texture types included for ML preprocessing and rendering workloads
+- Memory introspection is advisory on some platforms (e.g., macOS Metal)
+- Multiple command queues supported for compute/transfer overlap
+
+
+---
 
 ---
 
@@ -1824,30 +1959,30 @@ let outPath  = outDir();
 // Compile the CUDA helper object
 nvcc(
   src: "src/loom_cuda_helpers.cu",
-  out: "{$ outPath $}/loom_cuda_helpers.o",
+  out: i"{$ outPath $}/loom_cuda_helpers.o",
   flags: ["-O3", "-arch=sm_80", "--ptxas-options=-v"],
-  includeDirs: ["{$ cudaHome $}/include"],
+  includeDirs: [i"{$ cudaHome $}/include"],
 );
 
 // Compile the Loom binding source to native
 cc(
   src: "src/bindings.loom",
-  out: "{$ outPath $}/bindings.o",
+  out: i"{$ outPath $}/bindings.o",
   flags: ["--target", "native", "@compiled"],
 );
 
 // Link into a shared library
 link(
   objects: [
-    "{$ outPath $}/loom_cuda_helpers.o",
-    "{$ outPath $}/bindings.o",
+    i"{$ outPath $}/loom_cuda_helpers.o",
+    i"{$ outPath $}/bindings.o",
   ],
-  out: "{$ outPath $}/libloom_backend_cuda.so",
+  out: i"{$ outPath $}/libloom_backend_cuda.so",
   libs: ["cudart", "cublas", "cufft"],
-  libDirs: ["{$ cudaHome $}/lib64"],
+  libDirs: [i"{$ cudaHome $}/lib64"],
 );
 
-print("loom.backend.cuda compiled successfully → {$ outPath $}/libloom_backend_cuda.so");
+print(i"loom.backend.cuda compiled successfully → {$ outPath $}/libloom_backend_cuda.so");
 ```
 
 `loom hardware compile` executes `build.loom` in a sandboxed subprocess with access only to the filesystem paths declared in the `[hardware]` section's `sdk_env`. The resulting shared library path is recorded in `hardware.lock`.
@@ -2028,4 +2163,3 @@ Types defined in packages that require `loom install`.
 | `AdamOptimizer` | `loom.autodiff` | §21.31 |
 | `SgdOptimizer` | `loom.autodiff` | §21.31 |
 | `CustomOp` | `loom.autodiff` | §21.31 |
-

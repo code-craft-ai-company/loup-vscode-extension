@@ -8,6 +8,24 @@
     ],
     "description": "Loom function declaration"
   },
+  "Function with Requires Clause": {
+    "prefix": "funcreq",
+    "body": [
+      "func ${1:name}(${2:a}: ${3:T}, ${4:b}: ${5:T}) requires ${6|reads,edits,takes,shares,distinct|}(${2:a}, ${4:b}): ${7:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Function with ownership verb requires clause (§23.4.9, §23.4.10)"
+  },
+  "Ownership Verb Parameter": {
+    "prefix": "funcverb",
+    "body": [
+      "func ${1:name}(${2|reads,edits,takes,shares|} ${3:param}: ${4:T}): ${5:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Function parameter with ownership transfer verb (§23.4.9)"
+  },
   "Async Function Declaration": {
     "prefix": "afunc",
     "body": [
@@ -100,6 +118,26 @@
     ],
     "description": "Loom dynamic class (opt-in dynamic fields)"
   },
+  "Unique Class": {
+    "prefix": "uclass",
+    "body": [
+      "unique class ${1:Name} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Unique (single-owner, ARC-free) class — native/freestanding only (§8.11, §23.4.7)"
+  },
+  "Synchronized Class": {
+    "prefix": "sclass",
+    "body": [
+      "synchronized class ${1:Name} {",
+      "  modifier ${2:update}(${3:params}): void {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Synchronized class with per-instance mutex and modifier method (§23.4.13)"
+  },
   "Abstract Class": {
     "prefix": "aclass",
     "body": [
@@ -151,10 +189,28 @@
     "prefix": "macro",
     "body": [
       "macro ${1:name}(${2:params}) {",
-      "  $0",
+      "  quote {",
+      "    $0",
+      "  }",
       "}"
     ],
-    "description": "Compile-time macro declaration"
+    "description": "Compile-time macro declaration with quote { } body (§25)"
+  },
+  "Public Macro": {
+    "prefix": "pmacro",
+    "body": [
+      "pub macro ${1:name}(${2:params}) {",
+      "  quote {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Exported compile-time macro declaration (§25)"
+  },
+  "Macro Invocation": {
+    "prefix": "macroi",
+    "body": "${1:name}!(${2:args})",
+    "description": "Macro invocation — trailing ! distinguishes from function call"
   },
   "Match Expression": {
     "prefix": "match",
@@ -253,6 +309,51 @@
     ],
     "description": "Structured concurrency: await group with spawn"
   },
+  "Atomic Block": {
+    "prefix": "atomic",
+    "body": [
+      "atomic {",
+      "  $0",
+      "}"
+    ],
+    "description": "Cooperative atomicity scope — no await/spawn inside (§17.7)"
+  },
+  "Safe Block": {
+    "prefix": "safe",
+    "body": [
+      "safe {",
+      "  $0",
+      "}"
+    ],
+    "description": "Safe context block (§23.4.12)"
+  },
+  "Safe Function": {
+    "prefix": "sfunc",
+    "body": [
+      "safe func ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Safe-propagating function declaration (§23.4.12)"
+  },
+  "Modifier Method": {
+    "prefix": "modifier",
+    "body": [
+      "modifier ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Class method that writes var fields on self (§23.4.11) — class-only"
+  },
+  "Unsafe Lock-Release Block": {
+    "prefix": "unsafeblock",
+    "body": [
+      "unsafe(\"${1:reason}\") {",
+      "  $0",
+      "}"
+    ],
+    "description": "Lock-release region inside synchronized modifier (§23.4.14)"
+  },
   "Try-Catch": {
     "prefix": "try",
     "body": [
@@ -328,6 +429,11 @@
     "prefix": "from",
     "body": "from ${1:package.module} import (${2:Name});",
     "description": "Import from a module"
+  },
+  "Import with Prefer Compiled": {
+    "prefix": "frompc",
+    "body": "from ${1:package.module} import (${2:Name}) prefer compiled;",
+    "description": "Import with prefer-compiled fallback resolution (§13.1, §13.7)"
   },
   "Import Block": {
     "prefix": "fromb",
@@ -419,10 +525,20 @@
     ],
     "description": "Export an async Loom function to JavaScript"
   },
-  "Compiled Directive": {
-    "prefix": "compiled",
-    "body": "@compiled",
-    "description": "File-level @compiled directive for AOT compilation"
+  "Mode Directive": {
+    "prefix": "mode",
+    "body": "@mode(${1|scripted,compiled,native,freestanding|})",
+    "description": "File-level @mode directive (§2.5)"
+  },
+  "Namespace Declaration": {
+    "prefix": "namespace",
+    "body": "namespace ${1:pkg.module};",
+    "description": "Module namespace declaration (§13.0) — first statement after @mode"
+  },
+  "Deferred Import": {
+    "prefix": "fromdefer",
+    "body": "from ${1:package.module} defer import (${2:Name});",
+    "description": "Deferred import — creates type stubs to break import cycles (§13.10)"
   },
   "Signal": {
     "prefix": "signal",
@@ -469,7 +585,7 @@
     "body": [
       "package   ${1:my-app}",
       "version   ${2:0.1.0}",
-      "loom      \">=0.7\"",
+      "loom      \">=1.16\"",
       "",
       "[deps]",
       "${3:# dependency = \"^1.0\"}",
@@ -477,11 +593,105 @@
       "[dev-deps]",
       "${4:# test-runner = \"^3.1\"}",
       "",
-      "[target.${5:cli}]",
-      "${6:include system.fs}",
-      "${7:include system.proc}"
+      "[dev-overrides]",
+      "${5:# my-utils = { path = \"../my-utils\" }}",
+      "",
+      "[target.${6:cli}]",
+      "${7:include io.fs}",
+      "${8:include io.proc}"
     ],
-    "description": "loom.pkg package manifest scaffold"
+    "description": "Loom package manifest scaffold (§13.3)"
+  },
+  "Unique Binding": {
+    "prefix": "ulet",
+    "body": "unique ${1|let,var|} ${2:name} = ${3:expr};",
+    "description": "Single-owner unique binding — native/freestanding only (§23.4.7)"
+  },
+  "Arc Binding": {
+    "prefix": "arclet",
+    "body": "arc ${1|let,var|} ${2:name} = ${3:expr};",
+    "description": "Explicit ARC-managed binding — native only (§23.4.8)"
+  },
+  "Consume Expression": {
+    "prefix": "consume",
+    "body": "consume ${1:expr}",
+    "description": "Downgrade unique to ARC — native only (§23.4.7)"
+  },
+  "Reinterpret (unsafe)": {
+    "prefix": "reinterpret",
+    "body": "reinterpret[${1:T}, ${2:U}](${3:expr})",
+    "description": "Unsafe bit-level type reinterpretation — native/freestanding (§24.18)"
+  },
+  "Reinterpret Checked": {
+    "prefix": "reinterpretchecked",
+    "body": "reinterpretChecked[${1:T}, ${2:U}](${3:expr})",
+    "description": "Checked bit-level reinterpretation returning Result (§24.18)"
+  },
+  "Size Of": {
+    "prefix": "sizeof",
+    "body": "size_of[${1:T}]()",
+    "description": "Compile-time type size in bytes — native/freestanding (§24.4.1)"
+  },
+  "Align Of": {
+    "prefix": "alignof",
+    "body": "align_of[${1:T}]()",
+    "description": "Compile-time type alignment in bytes — native/freestanding (§24.4.1)"
+  },
+  "Inline Assembly Block": {
+    "prefix": "asm",
+    "body": [
+      "asm {",
+      "  \"${1:; instructions}\"",
+      "  out: (${2:outputs})",
+      "  in: (${3:inputs})",
+      "  clobbers: (${4:clobbers})",
+      "}"
+    ],
+    "description": "Inline assembly block — freestanding/native only (§24.7)"
+  },
+  "Freestanding Entry Point": {
+    "prefix": "entry",
+    "body": [
+      "@entry",
+      "func ${1:main}(): void {",
+      "  $0",
+      "}"
+    ],
+    "description": "Freestanding bare entry point (§24.5)"
+  },
+  "Panic Handler": {
+    "prefix": "panichandler",
+    "body": [
+      "@panic_handler",
+      "func ${1:panic}(source: PanicSource, message: string): void {",
+      "  $0",
+      "}"
+    ],
+    "description": "Freestanding panic handler (§24.6)"
+  },
+  "Interrupt Service Routine": {
+    "prefix": "interrupt",
+    "body": [
+      "@interrupt(${1:vector})",
+      "func ${2:handler}(frame: InterruptFrame): void {",
+      "  $0",
+      "}"
+    ],
+    "description": "Freestanding interrupt service routine (§24.13)"
+  },
+  "Volatile Wrapper": {
+    "prefix": "volatile",
+    "body": "@volatile let ${1:reg}: Volatile[${2:uint32}] = ${3:addr};",
+    "description": "Volatile MMIO register binding — freestanding only (§24.8, §24.9)"
+  },
+  "Lifetime-Parameterized Function": {
+    "prefix": "funcl",
+    "body": [
+      "func ${1:name}[lifetime ~${2:a}](${3:x}: borrow[~${2:a}] ${4:T}): ${5:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Lifetime-parameterized function — native/freestanding (§7.1, §23.4.2)"
   },
   "Safe HTML Interpolation": {
     "prefix": "safehtml",

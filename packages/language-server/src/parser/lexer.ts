@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Lexer — Tokenizer for Loom v0.7
+// Loom Lexer — Tokenizer for Loom v1.16
 // ============================================================================
 
 export enum TokenKind {
@@ -10,6 +10,7 @@ export enum TokenKind {
   MultilineStringLiteral = 'MultilineStringLiteral',
   BytesLiteral = 'BytesLiteral',
   RawStringLiteral = 'RawStringLiteral',
+  InterpolatedStringLiteral = 'InterpolatedStringLiteral',
   TemplateFenceOpen = 'TemplateFenceOpen',
   TemplateFenceClose = 'TemplateFenceClose',
 
@@ -53,6 +54,15 @@ export enum TokenKind {
   Static = 'static',
   Type = 'type',
   Macro = 'macro',
+  Namespace = 'namespace',
+  Modifier = 'modifier',
+  Synchronized = 'synchronized',
+  Unique = 'unique',
+  Arc = 'arc',
+  Safe = 'safe',
+  UnsafeKw = 'unsafe',
+  Requires = 'requires',
+  Atomic = 'atomic',
 
   // Keywords — misc
   From = 'from',
@@ -82,8 +92,22 @@ export enum TokenKind {
   Get = 'get',
   Set = 'set',
   Box = 'box',
+  Consume = 'consume',
   Self = 'self',
+  SelfType = 'Self',
+  This = 'this',
   Bnot = 'bnot',
+  Reads = 'reads',
+  Edits = 'edits',
+  Takes = 'takes',
+  Shares = 'shares',
+  Distinct = 'distinct',
+  Reinterpret = 'reinterpret',
+  ReinterpretChecked = 'reinterpretChecked',
+  SizeOf = 'size_of',
+  AlignOf = 'align_of',
+  Quote = 'quote',
+  Asm = 'asm',
   Final = 'final',
   Lifetime = 'lifetime',
   Module = 'module',
@@ -94,6 +118,7 @@ export enum TokenKind {
   Trait = 'trait',
   Volatile = 'volatile',
   Where = 'where',
+  Excl = 'excl',
 
   // Field qualifiers
   Weak = 'weak',
@@ -123,6 +148,8 @@ export enum TokenKind {
   MinusAssign = '-=',
   StarAssign = '*=',
   SlashAssign = '/=',
+  SlashSlash = '//',
+  SlashSlashAssign = '//=',
   PercentAssign = '%=',
   StarStarAssign = '**=',
   AmpersandAssign = '&=',
@@ -141,6 +168,7 @@ export enum TokenKind {
   Or = '||',
   Bang = '!',
   QuestionDot = '?.',
+  QuestionDotBracket = '?.[',
   QuestionQuestion = '??',
   Question = '?',
   Pipe = '|',
@@ -222,6 +250,15 @@ const KEYWORDS: Record<string, TokenKind> = {
   'static': TokenKind.Static,
   'type': TokenKind.Type,
   'macro': TokenKind.Macro,
+  'namespace': TokenKind.Namespace,
+  'modifier': TokenKind.Modifier,
+  'synchronized': TokenKind.Synchronized,
+  'unique': TokenKind.Unique,
+  'arc': TokenKind.Arc,
+  'safe': TokenKind.Safe,
+  'unsafe': TokenKind.UnsafeKw,
+  'requires': TokenKind.Requires,
+  'atomic': TokenKind.Atomic,
   'from': TokenKind.From,
   'import': TokenKind.Import,
   'prefer': TokenKind.Prefer,
@@ -249,8 +286,22 @@ const KEYWORDS: Record<string, TokenKind> = {
   'get': TokenKind.Get,
   'set': TokenKind.Set,
   'box': TokenKind.Box,
+  'consume': TokenKind.Consume,
   'self': TokenKind.Self,
+  'Self': TokenKind.SelfType,
+  'this': TokenKind.This,
   'bnot': TokenKind.Bnot,
+  'reads': TokenKind.Reads,
+  'edits': TokenKind.Edits,
+  'takes': TokenKind.Takes,
+  'shares': TokenKind.Shares,
+  'distinct': TokenKind.Distinct,
+  'reinterpret': TokenKind.Reinterpret,
+  'reinterpretChecked': TokenKind.ReinterpretChecked,
+  'size_of': TokenKind.SizeOf,
+  'align_of': TokenKind.AlignOf,
+  'quote': TokenKind.Quote,
+  'asm': TokenKind.Asm,
   'final': TokenKind.Final,
   'lifetime': TokenKind.Lifetime,
   'module': TokenKind.Module,
@@ -261,6 +312,7 @@ const KEYWORDS: Record<string, TokenKind> = {
   'trait': TokenKind.Trait,
   'volatile': TokenKind.Volatile,
   'where': TokenKind.Where,
+  'excl': TokenKind.Excl,
   'and': TokenKind.And,
   'or': TokenKind.Or,
   'weak': TokenKind.Weak,
@@ -320,6 +372,10 @@ export class Lexer {
     if (ch === '/' && next === '/' && this.peek(2) === '/') {
       return this.readDocComment();
     }
+    // Floor-division assignment //= takes precedence over line comment
+    if (ch === '/' && next === '/' && this.peek(2) === '=') {
+      return this.readFixed(TokenKind.SlashSlashAssign, 3);
+    }
     // Line comments
     if (ch === '/' && next === '/') {
       return this.readLineComment();
@@ -352,6 +408,11 @@ export class Lexer {
       return this.readRawString(next);
     }
 
+    // Interpolated string literal: i"..." or i'...'
+    if (ch === 'i' && (next === '"' || next === "'")) {
+      return this.readInterpolatedString(next);
+    }
+
     // Strings
     if (ch === '"') return this.readString('"');
     if (ch === "'") return this.readString("'");
@@ -373,6 +434,7 @@ export class Lexer {
     if (ch === '*' && next === '*' && this.peek(2) === '=') return this.readFixed(TokenKind.StarStarAssign, 3);
     if (ch === '<' && next === '<' && this.peek(2) === '=') return this.readFixed(TokenKind.ShiftLeftAssign, 3);
     if (ch === '>' && next === '>' && this.peek(2) === '=') return this.readFixed(TokenKind.ShiftRightAssign, 3);
+    if (ch === '?' && next === '.' && this.peek(2) === '[') return this.readFixed(TokenKind.QuestionDotBracket, 3);
 
     // Two-char operators
     if (ch === '*' && next === '*') return this.readFixed(TokenKind.StarStar, 2);
@@ -560,6 +622,34 @@ export class Lexer {
       this.column++;
     }
     return this.makeToken(TokenKind.RawStringLiteral, this.source.slice(start, this.pos), start);
+  }
+
+  private readInterpolatedString(quote: string): Token {
+    const start = this.pos;
+    this.pos++; // skip 'i'
+    this.column++;
+    this.pos++; // skip opening quote
+    this.column++;
+    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
+      if (this.source[this.pos] === '\\') {
+        this.pos++;
+        this.column++;
+      }
+      if (this.pos < this.source.length) {
+        if (this.source[this.pos] === '\n') {
+          this.line++;
+          this.column = 0;
+        } else {
+          this.column++;
+        }
+        this.pos++;
+      }
+    }
+    if (this.pos < this.source.length) {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken(TokenKind.InterpolatedStringLiteral, this.source.slice(start, this.pos), start);
   }
 
   private readMultilineString(quote: string): Token {

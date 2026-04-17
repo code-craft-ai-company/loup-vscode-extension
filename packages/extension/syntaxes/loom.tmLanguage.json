@@ -6,15 +6,19 @@
   "patterns": [
     { "include": "#shebang" },
     { "include": "#comments" },
-    { "include": "#compiled-directive" },
+    { "include": "#mode-directive" },
+    { "include": "#namespace-declaration" },
     { "include": "#annotations" },
     { "include": "#template-fence" },
     { "include": "#multiline-string-double" },
     { "include": "#multiline-string-single" },
     { "include": "#bytes-literal" },
+    { "include": "#char-literal" },
     { "include": "#raw-string" },
+    { "include": "#interpolated-strings" },
     { "include": "#strings" },
     { "include": "#numbers" },
+    { "include": "#asm-block" },
     { "include": "#keywords" },
     { "include": "#storage" },
     { "include": "#constants" },
@@ -24,17 +28,23 @@
     { "include": "#async-gen-function-declaration" },
     { "include": "#gen-function-declaration" },
     { "include": "#async-function-declaration" },
+    { "include": "#safe-function-declaration" },
     { "include": "#operator-method-declaration" },
+    { "include": "#modifier-method-declaration" },
     { "include": "#function-declaration" },
     { "include": "#enum-declaration" },
     { "include": "#struct-declaration" },
     { "include": "#abstract-class-declaration" },
+    { "include": "#synchronized-class-declaration" },
+    { "include": "#unique-class-declaration" },
     { "include": "#class-declaration" },
     { "include": "#interface-declaration" },
     { "include": "#type-alias-declaration" },
     { "include": "#portal-statement" },
+    { "include": "#deferred-import-statement" },
     { "include": "#import-statement" },
     { "include": "#reexport-statement" },
+    { "include": "#lifetime-label" },
     { "include": "#variable-declaration" },
     { "include": "#type-annotation" },
     { "include": "#dynamic-field-access" },
@@ -76,12 +86,25 @@
       ]
     },
 
-    "compiled-directive": {
-      "comment": "File-level @compiled directive (must be first non-comment line)",
-      "name": "meta.directive.compiled.loom",
-      "match": "^\\s*(@compiled)\\s*$",
+    "mode-directive": {
+      "comment": "File-level @mode(scripted|compiled|native|freestanding) directive (§2.5.1)",
+      "name": "meta.directive.mode.loom",
+      "match": "^\\s*(@mode)\\s*(\\()\\s*(scripted|compiled|native|freestanding)\\s*(\\))",
       "captures": {
-        "1": { "name": "storage.modifier.compiled.loom" }
+        "1": { "name": "storage.modifier.mode.loom" },
+        "2": { "name": "punctuation.section.parens.begin.loom" },
+        "3": { "name": "constant.language.mode.loom" },
+        "4": { "name": "punctuation.section.parens.end.loom" }
+      }
+    },
+
+    "namespace-declaration": {
+      "comment": "Namespace declaration: namespace pkg.module; (§13.0)",
+      "name": "meta.namespace.loom",
+      "match": "^\\s*(namespace)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)",
+      "captures": {
+        "1": { "name": "keyword.control.namespace.loom" },
+        "2": { "name": "entity.name.namespace.loom" }
       }
     },
 
@@ -90,7 +113,7 @@
         {
           "comment": "Annotations with optional arguments: @name or @name(...)",
           "name": "meta.annotation.loom",
-          "match": "(@)(\\w+)",
+          "match": "(@)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": { "name": "punctuation.definition.annotation.loom" },
             "2": { "name": "storage.type.annotation.loom" }
@@ -110,6 +133,10 @@
           "match": "\\b(from|import|as|prefer|compiled)\\b"
         },
         {
+          "name": "keyword.control.namespace.loom",
+          "match": "\\b(namespace)\\b"
+        },
+        {
           "name": "keyword.control.defer.loom",
           "match": "\\b(defer)\\b"
         },
@@ -126,24 +153,52 @@
           "match": "\\b(del)\\b"
         },
         {
+          "name": "keyword.control.atomic.loom",
+          "match": "\\b(atomic)\\b"
+        },
+        {
+          "name": "keyword.control.safe.loom",
+          "match": "\\b(safe)\\b"
+        },
+        {
+          "name": "keyword.control.unsafe.loom",
+          "match": "\\b(unsafe)\\b"
+        },
+        {
+          "name": "keyword.control.requires.loom",
+          "match": "\\b(requires)\\b"
+        },
+        {
           "name": "keyword.operator.expression.loom",
           "match": "\\b(in|is|not|and|or|bnot|instanceof|typeof)\\b"
         },
         {
           "name": "keyword.operator.cast.loom",
-          "match": "\\b(as\\?)\\b"
+          "match": "\\bas\\?"
         },
         {
           "name": "keyword.operator.box.loom",
           "match": "\\b(box)\\b"
         },
         {
+          "name": "keyword.operator.consume.loom",
+          "match": "\\b(consume)\\b"
+        },
+        {
+          "name": "keyword.operator.layout.loom",
+          "match": "\\b(size_of|align_of|reinterpret|reinterpretChecked)\\b"
+        },
+        {
+          "name": "keyword.other.ownership.loom",
+          "match": "\\b(reads|edits|takes|shares|distinct)\\b"
+        },
+        {
           "name": "keyword.other.loom",
-          "match": "\\b(pub|static|new|abstract|implements|global|nonlocal)\\b"
+          "match": "\\b(pub|static|new|abstract|implements|global|nonlocal|super|this|Self)\\b"
         },
         {
           "name": "keyword.reserved.loom",
-          "match": "\\b(final|module|override|package|sealed|self|Self|super|trait|volatile|where)\\b"
+          "match": "\\b(final|module|override|package|sealed|trait|volatile|where)\\b"
         }
       ]
     },
@@ -152,11 +207,11 @@
       "patterns": [
         {
           "name": "storage.type.loom",
-          "match": "\\b(let|var|fun|async|gen|class|dynamic|interface|enum|struct|extern|type|macro)\\b"
+          "match": "\\b(let|var|fun|func|async|gen|class|dynamic|interface|enum|struct|extern|type|macro|modifier)\\b"
         },
         {
           "name": "storage.modifier.loom",
-          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime)\\b"
+          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime|excl|unique|arc|synchronized|safe)\\b"
         }
       ]
     },
@@ -166,7 +221,7 @@
         {
           "comment": "Built-in primitive types (lowercase)",
           "name": "support.type.primitive.loom",
-          "match": "\\b(int|int8|int16|int32|int64|uint8|uint16|uint32|uint64|bigint|float|float32|float64|decimal|bool|char|string|bytes|void)\\b"
+          "match": "\\b(int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|bigint|float|float32|float64|decimal|bool|char|string|bytes|void)\\b"
         },
         {
           "comment": "Built-in generic collection types (lowercase)",
@@ -176,12 +231,12 @@
         {
           "comment": "Built-in box / special types (PascalCase)",
           "name": "support.type.class.loom",
-          "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|Animal|Any|AppError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Ok|Optimizer|Option|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SgdOptimizer|Shape|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|UiRuntime|Url|UrlError|User|Variable|VendorId|View|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
+          "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|ActorContext|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|AlignmentError|Animal|Any|AppError|ArcLet|AssertionError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|BorrowedHandle|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|DmaBuffer|DmaTransfer|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|FreestandingDebugFrame|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|InterruptFrame|InterruptGuard|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|MaybeUninit|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|MountTarget|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Ok|Optimizer|Option|OwnedHandle|PanicSource|PartialInit|PinnedRef|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RuntimeConfig|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SgdOptimizer|Shape|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|TypeError|UiRuntime|Url|UrlError|User|Variable|VendorId|View|Volatile|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
         },
         {
-          "comment": "system.* namespace modules",
+          "comment": "Top-level standard library namespace roots",
           "name": "support.type.namespace.loom",
-          "match": "\\b(system|runtime)\\b"
+          "match": "\\b(core|io|net|data|web|sync|lang|debug|structures|ui|runtime|native|system)\\b"
         }
       ]
     },
@@ -194,7 +249,7 @@
         },
         {
           "name": "constant.language.null.loom",
-          "match": "\\b(None)\\b"
+          "match": "\\b(None|none)\\b"
         }
       ]
     },
@@ -202,24 +257,31 @@
     "numbers": {
       "patterns": [
         {
+          "comment": "Hex literal with optional integer type suffix",
           "name": "constant.numeric.hex.loom",
-          "match": "\\b0[xX][0-9a-fA-F_]+\\b"
+          "match": "\\b0[xX][0-9a-fA-F_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
           "name": "constant.numeric.binary.loom",
-          "match": "\\b0[bB][01_]+\\b"
+          "match": "\\b0[bB][01_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
           "name": "constant.numeric.octal.loom",
-          "match": "\\b0[oO][0-7_]+\\b"
+          "match": "\\b0[oO][0-7_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
+          "comment": "Float with optional f32/f64/d suffix",
           "name": "constant.numeric.float.loom",
-          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9_]+)?\\b"
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9_]+)?(f32|f64|d)?\\b"
+        },
+        {
+          "comment": "Float using exponent without decimal",
+          "name": "constant.numeric.float.loom",
+          "match": "\\b[0-9][0-9_]*[eE][+-]?[0-9_]+(f32|f64|d)?\\b"
         },
         {
           "name": "constant.numeric.integer.loom",
-          "match": "\\b[0-9][0-9_]*\\b"
+          "match": "\\b[0-9][0-9_]*(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         }
       ]
     },
@@ -255,6 +317,21 @@
       ]
     },
 
+    "char-literal": {
+      "comment": "Char literal: c'x' — single Unicode scalar value (§3.6)",
+      "name": "string.quoted.single.char.loom",
+      "begin": "\\b(c)(')",
+      "end": "'",
+      "beginCaptures": {
+        "1": { "name": "storage.type.string.char.loom" },
+        "2": { "name": "punctuation.definition.string.begin.loom" }
+      },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+      "patterns": [
+        { "include": "#string-escape" }
+      ]
+    },
+
     "raw-string": {
       "patterns": [
         {
@@ -280,6 +357,39 @@
       ]
     },
 
+    "interpolated-strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.interpolated.loom",
+          "begin": "\\b(i)(\")",
+          "end": "\"",
+          "beginCaptures": {
+            "1": { "name": "storage.type.string.interpolated.loom" },
+            "2": { "name": "punctuation.definition.string.begin.loom" }
+          },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "patterns": [
+            { "include": "#string-interpolation" },
+            { "include": "#string-escape" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.interpolated.loom",
+          "begin": "\\b(i)(')",
+          "end": "'",
+          "beginCaptures": {
+            "1": { "name": "storage.type.string.interpolated.loom" },
+            "2": { "name": "punctuation.definition.string.begin.loom" }
+          },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "patterns": [
+            { "include": "#string-interpolation" },
+            { "include": "#string-escape" }
+          ]
+        }
+      ]
+    },
+
     "strings": {
       "patterns": [
         {
@@ -289,7 +399,6 @@
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
           "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
           "patterns": [
-            { "include": "#string-interpolation" },
             { "include": "#string-escape" }
           ]
         },
@@ -300,7 +409,6 @@
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
           "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
           "patterns": [
-            { "include": "#string-interpolation" },
             { "include": "#string-escape" }
           ]
         }
@@ -353,6 +461,27 @@
       ]
     },
 
+    "asm-block": {
+      "comment": "Inline assembly block: asm { ... } (§24.7) — freestanding/native only",
+      "name": "meta.embedded.block.asm.loom",
+      "begin": "\\b(asm)\\s*(\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": { "name": "storage.type.asm.loom" },
+        "2": { "name": "punctuation.section.block.begin.loom" }
+      },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.loom" } },
+      "patterns": [
+        {
+          "name": "keyword.other.asm-section.loom",
+          "match": "\\b(out|in|clobbers)\\s*:"
+        },
+        { "include": "#strings" },
+        { "include": "#comments" },
+        { "include": "#numbers" }
+      ]
+    },
+
     "template-fence": {
       "patterns": [
         { "include": "#template-fence-html" },
@@ -365,6 +494,9 @@
         { "include": "#template-fence-json" },
         { "include": "#template-fence-markdown" },
         { "include": "#template-fence-shell" },
+        { "include": "#template-fence-wgsl" },
+        { "include": "#template-fence-metal" },
+        { "include": "#template-fence-glsl" },
         { "include": "#template-fence-generic" }
       ]
     },
@@ -392,7 +524,7 @@
     },
 
     "template-fence-ui": {
-      "comment": "Cross-platform UI fence (v0.6+) — uses Loom component primitives",
+      "comment": "Cross-platform UI fence — uses Loom component primitives (§19.6)",
       "name": "meta.template.fence.ui.loom",
       "begin": "(`{3,})(\\()(ui)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
@@ -600,6 +732,72 @@
       ]
     },
 
+    "template-fence-wgsl": {
+      "comment": "WebGPU shading language fence (§16.8.1)",
+      "name": "meta.template.fence.wgsl.loom",
+      "begin": "(`{3,})(\\()(wgsl)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.loom" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
+        "3": { "name": "entity.name.tag.template.language.loom" },
+        "4": { "name": "punctuation.definition.descriptor.end.loom" },
+        "5": { "name": "meta.template.descriptor.loom" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.template.end.loom" }
+      },
+      "contentName": "meta.embedded.block.wgsl",
+      "patterns": [
+        { "include": "#template-directives" },
+        { "include": "#template-expressions" }
+      ]
+    },
+
+    "template-fence-metal": {
+      "comment": "Metal shading language fence (§16.8.2)",
+      "name": "meta.template.fence.metal.loom",
+      "begin": "(`{3,})(\\()(metal)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.loom" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
+        "3": { "name": "entity.name.tag.template.language.loom" },
+        "4": { "name": "punctuation.definition.descriptor.end.loom" },
+        "5": { "name": "meta.template.descriptor.loom" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.template.end.loom" }
+      },
+      "contentName": "meta.embedded.block.metal",
+      "patterns": [
+        { "include": "#template-directives" },
+        { "include": "#template-expressions" }
+      ]
+    },
+
+    "template-fence-glsl": {
+      "comment": "OpenGL/Vulkan shading language fence (§16.8.3)",
+      "name": "meta.template.fence.glsl.loom",
+      "begin": "(`{3,})(\\()(glsl)(\\))(:\\([^)]*\\))?",
+      "end": "(\\1)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.loom" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
+        "3": { "name": "entity.name.tag.template.language.loom" },
+        "4": { "name": "punctuation.definition.descriptor.end.loom" },
+        "5": { "name": "meta.template.descriptor.loom" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.template.end.loom" }
+      },
+      "contentName": "meta.embedded.block.glsl",
+      "patterns": [
+        { "include": "#template-directives" },
+        { "include": "#template-expressions" }
+      ]
+    },
+
     "template-fence-generic": {
       "comment": "Catch-all template fence for any language not specifically matched above",
       "name": "meta.template.fence.loom",
@@ -645,12 +843,12 @@
       "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loom" } },
       "patterns": [
         {
-          "comment": "v0.7 | raw filter for explicit unescaped output",
+          "comment": "| raw filter for explicit unescaped output",
           "name": "keyword.operator.filter.raw.loom",
           "match": "\\|\\s*raw\\b"
         },
         {
-          "comment": "v0.7 other pipe filters",
+          "comment": "Other pipe filters",
           "name": "keyword.operator.filter.loom",
           "match": "\\|\\s*[a-zA-Z_][a-zA-Z0-9_]*"
         },
@@ -661,7 +859,7 @@
     "extern-declarations": {
       "patterns": [
         {
-          "comment": "extern js fun / extern js val",
+          "comment": "extern js func / extern js val",
           "name": "meta.extern.js.loom",
           "match": "\\b(extern)\\s+(js)\\s+(func|fun|val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
@@ -672,7 +870,7 @@
           }
         },
         {
-          "comment": "extern native \"lib\" fun",
+          "comment": "extern native \"lib\" func",
           "name": "meta.extern.native.loom",
           "match": "\\b(extern)\\s+(native)\\s+(\"[^\"]+\")\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
@@ -699,12 +897,13 @@
     },
 
     "macro-declaration": {
-      "comment": "macro name(params) { ... }",
+      "comment": "macro name(params) { quote { ... } } — §25, §27.11",
       "name": "meta.macro.loom",
-      "match": "\\b(macro)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "match": "\\b(pub\\s+)?(macro)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.macro.loom" },
-        "2": { "name": "entity.name.function.macro.loom" }
+        "1": { "name": "storage.modifier.pub.loom" },
+        "2": { "name": "storage.type.macro.loom" },
+        "3": { "name": "entity.name.function.macro.loom" }
       }
     },
 
@@ -720,7 +919,7 @@
     },
 
     "async-gen-function-declaration": {
-      "comment": "async gen fun name",
+      "comment": "async gen func name",
       "name": "meta.function.async-gen.loom",
       "match": "\\b(async)\\s+(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
@@ -732,11 +931,32 @@
     },
 
     "gen-function-declaration": {
-      "comment": "gen fun name",
+      "comment": "gen func name",
       "name": "meta.function.gen.loom",
       "match": "\\b(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.gen.loom" },
+        "2": { "name": "storage.type.function.loom" },
+        "3": { "name": "entity.name.function.loom" }
+      }
+    },
+
+    "async-function-declaration": {
+      "name": "meta.function.async.loom",
+      "match": "\\b(async)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.async.loom" },
+        "2": { "name": "storage.type.function.loom" },
+        "3": { "name": "entity.name.function.loom" }
+      }
+    },
+
+    "safe-function-declaration": {
+      "comment": "safe func name — safe context propagation (§23.4.12)",
+      "name": "meta.function.safe.loom",
+      "match": "\\b(safe)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.safe.loom" },
         "2": { "name": "storage.type.function.loom" },
         "3": { "name": "entity.name.function.loom" }
       }
@@ -751,24 +971,24 @@
       }
     },
 
-    "async-function-declaration": {
-      "name": "meta.function.async.loom",
-      "match": "\\b(async)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-      "captures": {
-        "1": { "name": "storage.modifier.async.loom" },
-        "2": { "name": "storage.type.function.loom" },
-        "3": { "name": "entity.name.function.loom" }
-      }
-    },
-
     "operator-method-declaration": {
-      "comment": "operator fun +/- etc.",
+      "comment": "operator func +/- etc.",
       "name": "meta.function.operator.loom",
-      "match": "\\b(operator)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*|\\+|-|\\*|/|%|\\*\\*|&|\\||\\^|~|<<|>>|\\[\\]|\\[\\]=|==|contains|\\(\\)|\\+=|-=|\\*=|/=|%=|\\*\\*=|<<=|>>=|&=|\\|=|\\^=)",
+      "match": "\\b(operator)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*|\\+|-|\\*|/|//|%|\\*\\*|&|\\||\\^|~|<<|>>|\\[\\]|\\[\\]=|==|contains|\\(\\)|\\+=|-=|\\*=|/=|//=|%=|\\*\\*=|<<=|>>=|&=|\\|=|\\^=)",
       "captures": {
         "1": { "name": "storage.modifier.operator.loom" },
         "2": { "name": "storage.type.function.loom" },
         "3": { "name": "entity.name.function.operator.loom" }
+      }
+    },
+
+    "modifier-method-declaration": {
+      "comment": "modifier name(...) — mutation contract method (§23.4.11)",
+      "name": "meta.function.modifier.loom",
+      "match": "\\b(modifier)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.type.modifier-method.loom" },
+        "2": { "name": "entity.name.function.modifier.loom" }
       }
     },
 
@@ -796,6 +1016,28 @@
       "match": "\\b(abstract)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.abstract.loom" },
+        "2": { "name": "storage.type.class.loom" },
+        "3": { "name": "entity.name.type.class.loom" }
+      }
+    },
+
+    "synchronized-class-declaration": {
+      "comment": "synchronized class — per-instance lock (§23.4.13)",
+      "name": "meta.class.synchronized.loom",
+      "match": "\\b(synchronized)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.synchronized.loom" },
+        "2": { "name": "storage.type.class.loom" },
+        "3": { "name": "entity.name.type.class.loom" }
+      }
+    },
+
+    "unique-class-declaration": {
+      "comment": "unique class — single-owner, no ARC (§8.11, §23.4.7)",
+      "name": "meta.class.unique.loom",
+      "match": "\\b(unique)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.unique.loom" },
         "2": { "name": "storage.type.class.loom" },
         "3": { "name": "entity.name.type.class.loom" }
       }
@@ -851,6 +1093,18 @@
       }
     },
 
+    "deferred-import-statement": {
+      "comment": "from X defer import (...) — deferred type stubs for cycles (§13.10)",
+      "name": "meta.import.deferred.loom",
+      "match": "\\b(from)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)\\s+(defer)\\s+(import)\\b",
+      "captures": {
+        "1": { "name": "keyword.control.import.loom" },
+        "2": { "name": "entity.name.namespace.loom" },
+        "3": { "name": "keyword.control.defer.loom" },
+        "4": { "name": "keyword.control.import.loom" }
+      }
+    },
+
     "import-statement": {
       "patterns": [
         {
@@ -866,7 +1120,7 @@
     },
 
     "reexport-statement": {
-      "comment": "pub from ... import (...) — re-export syntax (v0.6)",
+      "comment": "pub from ... import (...) — re-export syntax (§13.2)",
       "name": "meta.reexport.loom",
       "match": "\\b(pub)\\s+(from)\\s+([a-zA-Z_][a-zA-Z0-9_.]*|\\.[a-zA-Z0-9_.]*)",
       "captures": {
@@ -874,6 +1128,12 @@
         "2": { "name": "keyword.control.import.loom" },
         "3": { "name": "entity.name.namespace.loom" }
       }
+    },
+
+    "lifetime-label": {
+      "comment": "Lifetime labels: ~name (§3.4, §23.4.2). ~static is reserved.",
+      "name": "storage.modifier.lifetime.label.loom",
+      "match": "~[a-z_][a-zA-Z0-9_]*\\b"
     },
 
     "dynamic-field-access": {
@@ -894,12 +1154,24 @@
     },
 
     "variable-declaration": {
-      "comment": "let/var name = ... — scopes the name as a declared variable",
-      "match": "\\b(let|var)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-      "captures": {
-        "1": { "name": "storage.type.loom" },
-        "2": { "name": "variable.other.readwrite.loom" }
-      }
+      "comment": "unique/arc let/var name — §23.4.7, §23.4.8",
+      "patterns": [
+        {
+          "match": "\\b(unique|arc)\\s+(let|var)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.modifier.ownership.loom" },
+            "2": { "name": "storage.type.loom" },
+            "3": { "name": "variable.other.readwrite.loom" }
+          }
+        },
+        {
+          "match": "\\b(let|var)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.loom" },
+            "2": { "name": "variable.other.readwrite.loom" }
+          }
+        }
+      ]
     },
 
     "type-annotation": {
@@ -930,9 +1202,9 @@
     "operators": {
       "patterns": [
         {
-          "comment": "Optional chaining and null coalescing",
+          "comment": "Optional chaining, null-safe indexing, and null coalescing",
           "name": "keyword.operator.optional.loom",
-          "match": "\\?\\.|\\.\\?|\\?\\?"
+          "match": "\\?\\.\\[|\\?\\.|\\.\\?|\\?\\?"
         },
         {
           "comment": "Arrow for match arms and lambdas",
@@ -950,6 +1222,11 @@
           "match": "(<<=|>>=)"
         },
         {
+          "comment": "Floor-division assignment (§3.7)",
+          "name": "keyword.operator.assignment.compound.loom",
+          "match": "//="
+        },
+        {
           "comment": "Compound assignment operators",
           "name": "keyword.operator.assignment.compound.loom",
           "match": "(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=)"
@@ -958,6 +1235,11 @@
           "comment": "Exponentiation",
           "name": "keyword.operator.arithmetic.exponent.loom",
           "match": "\\*\\*"
+        },
+        {
+          "comment": "Floor division",
+          "name": "keyword.operator.arithmetic.floordiv.loom",
+          "match": "//"
         },
         {
           "comment": "Shift operators",
@@ -1034,14 +1316,14 @@
     "identifiers": {
       "patterns": [
         {
-          "comment": "Dunder identifiers for module introspection",
+          "comment": "Dunder identifiers for module introspection (§2.2)",
           "name": "variable.language.dunder.loom",
           "match": "\\b(__name__|__file__|__execmode__|__module__)\\b"
         },
         {
-          "comment": "this keyword for class instance reference",
+          "comment": "this / super / Self keywords",
           "name": "variable.language.this.loom",
-          "match": "\\bthis\\b"
+          "match": "\\b(this|super|Self)\\b"
         },
         {
           "comment": "UPPER_CASE constants",

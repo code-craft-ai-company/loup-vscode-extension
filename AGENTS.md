@@ -2,7 +2,7 @@
 
 ## Project Description
 
-This repository implements a Visual Studio Code extension providing first-class support for the **Loom programming language** (v0.4). The extension is designed as a TypeScript monorepo with three packages:
+This repository implements a Visual Studio Code extension providing first-class support for the **Loom programming language** (v1.16). The extension is designed as a TypeScript monorepo with three packages:
 
 | Package | Path | Purpose |
 |---|---|---|
@@ -10,28 +10,39 @@ This repository implements a Visual Studio Code extension providing first-class 
 | **Language Server** | `packages/language-server/` | Out-of-process LSP server — diagnostics, completions, hover, navigation, formatting |
 | **Debug Adapter** | `packages/debug-adapter/` | DAP server — breakpoints, stepping, variables, portal breakpoints, time-travel debugging |
 
-The extension supports Loom source files (`.loom`) and package manifests (`loom.pkg`).
+The extension supports Loom source files (`.loom`) and package manifests (`.lmpkg` / `loom.pkg`).
 
 ## Specification Files
 
-- **Language Spec**: [`specs/Loom-Language-Spec-v0.4.md`](specs/Loom-Language-Spec-v0.4.md) — the complete Loom v0.4 language specification. This is the source of truth for all syntax, semantics, types, standard library, and runtime APIs.
-- **Implementation Plan**: [`specs/implementation-plan.md`](specs/implementation-plan.md) — architecture proposal, feature breakdown (5 layers), phased delivery roadmap (P0–P5), and verification plan.
+- **Language Spec**: [`specs/loom-language-reference-v1_16.md`](specs/loom-language-reference-v1_16.md) — the complete Loom v1.16 language specification. This is the source of truth for all syntax, semantics, types, standard library, and runtime APIs.
+- **Packages Spec**: [`specs/loom-packages-reference-v1_10.md`](specs/loom-packages-reference-v1_10.md) — package and extension library reference.
+- **Stdlib Spec**: [`specs/loom-stdlib-reference-v1_10.md`](specs/loom-stdlib-reference-v1_10.md) — standard library reference (stub).
+- **Testing Spec**: [`specs/loom-testing-reference-v1_10.md`](specs/loom-testing-reference-v1_10.md) — testing framework reference.
+- **Implementation Plan**: [`specs/implementation-plan.md`](specs/implementation-plan.md) — architecture proposal, feature breakdown, phased delivery roadmap (P0–P5), and verification plan.
 
-### Key Spec Sections for Extension Development
+### Key Spec Sections for Extension Development (v1.16)
 
 | Section | Content | Relevance |
 |---|---|---|
-| §2 Core Syntax | Blocks, control flow, `defer`, `portal`, `match` | TextMate grammar, snippets |
-| §3 Multiline Strings | `"""(...)` / `'''(...)` with alignment anchor `P` | Grammar, error detection |
-| §4 Templates | Template fences, interpolation `{$ $}`, directives `{% %}` | Embedded language injection |
-| §5 Imports & Packages | `from ... import`, `loom.pkg` manifest format | `loom.pkg` grammar, completions |
-| §6 Types | Primitives, boxing, `Any`, enums, interfaces, `Option[T]`, `Result[T,E]` | Type display, completions |
-| §7 Structured Concurrency | `await group`, `spawn`, `TaskGroup`, `for await` | Snippets, debug visualizer |
-| §8 FFI | `extern js`, `extern native`, `@jsexport` | Grammar, diagnostics |
-| §9 Reactive UI | `system.ui`, signals, `ComponentRegistry`, `View` | Template fence resolution |
-| §10 Runtime & Debugging | `system.debug`, portals, trace events, capture/MCP servers | Debug adapter |
-| §11 Standard Library | `system.text`, `system.json`, `system.time`, `system.collections` | Completions |
-| §13 Grammar Excerpts | Informal BNF productions | Parser, TextMate grammar |
+| §2.5 File Modes | `@mode(scripted|compiled|native|freestanding)` directive | Grammar, completions, diagnostics |
+| §3.4 Keywords | Full keyword list, contextual keywords, reserved | Grammar, lexer |
+| §3.6 Literals | Integer/float suffixes, `char`/`bytes`/`raw`/interpolated | Grammar |
+| §3.7 Operators | Precedence table including `//=`, `consume` | Grammar, operator detection |
+| §6 Statements | Blocks, control flow, `defer`, `portal`, `match`, `atomic` | Grammar, snippets |
+| §13.0 Namespace | `namespace pkg.module;` file-level declaration | Grammar, imports |
+| §13.1 Imports | `from X import`, `prefer compiled`, grouped, relative | Grammar, navigation |
+| §13.3 Package Manifest | `.lmpkg` TOML-ish format, `[build]`, `[dev-overrides]` | `loom-pkg` grammar |
+| §13.10 Deferred Imports | `from X defer import (...)` for cycle breaking | Grammar |
+| §14–§16 Strings & Templates | Multiline, interpolation `{$ $}`, directives `{% %}`, fences | Embedded-language injection |
+| §17 Concurrency | `await group`, `atomic {}`, `spawn`, `TaskGroup` | Snippets, debug visualizer |
+| §18 FFI | `extern js`, `extern native`, `@jsexport` | Grammar, diagnostics |
+| §19 Reactive UI | `ui.root`, signals, `ComponentRegistry`, `View`, `ui` fence | Template fence resolution |
+| §20.3 Debugging | Portals, trace events, capture/MCP/browser servers | Debug adapter |
+| §21 Standard Library | `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, `ui.*` | Completions |
+| §23.4 Ownership | `reads`/`edits`/`takes`/`shares`, `modifier`, `safe`, `synchronized`, `unique`, `arc`, `consume`, `requires`, `distinct` | Grammar, hover |
+| §24 Freestanding Mode | `asm`, `@entry`, `@panic_handler`, `@interrupt`, `@volatile`, `reinterpret`, `size_of` | Grammar, snippets |
+| §25 Macros | `macro`/`pub macro`, `quote { }`, `name!(args)` invocation | Grammar, snippets |
+| §27 Grammar Excerpts | Formal EBNF productions | Parser, TextMate grammar |
 
 ## Agent Instructions
 
@@ -45,7 +56,8 @@ The extension supports Loom source files (`.loom`) and package manifests (`loom.
 - **TextMate grammar scope names** follow the [Naming Conventions](https://macromates.com/manual/en/language_grammars#naming_conventions) standard (e.g., `keyword.control.loom`, `entity.name.function.loom`, `string.quoted.double.loom`)
 - **LSP and DAP** use the official `vscode-languageserver` and `@vscode/debugadapter` libraries
 - **Template fence injection grammars** must set `embeddedLanguages` in the extension manifest to enable inner language features
-- **Loom-specific syntax** like `!{...}` (dynamic fields), `{$ $}` (template expressions), `{% %}` (template directives), and `portal` must be highlighted distinctly
+- **Loom-specific syntax** like `!{...}` (dynamic fields), `{$ $}` (template expressions), `{% %}` (template directives), `portal`, lifetime labels `~name`, and `macro!(...)` invocations must be highlighted distinctly
+- **Mode-aware highlighting** — some constructs (`asm`, `@interrupt`, `@volatile`, `unique`, `borrow`, `consume`) are only valid in specific `@mode(...)` declarations, per §2.5.3. The grammar highlights them unconditionally; diagnostics enforce mode restrictions.
 
 ### Build & Test
 ```bash
@@ -69,4 +81,4 @@ npm test
 
 ### Do Not Modify
 - Files inside `.venv/` — managed by setup scripts only
-- The language specification in `specs/Loom-Language-Spec-v0.4.md` — read-only reference
+- The language specifications under `specs/` — read-only references synced from the upstream `loom` repository

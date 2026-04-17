@@ -2,14 +2,16 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Loom Package Manifest",
   "scopeName": "source.loom-pkg",
-  "fileTypes": ["loom.pkg"],
+  "fileTypes": ["lmpkg"],
   "patterns": [
     { "include": "#comments" },
     { "include": "#sections" },
     { "include": "#top-level-keys" },
+    { "include": "#inline-table" },
     { "include": "#dependency-entry" },
     { "include": "#target-directive" },
     { "include": "#native-directive" },
+    { "include": "#build-directive" },
     { "include": "#strings" },
     { "include": "#version-constraint" },
     { "include": "#boolean-value" },
@@ -21,7 +23,7 @@
       "match": "#.*$"
     },
     "sections": {
-      "name": "entity.name.section.loom-pkg",
+      "comment": "Section headers including [deps], [dev-deps], [dev-overrides], [build], [target.X], [registry]",
       "match": "^\\s*(\\[[a-zA-Z0-9_.\\-]+\\])\\s*$",
       "captures": {
         "1": { "name": "entity.name.section.loom-pkg" }
@@ -33,6 +35,35 @@
         "1": { "name": "keyword.other.definition.loom-pkg" },
         "2": { "name": "string.unquoted.value.loom-pkg" }
       }
+    },
+    "build-directive": {
+      "comment": "Build-table keys (§2.5.2, §24.21): mode, portal_ring_size, stack_size, debug channels",
+      "match": "^\\s*(mode|portal_ring_size|stack_size|timeTravelEnabled|debug_control_channel|debug_trace_channel)\\s*(=)\\s*(.+)$",
+      "captures": {
+        "1": { "name": "keyword.control.build.loom-pkg" },
+        "2": { "name": "keyword.operator.assignment.loom-pkg" },
+        "3": { "name": "string.unquoted.value.loom-pkg" }
+      }
+    },
+    "inline-table": {
+      "comment": "TOML inline table values such as { path = \"...\", version = \"^1.0\" }",
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.section.inline-table.begin.loom-pkg" } },
+      "endCaptures": { "0": { "name": "punctuation.section.inline-table.end.loom-pkg" } },
+      "patterns": [
+        {
+          "match": "\\b(path|version|git|branch|tag|rev|registry|features|optional)\\b\\s*(=)",
+          "captures": {
+            "1": { "name": "keyword.other.key.loom-pkg" },
+            "2": { "name": "keyword.operator.assignment.loom-pkg" }
+          }
+        },
+        { "include": "#strings" },
+        { "include": "#boolean-value" },
+        { "include": "#version-constraint" },
+        { "name": "punctuation.separator.comma.loom-pkg", "match": "," }
+      ]
     },
     "dependency-entry": {
       "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_.\\-]*)\\s*=\\s*(\"[^\"]*\"|'[^']*'|\\[.*\\])",
@@ -49,7 +80,7 @@
       }
     },
     "native-directive": {
-      "comment": "Native build directives: link, link_path, framework (v0.6)",
+      "comment": "Native build directives: link, link_path, framework",
       "match": "^\\s*(link|link_path|framework)\\s+(.+)$",
       "captures": {
         "1": { "name": "keyword.control.native.loom-pkg" },

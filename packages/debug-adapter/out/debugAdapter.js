@@ -25,9 +25,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/@vscode/debugadapter/lib/messages.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/messages.js
 var require_messages = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/messages.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/messages.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Event = exports2.Response = exports2.Message = void 0;
@@ -65,9 +65,9 @@ var require_messages = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/protocol.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/protocol.js
 var require_protocol = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/protocol.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/protocol.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ProtocolServer = void 0;
@@ -244,9 +244,9 @@ ${json}`, "utf8");
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/runDebugAdapter.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/runDebugAdapter.js
 var require_runDebugAdapter = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/runDebugAdapter.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/runDebugAdapter.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.runDebugAdapter = void 0;
@@ -283,9 +283,9 @@ var require_runDebugAdapter = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/debugSession.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/debugSession.js
 var require_debugSession = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/debugSession.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/debugSession.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DebugSession = exports2.ErrorDestination = exports2.MemoryEvent = exports2.InvalidatedEvent = exports2.ProgressEndEvent = exports2.ProgressUpdateEvent = exports2.ProgressStartEvent = exports2.CapabilitiesEvent = exports2.LoadedSourceEvent = exports2.ModuleEvent = exports2.BreakpointEvent = exports2.ThreadEvent = exports2.OutputEvent = exports2.ExitedEvent = exports2.TerminatedEvent = exports2.InitializedEvent = exports2.ContinuedEvent = exports2.StoppedEvent = exports2.CompletionItem = exports2.Module = exports2.Breakpoint = exports2.Variable = exports2.Thread = exports2.StackFrame = exports2.Scope = exports2.Source = void 0;
@@ -991,9 +991,9 @@ var require_debugSession = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/internalLogger.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/internalLogger.js
 var require_internalLogger = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/internalLogger.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/internalLogger.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.InternalLogger = void 0;
@@ -1122,9 +1122,9 @@ var require_internalLogger = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/logger.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/logger.js
 var require_logger = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/logger.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/logger.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.trimLastNewline = exports2.LogOutputEvent = exports2.logger = exports2.Logger = exports2.LogLevel = void 0;
@@ -1218,9 +1218,9 @@ var require_logger = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/loggingDebugSession.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/loggingDebugSession.js
 var require_loggingDebugSession = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/loggingDebugSession.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/loggingDebugSession.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LoggingDebugSession = void 0;
@@ -1277,9 +1277,9 @@ var require_loggingDebugSession = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/handles.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/handles.js
 var require_handles = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/handles.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/handles.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Handles = void 0;
@@ -1306,9 +1306,9 @@ var require_handles = __commonJS({
   }
 });
 
-// ../../node_modules/@vscode/debugadapter/lib/main.js
+// ../../../../../node_modules/@vscode/debugadapter/lib/main.js
 var require_main = __commonJS({
-  "../../node_modules/@vscode/debugadapter/lib/main.js"(exports2) {
+  "../../../../../node_modules/@vscode/debugadapter/lib/main.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Handles = exports2.Response = exports2.Event = exports2.ErrorDestination = exports2.CompletionItem = exports2.Module = exports2.Source = exports2.Breakpoint = exports2.Variable = exports2.Scope = exports2.StackFrame = exports2.Thread = exports2.MemoryEvent = exports2.InvalidatedEvent = exports2.ProgressEndEvent = exports2.ProgressUpdateEvent = exports2.ProgressStartEvent = exports2.CapabilitiesEvent = exports2.LoadedSourceEvent = exports2.ModuleEvent = exports2.BreakpointEvent = exports2.ThreadEvent = exports2.OutputEvent = exports2.ContinuedEvent = exports2.StoppedEvent = exports2.ExitedEvent = exports2.TerminatedEvent = exports2.InitializedEvent = exports2.logger = exports2.Logger = exports2.LoggingDebugSession = exports2.DebugSession = void 0;

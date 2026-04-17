@@ -110,6 +110,12 @@ export interface DictDestructField extends AstNode {
 
 // --- Declarations ---
 
+export interface TypeParam extends AstNode {
+  kind: 'TypeParam';
+  name: string;
+  constraint?: TypeExpr;
+}
+
 export interface LetDecl extends AstNode {
   kind: 'LetDecl';
   pattern: DestructPattern;
@@ -134,7 +140,7 @@ export interface FunDecl extends AstNode {
   isStatic: boolean;
   isAbstract: boolean;
   isOperator: boolean;
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface AsyncFunDecl extends AstNode {
@@ -146,7 +152,7 @@ export interface AsyncFunDecl extends AstNode {
   isPublic: boolean;
   isStatic: boolean;
   isAbstract: boolean;
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface GenFunDecl extends AstNode {
@@ -157,7 +163,7 @@ export interface GenFunDecl extends AstNode {
   body: Block;
   isPublic: boolean;
   isStatic: boolean;
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface AsyncGenFunDecl extends AstNode {
@@ -168,7 +174,7 @@ export interface AsyncGenFunDecl extends AstNode {
   body: Block;
   isPublic: boolean;
   isStatic: boolean;
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface ClassDecl extends AstNode {
@@ -179,14 +185,14 @@ export interface ClassDecl extends AstNode {
   superClass?: string;
   implements?: string[];
   members: Statement[];
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface EnumDecl extends AstNode {
   kind: 'EnumDecl';
   name: string;
   variants: EnumVariant[];
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface EnumVariant extends AstNode {
@@ -201,7 +207,7 @@ export interface StructDecl extends AstNode {
   fields: StructField[];
   methods: (FunDecl | AsyncFunDecl)[];
   implements?: string[];
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface StructField extends AstNode {
@@ -209,20 +215,20 @@ export interface StructField extends AstNode {
   name: string;
   type: TypeExpr;
   defaultValue?: Expression;
-  qualifier?: 'weak' | 'unowned' | 'borrow';
+  qualifier?: 'weak' | 'unowned' | 'borrow' | 'excl borrow';
 }
 
 export interface InterfaceDecl extends AstNode {
   kind: 'InterfaceDecl';
   name: string;
   methods: FunDecl[];
-  typeParams?: string[];
+  typeParams?: TypeParam[];
 }
 
 export interface TypeAliasDecl extends AstNode {
   kind: 'TypeAliasDecl';
   name: string;
-  typeParams?: string[];
+  typeParams?: TypeParam[];
   value: TypeExpr;
 }
 
@@ -236,6 +242,7 @@ export interface MacroDecl extends AstNode {
 export interface AnnotatedDecl extends AstNode {
   kind: 'AnnotatedDecl';
   annotation: string;
+  args?: Expression[];
   declaration: Statement;
 }
 
@@ -847,7 +854,7 @@ export interface Parameter extends AstNode {
   name: string;
   type?: TypeExpr;
   defaultValue?: Expression;
-  qualifier?: 'weak' | 'unowned' | 'borrow';
+  qualifier?: 'weak' | 'unowned' | 'borrow' | 'excl borrow';
 }
 
 // --- Error recovery ---

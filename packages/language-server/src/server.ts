@@ -150,64 +150,120 @@ const LOOM_DUNDERS = [
   '__name__', '__file__', '__execmode__', '__module__'
 ];
 
+// Strict keywords from Loom Language Reference v1.16 §3.4
 const LOOM_KEYWORDS = [
-  'let', 'var', 'fun', 'func', 'async', 'gen', 'await', 'return', 'if', 'else',
-  'for', 'while', 'do', 'match', 'break', 'continue', 'throw',
-  'try', 'catch', 'finally', 'defer', 'with', 'portal', 'spawn',
-  'class', 'dynamic', 'abstract', 'struct', 'enum', 'interface',
-  'from', 'import', 'as', 'in', 'is', 'not', 'instanceof', 'typeof',
-  'pub', 'static', 'extern', 'true', 'false', 'none', 'new', 'del',
-  'global', 'nonlocal', 'yield', 'suspend', 'type', 'macro',
-  'implements', 'operator', 'fn', 'get', 'set', 'box',
-  'weak', 'unowned', 'borrow', 'noescape', 'raw',
-  'group', 'js', 'native', 'val', 'prefer', 'compiled'
+  'abstract', 'and', 'as', 'async', 'await', 'bnot', 'borrow',
+  'break', 'catch', 'class', 'continue', 'defer', 'del',
+  'do', 'dynamic', 'else', 'enum', 'extern', 'false',
+  'finally', 'fn', 'for', 'from', 'func', 'gen',
+  'global', 'if', 'implements', 'import', 'in',
+  'instanceof', 'interface', 'is', 'let', 'lifetime', 'macro', 'match', 'new',
+  'namespace', 'noescape', 'nonlocal', 'none', 'not', 'or', 'portal',
+  'prefer', 'pub', 'return', 'spawn', 'static', 'super',
+  'struct', 'suspend', 'throw', 'true', 'try', 'type', 'Self',
+  'this', 'typeof', 'unique', 'var', 'while', 'with', 'yield', 'consume',
+  'arc', 'operator',
+  'reads', 'edits', 'takes', 'shares', 'modifier', 'safe',
+  'synchronized', 'unsafe', 'requires', 'atomic',
+  // Contextual keywords surfaced for completion (§3.4)
+  'get', 'set', 'quote', 'box', 'group', 'distinct', 'excl',
+  'compiled', 'native', 'scripted', 'freestanding',
+  'reinterpret', 'reinterpretChecked', 'size_of', 'align_of',
+  // FFI keywords
+  'js', 'val',
+  // Field and closure qualifiers
+  'weak', 'unowned',
 ];
 
+// Built-in types from Loom Language Reference v1.16 §4, §24, Appendix C
 const LOOM_TYPES = [
+  // Primitives (§4.1)
   'int', 'int8', 'int16', 'int32', 'int64',
-  'uint8', 'uint16', 'uint32', 'uint64', 'bigint',
+  'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'bigint',
   'float', 'float32', 'float64', 'decimal',
-  'bool', 'string', 'bytes', 'void',
+  'bool', 'char', 'string', 'bytes', 'void',
+  // Generic collection types (§3.8)
   'list', 'dict', 'set', 'tuple', 'fn',
-  'Any', 'Task', 'Option', 'Result', 'Signal', 'View', 'Template', 'Type',
-  'None', 'Some', 'Ok', 'Err', 'Error',
-  'NativeHandle', 'StackFrame', 'Duration', 'Instant',
-  'Regex', 'Match', 'Actor', 'CancellationToken', 'TaskGroup',
-  'ComponentRegistry', 'MountHandle', 'EffectHandle',
+  // Well-known types
+  'Any', 'Task', 'TaskGroup', 'Option', 'Result', 'Signal', 'View', 'Template', 'Type',
+  'None', 'Some', 'Ok', 'Err',
+  // Exceptions (§26.1)
+  'BaseException', 'Exception', 'BaseExceptionGroup', 'ExceptionGroup',
+  'AssertionError', 'TypeError', 'NotFoundError', 'Error', 'AppError',
+  'SystemExit', 'KeyboardInterrupt', 'GeneratorExit',
+  'ModuleLoadError', 'BlockingTimeoutError', 'AlignmentError',
+  // Time
+  'Duration', 'Instant',
+  // Text/regex
+  'Regex', 'Match',
+  // Concurrency
+  'Actor', 'ActorContext', 'CancellationToken',
+  'Sendable', 'Mutex', 'MutexGuard', 'RwLock', 'RwLockReadGuard', 'RwLockWriteGuard',
+  'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'ThreadLocal', 'TaskLocal',
+  'ExecutorConfig', 'RuntimeConfig',
+  'ScriptWorker', 'WorkerChannel',
+  // UI
+  'ComponentRegistry', 'MountHandle', 'MountTarget', 'EffectHandle',
   'Window', 'WindowConfig', 'Tray',
-  'SafeHtml', 'Url', 'UrlError', 'StateSerializer', 'ModuleLoadError', 'Module',
-  'Sendable', 'Mutex', 'RwLock', 'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'ThreadLocal', 'TaskLocal',
-  'Vec', 'StyleSheet', 'ClassName',
-  'ThreadSafeHandle', 'ExecutorConfig', 'RuntimeConfig',
+  'SafeHtml', 'Url', 'UrlError', 'StateSerializer',
+  'StyleSheet', 'ClassName',
+  // Native / ownership (§23, §24)
+  'NativeHandle', 'OwnedHandle', 'BorrowedHandle', 'ThreadSafeHandle', 'PinnedRef',
+  'MaybeUninit', 'Volatile', 'PartialInit',
+  // Freestanding (§24)
+  'InterruptFrame', 'InterruptGuard', 'DmaBuffer', 'DmaTransfer',
+  'PanicSource', 'FreestandingDebugFrame',
+  // Debug
+  'DebugFrame', 'TraceEvent', 'TraceEventKind', 'StackFrame',
+  'Module',
+  // Standard interface types
+  'Iterable', 'Iterator', 'AsyncIterable', 'AsyncIterator',
+  'Comparable', 'Equatable', 'Hashable', 'Sized', 'Sliceable',
+  'Display', 'Copyable', 'Callable', 'Finalizable',
+  'From', 'Box', 'Vec',
 ];
 
+// Standard library namespaces — Loom v1.16 uses `core.*`, `io.*`, `net.*`,
+// `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, `ui.*`
+// (see §21 and the §13.3 manifest example).
 const SYSTEM_MODULES = [
-  { label: 'system.text', detail: 'String utilities', items: ['split', 'join', 'trim', 'trimStart', 'trimEnd', 'startsWith', 'endsWith', 'contains', 'indexOf', 'toUpper', 'toLower', 'replace', 'replaceAll', 'padStart', 'padEnd', 'repeat', 'reverse', 'parseInt', 'parseFloat', 'parseBool', 'toBytes', 'fromBytes', 'toHex', 'fromHex', 'toBase64', 'fromBase64'] },
-  { label: 'system.json', detail: 'JSON parsing/serialisation', items: ['parse', 'stringify', 'getString', 'getInt', 'getFloat', 'getBool', 'getObject', 'getArray'] },
-  { label: 'system.time', detail: 'Instants, durations, and async sleep', items: ['Instant', 'Duration', 'sleep'] },
-  { label: 'system.collections', detail: 'Higher-order collection utilities', items: ['map', 'flatMap', 'filter', 'filterMap', 'reduce', 'find', 'findIndex', 'any', 'all', 'none', 'sortBy', 'sortByDesc', 'reverse', 'groupBy', 'partition', 'zip', 'unzip', 'unique', 'uniqueBy', 'flatten', 'chunk', 'range', 'repeat', 'tabulate', 'sum', 'sumFloat', 'min', 'max', 'minBy', 'maxBy', 'countWhere', 'mapValues', 'filterKeys', 'mergeWith', 'fromEntries', 'toEntries'] },
-  { label: 'system.fs', detail: 'Filesystem capability', items: ['read', 'write', 'readAsync', 'writeAsync', 'linesAsync'] },
-  { label: 'system.proc', detail: 'Process execution', items: ['run', 'runAsync'] },
-  { label: 'system.net', detail: 'Networking', items: ['requestAsync'] },
-  { label: 'system.debug', detail: 'Tracing and time-travel debugging', items: ['tracingAvailable', 'tracingActive', 'setTraceHook', 'activatePortal', 'deactivatePortal', 'activePortals', 'startCaptureServer', 'startMcpServer'] },
-  { label: 'system.ui', detail: 'Reactive UI (universal)', items: ['signal', 'derived', 'effect', 'mount', 'Signal', 'View', 'ComponentRegistry', 'EffectHandle', 'MountHandle', 'MountTarget', 'Axis', 'Alignment', 'TextStyle', 'Color', 'Insets', 'Row', 'Column', 'Stack', 'Scroll', 'Text', 'Button', 'Image', 'Icon', 'Canvas', 'TextField', 'Checkbox', 'Slider', 'Select'] },
-  { label: 'system.ui.web', detail: 'Web-specific UI rendering and SSR', items: ['renderToString', 'hydrate', 'mount', 'StateSerializer', 'serializeState', 'deserializeState'] },
-  { label: 'system.ui.desktop', detail: 'Desktop window management', items: ['Window', 'WindowConfig', 'Tray', 'showWindow', 'showDialog', 'showNotification'] },
-  { label: 'system.reflect', detail: 'Structural reflection (universal)', items: ['typeOf', 'is', 'fields', 'methods', 'constructors', 'annotations', 'variants', 'callableName'] },
-  { label: 'system.inspect', detail: 'Dynamic introspection (interpreted-only)', items: ['new', 'get', 'getAs', 'set', 'invoke', 'invokeAs', 'as'] },
-  { label: 'system.regex', detail: 'Regular expressions', items: ['Regex', 'Match'] },
-  { label: 'system.env', detail: 'Environment variables', items: ['loadDotenv', 'get', 'getOrDefault', 'platform', 'validate'] },
-  { label: 'system.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable', 'SafeHtml', 'escapeHtml', 'escapeAttribute', 'Url'] },
-  { label: 'system.lang.interop.js', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
-  { label: 'system.http', detail: 'HTTP client and server', items: ['Client', 'Server', 'Request', 'Response', 'get', 'post', 'put', 'patch', 'delete'] },
-  { label: 'system.ws', detail: 'WebSockets', items: ['WebSocket', 'connect', 'Server', 'Message'] },
-  { label: 'system.simd', detail: 'SIMD vector math', items: ['Vec', 'add', 'sub', 'mul', 'div', 'dot', 'sqrt', 'abs', 'max', 'min'] },
-  { label: 'system.css', detail: 'CSS-in-Loom styling', items: ['StyleSheet', 'ClassName', 'css', 'keyframes', 'media'] },
-  { label: 'system.thread', detail: 'OS thread parallelism', items: ['Mutex', 'MutexGuard', 'RwLock', 'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'spawnBlocking'] },
-  { label: 'system.runtime', detail: 'Runtime configuration', items: ['ExecutorConfig', 'RuntimeConfig', 'TaskLocal', 'configure'] },
-  { label: 'system.ffi', detail: 'Foreign Function Interface', items: ['ThreadSafeHandle'] },
-  { label: 'system.math', detail: 'Extended numeric math', items: ['sin', 'cos', 'exp', 'log', 'tan', 'atan', 'sqrt', 'pow'] },
-  { label: 'system.gpu', detail: 'WebGPU compute shaders', items: ['ComputeShader', 'Buffer', 'dispatch'] },
+  { label: 'core.text', detail: 'String utilities', items: ['split', 'join', 'trim', 'trimStart', 'trimEnd', 'startsWith', 'endsWith', 'contains', 'indexOf', 'toUpper', 'toLower', 'replace', 'replaceAll', 'padStart', 'padEnd', 'repeat', 'reverse', 'parseInt', 'parseFloat', 'parseBool', 'toBytes', 'fromBytes', 'toHex', 'fromHex', 'toBase64', 'fromBase64', 'grapheme'] },
+  { label: 'data.json', detail: 'JSON parsing/serialisation', items: ['parse', 'stringify', 'getString', 'getInt', 'getFloat', 'getBool', 'getObject', 'getArray'] },
+  { label: 'data.bin', detail: 'Binary data utilities', items: ['pack', 'unpack'] },
+  { label: 'core.time', detail: 'Instants, durations, and async sleep', items: ['Instant', 'Duration', 'sleep'] },
+  { label: 'core.collections', detail: 'Higher-order collection utilities', items: ['map', 'flatMap', 'filter', 'filterMap', 'reduce', 'find', 'findIndex', 'any', 'all', 'none', 'sortBy', 'sortByDesc', 'reverse', 'groupBy', 'partition', 'zip', 'unzip', 'unique', 'uniqueBy', 'flatten', 'chunk', 'range', 'repeat', 'tabulate', 'sum', 'sumFloat', 'min', 'max', 'minBy', 'maxBy', 'countWhere', 'mapValues', 'filterKeys', 'mergeWith', 'fromEntries', 'toEntries'] },
+  { label: 'core.math', detail: 'Extended numeric math', items: ['sin', 'cos', 'exp', 'log', 'tan', 'atan', 'sqrt', 'pow'] },
+  { label: 'core.reflect', detail: 'Structural reflection (universal)', items: ['typeOf', 'is', 'fields', 'methods', 'constructors', 'annotations', 'variants', 'callableName'] },
+  { label: 'core.inspect', detail: 'Dynamic introspection (scripted/compiled)', items: ['new', 'get', 'getAs', 'set', 'invoke', 'invokeAs', 'as'] },
+  { label: 'io.fs', detail: 'Filesystem capability', items: ['read', 'write', 'readAsync', 'writeAsync', 'linesAsync'] },
+  { label: 'io.proc', detail: 'Process execution', items: ['run', 'runAsync', 'on'] },
+  { label: 'net.net', detail: 'Core networking', items: ['resolve', 'bind', 'connect'] },
+  { label: 'net.http', detail: 'HTTP client and server', items: ['Client', 'Server', 'Request', 'Response', 'get', 'post', 'put', 'patch', 'delete', 'request'] },
+  { label: 'net.ws', detail: 'WebSockets', items: ['WebSocket', 'connect', 'Server', 'Message'] },
+  { label: 'debug.capture', detail: 'Time-travel capture server', items: ['start', 'stop', 'activate', 'deactivate'] },
+  { label: 'debug.activate', detail: 'Portal activation registry', items: ['activate', 'deactivate', 'activePortals'] },
+  { label: 'debug.log', detail: 'Debug logging', items: ['info', 'warn', 'error', 'debug'] },
+  { label: 'debug.mcp', detail: 'MCP debug server', items: ['start', 'stop'] },
+  { label: 'debug.browser', detail: 'Browser DevTools debug bridge', items: ['start', 'stop'] },
+  { label: 'debug.freestanding', detail: 'Freestanding debug service (§24.25)', items: ['start', 'poll', 'stop'] },
+  { label: 'ui.root', detail: 'Reactive UI root (universal)', items: ['signal', 'derived', 'effect', 'mount', 'Signal', 'View', 'ComponentRegistry', 'EffectHandle', 'MountHandle', 'MountTarget'] },
+  { label: 'ui.primitives', detail: 'Cross-platform layout primitives', items: ['Row', 'Column', 'Stack', 'Scroll', 'Text', 'Button', 'Image', 'Icon', 'Canvas', 'TextField', 'Checkbox', 'Slider', 'Select', 'Axis', 'Alignment', 'TextStyle', 'Color', 'Insets'] },
+  { label: 'ui.web', detail: 'Web-specific UI rendering and SSR', items: ['renderToString', 'hydrate', 'mount', 'StateSerializer', 'serializeState', 'deserializeState', 'render'] },
+  { label: 'ui.desktop', detail: 'Desktop window management', items: ['Window', 'WindowConfig', 'Tray', 'showWindow', 'showDialog', 'showNotification'] },
+  { label: 'web.dom', detail: 'DOM access', items: ['querySelector', 'querySelectorAll', 'Element', 'Event'] },
+  { label: 'web.css', detail: 'CSS-in-Loom styling', items: ['StyleSheet', 'ClassName', 'css', 'keyframes', 'media'] },
+  { label: 'web.storage', detail: 'Browser storage', items: ['localStorage', 'sessionStorage'] },
+  { label: 'lang.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable', 'SafeHtml', 'escapeHtml', 'escapeAttribute', 'Url'] },
+  { label: 'lang.interop.js', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
+  { label: 'sync.thread', detail: 'OS thread parallelism (native)', items: ['Mutex', 'MutexGuard', 'RwLock', 'Atomic', 'Thread', 'ThreadHandle', 'ThreadPool', 'spawnBlocking'] },
+  { label: 'structures', detail: 'Additional data structures', items: ['SortedList', 'TreeNode', 'Tree'] },
+  { label: 'runtime', detail: 'Runtime configuration', items: ['configure', 'ExecutorConfig', 'RuntimeConfig'] },
+  { label: 'native.ffi', detail: 'Native FFI helpers', items: ['ThreadSafeHandle', 'ptrAdd'] },
+  { label: 'native.atomic', detail: 'Hardware atomic primitives', items: ['hwFence'] },
+  { label: 'native.gpu', detail: 'Low-level GPU kernel dispatch', items: ['GpuKernel', 'GpuBuffer', 'dispatch'] },
+  { label: 'native.hal', detail: 'Hardware abstraction layer', items: ['AcceleratorDevice', 'AcceleratorBuffer'] },
+  { label: 'native.mpu', detail: 'MPU stack-guard API (freestanding)', items: ['configure'] },
+  { label: 'native.dma', detail: 'DMA ownership API (freestanding)', items: ['DmaBuffer', 'DmaTransfer', 'startTransfer'] },
 ];
 
 connection.onCompletion((_params: TextDocumentPositionParams): CompletionItem[] => {
@@ -530,6 +586,14 @@ connection.languages.semanticTokens.on((params) => {
       case 'new': case 'del': case 'global': case 'nonlocal':
       case 'implements': case 'fn': case 'get': case 'set': case 'box':
       case 'weak': case 'unowned':
+      // v1.16 additions
+      case 'namespace': case 'modifier': case 'synchronized':
+      case 'unique': case 'arc': case 'safe': case 'unsafe':
+      case 'requires': case 'atomic': case 'consume':
+      case 'Self': case 'this':
+      case 'reads': case 'edits': case 'takes': case 'shares':
+      case 'distinct': case 'reinterpret': case 'reinterpretChecked':
+      case 'size_of': case 'align_of': case 'quote': case 'asm':
         tokenType = 0; // keyword
         break;
       case 'TypeIdentifier':

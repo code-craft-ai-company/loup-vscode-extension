@@ -10,8 +10,8 @@
 **Related documents:**
 - [Loom Language Reference v1.10](loom-language-reference-v1_10.md)
 - [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
-- [testing module requirements](81-stdlib-5-test/requirements.md)
-- [core.waiting design](108-stdlib-2-core-waiting/design.md)
+- [testing module requirements](3-stdlib-5-test/requirements.md)
+- [core.waiting design](3-stdlib-2-core-waiting/design.md)
 
 ---
 

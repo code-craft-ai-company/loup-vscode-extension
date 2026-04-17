@@ -1,26 +1,40 @@
-# loom.pkg — sample manifest for grammar verification
+# loom.pkg — sample manifest for grammar verification (Loom v1.16 §13.3)
 
 package   my-app
 version   1.4.0
-loom      ">=0.4"
+loom      ">=1.16"
 
 [deps]
-system.http  = "^2.0"
+net.http     = "^2.0"
 jsonschema   = "^1.4"
 ui-toolkit   = "^0.8"
 
 [dev-deps]
 test-runner  = "^3.1"
 
+[dev-overrides]
+# my-utils = { path = "../my-utils" }
+
 [target.browser]
-exclude system.fs
-exclude system.proc
+exclude io.fs
+exclude io.proc
 
 [target.cli]
-include system.fs
-include system.proc
+include io.fs
+include io.proc
 
 [target.service]
-include system.fs
-include system.proc
-include system.net
+include io.fs
+include io.proc
+include net.net
+
+[target.desktop]
+include io.fs
+include io.proc
+include net.net
+include ui.desktop
+
+[target.native]
+include io.fs
+include io.proc
+include net.net

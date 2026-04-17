@@ -1,12 +1,12 @@
-# Loom Language Reference v1.12
+# Loom Language Reference v1.16
 
 **Status:** Release
-**Version:** 1.12.0
-**Date:** 2026-04-11
-**Supersedes:** 1.11.0
+**Version:** 1.16.0
+**Date:** 2026-04-14
+**Supersedes:** 1.14.0
 **Scope:** Core language — syntax, semantics, type system, concurrency, FFI,
-  template fences, reactive UI, compiled mode, native compilation, macros,
-  failure policy, formal grammar, and tooling.
+  template fences, reactive UI, compiled mode, native compilation, freestanding mode,
+  macros, failure policy, formal grammar, and tooling.
 
 **Related documents:**
 - [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
@@ -21,14 +21,18 @@
   - [§2.1 Scripted Mode (JIT)](#21-scripted-mode-jit)
   - [§2.2 Module Introspection Dunders](#22-module-introspection-dunders)
   - [§2.3 Origination Introspection Dunders](#23-origination-introspection-dunders)
+  - [§2.4 Execution Modes](#24-execution-modes)
+  - [§2.5 File Mode Declarations](#25-file-mode-declarations)
+  - [§2.6 Mode Feature Matrix](#26-mode-feature-matrix)
 - [§3 Lexical Structure](#3-lexical-structure)
   - [§3.1 Source Encoding](#31-source-encoding)
   - [§3.2 Comments](#32-comments)
-  - [§3.3 Keywords and Reserved Words](#33-keywords-and-reserved-words)
-  - [§3.4 Identifiers](#34-identifiers)
-  - [§3.5 Literals](#35-literals)
-  - [§3.6 Operators](#36-operators)
-  - [§3.7 Collection Literals](#37-collection-literals)
+  - [§3.3 Statement Termination](#33-statement-termination)
+  - [§3.4 Keywords and Reserved Words](#34-keywords-and-reserved-words)
+  - [§3.5 Identifiers](#35-identifiers)
+  - [§3.6 Literals](#36-literals)
+  - [§3.7 Operators](#37-operators)
+  - [§3.8 Collection Literals](#38-collection-literals)
 - [§4 Types and Type System](#4-types-and-type-system)
   - [§4.1 Primitive Types](#41-primitive-types)
     - [§4.1.1 Fixed-Width Integer Overflow](#411-fixed-width-integer-overflow)
@@ -84,6 +88,7 @@
   - [§8.8 Annotations](#88-annotations)
   - [§8.9 Finalization](#89-finalization)
   - [§8.10 Generic Classes](#810-generic-classes)
+  - [§8.11 `unique class` Declaration](#811-unique-class-declaration)
 - [§9 Enums and Pattern Matching](#9-enums-and-pattern-matching)
   - [§9.1 Enum Declarations](#91-enum-declarations)
   - [§9.2 Enum/`Any` Boundary](#92-enumany-boundary)
@@ -95,6 +100,7 @@
   - [§10.2 Immutability and Mutability](#102-immutability-and-mutability)
   - [§10.3 Value Semantics](#103-value-semantics)
   - [§10.3.1 Pure Value Type Invariant](#1031-pure-value-type-invariant)
+  - [§10.3.2 Move Semantics for Structs with `unique` Fields](#1032-move-semantics-for-structs-with-unique-fields)
   - [§10.4 Relationship to `Any`](#104-relationship-to-any)
   - [§10.5 Methods](#105-methods)
   - [§10.6 Generic Structs](#106-generic-structs)
@@ -111,6 +117,7 @@
 - [§12 Generics](#12-generics)
   - [§12.1 Lifetime Parameters in Generics](#121-lifetime-parameters-in-generics)
 - [§13 Modules and Imports](#13-modules-and-imports)
+  - [§13.0 Namespace Declarations](#130-namespace-declarations)
   - [§13.1 Import Syntax](#131-import-syntax)
   - [§13.2 Re-Exports](#132-re-exports)
   - [§13.3 Package Manifest (`.lmpkg`)](#133-package-manifest-lmpkg)
@@ -120,6 +127,10 @@
   - [§13.7 Module Fallback Pairs](#137-module-fallback-pairs)
   - [§13.8 Core Package Set](#138-core-package-set)
   - [§13.9 `LOOMPATH` — Development Package Search Path](#139-loompath--development-package-search-path)
+  - [§13.10 Circular Imports and Deferred Type Resolution](#1310-circular-imports-and-deferred-type-resolution)
+    - [§13.10.1 Circular Import Policy](#13101-circular-import-policy)
+    - [§13.10.2 `defer import` — Deferred Type Resolution](#13102-defer-import--deferred-type-resolution)
+    - [§13.10.3 Error Codes](#13103-error-codes)
 - [§14 Multiline Strings](#14-multiline-strings)
 - [§15 Interpolated Strings](#15-interpolated-strings)
 - [§16 Template Fences](#16-template-fences)
@@ -138,7 +149,8 @@
   - [§17.4 Async Iterators and `for await`](#174-async-iterators-and-for-await)
   - [§17.5 Async Iterator Combinators](#175-async-iterator-combinators)
   - [§17.6 Actors and Supervision](#176-actors-and-supervision)
-  - [§17.7 `weak` References in Concurrent Contexts](#177-weak-references-in-concurrent-contexts)
+  - [§17.7 `atomic {}` — Cooperative Atomicity Scope](#177-atomic---cooperative-atomicity-scope)
+  - [§17.7b `weak` References in Concurrent Contexts](#177b-weak-references-in-concurrent-contexts)
   - [§17.8 OS Thread Parallelism (`--target native`)](#178-os-thread-parallelism---target-native)
   - [§17.9 Multi-Threaded Async Executor](#179-multi-threaded-async-executor)
     - [§17.9.1 `ExecutorConfig` and `RuntimeConfig`](#1791-executorconfig-and-runtimeconfig)
@@ -149,18 +161,18 @@
     - [§17.9.6 Actor Isolation in Multi-Threaded Contexts](#1796-actor-isolation-in-multi-threaded-contexts)
     - [§17.9.7 Thread-Local Storage (`ThreadLocal[T]`)](#1797-thread-local-storage-threadlocalt)
     - [§17.9.8 Task-Local Storage (`TaskLocal[T]`)](#1798-task-local-storage-tasklocalt)
-- [§17.10 Script-Mode Parallelism](#1710-script-mode-parallelism)
-  - [§17.10.1 `spawnBlocking` in Scripted Mode](#17101-spawnblocking-in-scripted-mode)
-  - [§17.10.2 `ScriptWorker` — Isolated Worker Instances](#17102-scriptworker--isolated-worker-instances)
-  - [§17.10.3 `WorkerChannel[T]` — Typed Message Channel](#17103-workerchannel--typed-message-channel)
-  - [§17.10.4 Serialization Contract](#17104-serialization-contract)
-  - [§17.10.5 Worker Scope Restrictions](#17105-worker-scope-restrictions)
-  - [§17.10.6 Future Evolution Path](#17106-future-evolution-path)
+  - [§17.10 Script-Mode Parallelism](#1710-script-mode-parallelism)
+    - [§17.10.1 `spawnBlocking` in Scripted Mode](#17101-spawnblocking-in-scripted-mode)
+    - [§17.10.2 `ScriptWorker` — Isolated Worker Instances](#17102-scriptworker--isolated-worker-instances)
+    - [§17.10.3 `WorkerChannel[T]` — Typed Message Channel](#17103-workerchannel--typed-message-channel)
+    - [§17.10.4 Serialization Contract](#17104-serialization-contract)
+    - [§17.10.5 Worker Scope Restrictions](#17105-worker-scope-restrictions)
 - [§18 FFI and Host Interop](#18-ffi-and-host-interop)
   - [§18.1 JavaScript Interop (`extern js`)](#181-javascript-interop-extern-js)
   - [§18.2 `@jsexport`](#182-jsexport)
   - [§18.3 Typed JS Facades (`lang.interop.js`)](#183-typed-js-facades-langinteropjs)
   - [§18.4 Native Interop (`extern native`)](#184-native-interop-extern-native)
+    - [§18.4.1 `native.ffi.ptrAdd` — Raw Pointer Arithmetic](#1841-nativeffiptradd--raw-pointer-arithmetic)
   - [§18.5 FFI Thread Safety (`@unsafe("threadSafe: ...")`, `ThreadSafeHandle`)](#185-ffi-thread-safety)
 - [§19 Reactive UI (`ui`)](#19-reactive-ui)
   - [§19.1 Signals](#191-signals)
@@ -178,39 +190,8 @@
   - [§20.2 Script Prelude](#202-script-prelude)
   - [§20.3 Dynamic Tracing and Time-Travel Debugging](#203-dynamic-tracing-and-time-travel-debugging)
 - [§21 Standard Library](#21-standard-library)
-  - [§21.1 `core.text`](#211-coretext)
-  - [§21.2 `data.json`](#212-datajson)
-  - [§21.3 `core.time`](#213-coretime)
-  - [§21.4 `core.collections`](#214-corecollections)
-  - [§21.5 `core.regex`](#215-coreregex)
-  - [§21.6 `core.env`](#216-coreenv)
-  - [§21.7 `io.fs`](#217-iofs)
-  - [§21.8 `io.proc`](#218-ioproc)
-  - [§21.9 `net.net`](#219-netnet)
-  - [§21.10 Set Operations](#2110-set-operations)
-  - [§21.11 `core.reflect`](#2111-corereflect)
-  - [§21.12 `core.inspect`](#2112-coreinspect)
-  - [§21.13 `net.http`](#2113-nethttp)
-  - [§21.14 `net.ws`](#2114-netws)
-  - [§21.15 `net.tcp`, `net.tls`, `net.dns` — Additional Network Modules](#2115-nettcp-nettls-netdns--additional-network-modules)
-  - [§21.16 `native.simd`](#2116-nativesimd)
-  - [§21.17 `web.css`](#2117-webcss)
-  - [§21.18 `core.math`](#2118-coremath)
-  - [§21.19 `io.streams` and `io.path`](#2119-iostreams-and-iopath)
-  - [§21.20 `data.yaml`, `data.toml`, `data.csv`, `data.xml`](#2120-datayaml-datatoml-datacsv-dataxml)
-  - [§21.21 `sync.mutex`, `sync.atomic`, `sync.channel`](#2121-syncmutex-syncatomic-syncchannel)
-  - [§21.22 `web.dom`, `web.storage`, `web.components`, `web.workers`](#2122-webdom-webstorage-webcomponents-webworkers)
-  - [§21.23 `native.ffi` and `native.mem`](#2123-nativeffi-and-nativemem)
-  - [§21.24 `lang.template` and `lang.macro`](#2124-langtemplate-and-langmacro)
-  - [§21.25 `debug.mcp` and `debug.capture`](#2125-debugmcp-and-debugcapture)
-  - [§21.26 `debug.browser`](#2126-debugbrowser)
-  - [§21.27 `structures.*` — Data Structures](#2127-structures--data-structures)
-    - [§21.27.1 `structures.CaseInsensitiveDictionary`](#21271-structurescaseinsensitivedictionary)
-    - [§21.27.2 `structures.OrderedDictionary`](#21272-structuresordereddictionary)
-    - [§21.27.3 `structures.Map`](#21273-structuresmap)
-    - [§21.27.4 `structures.MergeMap`](#21274-structuresmergemap)
-                      - [§22 Compiled Mode](#22-compiled-mode)
-  - [§22.1 `@compiled` Directive](#221-compiled-directive)
+- [§22 Compiled Mode](#22-compiled-mode)
+  - [§22.1 Compiled Mode Declaration](#221-compiled-mode-declaration)
   - [§22.2 Restrictions](#222-restrictions)
   - [§22.3 Execution Semantics](#223-execution-semantics)
 - [§23 Native Compilation](#23-native-compilation)
@@ -223,51 +204,100 @@
   - [§23.4.2 Lifetime Tracking and Region Inference](#2342-lifetime-tracking-and-region-inference)
     - [§23.4.3 Lifetime-Verified `unowned[~name]` Fields](#2343-lifetime-verified-unownedname-fields)
     - [§23.4.4 Inferred Struct Lifetimes](#2344-inferred-struct-lifetimes)
-    - [§23.4.5 `@noalias` — Disjoint Buffer Annotation](#2345-noalias--disjoint-buffer-annotation)
+    - [§23.4.5 Buffer Disjointness Contracts](#2345-buffer-disjointness-contracts)
   - [§23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary](#2346-unsafe--programmer-asserted-safety-boundary)
-  - [§23.5 ARC and the Interpreted/Compiled Boundary](#235-arc-and-the-interpretedcompiled-boundary)
+  - [§23.4.7 `unique` Ownership](#2347-unique-ownership)
+  - [§23.4.8 `arc let`, `unique class`, and Integer Safety Error Codes](#2348-arc-let-unique-class-and-integer-safety-error-codes)
+  - [§23.4.9 Ownership Transfer Verbs (`reads`, `edits`, `takes`, `shares`)](#2349-ownership-transfer-verbs)
+  - [§23.4.10 `requires` Clauses and `distinct()`](#23410-requires-clauses-and-distinct)
+  - [§23.4.11 `modifier` — Method Mutation Contract](#23411-modifier--method-mutation-contract)
+  - [§23.4.12 `safe` Contexts and `safe func` Propagation](#23412-safe-contexts-and-safe-func-propagation)
+  - [§23.4.13 `synchronized` Class — Runtime-Locked Mutation](#23413-synchronized-class--runtime-locked-mutation)
+  - [§23.4.14 `unsafe {}` Within `synchronized` Classes — Lock-Release Regions](#23414-unsafe--within-synchronized-classes--lock-release-regions)
+  - [§23.5 ARC and the Scripted/Native Mode Boundary](#235-arc-and-the-scriptednative-mode-boundary)
   - [§23.6 ABI Stability](#236-abi-stability)
   - [§23.7 C Header Interop](#237-c-header-interop)
   - [§23.8 Build Pipeline and `.lmpkg` for Native](#238-build-pipeline-and-lmpkg-for-native)
   - [§23.9 Requirements](#239-requirements)
-- [§24 Macros and Metaprogramming](#24-macros-and-metaprogramming)
-- [§25 Failure Policy](#25-failure-policy)
-  - [§25.1 Exception Hierarchy](#251-exception-hierarchy)
-  - [§25.2 User-Defined Exceptions](#252-user-defined-exceptions)
-  - [§25.3 Exception Categories](#253-exception-categories)
-  - [§25.4 Exception Propagation Rules](#254-exception-propagation-rules)
-  - [§25.5 Catch Pattern Matching](#255-catch-pattern-matching)
-  - [§25.6 Template Exceptions](#256-template-exceptions)
-  - [§25.7 Task Failures](#257-task-failures)
-  - [§25.8 FFI Exceptions](#258-ffi-exceptions)
-  - [§25.9 Signal Handling](#259-signal-handling)
-- [§26 Grammar](#26-grammar)
-  - [§26.1 Lexical Grammar](#261-lexical-grammar)
-  - [§26.2 Syntactic Grammar — Programs and Modules](#262-syntactic-grammar--programs-and-modules)
-  - [§26.3 Syntactic Grammar — Imports and Exports](#263-syntactic-grammar--imports-and-exports)
-  - [§26.4 Syntactic Grammar — Statements](#264-syntactic-grammar--statements)
-  - [§26.5 Syntactic Grammar — Expressions](#265-syntactic-grammar--expressions)
-  - [§26.6 Syntactic Grammar — Patterns](#266-syntactic-grammar--patterns)
-  - [§26.7 Syntactic Grammar — Types](#267-syntactic-grammar--types)
-  - [§26.8 Syntactic Grammar — Declarations](#268-syntactic-grammar--declarations)
-  - [§26.9 Syntactic Grammar — FFI Declarations](#269-syntactic-grammar--ffi-declarations)
-  - [§26.10 Syntactic Grammar — Template Directives](#2610-syntactic-grammar--template-directives)
-  - [§26.11 Syntactic Grammar — Macro Declarations](#2611-syntactic-grammar--macro-declarations)
-- [§27 Tooling (non-normative)](#27-tooling)
-  - [§27.1 Command-Line Interface](#271-command-line-interface)
-  - [§27.2 Shebang Support](#272-shebang-support)
-  - [§27.3 REPL](#273-repl)
-  - [§27.4 Formatter](#274-formatter)
-  - [§27.5 Language Server](#275-language-server)
-  - [§27.6 Browser Bootstrap and Performance](#276-browser-bootstrap-and-performance)
-    - [§27.6.1 Source Map Delivery](#2761-source-map-delivery)
-    - [§27.6.2 Debug Server Bootstrap (`--inspect`)](#2762-debug-server-bootstrap---inspect)
-  - [§27.7 Module Wasm Cache](#277-module-wasm-cache)
-  - [§27.8 Project-Local Cache and Development Isolation](#278-project-local-cache-and-development-isolation)
-  - [§27.9 Hardware Management Commands](#279-hardware-management-commands)
-- [§28 Progressive Disclosure (non-normative)](#28-progressive-disclosure)
-- [§29 Future Directions (non-normative)](#29-future-directions)
-- [§30 Hardware Backend Lifecycle (non-normative)](#30-hardware-backend-lifecycle)
+- [§24 Freestanding Mode](#24-freestanding-mode)
+  - [§24.1 Overview](#241-overview)
+  - [§24.2 Target Declaration and Compilation](#242-target-declaration-and-compilation)
+  - [§24.3 Stripped Features](#243-stripped-features)
+  - [§24.4 Available Features](#244-available-features)
+  - [§24.5 `@entry` — Bare Entry Point](#245-entry--bare-entry-point)
+  - [§24.6 `@panic_handler` and Panic Policy](#246-panic_handler-and-panic-policy)
+  - [§24.7 `asm { }` — Inline Assembly](#247-asm----inline-assembly)
+  - [§24.8 `@volatile` — MMIO Semantics](#248-volatile--mmio-semantics)
+  - [§24.9 `Volatile[T]` — MMIO Type Wrapper](#249-volatilt--mmio-type-wrapper)
+  - [§24.10 `@repr` — Struct Layout Control](#2410-repr--struct-layout-control)
+  - [§24.11 `@align` — Alignment Annotations](#2411-align--alignment-annotations)
+  - [§24.12 `@section` — ELF/Mach-O Section Placement](#2412-section--elfmacho-section-placement)
+  - [§24.13 `@interrupt` — Interrupt Service Routines](#2413-interrupt--interrupt-service-routines)
+  - [§24.14 `@naked` — Naked Functions](#2414-naked--naked-functions)
+  - [§24.15 `@callconv` — Calling Convention Override](#2415-callconv--calling-convention-override)
+  - [§24.16 `@allocator` and `@deallocator`](#2416-allocator-and-deallocator)
+  - [§24.17 `MaybeUninit[T]` — Uninitialized Memory](#2417-maybuninit--uninitialized-memory)
+  - [§24.18 `reinterpret[T, U]` — Type-Safe Reinterpretation](#2418-reinterpretu--type-safe-reinterpretation)
+  - [§24.19 Integer Overflow Arithmetic Methods](#2419-integer-overflow-arithmetic-methods)
+  - [§24.20 Available Standard Library Subset](#2420-available-standard-library-subset)
+  - [§24.21 `.lmpkg` Extensions for Freestanding](#2421-lmpkg-extensions-for-freestanding)
+  - [§24.22 Freestanding Error Codes](#2422-freestanding-error-codes)
+  - [§24.23 Example — x86_64 Kernel Stub](#2423-example--x8664-kernel-stub)
+  - [§24.24 `@interruptSafe` Annotation and `InterruptGuard`](#2424-interruptsafe-annotation-and-interruptguard)
+  - [§24.25 Freestanding Debug Service](#2425-freestanding-debug-service)
+    - [§24.25.1 Overview](#24251-overview)
+    - [§24.25.2 `FreestandingDebugFrame`](#24252-freestandingdebugframe)
+    - [§24.25.3 Channel Annotations](#24253-channel-annotations)
+    - [§24.25.4 Starting the Debug Service](#24254-starting-the-debug-service)
+    - [§24.25.5 Channel Fallback Matrix](#24255-channel-fallback-matrix)
+    - [§24.25.6 Control Channel Protocol](#24256-control-channel-protocol)
+    - [§24.25.7 Trace Channel Protocol](#24257-trace-channel-protocol)
+    - [§24.25.8 Host Tooling](#24258-host-tooling)
+    - [§24.25.9 Time-Travel Replay for Freestanding](#24259-time-travel-replay-for-freestanding)
+    - [§24.25.10 Design Notes](#242510-design-notes)
+- [§25 Macros and Metaprogramming](#25-macros-and-metaprogramming)
+- [§26 Failure Policy](#26-failure-policy)
+  - [§26.1 Exception Hierarchy](#261-exception-hierarchy)
+  - [§26.2 User-Defined Exceptions](#262-user-defined-exceptions)
+  - [§26.3 Exception Categories](#263-exception-categories)
+  - [§26.4 Exception Propagation Rules](#264-exception-propagation-rules)
+  - [§26.5 Catch Pattern Matching](#265-catch-pattern-matching)
+  - [§26.6 Template Exceptions](#266-template-exceptions)
+  - [§26.7 Task Failures](#267-task-failures)
+  - [§26.8 FFI Exceptions](#268-ffi-exceptions)
+  - [§26.9 Signal Handling](#269-signal-handling)
+- [§27 Grammar](#27-grammar)
+  - [§27.1 Lexical Grammar](#271-lexical-grammar)
+  - [§27.2 Syntactic Grammar — Programs and Modules](#272-syntactic-grammar--programs-and-modules)
+  - [§27.3 Syntactic Grammar — Imports and Exports](#273-syntactic-grammar--imports-and-exports)
+  - [§27.4 Syntactic Grammar — Statements](#274-syntactic-grammar--statements)
+  - [§27.5 Syntactic Grammar — Expressions](#275-syntactic-grammar--expressions)
+  - [§27.6 Syntactic Grammar — Patterns](#276-syntactic-grammar--patterns)
+  - [§27.7 Syntactic Grammar — Types](#277-syntactic-grammar--types)
+  - [§27.8 Syntactic Grammar — Declarations](#278-syntactic-grammar--declarations)
+  - [§27.9 Syntactic Grammar — FFI Declarations](#279-syntactic-grammar--ffi-declarations)
+  - [§27.10 Syntactic Grammar — Template Directives](#2710-syntactic-grammar--template-directives)
+  - [§27.11 Syntactic Grammar — Macro Declarations](#2711-syntactic-grammar--macro-declarations)
+  - [§27.12 Syntactic Grammar — Additional Productions](#2712-syntactic-grammar--additional-productions)
+  - [§27.13 Syntactic Grammar — Template Fence and HTML Context Productions](#2713-syntactic-grammar--template-fence-and-html-context-productions)
+  - [§27.14 Syntactic Grammar — v1.14 Additions](#2714-syntactic-grammar--v114-additions)
+  - [§27.15 Syntactic Grammar — v1.15 Additions](#2715-syntactic-grammar--v115-additions)
+  - [§27.16 Syntactic Grammar — v1.16 Additions](#2716-syntactic-grammar--v116-additions)
+- [§28 Tooling (non-normative)](#28-tooling)
+  - [§28.1 Command-Line Interface](#281-command-line-interface)
+  - [§28.2 Shebang Support](#282-shebang-support)
+  - [§28.3 REPL](#283-repl)
+  - [§28.4 Formatter](#284-formatter)
+  - [§28.5 Language Server](#285-language-server)
+  - [§28.6 Browser Bootstrap and Performance](#286-browser-bootstrap-and-performance)
+    - [§28.6.1 Source Map Delivery](#2861-source-map-delivery)
+    - [§28.6.2 Debug Server Bootstrap (`--inspect`)](#2862-debug-server-bootstrap---inspect)
+  - [§28.7 Module Wasm Cache](#287-module-wasm-cache)
+  - [§28.8 Project-Local Cache and Development Isolation](#288-project-local-cache-and-development-isolation)
+  - [§28.9 Hardware Management Commands](#289-hardware-management-commands)
+- [§29 Progressive Disclosure (non-normative)](#29-progressive-disclosure)
+- [§30 Future Directions (non-normative)](#30-future-directions)
+- [§31 Hardware Backend Lifecycle (non-normative)](#31-hardware-backend-lifecycle)
 - [Appendix A: Keyword Index](#appendix-a-keyword-index)
 - [Appendix B: Operator Index](#appendix-b-operator-index)
 - [Appendix C: Built-in Type Index](#appendix-c-built-in-type-index)
@@ -290,11 +320,13 @@ Loom is a statically-typed, cooperatively-scheduled programming language designe
 
 - **Dynamic debuggability.** The runtime is designed to support native tracing, in-process time-travel capture, and remotely activated debugging via named portals and callable entry points. The JIT compilation pipeline preserves full source maps for line-level debugging.
 
+- **Memory safety.** Loom provides memory safety guarantees comparable to Rust through a layered ownership system: ownership transfer verbs (`reads`, `edits`, `takes`, `shares`) enforce shared-XOR-mutable at call sites in all execution modes; the `modifier` keyword enforces exclusive access for class mutation; `safe` contexts extend enforcement to multi-statement borrow tracking; `synchronized` classes serialize mutation at runtime for concurrent and async contexts; and `distinct()` contracts replace unverified aliasing assertions with statically-verified or explicitly auditable guarantees. `atomic {}` blocks close TOCTOU races in cooperative async code by providing compiler-enforced suspension-free regions. Unlike Rust, these guarantees are available in all execution modes, not gated to native compilation.
+
 - **Explicit meaning.** Core syntax avoids "magic fallback" behaviors. Where dynamic behavior exists, it is opt-in and syntactically explicit.
 
 - **Cross-platform viability.** The language and its toolchain are designed to work uniformly across CLI tools, server applications, native desktop applications, and the web browser. Platform-specific capabilities are capability-gated and enforced at build time via platform profiles.
 
-- **Compiled mode.** For performance-critical code, Loom supports a `@compiled` mode that restricts the language to a statically-analyzable subset suitable for ahead-of-time compilation to optimized Wasm or native code. Portal statements and `core.reflect` are available in compiled mode.
+- **Compiled mode.** For performance-critical code, Loom supports a compiled mode that restricts the language to a statically-analyzable subset suitable for ahead-of-time compilation to optimized Wasm or native code. Portal statements and `core.reflect` are available in compiled mode.
 
 - **Native compilation.** Loom programs can be compiled to native binaries via LLVM or Cranelift backends using mandatory ARC memory management, bidirectional C header interop, and deployment without a Wasm runtime.
 
@@ -308,7 +340,7 @@ Loom is a statically-typed, cooperatively-scheduled programming language designe
 
 *(This section is normative.)*
 
-Loom defines two execution modes: **scripted mode** (the default) and **compiled mode** (opt-in via the `@compiled` directive; see §22). This section specifies scripted mode. Compiled mode execution semantics are defined in §22.
+Loom defines four execution modes — `@mode(scripted)`, `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)` — described fully in §2.4 and §2.6. This section specifies scripted mode, the default when no `@mode` directive is present. The other three modes are specified in §22 (compiled), §23 (native), and §24 (freestanding).
 
 ### §2.1 Scripted Mode (JIT)
 
@@ -318,7 +350,7 @@ Loom's scripted mode uses a cooperative, single-threaded runtime with first-clas
 
 **JIT compilation pipeline.** The `loom run` command uses a JIT compilation pipeline rather than ahead-of-time batch compilation:
 
-1. **Cache lookup** — Before compiling, the runtime checks the module Wasm cache (§27.7) for an up-to-date compiled artifact matching the module's source hash and current toolchain version. If a cache hit is found, step 2 is skipped and the cached Wasm is instantiated directly.
+1. **Cache lookup** — Before compiling, the runtime checks the module Wasm cache (§28.7) for an up-to-date compiled artifact matching the module's source hash and current toolchain version. If a cache hit is found, step 2 is skipped and the cached Wasm is instantiated directly.
 2. **Parse and JIT compile to Wasm** — If no cache entry exists, the source file is parsed into an AST and each top-level statement (or function body) is compiled to WebAssembly (GC+EH) incrementally.
 3. **Execute** — Compiled Wasm is executed immediately.
 
@@ -387,7 +419,9 @@ The source map format is defined in relation to existing standards: DWARF for Wa
 
 **Tracing.** When a debug server or trace hook is active, the runtime SHALL maintain rolling trace history for time-travel debugging. Named `portal` statements and callable entry points may activate trace capture for the current task.
 
-**Failure model.** Failures are hard by default; see §25 for the complete failure policy.
+**Failure model.** Failures are hard by default; see §26 for the complete failure policy.
+
+**Wasm call-stack exhaustion (normative).** A Wasm call-stack exhaustion trap encountered during execution of a Loom scripted or compiled program SHALL be caught by the Loom runtime host and rethrown as `StackOverflowError extends RuntimeError` (§26.1) at the point of the deepest active Loom call frame. `StackOverflowError` is catchable by user `try/catch` blocks. The maximum call-stack depth is engine-defined and is not specified by Loom; programs MUST NOT rely on a particular limit. Recursive algorithms with unbounded depth SHOULD use explicit work-list patterns or `gen func` (§7.5) to avoid stack exhaustion.
 
 ### §2.2 Module Introspection Dunders
 
@@ -397,13 +431,13 @@ Every Loom module has three implicit read-only bindings available at module scop
 |---|---|---|
 | `__name__` | `string` | The module's identity name |
 | `__file__` | `string` | The absolute filesystem path of the source file |
-| `__execmode__` | `string` | `"interpreted"` or `"compiled"` |
+| `__execmode__` | `string` | `"interpreted"`, `"compiled"`, `"native"`, or `"freestanding"` |
 
 **`__name__` rules:**
 
 - When a file is executed directly via `loom run`, `__name__` is `"__main__"`.
 - When a file is loaded as an import, `__name__` is the module's fully-qualified dotted name (e.g., `"mypackage.utils"`).
-- In `@compiled` files, `__name__` is never `"__main__"` — compiled files cannot be entry points.
+- In compiled-mode files, `__name__` is never `"__main__"` — compiled files cannot be entry points.
 - In the REPL, `__name__` is `"__main__"`.
 
 **`__file__` rules:**
@@ -413,22 +447,26 @@ Every Loom module has three implicit read-only bindings available at module scop
 
 **`__execmode__` rules:**
 
-- For files without `@compiled`, `__execmode__` is `"interpreted"`.
-- For files with `@compiled`, `__execmode__` is `"compiled"`.
-- In the REPL, `__execmode__` is `"interpreted"`.
+- `@mode(scripted)` (or no mode directive): `"interpreted"`
+- `@mode(compiled)` (Wasm AOT): `"compiled"`
+- `@mode(native)` (native binary): `"native"`
+- `@mode(freestanding)` (bare-metal binary): `"freestanding"`
+- In the REPL: `"interpreted"`
 
-**Read-only semantics.** The compiler SHALL treat `__name__`, `__file__`, and `__execmode__` as read-only implicit `let` bindings. Attempting to reassign any of them is a compile-time error.
+In `@mode(native)` and `@mode(freestanding)` files, `__execmode__` is a compile-time string constant baked into the binary. It does not require the Loom runtime to evaluate. `core.reflect` is not needed to read `__execmode__` — it is always a compile-time constant in all compiled modes.
 
-**Compiled-mode constants.** In `@compiled` files, `__name__`, `__file__`, and `__execmode__` are compile-time string constants baked into the binary. `__name__` is the module's dotted name (never `"__main__"`), `__file__` is the source path at compile time, and `__execmode__` is `"compiled"`.
+**Read-only semantics.** The compiler SHALL treat `__name__`, `__file__`, and `__execmode__` as read-only implicit `let` bindings. Attempting to reassign any of them is a compile-time error (`E_LET_REASSIGN`).
 
-**Dunder reservation.** Identifiers beginning and ending with double underscores (`__*__`) follow the Python dunder naming convention and are reserved for language-defined module introspection variables. User code SHALL NOT declare variables with dunder names. The language-reserved dunders are: `__name__`, `__file__`, and `__execmode__`. Additional language-level introspection variables follow the same `__dunder__` pattern.
+**Compiled-mode constants.** In any AOT-compiled file (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`), `__name__`, `__file__`, and `__execmode__` are compile-time string constants baked into the binary — they do not require the runtime to evaluate. `__name__` is the module's dotted name (never `"__main__"`), `__file__` is the source path at compile time, and `__execmode__` is the mode string for that file (`"compiled"`, `"native"`, or `"freestanding"`).
+
+**Dunder reservation.** Identifiers beginning and ending with double underscores (`__*__`) follow the Python dunder naming convention and are reserved for language-defined module introspection variables. User code SHALL NOT declare variables with dunder names. The language-reserved dunders are: `__name__`, `__file__`, `__execmode__`, and `__module__` (the declaration-level property on named types and functions, §2.3). Additional language-level introspection variables follow the same `__dunder__` pattern.
 
 **Main guard pattern.** The idiomatic way to write code that runs only when a file is executed directly:
 
 ```
 // utils.loom — a dual-purpose module
 pub func greet(name: string): string {
-  return "Hello, {$ name $}!";
+  return i"Hello, {$ name $}!";
 }
 
 if (__name__ == "__main__") {
@@ -457,8 +495,8 @@ async func main() {
   let users = await task1;
   let posts = await task2;
 
-  print("Users: {$ users $}");
-  print("Posts: {$ posts $}");
+  print(i"Users: {$ users $}");
+  print(i"Posts: {$ posts $}");
 }
 
 if (__name__ == "__main__") {
@@ -477,19 +515,26 @@ Classes have declaration-level dunders that are accessible as properties on name
 
 **`__module__` on named declarations.** Every named class, struct, enum, interface, and function declaration carries an implicit `__module__` property that returns a `Module` value representing the module where the declaration was made. This is accessible via dot syntax on any named type or function value:
 ```loom
-Encoder.__module__.__execmode__    // "compiled" or "interpreted"
+Encoder.__module__.__execmode__    // "interpreted", "compiled", "native", or "freestanding"
 decode.__module__.__name__         // "mylib.codec"
 Shape.__module__.__file__          // "/path/to/shapes.loom"
 ```
 
-`__module__` is not a module-scope dunder — it is a property on type and function values. It is available in both scripted and `@compiled` modes. In `@compiled` mode, `.__module__` returns compile-time-baked metadata.
+`__module__` is not a module-scope dunder — it is a property on type and function values. It is available in all four modes. In any AOT-compiled mode (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`), `.__module__` returns compile-time-baked metadata requiring no runtime evaluation.
 
 **`Module` built-in type.** `Module` is a built-in class with read-only properties mirroring the module-scope dunders:
 ```loom
 class Module : Any {
   pub let __name__: string;      // fully-qualified module name
   pub let __file__: string;      // source file path at compile time
-  pub let __execmode__: string;  // "interpreted" | "compiled"
+  pub let __execmode__: string;  // "interpreted" | "compiled" | "native" | "freestanding"
+
+  // Runtime module reflection — available when the Module value is the result of
+  // runtime.compile() or obtained via __module__ on a dynamically-loaded type.
+  pub func exports(): list[string];                  // exported symbol names
+  pub func get(name: string): Any;                   // throws KeyError if not found
+  pub func has(name: string): bool;                  // check if name is exported
+  pub func call(name: string, args: list[Any]): Any; // call exported function
 }
 ```
 
@@ -506,13 +551,184 @@ if (Encoder.__module__.__execmode__ == "interpreted") {
 
 ---
 
+## §2.4 Execution Modes
+
+*(This section is normative.)*
+
+Loom defines four execution modes. Each mode represents a distinct combination of runtime support, memory management strategy, permitted language features, and target deployment environment. A source file declares its mode with the `@mode` directive (§2.5); the build system, compiler, linter, formatter, and language server treat the declared mode as authoritative for that file.
+
+The four modes are not a strict subset hierarchy — each trades off different runtime capabilities against different constraints:
+
+- `@mode(compiled)` restricts `@mode(scripted)` to statically-typed, AOT-compilable constructs; the Wasm GC runtime is common to both.
+- `@mode(native)` targets native binaries with ARC memory management and ownership features (`borrow`, `unique`, `lifetime`) absent from the Wasm modes.
+- `@mode(freestanding)` strips the Loom runtime entirely — no ARC, no async executor, no exceptions — for bare-metal and kernel programming.
+
+There is no runtime compatibility between modes; each mode produces a distinct binary artifact or runtime environment.
+
+### §2.4.1 Scripted Mode
+
+The default execution mode. Files without an `@mode` directive are implicitly `@mode(scripted)`.
+
+Features: dynamic typing (full `Any` usage), GC-managed heap via the Wasm GC proposal, `async`/`await` with a cooperative event loop, `core.reflect`, all standard library modules, template fences (HTML, CSS, WGSL, Metal, GLSL), reactive UI. The legacy ownership keyword set (`borrow`, `unique`, `lifetime`, `noescape fn`, `excl borrow`, `arc let`, `unique class`) is **not available** and produces a compile-time error if used (`E_BORROW_NOT_NATIVE` for `borrow`/`lifetime`, `E_UNIQUE_NOT_NATIVE` for `unique`). The v1.15 ownership verb system (`reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}`, `synchronized`) **is available** in scripted mode. See §23.4.9–§23.4.13. The v1.16 `atomic {}` block (§17.7) is available in scripted mode.
+
+### §2.4.2 Compiled Mode
+
+Opt-in via `@mode(compiled)`. Compiled mode restricts the language to a statically-analyzable subset for AOT compilation to WebAssembly (GC+EH target). All type annotations are mandatory. `Any` as a declared type is prohibited (`E_ANY_IN_COMPILED`). Memory is managed by the Wasm GC. The legacy ownership keyword set (`borrow`, `unique`, `excl borrow`, `arc let`, `unique class`, `noescape fn`, `lifetime`) remains unavailable. The v1.15 ownership verb system (`reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}`, `synchronized`) is available in compiled mode. Async, template fences, and UI features are available. Overflow arithmetic methods (`checkedAdd`, `wrappingAdd`, `saturatingAdd`, §24.19) are available in compiled mode. The v1.16 `atomic {}` block (§17.7) is available in compiled mode.
+
+### §2.4.3 Native Mode
+
+Opt-in via `@mode(native)`. Native mode compiles to a platform-native binary via LLVM or Cranelift (§23). Memory is managed by Automatic Reference Counting (ARC). All compiled-mode restrictions apply. Additionally, the full ownership and lifetime system becomes available:
+
+- `reads`, `edits`, `takes`, `shares` verbs, `modifier`, `safe {}` / `safe func`, `synchronized` class (§23.4.9–§23.4.13)
+- `borrow`, `excl borrow`, `borrow[~name]`, `lifetime ~name`, `noescape fn`
+- `unique let`, `unique var`, `unique class`, `arc let`, `consume`
+- `unowned[~name]`
+- `MaybeUninit[T]`, `reinterpret[T, U]`, `reinterpretChecked[T, U]` (§24.17, §24.17a, §24.18)
+- `PartialInit[T]` — field-tracked struct initialization (§24.17a)
+- `PinnedRef[T]`, `OwnedHandle`, `BorrowedHandle` — FFI ownership types (§18.4)
+- `@lockOrder(n)` — lock ordering annotation on `synchronized` classes (§23.4.13)
+- `@signalSafe` — signal handler safety annotation (§26.9)
+
+Template fences, reactive UI, `core.reflect`, and the full standard library are available. The Loom native runtime is linked.
+
+### §2.4.4 Freestanding Mode
+
+Opt-in via `@mode(freestanding)`. Freestanding mode compiles to a native binary with **no Loom runtime linked** — designed for kernels, bootloaders, embedded firmware, and bare-metal environments. The full ownership and lifetime system from native mode is available. Classes require an `@allocator` registration; without one, class construction is a compile-time error. Async/await, exceptions, template fences, UI, and `core.reflect` are unavailable.
+
+Additional hardware-access features exclusive to freestanding mode: `asm { }` inline assembly, `@volatile`, `Volatile[T]`, `@repr`, `@interrupt`, `@naked`, `@callconv`, `@entry`, `@panic_handler`, `@allocator`, `@deallocator`. v1.16 adds: `@interruptSafe`, `InterruptGuard` (§24.24), `DmaBuffer[T]` and `native.dma` (§24.20), `native.mpu.installStackGuard` (§24.20), `native.atomic.hwFence` with `MemoryOrder` (§24.20), `PartialInit[T]` (§24.17a), `reinterpretChecked[T, U]` (§24.18), and the freestanding debug portal service — `portal` statements, `@debug_control_channel`, `@debug_trace_channel`, and time-travel replay (§24.25, `--debug` builds only). See §24 for the complete freestanding specification.
+
+---
+
+## §2.5 File Mode Declarations
+
+*(This section is normative.)*
+
+### §2.5.1 The `@mode` Directive
+
+Every Loom source file carries an explicit or implicit mode declaration. The `@mode` directive MUST appear as the first non-comment, non-blank token:
+
+```loom
+@mode(scripted)      // default; may be omitted
+@mode(compiled)      // compiled to Wasm
+@mode(native)        // compiled to native binary with ARC
+@mode(freestanding)  // bare-metal; no runtime
+```
+
+**Rules:**
+
+- `@mode` must be the first active token in the file; later placement is `E_MODE_POSITION`.
+- Only one `@mode` per file; duplicates are `E_MODE_DUPLICATE`.
+- Unrecognised mode names produce `E_MODE_UNKNOWN`.
+- Files without an explicit `@mode` are implicitly `@mode(scripted)`.
+
+### §2.5.2 Mode and Build Target Consistency
+
+| `@mode` | Compatible `--target` |
+|---|---|
+| `@mode(scripted)` | `browser`, `node`, `bun`, `deno` |
+| `@mode(compiled)` | `wasm`, `browser` |
+| `@mode(native)` | `native`, `cli`, `service`, `desktop` |
+| `@mode(freestanding)` | `freestanding` |
+
+**Note on native targets.** The `cli`, `service`, and `desktop` build targets use `@mode(native)` for platform-specific compiled code. Mixed-mode projects where scripted files import native modules use the scripted/native interop boundary (§23.5).
+
+A mismatch between file `@mode` and `--target` is `E_MODE_TARGET_MISMATCH`.
+
+**Project-wide mode.** A `.lmpkg` manifest may declare `mode = "freestanding"` (or another mode) in its `[build]` table. All files without an explicit `@mode` inherit the project mode.
+
+
+
+### §2.5.3 Tooling Semantics
+
+Tools MUST use the `@mode` declaration to determine:
+
+- **Syntax highlighting profile.** Freestanding enables `asm`, `@interrupt`, `@volatile`, etc. Native enables `borrow`, `unique`, `arc`, `lifetime`. Scripted highlights template fences and `Any`.
+- **Lint rule set.** Per-mode lint rules are enforced. Freestanding adds hardware-safety lints (e.g., `no-float-in-freestanding`).
+- **Completion menus.** Only features available in the file's declared mode appear in completion suggestions.
+- **Error display.** Errors referencing features unavailable in the current mode include the mode name and the mode that would permit the feature.
+
+---
+
+## §2.6 Mode Feature Matrix
+
+*(This section is normative with respect to feature availability.)*
+
+| Feature | Scripted | Compiled | Native | Freestanding |
+|---|---|---|---|---|
+| Dynamic typing (`Any`, untyped params) | ✓ | Restricted | Restricted | ✗ |
+| GC-managed heap | ✓ | ✓ (Wasm GC) | ✗ | ✗ |
+| ARC memory management | ✗ | ✗ | ✓ | ✗ (needs `@allocator`) |
+| `arc let` / `arc var` | ✗ | ✗ | ✓ | ✗ |
+| `unique let` / `unique var` | ✗ | ✗ | ✓ | ✓ |
+| `unique class` declaration | ✗ | ✗ | ✓ | ✓ |
+| `borrow` / `excl borrow` | ✗ | ✗ | ✓ | ✓ |
+| `borrow[~name]` / `lifetime ~name` | ✗ | ✗ | ✓ | ✓ |
+| `noescape fn` | ✗ | ✗ | ✓ | ✓ |
+| `unowned[~name]` | ✗ | ✗ | ✓ | ✓ |
+| `from X defer import` (deferred type stubs) | ✓ | ✓ | ✓ | ✗ |
+| `reads` / `edits` / `takes` / `shares` verbs | ✓ | ✓ | ✓ | ✓ |
+| `modifier` method keyword | ✓ | ✓ | ✓ | ✓ (`unique` class only) |
+| `safe {}` / `safe func` | ✓ | ✓ | ✓ | ✓ |
+| `synchronized` class | ✓ | ✓ | ✓ | ✗ |
+| `distinct()` in `requires` clause | ✓ | ✓ | ✓ | ✓ |
+| `weak` references | ✗ | ✗ | ✓ | ✗ |
+| `async` / `await` | ✓ | ✓ | ✓ | ✗ |
+| `throw` / `try` / `catch` | ✓ | ✓ | ✓ | ✗ |
+| Template fences | ✓ | ✓ | ✓ | ✗ |
+| Reactive UI (`ui.*`) | ✓ | ✓ | ✓ | ✗ |
+| `core.reflect` | ✓ | ✓ | ✓ | ✗ |
+| `dynamic class` | ✓ | ✗ | ✗ | ✗ |
+| `asm { }` inline assembly | ✗ | ✗ | ✓ (needs `@unsafe`) | ✓ |
+| `@volatile` / `Volatile[T]` | ✗ | ✗ | ✗ | ✓ |
+| `@interrupt` / `@naked` / `@callconv` | ✗ | ✗ | ✗ | ✓ |
+| `@entry` / `@panic_handler` | ✗ | ✗ | ✗ | ✓ |
+| `@allocator` / `@deallocator` | ✗ | ✗ | ✗ | ✓ |
+| `@repr` / `@align` / `@section` | ✗ | ✗ | ✗ | ✓ |
+| `MaybeUninit[T]` | ✗ | ✗ | ✓ | ✓ |
+| `reinterpret[T, U]` | ✗ | ✗ | ✓ | ✓ |
+| Overflow arithmetic methods | ✓ | ✓ | ✓ | ✓ |
+| `--overflow=trap` flag | ✗ | ✗ | ✓ | ✓ |
+| `Sendable` interface | ✓ | ✓ | ✓ | ✓ |
+| `for`-loop implicit borrow guard | ✗ (runtime warn) | ✓ | ✓ | ✓ |
+| `gen func` (synchronous generators) | ✓ | ✓ | ✓ | ✓ (needs `@allocator`) |
+| `async gen func` (async generators) | ✓ | ✓ | ✓ | ✗ |
+| Macros (`macro` / `pub macro` / `name!(args)`) | ✓ | ✓ | ✓ | ✓ |
+| `atomic {}` block — cooperative atomicity scope | ✓ | ✓ | Use `synchronized`/`Mutex` | Use `InterruptGuard` |
+| `@interruptSafe` annotation | ✗ | ✗ | ✗ | ✓ |
+| `InterruptGuard` — interrupt-masking scope | ✗ | ✗ | ✗ | ✓ |
+| `PinnedRef[T]` — ARC-pinned FFI lifetime anchor | ✗ | ✗ | ✓ | ✗ |
+| `NativeHandle` / `OwnedHandle` / `BorrowedHandle` | ✗ | ✗ | ✓ | ✓ |
+| `NativeHandle?` — nullable FFI return type | ✗ | ✗ | ✓ | ✓ |
+| `@lockOrder(n)` — lock ordering annotation | ✗ | ✗ | ✓ | ✗ |
+| `reinterpretChecked[T, U]` — checked type-punning | ✗ | ✗ | ✓ | ✓ |
+| `PartialInit[T]` — field-tracked initialization | ✗ | ✗ | ✓ | ✓ |
+| `DmaBuffer[T]` — ownership-mapped DMA | ✗ | ✗ | ✗ | ✓ |
+| `native.atomic.hwFence(order)` — hardware barrier | ✗ | ✗ | ✓ | ✓ |
+| `native.mpu` — MPU stack-guard API | ✗ | ✗ | ✗ | ✓ |
+| `native.dma` — DMA ownership API | ✗ | ✗ | ✗ | ✓ |
+| `portal` statements (`--debug` only) | ✓ | ✓ | ✓ | ✓ (`--debug` + channel configured) |
+| Freestanding debug service (`debug.freestanding`, `--debug` only, §24.25) | ✗ | ✗ | ✗ | ✓ |
+| Time-travel replay (freestanding, §24.25.9) | ✗ | ✗ | ✗ | ✓ (`--debug` + `timeTravelEnabled = true`) |
+| `@debug_control_channel` / `@debug_trace_channel` | ✗ | ✗ | ✗ | ✓ |
+| `--stack-size N` build flag | ✗ | ✗ | ✓ | ✓ (via `.lmpkg`) |
+| `@signalSafe` annotation | ✗ | ✗ | ✓ | ✗ |
+| `extern native` — C FFI declarations | ✗ | ✗ | ✓ | ✓ |
+| `portal_ring_size` — time-travel ring buffer | ✗ | ✗ | ✗ | ✓ (`--debug` only, §24.25) |
+
+
+---
+
 ## §3 Lexical Structure
 
 *(This section is normative.)*
 
 ### §3.1 Source Encoding
 
-All Loom source files SHALL be encoded in UTF-8. A byte order mark (BOM) at the start of a file is permitted but not required; if present, it is ignored. Source files that are not valid UTF-8 produce a compile-time error.
+All Loom source files SHALL be encoded in UTF-8. A byte order mark (BOM) at the start of a file is permitted but not required; if present, it is ignored. Source files that are not valid UTF-8 produce a compile-time error (`E_INVALID_UTF8`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_INVALID_UTF8` | All | Source file contains byte sequences that are not valid UTF-8 |
 
 ### §3.2 Comments
 
@@ -544,7 +760,25 @@ func factorial(n: int): int {
 
 Comments are lexically transparent: for any valid Loom program, removing all comments SHALL produce an AST identical to the original program's AST. Comments do not affect parsing, type-checking, or execution.
 
-### §3.3 Keywords and Reserved Words
+### §3.3 Statement Termination
+
+Loom uses **newline-terminated statements**. A statement ends at the newline following its last token. An explicit semicolon (`;`) may be written at the end of any simple statement for style or compatibility but is not required:
+
+```loom
+let x = 42       // valid — newline terminates
+let y = 43;      // also valid — explicit semicolon
+```
+
+The reference formatter (§28.4) preserves semicolons as written. Block statements (those ending in `}`) never take a trailing semicolon.
+
+**Continuation lines.** An expression that ends with a binary operator, open bracket, or comma automatically continues on the next line without a statement boundary:
+
+```loom
+let total = a +
+            b        // continuation — no new statement here
+```
+
+### §3.4 Keywords and Reserved Words
 
 The following identifiers are keywords and SHALL NOT be used as variable, function, type, or module names:
 
@@ -552,57 +786,98 @@ The following identifiers are keywords and SHALL NOT be used as variable, functi
 abstract   and        as         async      await      bnot       borrow
 break      catch      class      continue   defer      del
 do         dynamic    else       enum       extern     false
-finally    fn         for        from       func        gen
-get        global     if         implements import     in
-instanceof interface  is         let        lifetime   match      new
-noescape   nonlocal   none       not        or         portal
-prefer     pub        return     set        spawn      static
-struct     suspend    throw      true       try        type
-typeof     var        while      with       yield
+finally    fn         for        from       func       gen
+global     if         implements import     in
+instanceof interface  is         let        lifetime   macro      match      new
+namespace  noescape   nonlocal   none       not        or         portal
+prefer     pub        return     spawn      static     super
+struct     suspend    throw      true       try        type       Self
+this       typeof     unique     var        while      with       yield      consume
+arc        operator
+reads      edits      takes      shares     modifier   safe
+synchronized unsafe   requires   atomic
 ```
 
 The following identifiers are **reserved for future use** and SHALL NOT be used as user identifiers:
 
 ```
-macro      where      trait      module     package    super
-self       Self       override   final      sealed     volatile
+where      trait      module     package
+override   final      sealed     volatile
 ```
 
 **Contextual keywords.** The following identifiers have special meaning only in specific syntactic positions and may be used as ordinary identifiers elsewhere:
 
+- `self` — contextual in closure capture lists (`[weak self]`, `[unowned self]`) as an alias for the enclosing method's implicit `this` receiver; also valid as an ordinary identifier (e.g., first parameter name in UFCS-style functions: `func map(self: Iterable[T], ...)`)
+- `get` — contextual as a property-getter declaration keyword (`get propName(): T { ... }`, §7.7); valid as an ordinary identifier (e.g., method name `func get(key: K): V`) in all other positions
+- `set` — contextual as a property-setter declaration keyword (`set propName(v: T) { ... }`, §7.7); valid as an ordinary identifier (e.g., method name `func set(value: T): void`) in all other positions
+- `quote` — contextual as the macro body keyword (`macro name(p) { quote { ... } }`, §25, §27.11); valid as an ordinary identifier elsewhere
+- `box` — contextual in prefix expression position (`box expr`); makes widening to `Any` explicit. Valid only in modes where `Any` is permitted (scripted, compiled); `E_BOX_IN_NATIVE` in `@mode(native)` and `@mode(freestanding)`. Valid as an identifier elsewhere.
 - `group` — contextual in `await group { ... }`
 - `once` — contextual in debug activation requests
+- `distinct` — contextual in `requires distinct(...)` clauses and call-site contract acknowledgments (§23.4.10)
 - `excl` — contextual immediately before `borrow` in parameter declarations (`excl borrow param: StructType`); see §23.4.1.1
+- `compiled`, `native`, `scripted`, `freestanding` — contextual in `@mode(X)` directives and `prefer compiled` import clauses; valid identifiers elsewhere
+- `reinterpret` — contextual in `reinterpret[T, U](expr)` expressions; `@mode(native)` and `@mode(freestanding)` only; requires `@unsafe` (§24.18)
+- `reinterpretChecked` — contextual in `reinterpretChecked[T, U](expr)` expressions; `@mode(native)` and `@mode(freestanding)` only; no `@unsafe` required; returns `Result[U, AlignmentError]` (§24.18)
+- `size_of` — contextual in `size_of[T]()` expressions; `@mode(native)` and `@mode(freestanding)` (§24.4.1)
+- `align_of` — contextual in `align_of[T]()` expressions; `@mode(native)` and `@mode(freestanding)` (§24.4.1)
 
 **Dunder identifiers.** Identifiers beginning and ending with double underscores (`__name__`, `__file__`, `__execmode__`) are reserved for language-defined module introspection variables. User code SHALL NOT declare bindings with dunder names.
 
-**`borrow`** is a parameter modifier keyword and field qualifier keyword. It is permitted only in `@compiled` files targeting `--target native`. Using `borrow` in scripted mode or in `@compiled` files targeting Wasm is a compile-time error.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_BORROW_NOT_NATIVE` | Scripted, Compiled | `borrow`, `borrow[~name]`, or `excl borrow` used in `@mode(scripted)` or `@mode(compiled)` |
+| `E_LIFETIME_NOT_NATIVE` | Scripted, Compiled | `lifetime ~name` generic parameter used in `@mode(scripted)` or `@mode(compiled)` |
 
-**`lifetime`** is a lifetime-parameter keyword. It is used only in the `[...]` generic-parameter brackets of functions, structs, enums, and interfaces to declare a named region. `lifetime` is permitted only in `@compiled` files targeting `--target native`. Using `lifetime` in scripted mode or in `@compiled` files targeting Wasm is a compile-time error.
+**`borrow`** is a parameter modifier keyword and field qualifier keyword. It is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `borrow` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_BORROW_NOT_NATIVE`).
+
+**`lifetime`** is a lifetime-parameter keyword. It is used only in the `[...]` generic-parameter brackets of functions, structs, enums, and interfaces to declare a named region. `lifetime` is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `lifetime` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_LIFETIME_NOT_NATIVE`).
 
 **Lifetime labels.** A lifetime label is a lowercase identifier prefixed with the `~` sigil (e.g. `~src`, `~origin`). The `~` sigil is used exclusively for lifetime labels and may not appear in any other context. Lifetime labels are not identifiers — they cannot be used as variable names, type names, or in any position other than `[lifetime ~name]` declarations and `borrow[~name]` references. `~static` is a reserved lifetime label with special semantics (see §7.1, §23.4.2); it may not be declared as a user lifetime parameter.
 
-**`noescape`** is a function type modifier keyword. It is permitted only in `@compiled` files targeting `--target native` as a modifier on `fn` types. Using `noescape` in scripted mode or in `@compiled` files targeting Wasm is a compile-time error.
+**`unique`** is a binding and field qualifier keyword. `unique let`/`unique var` declares a single-owner binding for a class instance with no ARC reference counting. `unique var` on a struct field declares a uniquely-owned class field. `unique` is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `unique` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_UNIQUE_NOT_NATIVE`). See §23.4.7.
+
+**`consume`** is a unary expression keyword. `consume expr` explicitly downgrades a `unique` binding to a regular ARC-managed reference, transferring ownership and consuming the source binding. `consume` is permitted only in `@mode(native)` — it requires an ARC runtime to transfer ownership into. Using `consume` in `@mode(scripted)`, `@mode(compiled)`, or `@mode(freestanding)` is a compile-time error (`E_CONSUME_NON_UNIQUE` for scripted/compiled; `E_CONSUME_NOT_FREESTANDING` for freestanding). Applying `consume` to a non-`unique` binding is `E_CONSUME_NON_UNIQUE`. See §23.4.7.
+
+**`noescape`** is a function type modifier keyword. It is permitted in `@mode(native)` and `@mode(freestanding)` as a modifier on `fn` types. Using `noescape` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error.
 
 **`prefer`** is a keyword used in the two-token sequence `prefer compiled`, valid only in import statements (see §13.1). `prefer` is a reserved keyword and SHALL NOT be used as an identifier.
 
-### §3.4 Identifiers
+**`reads`, `edits`, `takes`, `shares`** are ownership transfer verb keywords. They are used as parameter modifiers in function and method declarations, and as call-site acknowledgment labels. `reads` is the implicit default for parameters declared without any verb. Available in all execution modes. See §23.4.9.
+
+**`modifier`** is a method declaration keyword. `modifier` declares a class method that writes `var` fields on `self`. Available in all execution modes; not valid on struct methods (`E_MODIFIER_ON_STRUCT`). See §23.4.11.
+
+**`safe`** is a context keyword. `safe {}` introduces a safe context for its lexical scope; `safe func` declares a function that both requires and provides a safe context. Available in all execution modes. See §23.4.12.
+
+**`synchronized`** is a class declaration modifier. `synchronized class` equips each instance with a per-instance mutex that serializes all `modifier` method invocations. Available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. Not available in `@mode(freestanding)` (`E_SYNCHRONIZED_FREESTANDING`). See §23.4.13.
+
+**`unsafe`** is the lock-release block keyword within `synchronized` modifier methods. `unsafe("reason") { ... }` releases the per-instance lock for the block's duration. Valid only inside a `modifier` method body on a `synchronized` class (`E_UNSAFE_NOT_SYNCHRONIZED` otherwise). Available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. See §23.4.14.
+
+**`requires`** is a contract clause keyword. A `requires` clause appears after the parameter list of a function or method declaration and before the return type. Available in all execution modes. See §23.4.10.
+
+**`atomic`** is a block keyword. `atomic { ... }` introduces a cooperative atomicity scope that the compiler verifies contains no suspension points (`await`, `for await`, `spawn`). Available only in `@mode(scripted)` and `@mode(compiled)`; usage in other modes is `E_ATOMIC_NOT_WASM`. See §17.7.
+
+**`reinterpretChecked`** is a contextual expression keyword. `reinterpretChecked[T, U](expr)` reinterprets the bit pattern of a value of type `T` as type `U`, with a runtime alignment check that returns `Result[U, AlignmentError]` rather than requiring `@unsafe`. Available in `@mode(native)` and `@mode(freestanding)`. See §24.18.
+
+### §3.5 Identifiers
 
 An identifier is a sequence of Unicode letters, digits, and underscores that does not begin with a digit:
 
 ```
-Identifier ::= IdentStart IdentContinue*
-IdentStart ::= UnicodeLetterOrUnderscore
-IdentContinue ::= UnicodeLetterOrUnderscore | UnicodeDigit
+Identifier    ::= IdentStart { IdentContinue }
+IdentStart    ::= UNICODE_LETTER | "_"
+IdentContinue ::= UNICODE_LETTER | UNICODE_DIGIT | "_"
 ```
+*(Canonical grammar in §27.6. `UNICODE_LETTER` = any Unicode letter or underscore;
+`UNICODE_DIGIT` = any Unicode decimal digit.)*
 
 Identifiers are case-sensitive. By convention:
 
-- **Lowercase** names are used for variables, functions, parameters, and primitive types (`int`, `float`, `bool`, `string`, `bytes`).
+- **Lowercase** names are used for variables, functions, parameters, and primitive types (`int`, `float`, `bool`, `char`, `string`, `bytes`).
 - **PascalCase** names are used for classes, interfaces, enums, structs, type aliases, and type parameters (`MyClass`, `Option[T]`, `Task[T]`).
 - **SCREAMING_SNAKE_CASE** is used for constants by convention but is not enforced by the language.
 
-### §3.5 Literals
+### §3.6 Literals
 
 #### Integer Literals
 
@@ -632,11 +907,11 @@ An unsuffixed integer literal has type `int` (int64). A **type suffix** produces
 | `u64` | `uint64` | `18_446_744_073_709_551_615u64` |
 | `n` | `bigint` | `99_999_999_999_999_999_999n` |
 
-The suffix is case-sensitive. A value that does not fit in the declared type is a compile-time error.
+The suffix is case-sensitive. A value that does not fit in the declared type is a compile-time error (`E_LITERAL_OVERFLOW`).
 
 The `int` type is a signed 64-bit integer (range: −2⁶³ to 2⁶³−1). Integer overflow behaviour is specified in §4.1.1.
 
-**Explicit conversions.** See §4.1.2 for the full conversion function set. Mixed `int`/`float` arithmetic promotes the `int` operand automatically (see §3.6).
+**Explicit conversions.** See §4.1.2 for the full conversion function set. Mixed `int`/`float` arithmetic promotes the `int` operand automatically (see §3.7).
 
 #### Float Literals
 
@@ -693,7 +968,6 @@ r"no \n escape here"
 r'C:\Users\name\file.txt'
 r"backslashes are literal\"
 ```
-*Note:* In raw strings, a backslash before the closing quote acts as an escape for the quote itself—preventing string termination—while retaining both the backslash and the quote in the string content. As a result, a raw string cannot end with an odd number of backslashes.
 
 **Escape sequences:**
 
@@ -737,11 +1011,11 @@ let snowman: char = c"☃";
 let hi: char = c"\u{1F600}";    // 😀
 ```
 
-`char` literals support the same escape sequences as string literals. The `\xHH` escape is not permitted in `char` literals — use `\u{HH}` instead. A `char` literal containing zero Unicode scalar values or more than one is a **compile-time error**:
+`char` literals support the same escape sequences as string literals. The `\xHH` escape is not permitted in `char` literals — use `\u{HH}` instead (`E_CHAR_LITERAL_INVALID`). A `char` literal containing zero Unicode scalar values or more than one is also `E_CHAR_LITERAL_INVALID`:
 
 ```loom
-let bad1: char = c"";    // compile-time error: empty char literal
-let bad2: char = c"ab";  // compile-time error: multiple scalar values
+let bad1: char = c"";    // E_CHAR_LITERAL_INVALID: empty char literal
+let bad2: char = c"ab";  // E_CHAR_LITERAL_INVALID: multiple scalar values
 ```
 
 A `char` value is not implicitly coercible to `string`. Use `c.toString()` or string interpolation `i"{$ c $}"` to convert.
@@ -750,7 +1024,7 @@ A `char` value is not implicitly coercible to `string`. Use `c.toString()` or st
 
 The boolean type `bool` has exactly two values: `true` and `false`.
 
-### §3.6 Operators
+### §3.7 Operators
 
 Loom defines the following operators, listed from highest to lowest precedence. Operators at the same precedence level associate as indicated.
 
@@ -759,7 +1033,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 | 1 | `()` `[]` `.` `?.` `!{}` `?.[` | Call, index, member access, safe nav, dynamic access, null-safe index | Left |
 | 2 | `typeof` | Type-of operator | Prefix |
 | 3 | `-` (unary) `not` `!` `bnot` | Unary negation, logical not, bitwise not | Prefix |
-| 4 | `box` | Boxing/widening operator (contextual keyword) | Prefix |
+| 4 | `box` `consume` | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | Prefix |
 | 5 | `**` | Exponentiation | Right |
 | 6 | `*` `/` `//` `%` | Multiplication, division, floor division, modulo | Left |
 | 7 | `+` `-` | Addition, subtraction, string concatenation | Left |
@@ -778,7 +1052,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 | 20 | `??` | Null coalescing | Left |
 | 21 | `? :` | Ternary conditional | Right |
 | 22 | `?` (postfix) | Result propagation | Postfix |
-| 23 | `=` `+=` `-=` `*=` `/=` `%=` `**=` `<<=` `>>=` `&=` `\|=` `^=` | Assignment | Right |
+| 23 | `=` `+=` `-=` `*=` `/=` `//=` `%=` `**=` `<<=` `>>=` `&=` `\|=` `^=` | Assignment | Right |
 | 24 | `*` `**` (prefix, spread) | Spread | Prefix |
 
 **Arithmetic operators** (`+`, `-`, `*`, `/`, `//`, `%`, `**`) operate on `int` and `float`. Mixed `int`/`float` arithmetic promotes the `int` operand to `float`. Division of two `int` values (`/`) produces `int` (truncating toward zero); `//` is floor division — it truncates toward negative infinity and always returns the same type as its operands (`int // int` → `int`, `float // float` → `float`, `bigint // bigint` → `bigint`, `decimal // decimal` → `decimal`). The `+` operator also concatenates `string` values and `list` values.
@@ -789,7 +1063,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 
 **Logical operators** (`and`/`&&`, `or`/`||`, `not`/`!`) operate on `bool` values. `and` and `or` are short-circuit: the right operand is not evaluated if the left operand determines the result.
 
-**Canonical style.** The keyword forms `and`, `or`, and `not` are the idiomatic Loom style. The symbol aliases `&&`, `||`, and `!` are legal and semantically identical but are considered non-canonical. The reference formatter (§27.4) rewrites symbol forms to keyword forms. Code using symbol forms is accepted by the compiler but produces a lint advisory (`symbol-logical-ops`) that can be suppressed per-line with `// loom:allow(symbol-logical-ops)`. New code should use keyword forms exclusively. This rule applies uniformly in scripted mode, `@compiled` mode, and template fence expressions.
+**Canonical style.** The keyword forms `and`, `or`, and `not` are the idiomatic Loom style. The symbol aliases `&&`, `||`, and `!` are legal and semantically identical but are considered non-canonical. The reference formatter (§28.4) rewrites symbol forms to keyword forms. Code using symbol forms is accepted by the compiler but produces a lint advisory (`symbol-logical-ops`) that can be suppressed per-line with `// loom:allow(symbol-logical-ops)`. New code should use keyword forms exclusively. This rule applies uniformly in scripted mode, compiled mode, and template fence expressions.
 
 **User-defined operator overloading** is supported via the operator interface protocol. See §5.1 for desugar rules and §11.2 for the full operator interface set.
 
@@ -797,7 +1071,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 
 **`box` operator** widens a value type to `Any`. See §4.3.
 
-### §3.7 Collection Literals
+### §3.8 Collection Literals
 
 Loom provides literal syntax for the built-in collection types:
 
@@ -869,6 +1143,7 @@ Primitive types use lowercase names and are unboxed, passed-by-value types that 
 
 | Type | Description | Size | Range |
 |---|---|---|---|
+| `uint` | Pointer-sized unsigned integer (alias for `uint64` on 64-bit targets, `uint32` on 32-bit) | Platform | 0 to 2ⁿ−1 |
 | `uint8` | Unsigned 8-bit integer | 1 byte | 0 to 255 |
 | `uint16` | Unsigned 16-bit integer | 2 bytes | 0 to 65 535 |
 | `uint32` | Unsigned 32-bit integer | 4 bytes | 0 to 2³²−1 |
@@ -892,7 +1167,7 @@ Primitive types use lowercase names and are unboxed, passed-by-value types that 
 | `string` | Immutable UTF-8 sequence of Unicode scalar values. `s.length` counts scalar values; `s[i]` returns `char`. See §4.1.5. | Variable |
 | `bytes` | Arbitrary byte sequence (not required to be valid UTF-8). `b[i]` returns `uint8`. | Variable |
 
-`int` is an alias for `int64`. `float` is an alias for `float64`. Using `int` and `float` is preferred for general-purpose numeric work; the explicit-width names exist for systems programming, FFI, and numerical computing requiring specific memory layouts.
+`int` is an alias for `int64`. `float` is an alias for `float64`. `uint` is an alias for `uint64` on 64-bit targets and `uint32` on 32-bit targets — it is the platform-native pointer-sized unsigned integer used for raw addresses in `@mode(native)` and `@mode(freestanding)` (`native.mem`, `native.atomic`, `@allocator`, `native.ffi.ptrAdd`). Using `int` and `float` is preferred for general-purpose numeric work; the explicit-width names exist for systems programming, FFI, and numerical computing requiring specific memory layouts.
 
 "Passed by value" refers to the language's assignment/call semantics. The runtime may use efficient representations (handles, copy-on-write, etc.) as long as observable semantics match.
 
@@ -900,12 +1175,12 @@ Primitive types use lowercase names and are unboxed, passed-by-value types that 
 
 In scripted mode and Wasm targets, arithmetic on fixed-width integer types (`int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`) that would overflow the type's range is a `NumericOverflowError` at runtime.
 
-In `@compiled --target native`, the default is **wrapping arithmetic**: overflow silently wraps at the type boundary (two's complement for signed types, modular for unsigned). This is the C-compatible behavior required for systems programming and SIMD work.
+In `@mode(native)` and `@mode(freestanding)`, the default is **wrapping arithmetic**: overflow silently wraps at the type boundary (two's complement for signed types, modular for unsigned). This is the C-compatible behavior required for systems programming and SIMD work.
 
-`int` / `int64` are an exception: they default to **checked arithmetic** (throwing `NumericOverflowError` on overflow) in compiled native mode, matching scripted-mode semantics. Use `@overflowWrapping` on a function to opt into wrapping for all fixed-width arithmetic within it:
+`int` / `int64` are an exception in `@mode(native)`: they default to **checked arithmetic** (throwing `NumericOverflowError` on overflow), matching scripted-mode semantics. `uint` follows the same rule as other fixed-width unsigned integers — it wraps by default in `@mode(native)` and `@mode(freestanding)`. In `@mode(freestanding)`, exceptions are unavailable, so `int` / `int64` wrap on overflow the same as other fixed-width integers — use `--overflow=trap` to trap instead, or `checkedAdd` / `saturatingAdd` for explicit overflow handling. Use `@overflowWrapping` on a function to opt into wrapping for all fixed-width arithmetic within it. When `--overflow=trap` is also set, `@overflowWrapping` on a function overrides the trap flag for that function's body — the function uses wrapping arithmetic regardless of the project-wide trap setting:
 
 ```loom
-@compiled
+@mode(native)
 @overflowWrapping
 func addWrapping(a: int32, b: int32): int32 {
   return a + b;   // wraps silently on overflow
@@ -929,7 +1204,7 @@ All narrowing conversions between numeric types are **explicit** — no implicit
 
 **Implicit widenings (no call required):**
 - Signed integer widenings: `int8` → `int16` → `int32` → `int64` (`int`) → `bigint`
-- Unsigned integer widenings: `uint8` → `uint16` → `uint32` → `uint64`
+- Unsigned integer widenings: `uint8` → `uint16` → `uint32` → `uint64` (`uint` on 64-bit) → `bigint`
 - Float widening: `float32` → `float64` (`float`)
 - Any integer or float → `decimal`
 
@@ -952,7 +1227,11 @@ decimal(x)  // convert any number or string to decimal
 
 Conversion that cannot represent the value (e.g. `int8(300)`) wraps on native targets and throws `NumericOverflowError` in scripted mode.
 
-**Mixed-type arithmetic.** In expressions mixing `int` and `float`, the `int` operand is promoted to `float` automatically. All other mixed combinations are compile-time errors — use an explicit conversion.
+**Mixed-type arithmetic.** In expressions mixing `int` and `float`, the `int` operand is promoted to `float` automatically. All other mixed combinations are compile-time errors (`E_NUMERIC_TYPE_MISMATCH`) — use an explicit conversion.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NUMERIC_TYPE_MISMATCH` | All | Mixed arithmetic between numeric types other than `int`/`float` without an explicit conversion (e.g. `int8 + int32`, `bigint + int`) |
 
 #### §4.1.3 `bigint` — Arbitrary-Precision Integer
 
@@ -979,7 +1258,7 @@ let z: bigint = bigint(42);    // construct from int
 
 `bigint` does not mix with fixed-width integers without explicit conversion. `42n + 1` is a type error; write `42n + bigint(1)` or `bigint(42) + 1n`.
 
-**Availability.** `bigint` is available on all targets: scripted, Wasm, and native. On native targets it is backed by a multi-precision library (GMP-compatible). On Wasm it is emulated in software. Performance is substantially slower than fixed-width integer arithmetic.
+**Availability.** `bigint` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. On native targets it is backed by a multi-precision library (GMP-compatible). On Wasm it is emulated in software. `bigint` is **not available** in `@mode(freestanding)` — no multi-precision runtime library is linked (`E_FREESTANDING_RUNTIME`). Use fixed-width integer arithmetic with `checkedAdd`/`wrappingAdd` for overflow control instead.
 
 #### §4.1.4 `decimal` — Arbitrary-Precision Decimal
 
@@ -997,7 +1276,7 @@ let pi:    decimal = decimal("3.14159265358979323846264338327950288");
 
 **Supported operations:** all arithmetic operators, all comparisons. Division is exact (produces a `decimal` result with full precision). `//` is floor division (truncates toward −∞) returning `decimal`. The result is a `decimal` value with zero fractional part, not an `int`.
 
-**Availability.** `decimal` is available on all targets. Performance is substantially slower than `float` — use `float` for numerical computing and `decimal` where exactness of base-10 fractions is required.
+**Availability.** `decimal` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. `decimal` is **not available** in `@mode(freestanding)` — no decimal runtime library is linked (`E_FREESTANDING_RUNTIME`). Performance is substantially slower than `float` — use `float` for numerical computing and `decimal` where exactness of base-10 fractions is required.
 
 
 #### §4.1.5 `char` — Unicode Scalar Value
@@ -1045,7 +1324,11 @@ char.of(codePoint: int): Option[char]   // None if out-of-range or surrogate
 char.of(s: string): Option[char]        // None if s is not exactly 1 scalar value
 ```
 
-**`char` in `@compiled` mode.** All `char` operations are available in `@compiled` mode. `char` maps to `i32` in Wasm GC and to `uint32_t` at the C ABI boundary. The companion box type `Char` (§4.2) is ABI-internal.
+**`char` in compiled mode.** All `char` operations are available in compiled mode. `char` maps to `i32` in Wasm GC and to `uint32_t` at the C ABI boundary. The companion box type `Char` (§4.2) is ABI-internal.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_CHAR_LITERAL_INVALID` | All | `c"..."` literal contains zero or more than one Unicode scalar value |
 
 **`char` and equality.** `char` implements `Comparable[char]` and `Equatable[char]`, ordered by Unicode code point value.
 
@@ -1091,7 +1374,7 @@ log(true);         // bool widened to Any implicitly
 let values: list[Any] = [1, "hello", true];   // all widened implicitly
 ```
 
-Implicit widening is available in both scripted and `@compiled` mode. In compiled mode, `Any` as a declared type is still prohibited (§22.2); implicit widening therefore never activates in compiled code except at the specific error-boundary positions where `Option[Any]` is permitted.
+Implicit widening is available in both scripted and compiled mode. In compiled mode, `Any` as a declared type is still prohibited (§22.2); implicit widening therefore never activates in compiled code except at the specific error-boundary positions where `Option[Any]` is permitted.
 
 **`box` keyword — explicit widening.** When the programmer wants to document that a value is deliberately crossing a type boundary, the `box` prefix keyword makes it explicit:
 
@@ -1101,7 +1384,7 @@ let b: Any = box myStruct;       // explicit widening of struct → Any
 let c: Any = box MyEnum.Variant; // explicit widening of enum → Any
 ```
 
-`box expr` and implicit widening produce identical compiled output. `box` carries no additional runtime cost or semantics. `box expr` where `expr` is already `Any`-typed is a compile-time warning. `box` is a contextual keyword — special only in prefix expression position.
+`box expr` and implicit widening produce identical compiled output. `box` carries no additional runtime cost or semantics. `box expr` where `expr` is already `Any`-typed is a compile-time warning. `box` is a contextual keyword — special only in prefix expression position. In `@mode(native)` and `@mode(freestanding)`, `Any` is entirely prohibited, so `box` is a compile-time error in those modes (`E_BOX_IN_NATIVE`).
 
 **`as` — asserting cast (narrowing).** Extracts a value of type `T` from an `Any`-typed expression. Throws `TypeError` if the runtime type does not match:
 
@@ -1118,7 +1401,7 @@ let s = value as? string;         // string? — Some(s) or None
 let n2 = (value as? int) ?? 0;    // int, defaulting to 0
 ```
 
-Both `as` and `as?` are available in both modes. In `@compiled` mode they are valid at permitted `Option[Any]` boundary positions.
+`as` and `as?` are available in all four modes. In `@mode(scripted)`, both work freely since `Any` is unrestricted. In `@mode(compiled)`, they are valid for concrete type narrowing and at permitted `Option[Any]` boundary positions. In `@mode(native)` and `@mode(freestanding)`, `Any` is entirely prohibited — `as`/`as?` work for concrete narrowing (e.g., `value as int32`) but not for `Any`-typed boundaries.
 
 `match` over `Any` continues to work and is equivalent to a chain of `as?` checks:
 
@@ -1155,7 +1438,9 @@ fn(int, int): int                  // function taking two ints, returning int
 fn(): void                         // function taking no args, returning void
 fn(string): Task[int]              // function taking string, returning async task
 async fn(string): int              // shorthand for fn(string): Task[int]
-noescape fn(int): void             // non-escaping function (@compiled --target native only)
+gen fn(int): Iterable[int]         // generator function type (shorthand for fn(int): Iterable[int])
+async gen fn(string): AsyncIterable[string]  // async generator function type
+noescape fn(int): void             // non-escaping function (@mode(native) and @mode(freestanding) only)
 async noescape fn(string): int     // non-escaping async function
 ```
 
@@ -1163,23 +1448,79 @@ Function types are first-class: they can be stored in variables, passed as argum
 
 **`noescape fn` — non-escaping function type.** The `noescape` modifier on a function type asserts that the function value will only be called within the current call frame and will not be stored, returned, or spawned into a task. This allows the compiler to elide the ARC retain/release on the closure and potentially stack-allocate its captured variables.
 
-`noescape fn` is only valid in `@compiled` files targeting `--target native`. Using `noescape fn` in scripted mode or in Wasm-targeted compiled files is a compile-time error.
+`noescape fn` is only valid in `@mode(native)` and `@mode(freestanding)` files (`E_NOESCAPE_NOT_NATIVE`). Using `noescape fn` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error.
 
 **Subtype rule.** `fn(T): R` is a subtype of `noescape fn(T): R` at call sites. A value of type `fn(T): R` may be passed where `noescape fn(T): R` is expected — the callee's contract is more restrictive, which is safe. The reverse is not true: a `noescape fn` value may not be widened to `fn`.
 
-**Storage prohibition.** A value of type `noescape fn(T): R` may not be stored in any position whose lifetime extends beyond the current call frame: no class fields, no struct fields, no module-level bindings, no `let`/`var` whose scope outlives the frame. Attempting to store a `noescape fn` value is a compile-time error.
+**Storage prohibition.** A value of type `noescape fn(T): R` may not be stored in any position whose lifetime extends beyond the current call frame: no class fields, no struct fields, no module-level bindings, no `let`/`var` whose scope outlives the frame. Attempting to store a `noescape fn` value is a compile-time error (`E_NOESCAPE_ESCAPE`).
 
 **ARC semantics.** A `noescape fn` parameter is passed as a raw function pointer and captured environment pointer without ARC-retaining the closure object. For closures whose captures are all stack-resident values, the compiler may represent the entire closure on the stack with no heap allocation.
 
 **Type aliases with `noescape fn`:**
 
 ```loom
-type Predicate[T] = noescape fn(borrow T): bool;
-type Transform[T, R] = noescape fn(borrow T): R;
+type Predicate[T] = noescape fn(reads T): bool;
+type Transform[T, R] = noescape fn(reads T): R;
+type Mutator[T] = noescape fn(edits T): void;
 type Action = noescape fn(): void;
 ```
 
-These aliases are `@compiled --target native` only — using them outside that context is a compile-time error.
+These aliases are `@mode(native)` and `@mode(freestanding)` only — a compile-time error in `@mode(scripted)` and `@mode(compiled)` (Wasm target).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NOESCAPE_NOT_NATIVE` | Scripted, Compiled | `noescape fn` type used in `@mode(scripted)` or `@mode(compiled)` (Wasm) — only valid in native and freestanding modes |
+| `E_NOESCAPE_ESCAPE` | Native, Freestanding | `noescape fn` value stored in a position that outlives the current call frame (field, module binding, spawn closure) |
+
+**Verb modifiers in function types.** Each parameter position in a `fn(...)` type may carry an optional verb modifier. The verb is part of the type and determines the acknowledgment the caller must provide:
+
+```loom
+fn(reads Buffer): void               // explicit reads — same as fn(Buffer): void
+fn(Buffer): void                     // implicit reads — equivalent to above
+fn(edits Buffer): void               // caller must use edits: acknowledgment
+fn(takes Buffer): void               // caller must use takes: acknowledgment
+fn(reads Buffer, edits Buffer): void // mixed: first implicit-ok, second required
+```
+
+**Calling a verb-typed function.** When calling a value whose function type declares a verb modifier, the call site must provide the matching verb acknowledgment, exactly as it would for a named parameter:
+
+```loom
+let fill: fn(edits Buffer, uint8): void = func(edits buf, v) { ... }
+
+fill(edits: myBuf, 0xFF)         // ✓ edits: acknowledgment — required
+fill(myBuf, 0xFF)                // ✗ E_VERB_REQUIRED — edits must be acknowledged
+
+let render: fn(reads Buffer): string = func(reads buf) { ... }
+
+render(reads: myBuf)             // ✓ explicit reads acknowledgment
+render(myBuf)                    // ✓ implicit reads — no acknowledgment needed
+```
+
+**Higher-order functions.** Verb-typed function parameters correctly express the ownership contract for callbacks:
+
+```loom
+func forEach(
+  items: list[Buffer],
+  body:  fn(reads Buffer): void
+): void {
+  for (item in items) {
+    body(item)                    // ✓ implicit reads — no acknowledgment needed
+    // body(reads: item)          // also valid — explicit reads
+  }
+}
+
+func transform(
+  src:  Buffer,
+  dst:  Buffer,
+  body: fn(reads Buffer, edits Buffer): void
+) requires edits(dst): void {    // src is implicitly reads; no requires needed
+  body(reads: src, edits: dst)
+}
+```
+
+**Subtype rule for verb-typed functions.** The implicit `reads` equivalence applies to all function type forms that carry `FnTypeParamList`: `fn(T): R` and `fn(reads T): R` are the same type; `async fn(T): R` and `async fn(reads T): R` are the same type; `noescape fn(T): R` and `noescape fn(reads T): R` are the same type. No-verb is implicit `reads` in every position. A function declared with `reads` or without a verb on a given parameter is assignable to either form. `fn(edits T): R`, `fn(takes T): R`, and `fn(shares T): R` are each distinct types. None is a subtype of another, and none is a subtype of `fn(reads T): R` — calling semantics and ownership contracts differ. Exact verb matching is required for assignment compatibility of `edits`, `takes`, and `shares` function types. The same distinctness rules apply to `async fn` and `noescape fn` forms.
+
+**`requires distinct()` in function types.** `requires` clauses with `distinct()` need to reference parameters by name. Function types use positional parameters without names, so `distinct()` contracts are not supported in function type positions. Express disjointness contracts at the declaration site of the function that accepts the callback, not in the function type itself.
 
 **`noescape fn` and `Callable[A, R]`.** `noescape fn` is not a subtype of the `Callable[A, R]` interface (§11.2). `Callable` is for escaping callable values that may be stored and called later. Non-escaping callable parameters are expressed via `noescape fn` types directly. A `list[noescape fn(int): void]` is a compile-time error.
 
@@ -1210,8 +1551,8 @@ func parse(input: string): int | float | None {
 ```
 func display(value: string | int | bool): string {
   return match value {
-    string(s) => "string: {$ s $}",
-    int(n)    => "int: {$ n $}",
+    string(s) => i"string: {$ s $}",
+    int(n)    => i"int: {$ n $}",
     bool(b)   => if (b) { "true" } else { "false" },
   };
 }
@@ -1237,9 +1578,13 @@ class Config : Any {
 func first[T](items: list[T | None]): T | None { ... }
 ```
 
-**Common methods.** Calling a method that is common to all types in the union is permitted without narrowing. Calling a method that exists on only some types is a compile-time error.
+**Common methods.** Calling a method that is common to all types in the union is permitted without narrowing. Calling a method that exists on only some types is a compile-time error (`E_UNION_METHOD_PARTIAL`).
 
-**Union types in compiled mode.** Union values are represented as tagged values where the tag identifies the active type. All constituent types must be statically known. `Any` is not permitted as a union member in compiled mode.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_UNION_METHOD_PARTIAL` | All | Method call on a union type where the method does not exist on all constituent types — requires narrowing first |
+
+**Union types in compiled, native, and freestanding modes.** Union values are represented as tagged values where the tag identifies the active type. All constituent types must be statically known. `Any` is not permitted as a union member in these modes — all types in the union must be concrete and statically resolvable.
 
 **Relationship to enums.** Enums are nominal, closed, and declared — they define named variants with optional payloads. Union types are structural, open, and inline — they combine existing types without a declaration. Enums are preferred when variants have semantic meaning (e.g., `Shape`). Union types are preferred for ad-hoc "one of these types" situations (e.g., `string | int`). A union type cannot contain enum variants directly — use the enum type itself: `Shape | None`, not `Circle | Rect | None`.
 
@@ -1282,10 +1627,14 @@ class HttpClient : Any {
 **Recursion rejection.** The compiler SHALL detect and reject recursive type aliases that would create infinite expansion:
 
 ```
-type Bad = list[Bad];   // compile-time error: recursive type alias
+type Bad = list[Bad];   // E_TYPE_ALIAS_RECURSIVE: recursive type alias
 ```
 
-**Compiled mode.** Type aliases are permitted in both scripted and `@compiled` mode. In compiled mode, the aliased type must conform to compiled-mode restrictions.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_TYPE_ALIAS_RECURSIVE` | All | Type alias definition expands to itself, creating infinite expansion |
+
+**Mode availability.** Type aliases are available in all four execution modes. In `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)`, the aliased type must conform to the respective mode's type restrictions (e.g., `Any` is not available as an alias target in native/freestanding).
 
 ### §4.7 `typeof` and `instanceof` Operators
 
@@ -1353,7 +1702,7 @@ if (!(x instanceof string)) {
 }
 ```
 
-**Compiled mode.** `typeof` is permitted in `@compiled` mode — it returns compile-time-baked `Type` metadata. `instanceof` is permitted in compiled mode for concrete types where the check can be resolved to a tag comparison.
+**Compiled, native, and freestanding modes.** `typeof` is permitted in all compiled modes — it returns compile-time-baked `Type` metadata with no runtime overhead. `instanceof` is permitted for concrete types where the check resolves to a tag comparison or static type knowledge. In `@mode(freestanding)`, `core.reflect` is unavailable, so `typeof` and `instanceof` work only for compile-time-resolvable types — using them against `Any` or dynamic types is a compile-time error (`E_FREESTANDING_REFLECT`).
 
 ### §4.8 Generics
 
@@ -1465,12 +1814,16 @@ Tuples have value semantics: two tuples are equal if all their elements are equa
 
 Operators in Loom are defined on primitive types and may be extended to user-defined types through the `Comparable[T]` interface. This section specifies the semantics of every operator category.
 
-#### Arithmetic Operators (`+`, `-`, `*`, `/`, `%`, `**`)
+#### Arithmetic Operators (`+`, `-`, `*`, `/`, `//`, `%`, `**`)
 
 | Left | Op | Right | Result | Notes |
 |---|---|---|---|---|
 | `int` | `+` `-` `*` `/` `%` | `int` | `int` | `/` truncates toward zero; `%` follows truncation sign |
+| `int` | `//` | `int` | `int` | Floor division — truncates toward −∞ (e.g. `-7 // 2 = -4`) |
 | `float` | `+` `-` `*` `/` `%` | `float` | `float` | IEEE 754 double-precision arithmetic |
+| `float` | `//` | `float` | `float` | Floor division toward −∞; same sign rules as `int` |
+| `bigint` | `//` | `bigint` | `bigint` | Floor division toward −∞ |
+| `decimal` | `//` | `decimal` | `decimal` | Floor division toward −∞; result has zero fractional part |
 | `int` | any | `float` | `float` | The `int` operand is promoted to `float` |
 | `float` | any | `int` | `float` | The `int` operand is promoted to `float` |
 | `string` | `+` | `string` | `string` | Concatenation |
@@ -1480,15 +1833,19 @@ Operators in Loom are defined on primitive types and may be extended to user-def
 
 Unary `-` negates `int` and `float` values. Unary `+` is the identity on `int` and `float`.
 
-Division by zero (`/` or `%` with a zero right operand) throws a runtime error for `int` and produces IEEE 754 infinity or NaN for `float`.
+Division by zero (`/` or `%` with a zero right operand) throws a runtime error for `int` and produces IEEE 754 infinity or NaN for `float`. Floor division (`//`) by zero is also a runtime error for integer types; for `float`, it returns `±Infinity` or `NaN` per IEEE 754.
+
+**`/` vs `//`:** `/` truncates toward zero (`-7 / 2 = -3`); `//` truncates toward negative infinity (`-7 // 2 = -4`). For positive operands both produce the same result.
 
 #### Comparison Operators (`<`, `>`, `<=`, `>=`)
 
 Comparison operators are available on types that implement the `Comparable[T]` interface (see §11.2):
 
 ```
-interface Comparable[T] {
+interface Comparable[T] : Equatable[T] {
   func compareTo(other: T): int;
+  // Default == provided automatically; may be overridden by operator func ==
+  operator func ==(other: T): bool { return compareTo(other) == 0; }
 }
 ```
 
@@ -1508,7 +1865,7 @@ Built-in `Comparable` implementations:
 | `string` | Lexicographic ordering over Unicode scalar values |
 | `bytes` | Lexicographic ordering over byte values |
 
-User-defined classes and structs may implement `Comparable[T]` to enable comparison operators. If a comparison operator is applied to a type that does not implement `Comparable[T]`, the compiler emits a compile-time error.
+User-defined classes and structs may implement `Comparable[T]` to enable comparison operators. If a comparison operator is applied to a type that does not implement `Comparable[T]`, the compiler emits `E_NOT_COMPARABLE`.
 
 #### Equality Operators (`==`, `!=`)
 
@@ -1533,20 +1890,22 @@ Equality is reflexive (`a == a`), symmetric (`a == b` implies `b == a`), and tra
 - `a or b` — short-circuit: evaluates `b` only if `a` is `false`. Both operands must have type `bool`; result is `bool`.
 - `not a` — logical negation. Operand must have type `bool`; result is `bool`.
 
-Non-`bool` operands are a compile-time error. There is no truthy/falsy coercion.
+Non-`bool` operands are a compile-time error (`E_LOGICAL_NOT_BOOL`). There is no truthy/falsy coercion.
 
 #### Bitwise Operators (`&`, `|`, `^`, `bnot`, `<<`, `>>`)
 
-Bitwise operators are defined on `int` only:
+Bitwise operators are defined on all integer types: `int`, `uint`, `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`. Both operands must have the same integer type; no implicit promotion occurs across integer types (narrowing or widening is explicit — see §4.1.2).
 
 - `a & b` — bitwise AND
 - `a | b` — bitwise OR
 - `a ^ b` — bitwise XOR
-- `bnot a` — bitwise NOT (unary)
-- `a << n` — left shift by `n` bits
-- `a >> n` — arithmetic right shift by `n` bits
+- `bnot a` — bitwise NOT (unary); flips all bits
+- `a << n` — left shift by `n` bits; vacated low bits are zero-filled
+- `a >> n` — right shift by `n` bits; vacated high bits are **sign-filled** for signed types (`int`, `int8`, `int16`, `int32`, `int64`) and **zero-filled** for unsigned types (`uint`, `uint8`, `uint16`, `uint32`, `uint64`)
 
-Shift amounts must be non-negative; a negative shift amount is a runtime error.
+`n` (the shift amount) must be a non-negative integer expression; it may be any integer type and is implicitly converted to `int` for the shift. A shift amount ≥ the bit width of the left operand is implementation-defined; portable code should mask: `a << (n & 63)`.
+
+**Note on `int` bitwise.** Because `int` is signed 64-bit, `bnot 1` produces `-2` (all bits flipped including the sign bit). For bit-manipulation code that treats the value as a 64-bit pattern, use `uint64` or `uint` to avoid sign-extension surprises.
 
 #### Membership Operators (`in`, `not in`)
 
@@ -1560,11 +1919,11 @@ Shift amounts must be non-negative; a negative shift amount is a runtime error.
 - `dict[key]` → value for `key`. Missing key throws `KeyError`.
 - `string[i]` → `char` at index `i` (Unicode scalar value).
 - `bytes[i]` → `uint8` byte value at index `i`.
-- `tuple[i]` → element at compile-time constant index `i`.
+- `tuple.N` → element at compile-time constant index `N` (integer literal: `pair.0`, `triple.2`). §4.9
 
 #### Operator Overloading
 
-Loom supports user-defined operator overloading via the **operator interface protocol**. When `a + b` is evaluated and `a` is not a built-in numeric/string/collection type, the compiler looks up the `Add` interface on the type of `a`. If found, `a + b` desugars to `a.op_+(b)`. If not found, a compile-time error is emitted.
+Loom supports user-defined operator overloading via the **operator interface protocol**. When `a + b` is evaluated and `a` is not a built-in numeric/string/collection type, the compiler looks up the `Add` interface on the type of `a`. If found, `a + b` desugars to `a.op_+(b)`. If not found, `E_OPERATOR_MISSING` is emitted.
 
 **Desugar rules for binary operator expressions:**
 
@@ -1589,18 +1948,18 @@ Loom supports user-defined operator overloading via the **operator interface pro
 | `x in a` | `a.op_contains(x)` | `Contains[typeof x]` |
 | `a(arg)` | `a.op_call(arg)` | `Callable[typeof arg, R]` |
 
-Built-in types satisfy these interfaces implicitly — the compiler emits specialised instructions for performance, but the semantic contract is identical.
+Built-in types satisfy these interfaces implicitly — the compiler emits specialised instructions for performance, but the semantic contract is identical. In particular, the bitwise interfaces (`BitAnd`, `BitOr`, `BitXor`, `BitNot`, `Shl`, `Shr`) are satisfied implicitly by all integer types (`int`, `uint`, `int8`–`int64`, `uint8`–`uint64`), not only `int`. Floating-point types (`float`, `float32`, `float64`) do NOT implement bitwise interfaces — bitwise operations on IEEE 754 values have no defined meaning.
 
-**Augmented assignment desugar.** `x += y` desugars to `x = x + y`. If a class also defines an explicit `operator func +=`, that definition is used instead:
+**Augmented assignment desugar.** `x += y` desugars to `x = x + y`, and `x //= y` desugars to `x = x // y`. If a class also defines an explicit `operator func +=` (or `operator func //=`), that definition is used instead:
 
 ```
 class BigInt : Any implements Add[BigInt] {
-  pub operator func +(other: BigInt): BigInt { ... }
-  pub operator func +=(other: BigInt): void { ... }  // explicit in-place override
+  pub operator func +(other: BigInt): BigInt { ... }  // non-mutating — returns new value
+  pub modifier operator func +=(other: BigInt): void { ... }  // mutating — modifier required
 }
 ```
 
-Explicit augmented assignment override is **classes only**. Writing `operator func +=` (or any augmented assignment override) on a struct is a compile-time error. Augmented assignment on struct values is always auto-derived as `x = x + y`.
+Explicit augmented assignment override is **classes only**. Writing `operator func +=` (or any augmented assignment override) on a struct is a compile-time error (`E_STRUCT_OPERATOR_AUGMENTED`). Augmented assignment on struct values is always auto-derived as `x = x + y`.
 
 **Non-overloadable operators.** The following operators cannot be overloaded:
 
@@ -1693,7 +2052,7 @@ A comprehension containing `await` requires the enclosing context to be async. I
 {$ [item.name for item in items] | join(", ") $}
 ```
 
-**Compiled mode.** Comprehensions are permitted in `@compiled` mode — they desugar to statically-typed loops with no `Any` or reflection involved. The element, key, and value types must be statically known.
+**Compiled mode.** Comprehensions are permitted in compiled mode — they desugar to statically-typed loops with no `Any` or reflection involved. The element, key, and value types must be statically known.
 
 Comprehensions eagerly build the full collection. For lazy evaluation, use generator expressions (see §7.5).
 
@@ -1733,7 +2092,7 @@ let noEnds = items[1:-1];      // [20, 30, 40]
 - `end` defaults to `len(collection)` if omitted.
 - `step` defaults to `1` if omitted.
 - Out-of-range indices are **clamped** to valid bounds without error (matching Python semantics).
-- A `step` of `0` is a runtime error.
+- A `step` of `0` is a runtime `ValueError` ("slice step cannot be zero").
 - Negative `step` reverses iteration direction.
 
 **Slice assignment** on mutable collections:
@@ -1757,7 +2116,7 @@ Out-of-range negative indices throw `IndexError`.
 
 **String slicing performance.** Because UTF-8 is variable-width, string slicing requires scanning from the beginning to find byte boundaries and is O(n) in the string length. For byte-level slicing, convert to `bytes` first: `core.text.toBytes(s)[a:b]`. For grapheme-level slicing, use `core.text.graphemeSlice(s, a, b)` (§21.1).
 
-Slicing is permitted in template expressions (`{$ name[:10] $}`) and in `@compiled` mode.
+Slicing is permitted in template expressions (`{$ name[:10] $}`) and in compiled mode.
 
 ### §5.4 Ternary Expression
 
@@ -1771,13 +2130,13 @@ let display = user != None ? user.name : "Anonymous";
 
 **Rules:**
 
-- `cond` must have type `bool`; a non-`bool` condition is a compile-time error.
+- `cond` must have type `bool`; a non-`bool` condition is a compile-time error (`E_CONDITION_NOT_BOOL`).
 - `then_expr` and `else_expr` must have a compatible type. The result type is the common supertype of both branches. With union types, the result may be `A | B` if the branches have different types.
 - Only the selected branch is evaluated (short-circuit).
 - Ternary expressions are right-associative: `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`.
 - Nested ternaries are permitted but the compiler MAY emit a style warning for deeply nested ternaries recommending `match` or `if`/`else`.
 - Ternary expressions are valid anywhere an expression is valid: variable initializers, function arguments, return values, template expressions, comprehensions.
-- Permitted in `@compiled` mode.
+- Permitted in compiled mode.
 
 ### §5.5 Null-Safe Indexing
 
@@ -1824,7 +2183,7 @@ let config: dict[string, int]? = Some({"port": 8080});
 let port = config?.["port"];     // Option[int] — Some(8080)
 ```
 
-Permitted in `@compiled` mode.
+Permitted in compiled mode.
 
 ### §5.6 Optionality Sugar
 
@@ -1867,7 +2226,7 @@ func process(path: string): Result[string, AppError] {
 - If `expr` evaluates to `Ok(v)`, the `?` expression evaluates to `v` (the unwrapped success value).
 - If `expr` evaluates to `Err(e)`, the enclosing function returns `Err(F.from(e))` immediately, where `F` is the enclosing function's error type.
 - Error conversion uses the `From[E]` interface: `F.from(e)` converts error `e` of type `E` to the enclosing function's error type `F`. If `E == F`, the identity conversion is used.
-- If no `From[E]` implementation exists for the required conversion, the compiler emits a compile-time error.
+- If no `From[E]` implementation exists for the required conversion, the compiler emits `E_PROPAGATE_MISSING_FROM`.
 
 **The `From[E]` interface:**
 
@@ -1885,22 +2244,29 @@ class AppError implements From[IoError], From[ParseError] {
   pub let cause: Option[Any];
 
   static func from(err: IoError): Self {
-    return AppError(message: "IO: {$ err.message $}", cause: Some(err));
+    return AppError(message=i"IO: {$ err.message $}", cause=Some(err));
   }
 
   static func from(err: ParseError): Self {
-    return AppError(message: "Parse: {$ err.message $}", cause: Some(err));
+    return AppError(message=i"Parse: {$ err.message $}", cause=Some(err));
   }
 }
 ```
 
 **Restrictions:**
 
-- `?` may only appear on expressions of type `Result[T, E]`. Using `?` on a non-`Result` type is a compile-time error.
-- `?` may only appear inside a function whose return type is `Result[T, F]` for some `T` and `F`. Using `?` at the top level or inside a function returning a non-`Result` type is a compile-time error.
+- `?` may only appear on expressions of type `Result[T, E]`. Using `?` on a non-`Result` type is a compile-time error (`E_PROPAGATE_NOT_RESULT`).
+- `?` may only appear inside a function whose return type is `Result[T, F]` for some `T` and `F`. Using `?` at the top level or inside a function returning a non-`Result` type is a compile-time error (`E_PROPAGATE_WRONG_RETURN`).
 - `?` works in both synchronous and `async` functions, provided the return type is `Result[T, E]` (or `Task[Result[T, E]]` for async).
 - `?` interacts correctly with `defer` — deferred actions execute before the early return propagates.
-- `?` is permitted in `@compiled` mode.
+- `?` is available in all execution modes. It desugars to a `match` expression plus an early `return` — no exception machinery is required. In `@mode(freestanding)`, `Result[T, E]`-based error handling with `?` is the idiomatic replacement for exceptions.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_CONDITION_NOT_BOOL` | All | Condition expression in ternary `? :`, `if`, `while`, or `for` is not `bool` |
+| `E_PROPAGATE_MISSING_FROM` | All | `?` applied inside a function returning `Result[T, F]` where the error type `E` has no `impl From[E] for F` |
+| `E_PROPAGATE_NOT_RESULT` | All | `?` applied to a value not of type `Result[T, E]` |
+| `E_PROPAGATE_WRONG_RETURN` | All | `?` used in a function whose return type is not `Result[T, F]` |
 
 ### §5.8 Spread Operators
 
@@ -1951,7 +2317,12 @@ let all = {*s1, *s2};            // {1, 2, 3, 4, 5}
 - `**expr` in a dict literal requires `expr` to have type `dict[K, V]`.
 - `*expr` in a set literal requires `expr` to have type `set[T]` (or `Iterable[T]`).
 
-**Compiled mode.** Spread operators are permitted in `@compiled` mode provided all types are statically known. `**kwargs` with type `dict[string, Any]` is prohibited in compiled mode since `Any` is not available (see §22.2).
+**Compiled mode.** Spread operators are permitted in compiled mode provided all types are statically known. `**kwargs` with type `dict[string, Any]` is prohibited in compiled mode since `Any` is not available (see §22.2).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SPREAD_NOT_LIST` | All | `*expr` in a positional-spread position where `expr` is not `list[T]` or `Iterable[T]` |
+| `E_SPREAD_NOT_DICT` | All | `**expr` in a keyword-spread position where `expr` is not `dict[string, T]` |
 
 ---
 
@@ -1961,7 +2332,7 @@ let all = {*s1, *s2};            // {1, 2, 3, 4, 5}
 
 ### §6.1 Blocks and Scope
 
-Blocks are delimited by braces `{ ... }` and introduce lexical scope. Declarations within a block are visible after their point of declaration. Inner bindings shadow outer bindings of the same name.
+Blocks are delimited by braces `{ ... }` and introduce lexical scope. Declarations within a block are visible after their point of declaration. Inner bindings shadow outer bindings of the same name. Declaring two bindings with the same name in the **same** lexical scope is a compile-time error (`E_REDECLARED`).
 
 ```
 let x = 1;
@@ -1972,6 +2343,10 @@ let x = 1;
 print(x);       // 1 — outer x is restored
 ```
 
+| Code | Mode | Condition |
+|---|---|---|
+| `E_REDECLARED` | All | Two `let` or `var` declarations with the same name appear in the same lexical scope |
+
 ### §6.2 Variable Declarations
 
 **`let` declarations** create immutable bindings:
@@ -1981,7 +2356,7 @@ let name: string = "Alice";
 let age = 30;                  // type inferred as int
 ```
 
-Attempting to reassign a `let` binding is a compile-time error.
+Attempting to reassign a `let` binding is a compile-time error (`E_LET_REASSIGN`).
 
 **`var` declarations** create mutable bindings:
 
@@ -1995,7 +2370,40 @@ count = count + 1;             // ok
 ```
 let x = 42;                   // inferred as int
 var name: string;              // declared but uninitialized — must be assigned before use
+                                 //   (E_USE_BEFORE_ASSIGN if read before first assignment)
 ```
+
+
+**Uninitialized `var` reads.** A `var` binding declared without an initializer must be assigned before its value is read. The compiler performs definite-assignment analysis: reading a `var` that may not have been assigned on all control-flow paths leading to the read is a compile-time error (`E_USE_BEFORE_ASSIGN`). `let` bindings always require an initializer at declaration time, so this error applies only to `var`. Example:
+
+```loom
+var count: int;
+if (flag) { count = 1; }
+print(count);   // E_USE_BEFORE_ASSIGN — count may not be assigned when flag is false
+```
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_LET_REASSIGN` | All | Assignment to a `let` (immutable) binding after its initial declaration |
+| `E_LITERAL_OVERFLOW` | All | Integer or float literal value does not fit in the declared suffix type (e.g., `300i8`) |
+| `E_USE_BEFORE_ASSIGN` | All | A `var` binding is read before it has been assigned on all control-flow paths (definite-assignment analysis) |
+
+**`arc let` and `arc var` declarations** create explicit ARC-managed bindings (`@mode(native)` only):
+
+```loom
+@mode(native)
+
+arc let conn = Connection.open(addr)    // explicit ARC; aliases permitted
+arc var cache = Cache.new()             // mutable ARC binding, reassignable
+```
+
+`arc let` / `arc var` are semantically identical to plain `let` / `var` for class types in native mode — both produce ARC-managed references. The distinction is intent declaration: the qualifier makes the ARC ownership explicit at the binding site, aiding code review, auditing, and tooling.
+
+Under `--require-explicit-arc` (build flag, §23.4.8), constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits the lint advisory `implicit-arc-binding`. `arc let` suppresses this advisory.
+
+`arc let` is a compile-time error in scripted, compiled, and freestanding modes (`E_ARC_LET_NOT_NATIVE`). On value types (structs, enums, primitives), `arc let` is always an error (`E_ARC_LET_NOT_CLASS`).
+
+**`arc let` is a local binding qualifier only.** Using `arc let` or `arc var` on a class field or struct field is a compile-time error (`E_ARC_LET_ON_FIELD`). Class fields in `@mode(native)` are always ARC-managed via plain `let`/`var`; the explicit `arc` qualifier is reserved for local binding sites where ownership intent is declared. Struct fields use `unique var` for uniquely-owned class references (§10.3.2); plain `var` for all other types.
 
 **Destructuring declarations.** Both `let` and `var` support destructuring patterns for tuples, lists, and dicts. See §6.8 for full destructuring syntax and semantics.
 
@@ -2011,7 +2419,7 @@ if (cond1) {
 }
 ```
 
-The condition expression must have type `bool`. If the condition is statically known to not be `bool`, the compiler emits a compile-time error. If the condition is dynamically not `bool`, the runtime throws a `TypeError`.
+The condition expression must have type `bool`. If the condition is statically known to not be `bool`, the compiler emits `E_CONDITION_NOT_BOOL`. If the condition is dynamically not `bool`, the runtime throws a `TypeError`.
 
 ### §6.4 Loops
 
@@ -2022,6 +2430,8 @@ while (cond) {
   // ...
 }
 ```
+
+The condition `cond` must have type `bool` (`E_CONDITION_NOT_BOOL` if statically non-bool).
 
 **C-style `for` loop:**
 
@@ -2040,6 +2450,40 @@ for (x in items) {
 ```
 
 The binding `x` is `let` (immutable) by default. Use `for (var x in items)` for a mutable binding. See §11.3 for the iteration protocol and desugaring.
+
+**For-loop implicit borrow (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`).**
+
+In compiled, native, and freestanding modes, a `for (x in items)` statement creates an **implicit `reads` borrow** of `items` for the entire duration of the loop body. Any of the following inside the loop body is a compile-time error (`E_BORROW_LOOP_MUTATION`):
+
+- Assigning to `items`
+- Calling any method requiring `edits: items` (e.g., `append`, `remove`, `clear`)
+- Passing `items` as an `edits` argument
+
+```loom
+@mode(native)
+
+var items = [1, 2, 3]
+for (x in items) {
+    items = items + [x]   // E_BORROW_LOOP_MUTATION: `items` implicitly
+                          // borrowed by for-loop; cannot mutate
+}
+```
+
+Read-only access inside the loop is permitted:
+
+```loom
+@mode(native)
+
+var items = [1, 2, 3]
+for (x in items) {
+    let len = items.length   // OK — read-only
+    print(x)                 // OK
+}
+```
+
+In scripted mode the compiler emits a runtime warning `borrow-loop-mutation` rather than a compile-time error, since scripted mode is the most permissive mode. Promote to an error with `// loom:error(borrow-loop-mutation)`.
+
+
 
 **`do-while` loop:**
 
@@ -2061,11 +2505,15 @@ outer: for (let i = 0; i < n; i = i + 1) {
 }
 ```
 
-`break label;` exits the labeled loop. `continue label;` goes to that loop's next iteration (running any `defer`s on the way out). Labels have their own namespace and do not conflict with variable names. Referencing an unknown label is a compile-time error.
+`break label;` exits the labeled loop. `continue label;` goes to that loop's next iteration (running any `defer`s on the way out). Labels have their own namespace and do not conflict with variable names. Referencing an unknown label is a compile-time error (`E_UNKNOWN_LABEL`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_UNKNOWN_LABEL` | All | `break label` or `continue label` where `label` does not name any enclosing loop |
 
 ### §6.5 Defer
 
-`defer` registers cleanup actions that run when the current lexical block ends (via fallthrough, `return`, `break`, `continue`, or exception). Multiple `defer`s execute in LIFO (last-in, first-out) order.
+`defer` registers cleanup actions that run when the current lexical block ends (via fallthrough, `return`, `break`, `continue`, or exception). Multiple `defer`s execute in LIFO (last-in, first-out) order. `defer` is available in all four execution modes.
 
 **Call form** (simple statement):
 
@@ -2082,7 +2530,7 @@ defer {
 }
 ```
 
-**Async defers.** In async code, deferred actions may themselves use `await`; scope exit awaits each deferred action to completion in LIFO order.
+**Async defers.** In async code, deferred actions may themselves use `await`; scope exit awaits each deferred action to completion in LIFO order. In `@mode(freestanding)`, async is unavailable — `await` inside a deferred action is `E_FREESTANDING_ASYNC`. Deferred synchronous actions work normally.
 
 **Exception handling.** Exceptions inside a deferred action propagate unless caught by an outer `try`/`catch`.
 
@@ -2098,7 +2546,7 @@ with (fh = runtime.fs.open("out.txt")) {
 
 **Execution semantics:**
 
-1. Evaluate the expression to get the context manager (must implement `Scoped[T]`).
+1. Evaluate the expression to get the context manager (must implement `Scoped[T]`; a compile-time error if it does not: `E_WITH_NOT_SCOPED`).
 2. Call `scope_enter()` on the context manager; bind the result to the variable.
 3. Execute the block body.
 4. Call `scope_exit(error)` on the context manager, passing `None` if the block completed normally or `Some(err)` if an exception was thrown.
@@ -2144,7 +2592,11 @@ If an inner `scope_enter()` fails, already-entered context managers have their `
 
 **Async context managers** use `AsyncScoped[T]` (see §11.2). The runtime `await`s both `scope_enter()` and `scope_exit()`.
 
-**Compiled mode.** `Scoped[T]` and `AsyncScoped[T]` are permitted in `@compiled` mode — the protocol is statically dispatched. The `error` parameter type `Option[Any]` in `scope_exit` is permitted as a special case since it only carries exception values at the protocol boundary.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_WITH_NOT_SCOPED` | All | `with (x = expr)` where `expr` does not implement `Scoped[T]` or `AsyncScoped[T]` |
+
+**Mode notes.** `Scoped[T]` is available in all four modes; `AsyncScoped[T]` is unavailable in `@mode(freestanding)` (no async). In `@mode(freestanding)`, `scope_exit(error)` is always called with `None` — exceptions cannot occur, so the error-suppression steps (5–7) in the execution semantics never apply. The `error` parameter type `Option[Any]` in `scope_exit` is accepted as a special case in all compiled modes since it only carries exception values at the protocol boundary.
 
 ### §6.7 Portal Statement
 
@@ -2160,7 +2612,7 @@ portal "checkout.enter" {
 }
 ```
 
-**Rules (common to both modes):**
+**Rules (common to all modes where portal is available — scripted, compiled, native):**
 
 - `portal name { ... }` is a block statement.
 - `name` may be an identifier or string literal. Portal names are runtime strings.
@@ -2170,7 +2622,7 @@ portal "checkout.enter" {
 - If a portal is entered and no matching activation exists, it is observationally inert — the body executes normally with zero overhead.
 - If a portal is entered and a matching activation exists with a true condition, the runtime activates tracing for the current task.
 
-**Portal names in compiled code.** In `@compiled` files, portal names are resolved from the static metadata table (see §20.3) registered at module load time. The fully-qualified callable name for implicit portals is available via `core.reflect.callableName(f)` (§21.11).
+**Portal names in compiled code.** In compiled-mode files, portal names are resolved from the static metadata table (see §20.3) registered at module load time. The fully-qualified callable name for implicit portals is available via `core.reflect.callableName(f)` (§21.11).
 
 **Two-tier condition model:**
 
@@ -2182,7 +2634,7 @@ runtime.debug.activatePortal("myapp.server.handleRequest",
   condition="request.userId == \"admin\" and request.method == \"DELETE\"");
 ```
 
-*Compiled mode — parameter-and-constant predicates only.* Conditions for compiled portals are restricted to predicate expressions over the portal function's parameters and module-level constants. Dynamic lexical scope evaluation is unavailable in compiled code. The condition is type-checked at activation time against the function's static signature from the metadata table; a type mismatch throws `CapabilityError`:
+*Compiled and native modes — parameter-and-constant predicates only.* Conditions for portals in compiled-mode and native-mode files are restricted to predicate expressions over the portal function's parameters and module-level constants. Dynamic lexical scope evaluation is unavailable. The condition is type-checked at activation time against the function's static signature from the metadata table; a type mismatch throws `CapabilityError` (in native) or traps (in freestanding, if portals were somehow invoked — they are stripped):
 
 ```
 // Compiled portal condition — parameters and constants only
@@ -2190,9 +2642,19 @@ runtime.debug.activatePortal("myapp.geo.distance",
   condition="a.x > 100.0");    // a and b are the function's parameters
 ```
 
-The runtime identifies whether a portal is scripted or compiled from the module's metadata table registration and applies the appropriate condition evaluation strategy. Attempting a full lexical-scope condition against a compiled portal throws `CapabilityError` with a diagnostic message.
+The runtime identifies the portal's mode from the module's metadata table registration and applies the appropriate condition evaluation strategy: full lexical scope for scripted-mode portals, parameter/constant predicates only for compiled-mode and native-mode portals. Attempting a full lexical-scope condition against a compiled or native portal throws `CapabilityError` with a diagnostic message.
 
-**Portal statement in `@compiled` mode.** Explicit `portal` blocks are syntactically and semantically permitted in `@compiled` files. They register with the shared runtime activation registry on module load. The body executes in all cases; tracing is activated when a matching registry entry exists with a true condition.
+**Portal statement in compiled mode.** Explicit `portal` blocks are syntactically and semantically permitted in compiled-mode files. They register with the shared runtime activation registry on module load. The body executes in all cases; tracing is activated when a matching registry entry exists with a true condition.
+
+**Portal statement in freestanding mode (`--debug` builds only, normative).** `portal` statements are permitted in `@mode(freestanding)` when `loom build --debug` is active and at least one debug channel or ring buffer is configured (see §24.25). In release builds, all portal instrumentation is stripped unconditionally and `E_FREESTANDING_PORTAL` is the compile-time error for any portal statement, as before.
+
+Freestanding portals carry the following restrictions relative to other modes:
+
+- **No condition expressions.** `portal name(condition) { ... }` syntax is prohibited; conditions always evaluate as unconditionally true when a portal is activated. Using a condition expression is `E_FREESTANDING_PORTAL_CONDITION`.
+- **`TraceLevel.PortalOnly` only.** Full local-variable capture (`TraceLevel.Full`) is unavailable without a GC heap. Trace frames are `FreestandingDebugFrame` values (§24.25.2) — fixed-size structs with source location offsets, no heap allocation.
+- **Static activation table.** Activation is controlled via a BSS-resident atomic byte table indexed by compile-time portal ID, not via the runtime `DebugRuntime` interface. The host activates portals over the control channel protocol (§24.25.6) or via direct JTAG memory write.
+- **Implicit callable portals.** All named `@interruptSafe` and non-`@interruptSafe` functions are instrumented at entry with implicit portals, matching the `@mode(native)` behavior.
+- **Time-travel replay.** When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates a static on-target ring buffer (`.debug_ttravel` section) that records the most recent N portal events regardless of host connectivity. The host retrieves the ring at any point via the `READ_REPLAY_BUFFER` control-channel command (§24.25.6); no trace channel is required. See §24.25.9.
 
 ### §6.8 Destructuring
 
@@ -2260,7 +2722,7 @@ var b = 0;
 - Dict destructuring checks keys at runtime; missing keys without defaults throw `DestructureError`.
 - All bound names receive inferred types from the destructured value's type.
 
-Destructuring is permitted in `@compiled` mode — all types must be statically known.
+Destructuring is permitted in compiled mode — all types must be statically known.
 
 ### §6.9 `try`/`catch`/`finally`
 
@@ -2269,9 +2731,9 @@ try {
   let data = runtime.fs.readText(path);
   process(data);
 } catch (IoError as e) {
-  log("read failed: {$ e.message $}");
+  log(i"read failed: {$ e.message $}");
 } catch (TypeError | MatchError as e) {
-  log("type/match error: {$ e.message $}");
+  log(i"type/match error: {$ e.message $}");
 } finally {
   cleanup();
 }
@@ -2290,7 +2752,11 @@ try {
 **`finally` restrictions:**
 
 - If the `finally` block itself throws, its exception replaces any pending exception. The original exception is attached as the `cause` of the new exception (see §6.10).
-- `return`, `break`, and `continue` inside a `finally` block are compile-time errors — `finally` must not alter the control flow of the enclosing `try` statement.
+- `return`, `break`, and `continue` inside a `finally` block are compile-time errors (`E_FINALLY_CONTROL`) — `finally` must not alter the control flow of the enclosing `try` statement.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_FINALLY_CONTROL` | All | `return`, `break`, or `continue` statement inside a `finally` block — control flow from `finally` must not alter the enclosing `try` statement's flow |
 
 **Interaction with `defer`.** `defer` actions registered inside a `try` body run before the `catch` handler (as part of the `try` block's scope exit). `finally` runs after both the `try` scope (including defers) and any `catch` handler.
 
@@ -2298,7 +2764,7 @@ try {
 
 **Multi-type catch.** `catch` supports multi-type patterns: `catch (TypeError | MatchError as err)`.
 
-**Bare catch.** A `catch` clause without a type filter is equivalent to `catch (Exception as err)` — it catches all `Exception` subtypes but does NOT catch `BaseException`-only subtypes (`SystemExit`, `KeyboardInterrupt`, `GeneratorExit`). To catch everything, use `catch (BaseException as err)`. See §25.5 for full catch semantics.
+**Bare catch.** A `catch` clause without a type filter is equivalent to `catch (Exception as err)` — it catches all `Exception` subtypes but does NOT catch `BaseException`-only subtypes (`SystemExit`, `KeyboardInterrupt`, `GeneratorExit`). To catch everything, use `catch (BaseException as err)`. See §26.5 for full catch semantics.
 
 ### §6.10 Exception Chaining
 
@@ -2327,7 +2793,7 @@ func printChain(err: Any): void {
   while (current != None) {
     match current {
       Some(e) => {
-        print("Caused by: {$ e $}");
+        print(i"Caused by: {$ e $}");
         current = e.cause ?? None;
       },
       None => {},
@@ -2338,7 +2804,7 @@ func printChain(err: Any): void {
 
 The runtime's default error reporting (uncaught exceptions, unhandled task failures) prints the full cause chain.
 
-Exception chaining is permitted in `@compiled` mode — `cause` is typed as `Option[Any]` which is permitted at the error boundary.
+Exception chaining is permitted in compiled mode — `cause` is typed as `Option[Any]` which is permitted at the error boundary.
 
 ### §6.11 `del` Statement
 
@@ -2353,30 +2819,38 @@ del handle;   // calls handle.finalize() immediately, then unbinds the name
 **Rules:**
 
 - `del expr;` is a simple statement.
-- `expr` must evaluate to a value that implements `Finalizable`; otherwise it is a compile-time error.
+- `expr` must evaluate to a value that implements `Finalizable`; otherwise it is a compile-time error (`E_DEL_NOT_FINALIZABLE`).
 - `del` calls `finalize()` immediately and synchronously.
-- After `del`, the binding is considered uninitialized — any subsequent use of the name is a compile-time error (similar to use-after-move).
+- After `del`, the binding is considered uninitialized — any subsequent use of the name is a compile-time error (`E_USE_AFTER_DEL`; similar to use-after-move).
 - `del` on an already-finalized object calls `finalize()` again — it is the implementer's responsibility to make `finalize()` idempotent.
-- `del` does NOT deallocate memory — the GC still manages memory. `del` only triggers the cleanup logic.
+- **`modifier finalize()` and safe contexts.** A class may declare `modifier finalize()` to strengthen the `Finalizable` contract (§11.1 permits this). `del expr` implicitly satisfies the safe context requirement for the `finalize()` invocation: after `del`, the binding is consumed and no new aliases can be created, so exclusivity is provably maintained. No explicit `safe {}` wrapper is needed around `del` statements.
+- **Memory management.** In `@mode(scripted)` and `@mode(compiled)` (GC modes), `del` calls `finalize()` but does not deallocate memory — the GC manages the object's lifetime. In `@mode(native)` (ARC mode), `del` calls `finalize()` and explicitly releases the ARC strong reference; if the reference count reaches zero, the object is deallocated synchronously. In `@mode(freestanding)`, `del` on a `unique` class value calls the `@deallocator` and frees the memory.
 - `del` on fields: `del obj.field;` calls `finalize()` on the field value and sets the field to an uninitialized state (the field must be `var`, not `let`).
 - `del` on collection elements is not supported — remove the element from the collection and `del` the value separately.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_DEL_NOT_FINALIZABLE` | All | `del expr` where `expr`'s type does not implement `Finalizable` |
+| `E_USE_AFTER_DEL` | All | A binding is read or written after it was passed to `del` |
 
 The compiler SHALL emit a warning when a `Finalizable` object goes out of scope without being passed to `del`, used in a `with` block, or passed to another owner.
 
 **Relationship to `Closeable` and `Scoped[T]`.** `Closeable` types that also implement `Finalizable` should call `close()` from `finalize()` as a safety net. `with`/`Scoped[T]` is preferred for scope-aligned lifetimes; `del` is preferred for non-scope-aligned lifetimes; GC finalization is the last resort when neither `with` nor `del` was used.
 
-`del` is permitted in `@compiled` mode.
+`del` is available in all four execution modes. Behaviour differs by mode as described above — in GC modes it triggers cleanup only; in ARC and freestanding modes it also deallocates.
 
 ### Statement Classification
 
 Loom distinguishes **simple statements** and **block statements**:
 
-- **Simple statements** end with `;`.
+- **Simple statements** conventionally end with `;`, but the semicolon is **optional**. Newlines terminate statements; an explicit `;` may always be added for style or clarity.
 - **Block statements** do NOT end with `;`.
 
-**Simple statements:** `let`/`var` declarations, expression statements, `break`, `continue`, `return`, `throw`, `import`, `defer` (call form), `del`, `pub from ... import`.
+**Simple statements:** `let`/`var` declarations, expression statements, `break`, `continue`, `return`, `throw`, `defer` (call form), `del`, `global`, `nonlocal`, `yield`, `yield*`.
 
-**Block statements:** `if`/`else`, `while`, `for`, `for-in`, `for await`, `do-while`, `try`/`catch`/`finally`, `with`, `defer` (block form), `dynamic ... as`, `portal`, `match`, `await group`, function declarations, class declarations, enum declarations, interface declarations, struct declarations.
+**Module-level-only statements:** `from ... import` (standard import), `from ... defer import` (deferred type stub import, §13.10), `pub from ... import` (re-export) — valid only as top-level items, not inside function bodies or blocks.
+
+**Block statements:** `if`/`else`, `while`, `for`, `for-in`, `for await`, `do-while`, `try`/`catch`/`finally`, `with`, `defer` (block form), `dynamic ... as`, `portal`, `match`, `await group`, `safe { }` (safe context block, §23.4.12), `unsafe("reason") { }` (lock-release block inside `synchronized` modifier, §23.4.14), function declarations, class declarations, enum declarations, interface declarations, struct declarations, `asm { }` (inline assembly; `@mode(native)` requires `@unsafe("asm: reason")` prefix; §24.7).
 
 Note: `do { ... } while (cond);` is a block statement that includes a trailing `;` as part of its construct syntax.
 
@@ -2404,7 +2878,7 @@ func add(a: int, b: int): int {
 
 ```
 async func fetchUser(id: string): Task[User] {
-  let response = await runtime.net.get("/users/{$ id $}");
+  let response = await runtime.net.get(i"/users/{$ id $}");
   return parseUser(await response.json());
 }
 ```
@@ -2413,7 +2887,7 @@ async func fetchUser(id: string): Task[User] {
 - Calling an async function starts the task immediately and returns its `Task[T]`.
 - `await expr` requires `expr` to have type `Task[T]`; it suspends the current async context until the task completes and then evaluates to `T`.
 - If the awaited task has failed, `await` rethrows the failure at the await site.
-- `await` is permitted inside `async func` bodies, entry scripts, REPL sessions, and async template rendering contexts.
+- `await` is permitted inside `async func` bodies, entry scripts, REPL sessions, and async template rendering contexts. Using `await` anywhere else is `E_AWAIT_NOT_ASYNC`.
 - `await` is prohibited during module initialization (imported modules may not suspend during initialization).
 
 **Generator function:**
@@ -2443,6 +2917,15 @@ async gen func fetchPages(urls: list[string]): AsyncIterable[string] {
   }
 }
 ```
+
+**Safe function:**
+
+```
+safe func fill(edits buf: Buffer, value: uint8): void { ... }
+safe async func loadAndFill(url: string, edits buf: Buffer): void { ... }
+```
+
+The `safe` modifier may prefix `func`, `async func`, `gen func`, or `async gen func`. A `safe func` (in any of these forms) both requires and provides a safe context (§23.4.12): it may call other `safe func`s and `modifier` methods freely, and its callers must either also be `safe func` or anchor the call inside a `safe {}` block. Available in all execution modes.
 
 **Rules common to all functions:**
 
@@ -2477,14 +2960,23 @@ let c = a + b;   // Vec2(x=4.0, y=6.0) — desugars to a.op_+(b)
 - `operator func` is valid only inside interface bodies, class bodies, and struct bodies.
 - The method name must be one of the operator symbols defined in §11.2, or `contains` (for `Contains[T]`).
 - The method must satisfy the signature required by the corresponding operator interface.
-- Implementing an operator interface without declaring the corresponding `operator func` is a compile-time error.
-- Declaring `operator func` without `implements OperatorInterface` is a compile-time error.
-- `operator func` is permitted in `@compiled` mode.
+- Implementing an operator interface without declaring the corresponding `operator func` is a compile-time error (`E_OPERATOR_MISSING_FUNC`).
+- Declaring `operator func` without `implements OperatorInterface` is a compile-time error (`E_OPERATOR_NO_INTERFACE`).
+- `operator func` is available in all execution modes — it is a compile-time desugaring to a named method slot with no runtime cost.
 
-**`borrow` parameter modifier.** Prefixing a parameter declaration with `borrow` asserts that the caller's binding of that value is guaranteed to outlive the function call. The compiler elides the ARC `retain()` on entry and `release()` on exit for that parameter. `borrow` is valid only in `@compiled` files targeting `--target native`.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NOT_COMPARABLE` | All | Comparison operator (`<` `>` `<=` `>=`) applied to a type that does not implement `Comparable[T]` |
+| `E_STRUCT_OPERATOR_AUGMENTED` | All | `operator func +=` (or any augmented-assignment override) declared on a struct |
+| `E_LOGICAL_NOT_BOOL` | All | `and`, `or`, or `not` applied to a non-`bool` operand — no truthy/falsy coercion |
+| `E_OPERATOR_MISSING` | All | Binary operator applied to a type that does not implement the corresponding operator interface (e.g. `a + b` where `typeof a` does not implement `Add`) |
+| `E_OPERATOR_MISSING_FUNC` | All | Class declares `implements OperatorInterface` but the required `operator func` body is absent |
+| `E_OPERATOR_NO_INTERFACE` | All | `operator func Symbol` declared without the corresponding `implements OperatorInterface` declaration |
+
+**`borrow` parameter modifier.** Prefixing a parameter declaration with `borrow` asserts that the caller's binding of that value is guaranteed to outlive the function call. The compiler elides the ARC `retain()` on entry and `release()` on exit for that parameter. `borrow` is valid only in `@mode(native)` and `@mode(freestanding)` files.
 
 ```loom
-@compiled
+@mode(native)
 
 // Without borrow — ARC retains config on call, releases on return
 func processConfig(config: Config): Result[void, AppError] {
@@ -2501,16 +2993,16 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 
 - A `borrow` parameter has the same declared type as its non-borrow equivalent. Callers pass values normally.
 - Within the function body, a `borrow` value may be: read, called (if a function), indexed, passed to another `borrow` parameter, or passed to a `noescape fn` parameter.
-- A `borrow` value may NOT be: stored in a class field, struct field, or module-level binding; returned as an owned value; passed to an escaping `fn` parameter; or used as a `spawn` argument.
+- A `borrow` parameter value may NOT escape the call frame by: assignment into a class field, assignment into an existing mutable struct field, assignment to a module-level binding, return as an owned value, passing to an escaping `fn` parameter, or use as a `spawn` argument. (Note: declaring a struct field *of* `borrow` type in the struct definition is valid — see `borrow` on struct fields below. The restriction is on runtime assignment from a `borrow` parameter, not on struct field declarations.)
 
 ```loom
-@compiled
+@mode(native)
 
 func processConfig(borrow config: Config): Result[void, AppError] {
   let name = config.name;         // OK — read
   validate(borrow config);        // OK — pass to borrow param
-  GlobalCache.store(config);      // COMPILE-TIME ERROR — escapes frame
-  let t = spawn process(config);  // COMPILE-TIME ERROR — task outlives frame
+  GlobalCache.store(config);      // E_BORROW_ESCAPE — escapes frame
+  let t = spawn process(config);  // E_TASK_SCOPE_ESCAPE — task outlives frame
   return Ok(());
 }
 ```
@@ -2518,7 +3010,7 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 **`borrow` and `noescape fn` together.** The combination produces zero ARC activity on hot iteration paths:
 
 ```loom
-@compiled
+@mode(native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
   for (item in items) {
@@ -2538,7 +3030,7 @@ func filter[T](borrow items: list[T], pred: noescape fn(borrow T): bool): list[T
 **`borrow` on struct fields.** A struct field declared with `borrow` holds a non-owning reference. The struct cannot outlive the source data:
 
 ```loom
-@compiled
+@mode(native)
 
 struct TokenStream {
   borrow source: string;
@@ -2563,7 +3055,7 @@ func tokenise(borrow input: string): list[string] {
 }
 ```
 
-`borrow` on a struct field is valid only in `@compiled` files targeting `--target native`. `borrow` and `weak`/`unowned` are mutually exclusive on a single field.
+`borrow` on a struct field is valid only in `@mode(native)` and `@mode(freestanding)` files. `borrow` and `weak`/`unowned` are mutually exclusive on a single field.
 
 **`borrow[~name]` — Tracked Lifetime References**
 
@@ -2582,7 +3074,7 @@ When a non-owning reference must flow beyond the call frame — as a return valu
 **`lifetime ~name` — declaring a region.** Lifetime parameters are declared in the `[...]` generic brackets of a function or type using the `lifetime` keyword. The `lifetime` keyword introduces the label into scope for the function signature and body:
 
 ```loom
-@compiled
+@mode(native)
 
 // Declare a single lifetime region ~src
 func firstWord[lifetime ~src](borrow[~src] text: string): borrow[~src] string {
@@ -2605,7 +3097,7 @@ func merge[lifetime ~a, lifetime ~b, T](
 **`~static` — the forever lifetime.** `~static` is a reserved lifetime label that requires no declaration. A `borrow[~static] T` is valid for the entire program execution. Module-level `let` bindings, string literals, and compile-time constants carry implicit `~static` lifetime. Via covariance (§23.4.2), `borrow[~static]` satisfies any `borrow[~name]` requirement:
 
 ```loom
-@compiled
+@mode(native)
 
 let SEPARATOR: string = " | ";   // implicit ~static lifetime
 
@@ -2622,7 +3114,7 @@ wrap(borrow userInput, borrow SEPARATOR);  // ~static satisfies ~src by covarian
 **`async func` restriction.** A function declared `async` may not have `borrow[~label]` parameters. The async runtime suspends the function at `await` points; the caller's stack frame may no longer be valid when the function resumes. Plain `borrow` (unlabeled) inside an `async` function body is permitted provided the compiler verifies it does not cross any `await` point. Violation is `E_BORROW_ASYNC`.
 
 ```loom
-@compiled
+@mode(native)
 
 // COMPILE-TIME ERROR — E_BORROW_ASYNC
 async func process[lifetime ~src](borrow[~src] template: string): Task[string] {
@@ -2656,10 +3148,41 @@ async func process(template: string): Task[string] {
 | Method on `struct[lifetime ~name]`, return type is `borrow` | Inferred from `self`'s lifetime |
 | `borrow[~a]` passed to `borrow[~b]` where `~b` is call-local | Reborrowing — compiler creates implicit sub-region |
 
+
+**`E_BORROW_ESCAPE` — Borrow of local escaping scope.** When a plain `borrow` of a stack-local variable would escape the current call frame — via a return statement, a function-typed argument, or a struct field — the compiler emits `E_BORROW_ESCAPE`:
+
+```loom
+@mode(native)
+
+func dangle(): borrow int {
+    let x = 42
+    return borrow x   // E_BORROW_ESCAPE: borrow of local `x`
+                      // would escape function scope; add a
+                      // lifetime annotation: borrow[~src] int
+}
+```
+
+The fix is to return by value, or annotate the function with `[lifetime ~name]` that ties the return borrow to an input borrow:
+
+```loom
+// Return by value:
+func getValue(): int {
+    let x = 42
+    return x
+}
+
+// Return borrow of an input — lifetime annotation required:
+func firstOf[lifetime ~src](borrow[~src] items: list[int]): borrow[~src] int {
+    return borrow items[0]   // safe: tied to ~src
+}
+```
+
+`E_BORROW_ESCAPE` applies in `@mode(native)` and `@mode(freestanding)`.
+
 **Reborrowing.** A `borrow[~a]` value may be passed to a `borrow[~b]` parameter when `~b` does not appear in the callee's return type, output fields, or any out-parameter position. The compiler creates an implicit sub-region of `~a` and unifies it with `~b` for the duration of the call. No annotation is needed at call sites:
 
 ```loom
-@compiled
+@mode(native)
 
 func validate[lifetime ~v](borrow[~v] text: string): bool { ... }
 // ~v does not appear in the return type — reborrowing applies
@@ -2672,7 +3195,7 @@ func pipeline[lifetime ~src](borrow[~src] input: string): borrow[~src] string {
 
 **Lifetime labels and generic containers.** `Option[borrow[~src] T]`, `list[borrow[~src] T]`, and `Result[borrow[~src] T, E]` are valid. The container transitively carries the `~src` lifetime and cannot outlive the source region. The compiler tracks this without requiring a new lifetime parameter on `Option`, `list`, or `Result` themselves.
 
-`borrow[~name]` is valid only in `@compiled` files targeting `--target native`. Using `borrow[~name]` in scripted mode or Wasm targets is a compile-time error.
+`borrow[~name]` is valid only in `@mode(native)` and `@mode(freestanding)` files. Using `borrow[~name]` in scripted mode or Wasm targets is a compile-time error (`E_BORROW_NOT_NATIVE`).
 
 ### §7.2 Lambdas
 
@@ -2682,7 +3205,7 @@ Lambdas (anonymous functions) come in two forms:
 
 ```
 let double = func(x: int) => x * 2;
-let greet = func(name: string) => "Hello, {$ name $}!";
+let greet = func(name: string) => i"Hello, {$ name $}!";
 ```
 
 **Block body** — executes the block; requires explicit `return`:
@@ -2747,11 +3270,17 @@ func makeCounter(start: int): fn(): int {
 **Rules for `global`/`nonlocal`:**
 
 - `global` and `nonlocal` are simple statements that must appear at the top of a function body, before any other statements.
-- The named variable must exist in the appropriate scope and must be a `var` binding; using `global`/`nonlocal` on a `let` binding is a compile-time error.
-- `global` and `nonlocal` are REQUIRED when a closure assigns to an outer `var`. Without the declaration, assignment to a name that exists in an outer scope is a compile-time error.
+- The named variable must exist in the appropriate scope and must be a `var` binding; using `global`/`nonlocal` on a `let` binding is a compile-time error (`E_GLOBAL_LET`).
+- `global` and `nonlocal` are REQUIRED when a closure assigns to an outer `var`. Without the declaration, assignment to a name that exists in an outer scope is a compile-time error (`E_GLOBAL_MISSING`).
 - Reading an outer variable does NOT require `global`/`nonlocal` — only mutation does.
 - `nonlocal` walks up enclosing function scopes but stops at module level; `global` always refers to module-level scope.
 - A single function may use both `global` and `nonlocal` declarations for different variables.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_GLOBAL_LET` | All | `global` or `nonlocal` applied to a `let` (immutable) binding |
+| `E_GLOBAL_MISSING` | All | Assignment to an outer-scope `var` inside a function or closure without a preceding `global`/`nonlocal` declaration |
+| `E_GLOBAL_NOT_FOUND` | All | `global x` where `x` does not exist at module scope; `nonlocal x` where `x` is not in any enclosing function scope |
 
 **For-loop binding freshness.** `for` loops using `let` create a fresh binding per iteration, avoiding the stale-closure problem:
 
@@ -2769,7 +3298,7 @@ for (let i = 0; i < 5; i = i + 1) {
 
 - Captured `let` bindings are safe to access after the enclosing scope exits — their values are immutable and kept alive by the closure.
 - Captured `var` bindings are kept alive by the closure; the variable's storage persists as long as any closure referencing it is alive.
-- In `@compiled` mode, closures that capture `var` bindings allocate the captured variable on the heap rather than the stack.
+- In compiled mode, closures that capture `var` bindings allocate the captured variable on the heap rather than the stack.
 
 **Variable resolution.** The compiler resolves variable references using lexical scope chain lookup. Unlike Python, there is no ambiguity because Loom requires explicit `let`/`var` for all declarations — bare assignment without `let`/`var` is always a reference to an existing binding.
 
@@ -2782,9 +3311,9 @@ func add(a: int, b: int): int { return a + b; }
 let add5 = func(b: int) => add(5, b);   // manual partial application
 ```
 
-**Closures in `@compiled` mode.** Closures in `@compiled` files follow the same capture rules with the restriction that captured `var` bindings must have statically-known types (no `Any`). The compiler may optimize non-escaping closures to avoid heap allocation of captured variables.
+**Closures in compiled mode.** Closures in compiled-mode files follow the same capture rules with the restriction that captured `var` bindings must have statically-known types (no `Any`). The compiler may optimize non-escaping closures to avoid heap allocation of captured variables.
 
-**ARC capture lists (native target only).** On `--target native` builds, closures that create ARC retain cycles must break them with weak or unowned capture list entries:
+**ARC capture lists (`@mode(native)` only).** In `@mode(native)`, closures that create ARC retain cycles must break them with weak or unowned capture list entries:
 
 ```
 // Without capture list: handle captures itself via the closure — retain cycle
@@ -2808,7 +3337,7 @@ let handler = callback(func() [unowned self] { self.onFire(); });
 let handler = callback(func() [weak self] { self?.onFire(); });
 ```
 
-Capture lists are valid only in `@compiled` files targeting `--target native`. Using a capture list in scripted code or non-native compiled targets is a compile-time error.
+Capture lists are valid only in `@mode(native)` files. ARC retain cycles cannot occur in `@mode(freestanding)` (no ARC runtime is present) or in `@mode(scripted)`/`@mode(compiled)` (GC manages memory). Using a capture list outside `@mode(native)` is a compile-time error.
 
 The compiler SHALL emit `E_ARC_CYCLE` as a **compile-time error** for any statically-detectable case where:
 - An `unowned` capture is used in a closure whose static lifetime may exceed the lifetime of the captured object within the same lexical scope, or
@@ -2816,10 +3345,14 @@ The compiler SHALL emit `E_ARC_CYCLE` as a **compile-time error** for any static
 
 For cases where the relationship cannot be statically determined, the compiler emits a `cycle-advisory` lint. `weak` is always the safe fallback for such cases.
 
-**`noescape fn` closures.** When a closure is passed to a `noescape fn` parameter, the compiler verifies the closure body does not attempt to escape any `borrow` values it receives. The compiler may stack-allocate the closure's captured variables if they are all stack-resident, eliminating heap allocation entirely.
+| Error / Lint | Condition |
+|---|---|
+| `E_ARC_CYCLE` | Statically-detectable ARC retain cycle in a closure without a corresponding capture list entry breaking the cycle |
+
+**`noescape fn` closures.** When a closure is passed to a `noescape fn` parameter, the compiler verifies the closure body does not attempt to escape any `borrow` or `reads` values it receives (both are non-owning borrows with zero ARC overhead in `@mode(native)`). The compiler may stack-allocate the closure's captured variables if they are all stack-resident, eliminating heap allocation entirely.
 
 ```loom
-@compiled
+@mode(native)
 
 func withLock(lock: Mutex, body: noescape fn(): void): void {
   lock.acquire();
@@ -2832,7 +3365,7 @@ withLock(myMutex, func() {
 });
 ```
 
-A closure that captures `borrow` values may only be passed to `noescape fn` parameters — passing it to a plain `fn` parameter is a compile-time error, because the `fn` parameter may store the closure, causing the borrowed value to escape its frame.
+A closure that captures `borrow` or `reads` values (non-owning borrows in `@mode(native)`) may only be passed to `noescape fn` parameters — passing it to a plain `fn` parameter is a compile-time error, because the `fn` parameter may store the closure, causing the borrowed value to escape its frame (`E_BORROW_ESCAPE`).
 
 ### §7.4 Rest Parameters and Keyword-Only Parameters
 
@@ -2841,7 +3374,7 @@ A closure that captures `borrow` values may only be passed to `noescape fn` para
 ```
 func log(level: string, *messages: list[string]) {
   for (msg in messages) {
-    print("[{$ level $}] {$ msg $}");
+    print(i"[{$ level $}] {$ msg $}");
   }
 }
 
@@ -2873,9 +3406,16 @@ connect("localhost", 8080, timeout=3000);  // ok
 connect("localhost", 8080, 3000);          // compile-time error
 ```
 
-A bare `*` does not collect any arguments — it only marks the boundary. A bare `*` and a named `*args` are mutually exclusive. Parameters after `*` or `*args` must be passed by name; passing them positionally is a compile-time error. Keyword-only parameters may have default values; those without defaults are required keyword arguments.
+A bare `*` does not collect any arguments — it only marks the boundary. A bare `*` and a named `*args` are mutually exclusive. Parameters after `*` or `*args` must be passed by name; passing them positionally is a compile-time error (`E_KEYWORD_ONLY_POSITIONAL`). Keyword-only parameters may have default values; those without defaults are required keyword arguments.
 
-**Parameter ordering.** The compiler enforces the following order in function declarations: regular positional parameters first, then `*args` (or bare `*`), then keyword-only parameters (if any), then `**kwargs`. A function may have at most one `*` parameter and at most one `**` parameter.
+**Parameter ordering.** The compiler enforces the following order in function declarations (`E_PARAM_ORDER` if violated): regular positional parameters first, then `*args` (or bare `*`), then keyword-only parameters (if any), then `**kwargs`. A function may have at most one `*` parameter (`E_DUPLICATE_REST`) and at most one `**` parameter (`E_DUPLICATE_KWARGS`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_KEYWORD_ONLY_POSITIONAL` | All | Keyword-only parameter (after `*` or `*args`) passed positionally at call site |
+| `E_PARAM_ORDER` | All | Function parameter declaration order violates: positional → `*args`/`*` → keyword-only → `**kwargs` |
+| `E_DUPLICATE_REST` | All | More than one `*args` parameter in a single function declaration |
+| `E_DUPLICATE_KWARGS` | All | More than one `**kwargs` parameter in a single function declaration |
 
 **Combining rest with regular parameters:**
 
@@ -2894,7 +3434,7 @@ func request(method: string, url: string, *headers: list[string], timeout: int =
 - `**kwargs` must have type `dict[string, T]` for some `T`; the individual keyword argument values must be assignable to `T`.
 - Spread in calls: `*expr` requires `expr` to be `list[T]` where `T` matches the expected parameter types; `**expr` requires `expr` to be `dict[string, T]`.
 
-**`@compiled` mode restrictions.** `**kwargs` with type `dict[string, Any]` is prohibited in `@compiled` files (since `Any` is prohibited in compiled mode). `*args` with a concrete element type (e.g., `*args: list[int]`) is permitted in compiled mode.
+**compiled mode restrictions.** `**kwargs` with type `dict[string, Any]` is prohibited in compiled-mode files (since `Any` is prohibited in compiled mode). `*args` with a concrete element type (e.g., `*args: list[int]`) is permitted in compiled mode.
 
 ### §7.5 Generators and `yield`
 
@@ -2936,13 +3476,24 @@ for await (page in fetchPages(urls)) {
 }
 ```
 
+**`safe gen func`.** The `safe` modifier may also prefix `gen func` and `async gen func`. A `safe gen func` requires and provides a safe context throughout the generator's execution — each `edits:` call and `modifier` call inside the body is independently verified. `requires` clauses with `distinct()` are also supported on generator function declarations.
+
+**Mode availability.** `gen func` (synchronous generators) is available in all modes including `@mode(native)` and `@mode(freestanding)`. In `@mode(freestanding)`, iterator state is heap-allocated via the registered `@allocator`; without one, constructing an iterator is a compile-time error (same as any class construction). `async gen func` is unavailable in `@mode(freestanding)` — `async` is stripped (`E_FREESTANDING_ASYNC`).
+
 **Generator lifecycle:**
 
 1. Calling a `gen func` returns an `Iterable[T]` (or `AsyncIterable[T]`) without executing any of the body.
 2. The body executes lazily: it runs up to the first `yield` when the consumer requests the first value, then suspends.
 3. Each subsequent request resumes from the last `yield` point and runs to the next `yield` or to the end.
 4. When the function body completes, the iterator signals completion (`None` from `next()`).
-5. `return expr;` in a generator is a compile-time error — use `yield` for values and `return;` (no value) for early termination.
+5. `return expr;` in a generator is a compile-time error (`E_GEN_RETURN_VALUE`) — use `yield` for values and `return;` (no value) for early termination.
+
+**Generator error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_GEN_RETURN_VALUE` | All | `return expr;` (with a value) inside a `gen func` body — use `yield` for values; bare `return;` is allowed |
+| `E_YIELD_OUTSIDE_GEN` | All | `yield` or `yield*` used in a regular `func` or `async func` body |
 
 **Generator cleanup:**
 
@@ -2960,7 +3511,7 @@ Generator expressions use parentheses `(expr for x in xs)` and produce `Iterable
 
 Generators implement the `Iterator[T]` interface (or `AsyncIterator[T]`), making them compatible with all iteration infrastructure.
 
-Generators are permitted in `@compiled` mode — they compile to state machines with no dynamic dispatch.
+Generators are permitted in compiled mode — they compile to state machines with no dynamic dispatch.
 
 ### §7.6 Decorators
 
@@ -2999,16 +3550,13 @@ func adminUsers(): Response { ... }
 **Execution timing:**
 
 - In scripted mode: decorators run at declaration time as part of statement-level execution.
-- In `@compiled` mode: decorators that only attach metadata are evaluated at compile time; decorators with runtime side effects execute at module initialization.
+- In compiled mode: decorators that only attach metadata are evaluated at compile time; decorators with runtime side effects execute at module initialization.
 
 **Metadata access.** Decorator metadata is accessible via `core.reflect.annotations(target)`, returning a `dict[string, Any]`.
 
-**Built-in decorators:**
+**User-defined decorators and built-in annotations.** All user-defined decorators follow the `func(target: T, ...args): T` protocol. There are no language-defined decorators — the language-defined annotations (such as `@jsexport`, `@mode`, `@entry`, `@panic_handler`, `@interruptSafe`, `@lockOrder`, `@overflowWrapping`, and all other `@name` forms listed in §8.8) do **not** follow the decorator protocol. They have special compiler semantics and are not callable functions. Applying a language-defined annotation where a decorator function is expected is a compile-time error.
 
-- `@jsexport` — marks a function as callable from JavaScript (language-defined).
-- `@compiled` — marks a file as compiled mode (language-defined, file-level only).
-
-All other decorators are user-defined. Language-defined decorators have special compiler semantics and are not ordinary functions.
+All other `@name` annotations in user code are user-defined decorators following the protocol above.
 
 **Type checking.** The compiler verifies that the decorator's parameter and return types are compatible with the decorated item's type.
 
@@ -3028,14 +3576,14 @@ class Circle : Any {
     return radius * 2.0;
   }
 
-  pub set diameter(value: float) {
+  pub set diameter(value: float) {    // implicitly modifier — writes radius
     radius = value / 2.0;
   }
 }
 
 let c = Circle(radius=5.0);
-let a = c.area;           // calls get area()
-c.diameter = 20.0;        // calls set diameter(20.0)
+let a = c.area;           // calls get area()  — no safe context needed
+safe { c.diameter = 20.0; }  // calls set diameter(20.0) — safe context required
 ```
 
 **Rules:**
@@ -3043,9 +3591,10 @@ c.diameter = 20.0;        // calls set diameter(20.0)
 - Properties are accessed with field syntax (no parentheses).
 - A `get` property takes no parameters and returns a value.
 - A `set` property takes exactly one parameter and returns `void`.
-- A `get` without a `set` is read-only; a `set` without a `get` is write-only. Attempting to read a write-only property or write a read-only property is a compile-time error.
-- A `get`/`set` pair for the same name must have compatible types.
-- A stored field and a `get`/`set` property with the same name on the same class is a compile-time error.
+- A `get` without a `set` is read-only; a `set` without a `get` is write-only. Attempting to read a write-only property is `E_PROPERTY_WRITE_ONLY`; attempting to write a read-only property is `E_PROPERTY_READ_ONLY`.
+- A `get`/`set` pair for the same name must have compatible types (`E_PROPERTY_TYPE_MISMATCH` if they differ).
+- A stored field and a `get`/`set` property with the same name on the same class is a compile-time error (`E_PROPERTY_FIELD_CONFLICT`).
+- **`set` accessors are implicitly `modifier`.** A `set` property automatically carries the `modifier` mutation contract (§23.4.11). Calling a setter on a plain ARC class instance requires a safe context (`E_SAFE_CONTEXT_REQUIRED`). On `unique` or `synchronized` receivers, no safe context is needed.
 
 **Interface participation:**
 
@@ -3060,7 +3609,14 @@ class Circle : Any implements HasArea {
 }
 ```
 
-Properties are permitted in `@compiled` mode — they compile to direct function calls.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_PROPERTY_READ_ONLY` | All | Assignment to a `get`-only (no `set`) property |
+| `E_PROPERTY_WRITE_ONLY` | All | Read of a `set`-only (no `get`) property |
+| `E_PROPERTY_TYPE_MISMATCH` | All | `get` and `set` for the same property name have incompatible types |
+| `E_PROPERTY_FIELD_CONFLICT` | All | A stored field and a `get`/`set` property share the same name in the same class |
+
+Properties are permitted in compiled mode — they compile to direct function calls.
 
 
 
@@ -3115,7 +3671,9 @@ There is no `protected` or `private`. Loom uses module-level encapsulation.
 
 ### §8.3 Inheritance
 
-Loom supports single inheritance from one superclass (defaulting to `Any` if omitted) plus implementation of multiple interfaces:
+Loom supports single inheritance from one superclass (defaulting to `Any` if omitted) plus implementation of multiple interfaces. A class that (directly or transitively) inherits from itself creates a circular class hierarchy and is a compile-time error (`E_CIRCULAR_CLASS`).
+
+
 
 ```
 class Animal : Any {
@@ -3140,7 +3698,7 @@ abstract class Shape : Any {
   abstract func perimeter(): float;
 
   pub func describe(): string {
-    return "Shape with area {$ area() $}";
+    return i"Shape with area {$ area() $}";
   }
 }
 
@@ -3153,7 +3711,13 @@ class Circle : Shape {
 }
 ```
 
-Abstract classes cannot be instantiated directly.
+Abstract classes cannot be instantiated directly — attempting to do so is a compile-time error (`E_ABSTRACT_INSTANTIATION`). Concrete subclasses that implement all abstract methods may be instantiated normally.
+
+**Abstract method completeness.** A non-abstract class that extends an `abstract class` must implement all inherited abstract methods. Leaving any abstract method unimplemented is `E_ABSTRACT_NOT_IMPLEMENTED`, naming the missing method(s). A subclass may itself be declared `abstract` to defer implementation — `abstract class` subclasses are not required to implement parent abstract methods immediately.
+
+**`synchronized` inheritance.** A class that inherits from a `synchronized` class is automatically `synchronized`. The per-instance mutex is part of the base class instance layout and is present in every subclass instance. A subclass cannot opt out of synchronization if the base is `synchronized`. Declaring `synchronized` explicitly on a subclass that already inherits `synchronized` is permitted but redundant.
+
+**`modifier` method overrides.** A method that overrides a `modifier` method in a superclass must itself be declared `modifier` — `E_MODIFIER_OVERRIDE_MISMATCH`. The mutation contract is part of the method's observable interface and cannot be silently removed by a subclass. Overriding a non-`modifier` method with a `modifier` method is permitted — the subclass strengthens the contract. Abstract `modifier` methods may be declared in abstract classes; implementing subclasses must provide a `modifier` implementation.
 
 ### §8.4 Constructors, `this`, and `Self`
 
@@ -3179,7 +3743,7 @@ class Connection : Any {
 }
 ```
 
-Attempting to declare two `new(...)` blocks in one class is a compile-time error. If no constructor is declared, the compiler generates a default constructor that accepts all declared fields as named parameters:
+Attempting to declare two `new(...)` blocks in one class is a compile-time error (`E_DUPLICATE_CONSTRUCTOR`). If no constructor is declared, the compiler generates a default constructor that accepts all declared fields as named parameters:
 
 ```
 class Point : Any {
@@ -3192,6 +3756,20 @@ let p = Point(x=1.0, y=2.0);
 ```
 
 **`this`** is always implicitly available inside instance methods and constructors. It refers to the current instance and is read-only — it cannot be reassigned.
+
+**`super(args)`** calls the direct superclass constructor from within a subclass constructor body. It must appear as a statement before any access to `this` fields or methods. A subclass whose superclass has a non-default constructor MUST call `super(args)`; omitting it is a compile-time error (`E_SUPER_NOT_CALLED`). `super()` may not be called from instance methods — only from constructor bodies.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_CIRCULAR_CLASS` | All | Class hierarchy contains a cycle (e.g. `class A : B` and `class B : A`) |
+| `E_ABSTRACT_INSTANTIATION` | All | Attempt to directly instantiate an `abstract class` — only concrete subclasses may be instantiated |
+| `E_ABSTRACT_NOT_IMPLEMENTED` | All | A non-abstract class extends an `abstract class` but does not implement all inherited abstract methods |
+| `E_DUPLICATE_CONSTRUCTOR` | All | Two `new(...)` constructor blocks declared in the same class |
+| `E_SUPER_NOT_CALLED` | All | Subclass constructor body accesses `this` or returns without calling `super(args)` when the superclass has a non-default constructor |
+| `E_SUPER_NOT_CONSTRUCTOR` | All | `super(args)` appears outside a constructor body |
+| `E_SUPER_WRONG_ARGS` | All | `super(args)` argument types or count do not match any superclass constructor signature |
 
 **`Self`** is a type alias available inside class and interface bodies that refers to the implementing type. It is useful in static factory methods and interface definitions:
 
@@ -3252,7 +3830,9 @@ class User : Any {
 }
 ```
 
-Instance fields without a default value must be initialized in the constructor.
+Instance fields without a default value must be initialized in the constructor (`E_FIELD_NOT_INITIALIZED` if any remain unset after the constructor body).
+
+**External writes to `pub var` fields and safe contexts.** A direct write to a `pub var` field on a plain ARC class instance from outside the class — such as `user.email = "new@example.com"` — requires a safe context, identically to calling a `modifier` method on that instance (§23.4.11). On `unique` receivers, direct field writes are unconditionally safe. On `synchronized` class instances, external field writes acquire the per-instance lock automatically.
 
 **`weak` field qualifier.** A `weak` field holds a non-owning reference. Under ARC (native target), `weak` fields do not increment the retain count; when the referent is deallocated the field automatically becomes `None` via zeroing through the ARC side table. Under GC runtimes (scripted, Wasm), `weak` fields map to GC weak references; the GC may collect the referent even if this field holds a reference, and subsequent reads yield `None`.
 
@@ -3267,14 +3847,14 @@ class Node : Any {
 }
 ```
 
-`weak` is valid in both scripted and `@compiled` mode on all targets.
+`weak` references are valid in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. `weak` is **not available** in `@mode(freestanding)` — the ARC zeroing side-table required for `weak` semantics is absent (`E_FREESTANDING_ARC`).
 
 **`unowned[~name]` field qualifier.** An `unowned[~name]` field holds a non-owning reference whose safety is **compile-time proven** via the existing region system (§23.4.2). The class must declare `[lifetime ~name]` as a class-level lifetime parameter. The referent must originate from a scope that the compiler can statically verify contains (outlives) the `~name` region.
 
 `unowned[~name]` fields do not increment `strong_count` and are not tracked by the ARC zeroing side table. Because safety is proven at compile time, **no runtime null-trap is inserted** — access is zero-cost, equivalent to a raw pointer load.
 
 ```loom
-@compiled
+@mode(native)
 
 // The class carries [lifetime ~owner] anchoring all unowned fields.
 class TreeNode[lifetime ~owner] : Any {
@@ -3284,7 +3864,7 @@ class TreeNode[lifetime ~owner] : Any {
   // a scope that the compiler verifies contains (outlives) ~owner.
   unowned[~owner] var parent: TreeNode[~owner]?
 
-  pub var children: list[TreeNode[~owner]] = []
+  pub var children: list[TreeNode[~owner]] = [];
 
   new(value: int, parent: TreeNode[~owner]?) {
     this.value = value;
@@ -3303,12 +3883,12 @@ class TreeNode[lifetime ~owner] : Any {
 
 **What the proof covers.** The region model proves strictly hierarchical (nested) lifetime relationships: a parent scope containing the referent outlives a child scope containing the holder. This covers the common cases — trees, scene graphs, parent-child UI hierarchies, and similar structures — where the lifetime ordering is statically evident from scope nesting. For nodes at equal or unordered lifetimes, `weak` remains the correct choice; such references cannot be proven safe without a runtime side table.
 
-**Scope restriction.** `unowned[~name]` fields are valid only in `@compiled` files targeting `--target native`. Using `unowned[~name]` in scripted mode or Wasm-targeted compiled mode is a compile-time error.
+**Scope restriction.** `unowned[~name]` fields are valid only in `@mode(native)` and `@mode(freestanding)` files. Using `unowned[~name]` in scripted mode or Wasm-targeted compiled mode is a compile-time error.
 
 **`weak` vs `unowned[~name]`.** `weak` is always safe on all targets and requires no lifetime annotation. Use `unowned[~name]` only when: (a) the lifetime relationship is strictly hierarchical and provable from scope nesting, and (b) the absence of a runtime side-table lookup is measurable and meaningful for the workload.
 
 ```loom
-@compiled
+@mode(native)
 
 // Correct: parent is created in scope ~tree, which outlives all nodes.
 func buildTree[lifetime ~tree](): TreeNode[~tree] {
@@ -3324,6 +3904,10 @@ func bad[lifetime ~tree](): void {
   root.parent = Some(inner);  // E_UNOWNED_LIFETIME_MISMATCH: inner is not in ~tree
 }
 ```
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_FIELD_NOT_INITIALIZED` | All | Constructor body exits without initializing one or more `let` or `var` fields that have no declared default value |
 
 ### §8.7 Dynamic Objects
 
@@ -3359,7 +3943,11 @@ let raw: Any = obj!{count};
 - `obj!{foo}` ≡ `obj.getField("foo")`
 - `obj!{"foo-bar"}` ≡ `obj.getField("foo-bar")`
 - `obj.member` NEVER falls back to dynamic fields.
-- `!{...}` requires the left operand to implement `Dynamic`; otherwise it is a compile-time error.
+- `!{...}` requires the left operand to implement `Dynamic`; otherwise it is a compile-time error (`E_DYNAMIC_ACCESS_NOT_DYNAMIC`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_DYNAMIC_ACCESS_NOT_DYNAMIC` | All | `obj!{field}` where `obj`'s type does not implement the `Dynamic` interface |
 
 **Dynamic view** (scoped dot-as-dynamic):
 
@@ -3388,13 +3976,30 @@ pub func oldMethod(): void { ... }
 
 | Annotation | Target | Description |
 |---|---|---|
-| `@compiled` | File (first line) | Marks a file as compiled mode (see §22) |
 | `@jsexport` | `func`, `async func` | Marks a function as callable from JavaScript (see §18.2) |
 | `@concurrent` | `async func` | Asserts function is safe from any executor thread; enforces Sendable captures (§17.9.5) |
 | `@unsafe(reason)` | `extern native func`, `class`, `func` | Programmer-asserted safety claim, bypassing compiler verification; see §23.4.6 |
 | `@vectorize` | `for` loop | Hints compiler to auto-vectorize the loop body (§21.16) |
 | `@vectorize(width=N)` | `for` loop | Same with suggested SIMD lane count (§21.16) |
 | `@overflowWrapping` | `func` | Opt-in wrapping arithmetic for all fixed-width integers in the function (§4.1.1) |
+| `@deprecated(msg)` | `func`, `class`, `interface`, `enum`, `struct`, method | Marks a symbol as intended for removal in a future version. Any use of a `@deprecated` symbol at a call site or reference site emits a compile-time warning that includes `msg`. The symbol remains usable. |
+| `@mode(m)` | File (first line) | Declares the execution mode: `@mode(scripted)` (default), `@mode(compiled)`, `@mode(native)`, or `@mode(freestanding)` — must be the first active token (§2.5) |
+| `@entry` | `func` | Freestanding: bare binary entry point (§24.5) |
+| `@panic_handler` | `func` | Freestanding: called on panic when `--panic=custom` (§24.6) |
+| `@interrupt(...)` | `func` | Freestanding: interrupt service routine (§24.13) |
+| `@naked` | `func` | Freestanding: suppresses prologue/epilogue (§24.14) |
+| `@callconv(c)` | `func` | Freestanding: overrides calling convention (§24.15) |
+| `@allocator` | `func` | Freestanding: registers custom heap allocator (§24.16) |
+| `@deallocator` | `func` | Freestanding: registers matching deallocator (§24.16) |
+| `@repr(layout)` | `struct` | Freestanding/native: controls struct memory layout (§24.10) |
+| `@align(n)` | `struct`, `func`, static | Freestanding/native: minimum alignment in bytes (§24.11) |
+| `@section(name)` | `func`, static | Freestanding: ELF/Mach-O section placement (§24.12) |
+| `@volatile` | parameter | Freestanding: volatile MMIO borrow parameter (§24.8) |
+| `@interruptSafe` | `func` | Freestanding: declares a function safe to call from interrupt handler context; enforces `native.atomic`-only access to `static var` bindings (§24.24.1) |
+| `@signalSafe` | `func` | Native: declares a function safe to call from OS signal handler context; enforces signal-safe operations only (§26.9) |
+| `@lockOrder(n)` | `synchronized class` | Native: assigns a lock-ordering level `n` to a `synchronized` class; prevents lock-ordering inversions at compile time (§23.4.13) |
+| `@debug_control_channel` | `func` | Freestanding (`--debug`): registers the bidirectional control transport for the freestanding debug service (§24.25.3) |
+| `@debug_trace_channel` | `func` | Freestanding (`--debug`): registers the unidirectional trace transport for the freestanding debug service (§24.25.3) |
 | `@webcomponent(name)` | `class` | Registers the class as a Custom Element with the given tag name (see §19.10). `browser` target only. |
 | `@attribute` | `var` field or property `get`/`set` pair | Declares an observed HTML attribute on a `@webcomponent` class (see §19.10). |
 
@@ -3438,6 +4043,10 @@ interface Finalizable {
 
 **Deterministic finalization** is provided by the `del` statement (see §6.11) and `with`/`Scoped[T]` (see §6.6).
 
+**Finalization ordering (normative).** The order in which `finalize()` is called on a set of simultaneously unreachable objects is unspecified. A `finalize()` implementation MUST NOT access any field whose declared type implements `Finalizable` directly — that object may have already been finalized. Access such fields only through `weak` references, checking for `None` before use. The compiler emits the `finalizer-live-access` lint warning when a `finalize()` body accesses a field whose declared type implements `Finalizable` without going through a `weak` reference.
+
+**Panic or exception during ARC `finalize()` (normative, native target).** If `finalize()` throws or panics while the ARC runtime is releasing the last strong reference, the ARC runtime SHALL: (1) catch the exception; (2) complete deallocation of the object's storage; (3) log the caught exception via `debug.log` with severity `Error`. The exception SHALL NOT propagate out of the release operation. It is undefined behavior to retain or access any reference to the partially-finalized object after `finalize()` returns.
+
 **Relationship between cleanup mechanisms:**
 
 - `Closeable` types that also implement `Finalizable` should call `close()` from `finalize()` as a safety net.
@@ -3459,8 +4068,127 @@ class SortedList[T: Comparable[T]] : Any {
 ```
 
 Type parameter constraints use the syntax `T: InterfaceName`.
-
 ---
+
+### §8.11 `unique class` Declaration
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+
+`unique class` declares a class whose instances are **always uniquely owned** — ARC is never applied and aliases are structurally prohibited. It is the class-level analogue of `unique let`/`unique var`: instead of marking a binding as unique, it marks the entire type as ownership-locked.
+
+```loom
+@mode(native)
+
+unique class FileHandle : Any {
+    pub var fd:   int;
+    pub var path: string;
+
+    pub static func open(path: string): FileHandle { ... }
+    pub func close(): void { ... }
+}
+```
+
+**Construction.** `unique class` instances must always be bound with `unique let` or `unique var`. Any non-`unique` binding position is `E_UNIQUE_CLASS_ARC_BINDING`:
+
+```loom
+unique let fh = FileHandle.open("/etc/hosts")   // OK
+let fh        = FileHandle.open("/etc/hosts")   // E_UNIQUE_CLASS_ARC_BINDING
+arc let fh    = FileHandle.open("/etc/hosts")   // E_UNIQUE_CLASS_ARC_BINDING
+```
+
+**Move semantics.** Assigning a `unique class` binding to another binding moves ownership; the source is consumed:
+
+```loom
+unique let a = FileHandle.open("/etc/hosts")
+unique let b = a    // MOVE: b owns the handle; a consumed
+a.close()           // E_USE_AFTER_MOVE
+```
+
+**Borrowing.** Both `reads` (shared immutable borrow) and `edits` (exclusive mutable borrow) are valid on `unique` values. Because single ownership is compiler-proven, exclusivity for `edits` requires no alias check:
+
+```loom
+unique let fh = FileHandle.open("/data/log.txt")
+inspect(reads: fh)        // shared borrow — fh not consumed
+inspect(fh)               // identical — implicit reads
+write(edits: fh)          // exclusive borrow — trivially safe, no alias scan
+```
+
+**`consume` is prohibited.** `consume` downgrades a `unique` value to ARC. For `unique class` types this downgrade is structurally forbidden — the type can never enter ARC:
+
+```loom
+unique let fh = FileHandle.open("/data/log.txt")
+let shared = consume fh   // E_UNIQUE_CLASS_CONSUME
+```
+
+**Subclassing.** A subclass of a `unique class` MUST also be `unique class`. A non-`unique` subclass could escape the constraint via the base type:
+
+```loom
+unique class Handle : Any { ... }
+
+unique class FileHandle : Handle { ... }   // OK
+class FileHandle : Handle { ... }
+// E_UNIQUE_CLASS_SUBCLASS: Handle is a unique class;
+// all subclasses must also be declared unique class
+```
+
+**Collections.** `unique class` instances may be stored in collections; extraction moves the element out. In-place access returns an implicit `reads` borrow:
+
+```loom
+unique var handles: list[FileHandle] = []
+unique let fh = FileHandle.open("/a")
+handles.append(fh)                        // MOVE into list
+unique let h2 = handles.remove(0)         // MOVE out of list
+inspect(handles[0])                       // implicit reads borrow in place
+```
+
+**Struct fields.** A struct may hold a `unique class` field with `unique var`:
+
+```loom
+struct Connection {
+    var host:   string;
+    unique var sock: Socket;
+}
+```
+
+A struct with a `unique class` field is move-only (§10.3.2).
+
+**Thread transfer.** A `unique class` value may be moved into a `Thread.spawn` closure; the caller loses access at the move point:
+
+```loom
+unique let fh = FileHandle.open("/data/log.txt")
+let t = Thread.spawn(func() { process(fh) })
+fh.close()   // E_USE_AFTER_MOVE
+```
+
+**Type parameters.** `unique class` supports type parameters normally:
+
+```loom
+@mode(native)
+
+unique class Pool[T] : Any {
+    pub var items: list[T] = [];
+    pub func put(item: T): void { items = items + [item] }
+    pub func take(): Option[T] { ... }
+}
+
+unique let pool = Pool[Connection].new()
+```
+
+Type parameter constraints apply normally: `unique class SortedPool[T: Comparable[T]]` is valid. The grammar production `class_decl ::= 'unique'? 'class' IDENT type_params? ...` covers both forms. A `unique class` type argument in a generic position, such as `list[FileHandle]`, is valid — the list holds the uniquely-owned values by move (extraction moves an element out; in-place access returns a `borrow`).
+
+**`unique class` and `Sendable`.** `unique class` instances are not `Sendable` under the standard rule — they cannot be shared across threads since `Sendable` implies safe concurrent aliasing and `unique` prohibits aliasing entirely. A `unique class` value may be **moved** into a `Thread.spawn` closure, transferring ownership to the spawned thread with no concurrent access. Attempting to capture a `unique class` value by reference (without moving) in a `Thread.spawn` closure is a compile-time error. `unique class` types may not declare `implements Sendable` — doing so is `E_UNIQUE_CLASS_SENDABLE`.
+
+**Freestanding mode.** In `@mode(freestanding)`, all classes with an `@allocator` effectively behave as `unique class` — ARC is unavailable. Declaring `unique class` in freestanding is valid and documents the intent. For multi-core freestanding code, inter-CPU data sharing uses `native.atomic` primitives directly — `Mutex[T]` and `RwLock[T]` are not available in freestanding mode.
+
+**Error codes.**
+
+| Code | Condition |
+|---|---|
+| `E_UNIQUE_CLASS_ARC_BINDING` | `unique class` type constructed into a non-`unique` binding |
+| `E_UNIQUE_CLASS_CONSUME` | `consume` applied to a `unique class` value |
+| `E_UNIQUE_CLASS_SUBCLASS` | Non-`unique` subclass declared for a `unique class` parent |
+| `E_UNIQUE_CLASS_SENDABLE` | `unique class` type declares `implements Sendable` — prohibited |
+
 
 ## §9 Enums and Pattern Matching
 
@@ -3494,13 +4222,17 @@ enum Tree[T] {
 - **Variant separator.** Two styles are both normative:
   - **Comma style** (canonical for variants with payloads): variants are separated by `,` with an optional trailing comma.
   - **Semicolon style** (idiomatic for unit-only enums): each unit variant is terminated with `;` like a field or statement.
-  The formatter accepts both and normalises to comma style for payload enums and semicolon style for unit-only enums. Mixing both separators in a single enum body is a compile-time error.
+  The formatter accepts both and normalises to comma style for payload enums and semicolon style for unit-only enums. Mixing both separators in a single enum body is a compile-time error (`E_ENUM_MIXED_SEP`).
 
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_ENUM_MIXED_SEP` | All | Enum body uses both `,` and `;` as variant separators |
 
 **Enum lifetime parameters.** An enum may declare lifetime parameters to allow `borrow[~name]` variant payloads. The syntax follows the same `[lifetime ~name]` convention used for structs (§10.11) and interfaces (§11.4):
 
 ```loom
-@compiled
+@mode(native)
 
 enum Token[lifetime ~src] {
   Word(borrow[~src] string),
@@ -3519,7 +4251,7 @@ match tok {
 }
 ```
 
-A lifetime-parameterized enum is implicitly non-`Sendable` (§17.8.1). Lifetime parameters on enums are valid only in `@compiled` files targeting `--target native`.
+A lifetime-parameterized enum is implicitly non-`Sendable` (§17.8.1). Lifetime parameters on enums are valid only in `@mode(native)` and `@mode(freestanding)` files.
 
 ### §9.2 Enum/`Any` Boundary
 
@@ -3533,8 +4265,8 @@ When an enum value is stored in an `Any`-typed position, the runtime wraps it in
 ```
 func describe(x: Any): string {
   return match x {
-    Circle(r)  => "circle with radius {$ r $}",
-    Rect(w, h) => "rect {$ w $}x{$ h $}",
+    Circle(r)  => i"circle with radius {$ r $}",
+    Rect(w, h) => i"rect {$ w $}x{$ h $}",
     Point      => "a point",
     _          => "something else",
   };
@@ -3567,11 +4299,16 @@ let area: float = match shape {
 **Rules:**
 
 - `match` is an expression; all arms must have a compatible result type.
-- The compiler enforces exhaustiveness: every variant must be covered, or a wildcard `_` arm must be present.
+- The compiler enforces exhaustiveness: every variant must be covered, or a wildcard `_` arm must be present (`E_MATCH_NONEXHAUSTIVE`).
 - Patterns may be: variant names (with positional or named bindings), wildcards (`_`), guards (`Some(x) if (x > 0)`), and nested patterns (`Ok(Some(x))`).
+- Each `match` arm has exactly **one pattern**. Or-patterns (multiple patterns per arm separated by `|`) are not supported; use separate arms or a guard expression to match multiple cases.
 - Patterns are matched top-to-bottom; the first matching arm executes.
 - Bindings introduced in a pattern arm are scoped to that arm's expression only.
 - `match` is a block statement (no trailing `;` on the construct itself).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_MATCH_NONEXHAUSTIVE` | All | `match` over a statically-typed enum or union has no wildcard `_` arm and does not cover all variants/types |
 
 **`match` in templates:**
 
@@ -3593,8 +4330,8 @@ let area: float = match shape {
 ```
 func display(value: string | int | bool): string {
   return match value {
-    string(s) => "string: {$ s $}",
-    int(n)    => "int: {$ n $}",
+    string(s) => i"string: {$ s $}",
+    int(n)    => i"int: {$ n $}",
     bool(b)   => if (b) { "true" } else { "false" },
   };
 }
@@ -3682,24 +4419,25 @@ A struct field may not have a class type. The field's declared type must be one 
 - An enum, provided all variant payloads satisfy this rule
 - A function type (`fn(...)`, `noescape fn(...)`)
 - `Option[T]` or `Result[T, E]` where `T` and `E` satisfy this rule
-- A `borrow[~name]` reference (`@compiled --target native` only)
+- A `borrow[~name]` reference (`@mode(native)` and `@mode(freestanding)` only)
+- A `unique T` reference where `T` is a class type (`@mode(native)` and `@mode(freestanding)` only) — permitted because `unique` carries no ARC retain/release and no aliasing; the compiler proves single ownership at all times (§23.4.7)
 
-Declaring a struct field whose resolved type is a class is a compile-time error (`E_STRUCT_CLASS_FIELD`).
+Declaring a struct field whose resolved type is a plain ARC class reference is a compile-time error (`E_STRUCT_CLASS_FIELD`). A `unique T` field is explicitly not a plain ARC reference and does not trigger this error.
 
 ```loom
 class Connection : Any { ... }
 
 // COMPILE ERROR — class reference in struct field
 struct Request {
-  var path: string        // OK — primitive
-  var conn: Connection    // E_STRUCT_CLASS_FIELD
+  var path: string;       // OK — primitive
+  var conn: Connection;   // E_STRUCT_CLASS_FIELD
 }
 
 // OK — all fields are value types
 struct Request {
-  var path: string
-  var headers: dict[string, string]
-  var body: bytes
+  var path: string;
+  var headers: dict[string, string];
+  var body: bytes;
 }
 ```
 
@@ -3710,20 +4448,20 @@ To enforce the constraint at the definition site and produce a clearer error at 
 ```loom
 // Unconstrained — error surfaces at instantiation site
 struct Box[T] {
-  var value: T
+  var value: T;
 }
 let b = Box[Connection](value=conn)      // E_STRUCT_CLASS_FIELD
 
 // Constrained — error at definition if violated; clearer message at call sites
 struct Box[T: ValueType] {
-  var value: T
+  var value: T;
 }
 let b = Box[Connection](value=conn)      // E_VALUETYPE_CONSTRAINT: Connection does not satisfy ValueType
 ```
 
-**`ValueType` constraint.** `ValueType` is a compiler-intrinsic type constraint. It is satisfied automatically by any type that passes §10.3.1 — primitives, structs, enums, built-in collections with `ValueType` type arguments, and function types. It is never satisfied by a class type. `ValueType` cannot be implemented or extended by user code; it is not an interface.
+**`ValueType` constraint.** `ValueType` is a compiler-intrinsic type constraint. It is satisfied automatically by any type that passes §10.3.1 — primitives, structs, enums, built-in collections with `ValueType` type arguments, function types, and `unique T` references. It is never satisfied by a plain ARC class type. `ValueType` cannot be implemented or extended by user code; it is not an interface.
 
-**Rationale.** Permitting class-typed fields would introduce shared heap aliasing through struct copy semantics — two copies of the same struct would reference the same heap object, violating the independence that value semantics implies. Keeping structs free of class references ensures that copies are always fully independent, that `excl borrow` on structs is always deeply exclusive, and that the struct/class boundary is unambiguous across all targets and execution modes.
+**Rationale.** Permitting class-typed fields would introduce shared heap aliasing through struct copy semantics — two copies of the same struct would reference the same heap object, violating the independence that value semantics implies. Keeping structs free of class references ensures that copies are always fully independent, that `edits` (exclusive borrow) on structs is always deeply exclusive, and that the struct/class boundary is unambiguous across all targets and execution modes.
 
 **When you need a reference-typed container holding other reference-typed objects**, use a class. The `structures.*` module provides class-based mutable container types for this purpose.
 
@@ -3731,8 +4469,87 @@ let b = Box[Connection](value=conn)      // E_VALUETYPE_CONSTRAINT: Connection d
 
 | Code | Meaning |
 |---|---|
-| `E_STRUCT_CLASS_FIELD` | Struct field's resolved type is a class — at definition for concrete fields, at instantiation for generic fields |
+| `E_STRUCT_CLASS_FIELD` | Struct field's resolved type is a plain ARC class reference — at definition for concrete fields, at instantiation for generic fields; `unique T` fields are exempt |
 | `E_VALUETYPE_CONSTRAINT` | Type argument does not satisfy the `ValueType` constraint |
+
+### §10.3.2 Move Semantics for Structs with `unique` Fields
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+
+A struct containing one or more `unique`-qualified fields is a **move-only struct**. Move-only structs have different assignment semantics from ordinary structs.
+
+**Ordinary structs** (no `unique` fields) retain copy semantics — assignment produces an independent copy, and the source binding remains valid:
+
+```loom
+@mode(compiled)
+
+struct Point { x: float; y: float; }
+
+let a = Point(x=1.0, y=2.0)
+let b = a        // copy — a and b are independent values
+use(a)           // OK — a is still valid
+```
+
+**Move-only structs** (one or more `unique` fields) transfer ownership on assignment — the source binding is consumed and may not be used again:
+
+```loom
+@mode(native)
+
+struct Request {
+  var path: string;
+  unique var conn: Connection;   // unique field — makes Request move-only
+}
+
+let r1 = Request(path="/api", conn=Connection.open(addr))
+let r2 = r1        // MOVE — r1 is consumed; r2 owns the Connection
+use(r1)            // E_USE_AFTER_MOVE: r1 was moved to r2
+```
+
+**Function call semantics.** A no-verb parameter on a move-only struct is an implicit `reads` borrow — the caller retains ownership after the call. To transfer ownership into the function, declare the parameter with `takes`:
+
+```loom
+// Implicit reads borrow (default) — caller retains ownership
+func inspect(req: Request): string { return req.path; }  // implicit reads
+
+let r = Request(path="/api", conn=Connection.open(addr))
+inspect(r)           // ✓ implicit reads — r still valid after call
+inspect(reads: r)    // ✓ explicit reads — identical
+use(r)               // OK — r still valid
+```
+
+To transfer ownership, declare the parameter with `takes` and acknowledge at the call site:
+
+```loom
+func handle(takes req: Request): void { ... }
+
+let r = Request(path="/api", conn=Connection.open(addr))
+handle(takes: r)     // MOVE — r is consumed by the call
+use(r)               // E_USE_AFTER_TAKE
+```
+
+For a mutable borrow without consuming, use `edits`:
+
+```loom
+func update(edits req: Request): void { req.path = "/updated"; }
+
+update(edits: r)     // exclusive mutable borrow — r not consumed
+use(r)               // OK — r still valid
+```
+
+**`with`-copy is prohibited on move-only structs.** The `with` copy expression (`s with (field=val)`) is not available for move-only structs — it would produce a copy, violating the uniqueness of the `unique` fields. Use destructuring or field-by-field construction instead (`E_WITH_COPY_MOVE_ONLY`).
+
+**The compiler distinguishes categories at the struct definition site.** A struct is move-only if and only if it has at least one `unique`-qualified field. This determination is made at definition time and does not depend on the concrete types substituted for generic parameters. A generic struct with a `unique` field is unconditionally move-only regardless of what `T` is instantiated with.
+
+**`unique` fields are not copied in struct copies.** Because move-only structs are moved rather than copied, there is no scenario where a `unique` field would need to be duplicated. The move transfers the `unique` field's ownership to the destination binding; the source binding loses access to the field.
+
+**Error codes.**
+
+| Code | Meaning |
+|---|---|
+| `E_USE_AFTER_MOVE` | Binding accessed after its value was moved to another binding via assignment |
+| `E_USE_AFTER_TAKE` | Binding accessed after ownership was transferred at a `takes:` call site (§23.4.9) |
+
+
 
 
 ### §10.4 Relationship to `Any`
@@ -3799,6 +4616,8 @@ let p = Pair(first="hello", second=42);
 
 ### §10.7 `with` Copy Expression
 
+The `with` expression creates modified copies of structs. Using `with` on a class (not a struct) is a compile-time error (`E_WITH_COPY_WRONG_TYPE`).
+
 The `with` expression creates modified copies of structs:
 
 ```
@@ -3811,6 +4630,12 @@ For any struct value `s` and a `with` expression `s with (field=newValue)`, the 
 
 **`with`-copy and `borrow[~name]` fields.** When a struct carries `borrow[~name]` fields, a `with`-copy expression `s with (field = newVal)` is valid only when `newVal` is a `borrow[~name]` value from a region that satisfies `~name` by covariance (the same label or a longer-lived source, including `~static`). Supplying a value from a mismatched lifetime region is a compile-time error (`E_BORROW_WITH_MISMATCH`). Fields that are not `borrow[~name]` fields are unaffected by this rule.
 
+| Code | Mode | Condition |
+|---|---|---|
+| `E_WITH_COPY_WRONG_TYPE` | All | `with` copy expression used on a class instance — only structs support `with` copying |
+| `E_WITH_COPY_MOVE_ONLY` | All | `with` copy expression used on a move-only struct (one with `unique` fields) |
+| `E_WITH_COPY_UNKNOWN_FIELD` | All | `with` copy expression names a field that does not exist on the struct type |
+
 ### §10.8 Struct Destructuring
 
 ```
@@ -3818,13 +4643,13 @@ let Point(x=px, y=py) = somePoint;
 
 match shape {
   Point(x=0.0, y=0.0) => "origin",
-  Point(x=x, y=y)     => "({$ x $}, {$ y $})",
+  Point(x=x, y=y)     => i"({$ x $}, {$ y $})",
 }
 ```
 
 ### §10.9 Compiled Mode
 
-Structs are the preferred type for `@compiled` mode data records — they map directly to Wasm GC structs or native C-compatible structs with no boxing, no vtable, and no GC overhead for stack-allocated instances.
+Structs are the preferred type for compiled mode data records — they map directly to Wasm GC structs or native C-compatible structs with no boxing, no vtable, and no GC overhead for stack-allocated instances.
 
 ### §10.10 Relationship to Other Types
 
@@ -3838,12 +4663,12 @@ Structs are the preferred type for `@compiled` mode data records — they map di
 
 ### §10.11 Lifetime-Parameterized Structs
 
-*(This section is normative. Requires `@compiled --target native`.)*
+*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
 
 A struct may declare one or more lifetime parameters to allow `borrow[~name]` fields whose source region is tracked across function boundaries. Lifetime parameters are declared in the struct's `[...]` generic brackets using the `lifetime` keyword:
 
 ```loom
-@compiled
+@mode(native)
 
 struct Slice[lifetime ~src] {
   borrow[~src] data: string;   // non-owning — tied to ~src region
@@ -3860,7 +4685,7 @@ struct Parser[lifetime ~src, T] {
 **Rules for lifetime-parameterized structs:**
 
 - `[lifetime ~name]` declares a named region into scope for the struct's fields, methods, and type references.
-- Only `@compiled --target native` structs may declare lifetime parameters. Using `[lifetime ~name]` in scripted mode or Wasm targets is a compile-time error.
+- Only `@mode(native)` and `@mode(freestanding)` structs may declare lifetime parameters. Using `[lifetime ~name]` in scripted mode or Wasm targets is a compile-time error.
 - A struct may declare multiple lifetime parameters and freely mix them with type parameters: `struct Foo[lifetime ~a, lifetime ~b, T]`.
 - A struct that declares a `[lifetime ~name]` parameter or that contains any `borrow[~name]` field is implicitly non-`Sendable`. Explicitly writing `implements Sendable` on such a struct is a compile-time error (`E_SENDABLE_LIFETIME`). See §17.8.1.
 - A lifetime-parameterized struct may not be stored in a class field. Class instances are heap-allocated and may outlive any stack frame; storing a borrow-field struct in a class instance would allow the borrow to escape its source region.
@@ -3868,7 +4693,7 @@ struct Parser[lifetime ~src, T] {
 **Methods on lifetime-parameterized structs.** Methods have implicit access to the struct's declared lifetime parameters. The compiler infers that a `borrow` return type on a method borrows from `self`'s lifetime — no explicit annotation is required for the common case:
 
 ```loom
-@compiled
+@mode(native)
 
 struct Slice[lifetime ~src] {
   borrow[~src] data: string;
@@ -3894,7 +4719,7 @@ struct Slice[lifetime ~src] {
 **Constructing a lifetime-parameterized struct.** The auto-generated constructor (§10.1) accepts `borrow[~name]` values for borrow fields. The compiler ties the resulting struct's lifetime to the provided source region:
 
 ```loom
-@compiled
+@mode(native)
 
 func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
   var stream = Slice(data=input, start=0, end=input.len());
@@ -3914,7 +4739,7 @@ func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
 **Type aliases with lifetime parameters.** Type aliases may carry lifetime parameters using the same `[lifetime ~name]` syntax:
 
 ```loom
-@compiled
+@mode(native)
 
 type StrSlice[lifetime ~src]     = Slice[~src];
 type ParseState[lifetime ~src, T] = Parser[~src, T];
@@ -3927,6 +4752,17 @@ type ParseState[lifetime ~src, T] = Parser[~src, T];
 *(This section is normative.)*
 
 ### §11.1 Interface Declarations
+
+Interfaces define contracts that classes and structs explicitly implement. Interface methods may be declared as abstract signatures (using `;`) or with a default implementation (using a `{ body }` block). A class implementing the interface may override a default-body method; if it does not, the default implementation is used. Abstract interface methods (ending in `;`) must be provided by every implementing class:
+
+```loom
+interface Greetable {
+  func name(): string;            // abstract — must be implemented
+  func greet(): string {          // default implementation
+    return i"Hello, {$ name() $}!";
+  }
+}
+```
 
 Interfaces define contracts that classes and structs explicitly implement:
 
@@ -3952,6 +4788,20 @@ class Config : Any implements Serializable {
 
 Interfaces are nominal (not structural); a class must explicitly declare `implements`. Interface declarations are block statements (no trailing `;`).
 
+**Interface inheritance.** An interface may extend one or more superinterfaces using the `:` clause: `interface IMutableMap[K, V] : IReadableMap[K, V] { ... }`. A sub-interface inherits all abstract and default method declarations from its superinterfaces. A class that `implements` the sub-interface must implement all inherited members in addition to the directly-declared ones. Multiple superinterfaces are permitted: `interface Foo : Bar, Baz { ... }`. Circular interface hierarchies are a compile-time error (`E_CIRCULAR_INTERFACE`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_INTERFACE_NOT_IMPLEMENTED` | All | A class declares `implements I` but does not provide a concrete implementation for one or more abstract methods of `I` (or its superinterfaces) |
+| `E_CIRCULAR_INTERFACE` | All | Interface hierarchy contains a cycle (e.g. `interface A : B` and `interface B : A`) |
+| `E_INTERFACE_CONFLICT` | All | Two superinterfaces declare incompatible default method implementations for the same method name |
+
+**Interface method visibility.** Interface method declarations without an explicit access modifier are implicitly `pub`. Interfaces define public contracts — their members are callable from any module that holds a value of the interface type. An explicit `pub` is permitted and encouraged for documentation clarity but has the same effect as omitting it. Module-private interface methods (which would be inaccessible outside the declaring module) are not supported; the compiler treats all interface members as `pub` regardless of whether the keyword is written.
+
+**`modifier` methods in interfaces.** An interface may declare `modifier` abstract or default methods. A class implementing the interface must declare the corresponding method as `modifier`; implementing a `modifier` interface method with a non-`modifier` method is `E_MODIFIER_OVERRIDE_MISMATCH`. This mirrors the rule for superclass overrides (§8.3): the mutation contract is part of the observable interface and cannot be silently dropped by an implementation. Overriding a non-`modifier` interface method with a `modifier` implementation is permitted — the implementing class strengthens the contract.
+
+**`safe func` methods in interfaces.** An interface may declare `safe func` abstract or default methods. When a class implements a `safe func` interface method, the implementing method's `safe` status determines calling semantics for the concrete type: if the implementation omits `safe`, callers through the concrete type do not require a safe context; calls dispatched through the interface type always require one. Implementing a `safe func` interface method with a non-`safe func` method is permitted (less restrictive); implementing a non-`safe func` interface method with a `safe func` method is also permitted (more restrictive — callers of the concrete type must provide a safe context).
+
 **Default parameter values in interface methods.** Interface method declarations may include default parameter values. An implementing class inherits those defaults: if the implementation omits a default value, callers may still call the method with that parameter omitted and the interface default is used. An implementation may provide a different default value; the implementation's default takes precedence for calls dispatched through the concrete type, while the interface default applies when the call is dispatched through the interface type. The compiler verifies that the implementation's parameter types match the interface's declared types regardless of default values.
 
 ### §11.2 Standard Interfaces
@@ -3962,18 +4812,21 @@ The following interfaces are defined by the language and standard library:
 interface Iterable[T]       { func iter(): Iterator[T]; }
 interface Iterator[T]       { func next(): Option[T]; }
 interface AsyncIterable[T]  { func asyncIter(): AsyncIterator[T]; }
-interface AsyncIterator[T]  { func next(): Task[Option[T]]; }
+interface AsyncIterator[T]  { async func next(): Task[Option[T]]; }
+                              // optional: async func close(): Task[void]
 interface KeyLookup[K, V]   { func has(key: K): bool; func get(key: K): Option[V]; }
 interface Readable          { func read(n: int): bytes; }
 interface Writable          { func write(b: bytes): int; }
 interface Closeable         { func close(): void; }
 interface Sized             { func len(): int; }
 interface From[E]           { static func from(err: E): Self; }
-interface Comparable[T]     { func compareTo(other: T): int; }
+interface Comparable[T] : Equatable[T] {
+                              func compareTo(other: T): int;
+                              operator func ==(other: T): bool { return compareTo(other) == 0; } }
 interface Equatable[T]      { operator func ==(other: T): bool; }
 interface Hashable          { func hashCode(): int; }
 interface Renderable        { func render(ctx: RenderContext): string; }
-interface Dynamic           { func hasField(name: string): bool; func getField(name: string): Any; func setField(name: string, value: Any): void; func deleteField(name: string): bool; func fieldNames(): list[string]; }
+interface Dynamic           { pub func hasField(name: string): bool; pub func getField(name: string): Any; pub func setField(name: string, value: Any): void; pub func deleteField(name: string): bool; pub func fieldNames(): list[string]; }
 interface Finalizable       { func finalize(): void; }
 
 // Web Component lifecycle — implemented by @webcomponent classes (§19.10).
@@ -4010,7 +4863,11 @@ interface IMutableMap[K, V] : IReadableMap[K, V] {
 
 **Relationship between `Comparable[T]` and `Equatable[T]`.** `Comparable[T]` is a subtype of `Equatable[T]` — implementing `Comparable[T]` automatically provides an `==` implementation via `compareTo(other) == 0`. This default `==` may be overridden by an explicit `operator func ==` declaration.
 
-**Comparable and Hashable.** Because `Comparable[T]` implies `Equatable[T]`, any type that implements `Comparable[T]` and is used as a `set[T]` element or `dict[T, V]` key must also implement `Hashable` — the same consistency requirement that applies to `Equatable[T]` directly (§5.1). The compiler enforces this: if a `Comparable[T]` type is used in a `set` or as a `dict` key without `Hashable`, the compiler emits a compile-time error (`E_HASHABLE_REQUIRED`). This transitivity is intentional and should be documented in any `Comparable[T]` implementation guide.
+**Comparable and Hashable.** Because `Comparable[T]` implies `Equatable[T]`, any type that implements `Comparable[T]` and is used as a `set[T]` element or `dict[T, V]` key must also implement `Hashable` — the same consistency requirement that applies to `Equatable[T]` directly (§5.1). The compiler enforces this: if a `Comparable[T]` type is used in a `set` or as a `dict` key without `Hashable`, the compiler emits compile-time error `E_HASHABLE_REQUIRED`. This transitivity is intentional.
+
+| Code | Condition |
+|---|---|
+| `E_HASHABLE_REQUIRED` | `Comparable[T]` type used as a `set` element or `dict` key without also implementing `Hashable` |
 
 **Operator interfaces.** The following interfaces extend operator behaviour to user-defined types. The `R = Self` default means the return type equals the implementing type in the common case. Provide `R` explicitly for mixed-type operations (e.g., `Mul[float, Vec2]`):
 
@@ -4040,12 +4897,15 @@ interface Callable[A, R]       { operator func ()(arg: A): R; }
 
 | Type | Implements |
 |---|---|
-| `int`, `float` | `Add`, `Sub`, `Mul`, `Div`, `FloorDiv`, `Mod`, `Pow`, `Neg`, `Comparable[T]`, `Equatable[T]`, `BitAnd`, `BitOr`, `BitXor`, `BitNot`, `Shl`, `Shr` |
+| `int`, `uint`, `int8`–`int64`, `uint8`–`uint64` | `Add`, `Sub`, `Mul`, `Div`, `FloorDiv`, `Mod`, `Pow`, `Neg`, `Comparable[T]`, `Equatable[T]`, `BitAnd`, `BitOr`, `BitXor`, `BitNot`, `Shl`, `Shr` |
+| `float`, `float32`, `float64` | `Add`, `Sub`, `Mul`, `Div`, `FloorDiv`, `Mod`, `Pow`, `Neg`, `Comparable[T]`, `Equatable[T]` |
+| `bigint` | `Add`, `Sub`, `Mul`, `Div`, `FloorDiv`, `Mod`, `Pow`, `Neg`, `Comparable[T]`, `Equatable[T]` |
+| `decimal` | `Add`, `Sub`, `Mul`, `Div`, `FloorDiv`, `Mod`, `Neg`, `Comparable[T]`, `Equatable[T]` |
 | `string` | `Add` (concatenation), `Comparable[string]`, `Equatable[string]`, `Index[int, char]`, `Contains[string]` |
 | `list[T]` | `Add` (concatenation), `Index[int, T]`, `IndexSet[int, T]`, `Contains[T]` |
 | `dict[K, V]` | `Index[K, V]`, `IndexSet[K, V]`, `Contains[K]`, `IReadableMap[K, V]`, `IMutableMap[K, V]` |
 | `set[T]` | `Contains[T]` |
-| `bytes` | `Index[int, uint8]`, `Comparable[bytes]` |
+| `bytes` | `Index[int, uint8]`, `Comparable[bytes]`, `Equatable[bytes]` |
 
 **`Scoped[T]` (context manager protocol):**
 
@@ -4084,7 +4944,7 @@ interface AsyncScoped[T] {
 
 Used with `with` in async contexts. The runtime `await`s both methods.
 
-`Scoped[T]` and `AsyncScoped[T]` are permitted in `@compiled` mode.
+`Scoped[T]` and `AsyncScoped[T]` are permitted in compiled mode.
 
 ### §11.3 Iteration Protocol
 
@@ -4129,7 +4989,11 @@ interface Iterator[T] {
 }
 ```
 
-- `expr` must implement `Iterable[T]`; otherwise it is a compile-time error.
+- `expr` must implement `Iterable[T]`; otherwise it is a compile-time error (`E_NOT_ITERABLE`).
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NOT_ITERABLE` | All | `for (x in expr)` where `expr`'s type does not implement `Iterable[T]` |
+
 - `x` is bound as `let` (immutable) in each iteration. To get a mutable binding, use `for (var x in expr)`.
 - Destructuring is supported: `for ((key, value) in dict.entries()) { ... }`.
 
@@ -4144,7 +5008,7 @@ interface Iterator[T] {
 | `dict[K, V]` | `K` | Insertion order. Also: `.values()`, `.entries()` |
 | `string` | `char` | Unicode scalar values in source order |
 | `bytes` | `uint8` | Individual byte values (0–255) |
-| `tuple[...]` | `Any` | Heterogeneous; not available in `@compiled` mode |
+| `tuple[...]` | `Any` | Heterogeneous `Any`-typed iteration; not available in compiled/native/freestanding modes (use typed tuple destructuring instead) |
 
 **User-defined iterables:**
 
@@ -4180,7 +5044,7 @@ class RangeIterator : Any implements Iterator[int], Iterable[int] {
 - `func close(): void` — called on early exit (`break`, `return`, exception) to release resources.
 - `func sizeHint(): Option[int]` — returns an estimate of remaining elements for pre-allocation.
 
-**Concurrent modification.** Modifying a collection while iterating it is undefined behavior in scripted mode and a compile-time error in `@compiled` mode when statically detectable.
+**Concurrent modification.** Modifying a collection while iterating it is undefined behavior in scripted mode and a compile-time error in compiled mode when statically detectable.
 
 **Generators and iteration.** Generators (see §7.5) automatically implement `Iterable[T]` (or `AsyncIterable[T]` for async generators), providing a simpler way to create custom iterators without writing separate iterator classes:
 
@@ -4198,19 +5062,19 @@ for (n in countdown(5)) {
 }
 ```
 
-**Compiled mode.** User-defined iterables are permitted in `@compiled` mode — the `Iterable[T]`/`Iterator[T]` interfaces are statically dispatched with no virtual call overhead when the concrete type is known. The element type `T` must be statically known.
+**Compiled mode.** User-defined iterables are permitted in compiled mode — the `Iterable[T]`/`Iterator[T]` interfaces are statically dispatched with no virtual call overhead when the concrete type is known. The element type `T` must be statically known.
 
 **`len` vs `count`.** `len(x)` is for values with intrinsic length (primitives implementing `Sized`). `count(xs: Iterable[T]): int` explicitly iterates to count items.
 
 
 ### §11.4 Lifetime-Parameterized Interfaces
 
-*(This section is normative. Requires `@compiled --target native`.)*
+*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
 
 An interface may declare lifetime parameters to express contracts involving `borrow[~name]` return values or method parameters:
 
 ```loom
-@compiled
+@mode(native)
 
 interface Sliceable[lifetime ~src] {
   func slice(start: int, end: int): borrow[~src] string;
@@ -4225,9 +5089,9 @@ interface Source[lifetime ~src, T] {
 **Implementing a lifetime-parameterized interface.** The implementing type must declare a matching lifetime parameter by position. The names of the parameters need not match:
 
 ```loom
-@compiled
+@mode(native)
 
-struct Buffer[lifetime ~buf] implements Sliceable[~buf] {
+struct BorrowedSlice[lifetime ~buf] implements Sliceable[~buf] {
   borrow[~buf] data: string;
   var pos: int;
 
@@ -4240,7 +5104,7 @@ struct Buffer[lifetime ~buf] implements Sliceable[~buf] {
 **Rules:**
 
 - A class may not implement a lifetime-parameterized interface. Class instances are heap-allocated and may outlive any stack frame; they cannot safely provide borrow-returning method contracts.
-- Lifetime-parameterized interfaces are valid only in `@compiled` files targeting `--target native`.
+- Lifetime-parameterized interfaces are valid only in `@mode(native)` and `@mode(freestanding)` files.
 - The lifetime parameter positions on the implementing type must be compatible by covariance with the declared interface positions.
 
 ---
@@ -4298,7 +5162,7 @@ See §4.8 for additional type system details.
 
 ### §12.1 Lifetime Parameters in Generics
 
-*(This section is normative. Requires `@compiled --target native`.)*
+*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
 
 Lifetime parameters extend the generic parameter system. They are declared alongside type parameters in `[...]` brackets and follow all generic scoping rules with two distinctions:
 
@@ -4310,7 +5174,7 @@ Lifetime parameters and type parameters may be freely mixed in any order: `[life
 **Mixed generic brackets:**
 
 ```loom
-@compiled
+@mode(native)
 
 func transform[lifetime ~src, T, R](
   borrow[~src] input: T,
@@ -4338,20 +5202,46 @@ struct Pipeline[lifetime ~src, T, R] {
 
 *(This section is normative.)*
 
+### §13.0 Namespace Declarations
+
+A **namespace declaration** associates a source file with a dotted module path. All public declarations in the file are exposed under that path when other modules import from it:
+
+```loom
+namespace core.text;
+
+pub class Url : Any { ... }
+pub func encode(s: string): string { ... }
+```
+
+```loom
+from core.text import (Url, encode);
+```
+
+**Rules:**
+
+- The `namespace` declaration, if present, must be the first non-comment, non-blank statement in the file — immediately after the optional `@mode(...)` directive and before any imports or declarations.
+- At most one `namespace` declaration per file is permitted.
+- The dotted path must be an `AbsolutePath` (§27.3). It cannot be relative (`./`).
+- The namespace path should match the file's location relative to the package root, though the compiler does not enforce this — mismatches produce a lint advisory `namespace-path-mismatch`.
+- Files without a `namespace` declaration belong to the default namespace derived from their file path relative to the package root.
+- `namespace` is a keyword (§3.4).
+
 ### §13.1 Import Syntax
+
+**All import forms are module-level only** — they may not appear inside function bodies, class bodies, or any nested scope. See §6.11.
 
 **Standard imports:**
 
 ```
-from package.sub.module import (Name1, Name2 as Alias);
+from mylib.sub.utils import (Name1, Name2 as Alias);
 ```
 
 **Grouped imports:**
 
 ```
-from package.sub {
-  modulea import (ThingA, Other as OA);
-  moduleb.sub import (ThingB);
+from mylib.sub {
+  widgets import (ThingA, Other as OA);
+  network.http import (ThingB);
 }
 ```
 
@@ -4371,6 +5261,8 @@ from ..|.. {
 
 **Wildcard `*` imports are prohibited** (determinism).
 
+**Deferred imports** (`from X defer import (...)`) create type stubs to break import cycles. See §13.10.
+
 **Namespace packages.** Dotted names map to directories; segments can be spread across multiple roots. First unique file wins; duplicate ambiguity is an error unless disambiguated.
 
 **`prefer compiled` clause.** An import statement may carry the `prefer compiled` modifier to request runtime fallback resolution:
@@ -4381,7 +5273,10 @@ from codec import (Encoder, decode) prefer compiled;
 
 When the runtime encounters `prefer compiled` on an import, it attempts to load a compiled artefact before falling back to the scripted source. See §13.7 for full resolution semantics.
 
-`prefer compiled` is valid in scripted mode only. Using `prefer compiled` in a `@compiled` file is a compile-time lint warning — compiled modules are already resolved statically and the clause has no effect at runtime.
+`prefer compiled` is valid in `@mode(scripted)` only:
+
+- In `@mode(compiled)`: compile-time lint warning (`prefer-compiled-redundant`) — compiled modules are already resolved statically; the clause has no runtime effect.
+- In `@mode(native)` or `@mode(freestanding)`: compile-time error (`E_PREFER_COMPILED_NOT_SCRIPTED`) — dynamic module loading is unavailable; all imports are resolved statically at link time.
 
 `prefer compiled` may appear on individual imports within a grouped import block:
 
@@ -4391,6 +5286,12 @@ from mylib {
   utils import (format);
 }
 ```
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_IMPORT_NOT_FOUND` | All | Imported name does not exist in the source module |
+| `E_IMPORT_CONFLICT` | All | Import introduces a name that conflicts with an existing binding in the same scope |
+| `E_CIRCULAR_IMPORT` | All | `import` chain creates a module dependency cycle |
 
 ### §13.2 Re-Exports
 
@@ -4402,6 +5303,10 @@ pub from .counter import (Counter);
 pub from .header import (Header, HeaderProps);
 pub from .sidebar import (Sidebar as AppSidebar);
 ```
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_REEXPORT_NOT_PUB` | All | `pub from X import (name)` where `name` is not `pub` in module `X` |
 
 Consumers import from the barrel module:
 
@@ -4422,10 +5327,10 @@ pub from .components {
 **Rules:**
 
 - Re-exported symbols are treated as if declared `pub` in the re-exporting module.
-- Only `pub` symbols from the source module can be re-exported; re-exporting a non-`pub` symbol is a compile-time error.
+- Only `pub` symbols from the source module can be re-exported; re-exporting a non-`pub` symbol is a compile-time error (`E_REEXPORT_NOT_PUB`).
 - Re-exports do not execute the source module twice — cached bindings are reused.
 - Wildcard re-exports (`pub from .module import *`) are prohibited.
-- Re-exports are permitted in both scripted and `@compiled` mode.
+- Re-exports are available in all four execution modes.
 
 For any symbol re-exported via `pub from .internal import (Foo)`, importing `Foo` from the barrel module yields the same binding as importing `Foo` directly from the internal module.
 
@@ -4501,10 +5406,10 @@ my-utils  = { path = "/home/dev/my-utils" }
 ```
 
 - Each entry overrides the version resolved from `loom.lock` for that package name. The `path` must contain a valid `.lmpkg` manifest. The package name in that manifest must match the key.
-- Packages listed in `[dev-overrides]` are compiled via the JIT pipeline and their artifacts are written to the **project-local cache** (`.loom/cache/` — see §27.7) instead of the global cache (`~/.loom/cache/`). This prevents overwriting cached artifacts that other projects depend on.
+- Packages listed in `[dev-overrides]` are compiled via the JIT pipeline and their artifacts are written to the **project-local cache** (`.loom/cache/` — see §28.7) instead of the global cache (`~/.loom/cache/`). This prevents overwriting cached artifacts that other projects depend on.
 - `[dev-overrides]` entries are **ignored** when `loom install --locked` is used (CI mode).
 - `[dev-overrides]` entries are **stripped** from the published manifest. `loom publish` emits a warning if any `[dev-overrides]` entries are present and proceeds only after confirmation.
-- The `loom link` and `loom unlink` commands (§27.1) manage `[dev-overrides]` entries automatically.
+- The `loom link` and `loom unlink` commands (§28.1) manage `[dev-overrides]` entries automatically.
 
 **Namespace package installation layout:**
 
@@ -4534,7 +5439,7 @@ When a module is imported, its top-level statements execute sequentially in sour
 - **Permitted top-level statements.** A module's top-level code may contain: import statements, declarations (`class`, `enum`, `interface`, `struct`, `func`, `async func`, `type`), `let`/`var` initializers, and expression statements.
 - **At-most-once execution.** A module's top-level statements execute at most once. Subsequent imports reuse cached bindings.
 - **Import-order initialization.** When a module contains multiple import statements, each imported module is fully initialized before the next import statement executes. For example, if a file imports module A then module B, module A's top-level statements run to completion before module B's initialization begins.
-- **Circular imports.** If module A imports module B and module B imports module A, the compiler detects the cycle. The second import sees the partially-initialized bindings of the first module (only those declarations that have already executed). Circular imports are permitted but discouraged; the partially-initialized state can lead to `None` bindings for declarations not yet reached.
+- **Circular imports.** Standard circular imports — where module A imports module B and module B imports module A via `from X import (...)` — are a compile-time error (`E_CIRCULAR_IMPORT`). Use `from X defer import (...)` (§13.10) to break cycles explicitly: deferred imports create type stubs that are resolved after the outermost import chain completes.
 - **No suspension.** `await` is prohibited during module initialization (see §7.1).
 
 The module dunders (`__name__`, `__file__`, `__execmode__`) are set before any top-level statements execute (see §2.2).
@@ -4562,7 +5467,7 @@ The following root namespaces are reserved for the standard library. User packag
 | `sync` | OS-thread concurrency primitives | `cli`, `service`, `desktop`, `native` |
 | `web` | Browser-specific APIs | `browser` only |
 | `ui` | Cross-platform reactive UI | All targets |
-| `native` | Native-compiled-only numerical, memory, GPU, and WebGPU primitives | `@compiled --target native` only (WebGPU also `browser`) |
+| `native` | Native-compiled-only numerical, memory, GPU, and WebGPU primitives | `@mode(native)` and `@mode(freestanding)` only (WebGPU also `browser`) |
 | `lang` | Language interop, macro support, template runtime | All targets |
 | `debug` | Debugging, tracing, profiling, MCP agent tooling | All targets (when enabled) |
 | `structures` | Data structures beyond primitive collections | All targets |
@@ -4577,7 +5482,7 @@ A **module fallback pair** consists of a compiled artefact and a scripted source
 
 #### §13.7.1 Resolution Algorithm
 
-When the runtime encounters `from module.path import (...) prefer compiled`, it executes the following sequence. The result is cached — a module resolves to exactly one implementation per session, consistent with the "module initialises at most once" rule (§2.1).
+When the runtime encounters `from mylib.codec import (...) prefer compiled`, it executes the following sequence. The result is cached — a module resolves to exactly one implementation per session, consistent with the "module initialises at most once" rule (§2.1).
 
 1. **Search for compiled artefact.** The runtime searches for a compiled artefact at the module's resolved file path with a platform-appropriate extension:
    - `module/path.wasm` — Wasm module (browser and CLI Wasm targets)
@@ -4629,7 +5534,7 @@ from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
 
 // codec_native.loom (compiled artefact source)
-@compiled
+@mode(compiled)
 from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
 ```
@@ -4663,6 +5568,11 @@ The package registry stores and serves all variants. Consumers use `prefer compi
 #### §13.7.6 `ModuleLoadError`
 
 ```loom
+class RuntimeError : Exception {}
+  (* General-purpose runtime error base class. Extend for specific runtime error categories.
+     The standard library uses RuntimeError as the base for: StackOverflowError, TaskQueueFullError,
+     NullHandleError, AlignmentError, AllocError, and other infrastructure-level errors. *)
+
 class ModuleLoadError : Exception {
   pub let modulePath: string;
   pub let compiledAttempted: bool;
@@ -4689,6 +5599,7 @@ via `loom install`:
 
 See the Packages Reference for full API documentation.
 
+
 ### §13.9 `LOOMPATH` — Development Package Search Path
 
 *(This section is normative.)*
@@ -4709,7 +5620,7 @@ set LOOMPATH=C:\dev\loom-http;C:\dev\my-utils
 
 1. `[dev-overrides]` entries in the project's `.lmpkg` (§13.3) — highest priority.
 2. `LOOMPATH` directories, left to right — each directory is checked for a `.lmpkg` whose `package` field matches the import's package name.
-3. Installed packages from `loom.lock` — resolved via the global or project-local Wasm cache (§27.7).
+3. Installed packages from `loom.lock` — resolved via the global or project-local Wasm cache (§28.7).
 4. Global cache (`~/.loom/cache/`) — fallback for packages installed globally.
 
 **Package identity.** Each `LOOMPATH` directory is treated as an independent package source. The resolver reads the directory's `.lmpkg` to determine the package name and version. The version is used only for diagnostic messages — `LOOMPATH` entries take precedence over the `loom.lock`-resolved version regardless of version number. This allows a developer to test an unreleased or patched version of a dependency without bumping version numbers.
@@ -4723,6 +5634,139 @@ set LOOMPATH=C:\dev\loom-http;C:\dev\my-utils
 **Interaction with namespace packages.** If a `LOOMPATH` entry resolves a package that is part of a namespace (e.g., `loom.http`), only that specific package is overridden. Other packages in the same namespace (e.g., `loom.db`) continue to resolve from `loom.lock` as usual.
 
 ---
+
+### §13.10 Circular Imports and Deferred Type Resolution
+
+*(This section is normative.)*
+
+#### §13.10.1 Circular Import Policy
+
+A **standard circular import** exists when the module dependency graph contains a
+cycle reachable through `from X import (...)` statements. The compiler detects such
+cycles during the dependency resolution phase and emits `E_CIRCULAR_IMPORT` naming
+both modules. This applies in all four execution modes.
+
+Good architecture avoids cycles. Common remedies: extract shared types into a third
+module that both depend on; merge tightly-coupled modules; or use `defer import`
+(§13.10.2) when the cycle is unavoidable.
+
+#### §13.10.2 `defer import` — Deferred Type Resolution
+
+`from X defer import (Name, ...)` breaks import cycles by creating **deferred type
+stubs**. The stub gives the name a valid type identity immediately while deferring
+the binding of its full definition until after the importing module's top-level
+initialization completes.
+
+**Syntax:**
+
+```loom
+from geometry defer import (Point, Transform)
+from events defer import (EventBus, Handler)
+```
+
+`defer` is a keyword. The `prefer compiled` modifier is NOT permitted on a `defer
+import` statement — deferred imports always use the module's default resolution.
+
+**Stub lifecycle.** The runtime goes through three phases for each deferred name:
+
+| Phase | State | Description |
+|---|---|---|
+| 1. Import statement reached | Stub created | Name is bound to an opaque type stub. No definition available yet. |
+| 2. Importing module's top-level code completes | Pending resolution | All deferred imports for this module are queued for resolution. |
+| 3. Target module finishes loading | Resolved | Stub is replaced by the real type. All declaration sites using the stub are updated. |
+
+**What is permitted with a stub (before resolution):**
+
+| Usage | Permitted | Notes |
+|---|---|---|
+| Type annotation on `let`/`var` declaration | ✓ | `let x: Point;` — uninitialized binding |
+| Function parameter type | ✓ | `func f(p: Point): void` |
+| Function return type | ✓ | `func g(): Point` |
+| Class/struct field type | ✓ | `pub let origin: Point;` |
+| Interface method signature | ✓ | `func transform(t: Transform): Self;` |
+| Type parameter constraint | ✓ | `func h[T: Comparable[Point]]()` |
+| `instanceof` / `is` type check | ✓ | `x instanceof Point` |
+| Union type member | ✓ | `Point | None` |
+| Generic type argument | ✓ | `list[Point]` |
+
+**What is NOT permitted with a stub (before resolution):**
+
+| Usage | Error |
+|---|---|
+| Construction: `Point(x=1.0, y=2.0)` | `E_DEFERRED_USE_BEFORE_RESOLVED` |
+| Method call on stub-typed value at top level | `E_DEFERRED_USE_BEFORE_RESOLVED` |
+| `as` / `as?` cast to stub type | `E_DEFERRED_USE_BEFORE_RESOLVED` |
+| Accessing a stub-typed field at top level | `E_DEFERRED_USE_BEFORE_RESOLVED` |
+| Using stub type in `@mode(freestanding)` | `E_DEFERRED_NOT_FREESTANDING` |
+
+The restriction applies only during **module initialization** (top-level execution).
+Inside function bodies, method bodies, and closures that execute after initialization,
+deferred names are always fully resolved — these usages are unrestricted.
+
+**Example — mutual reference cycle:**
+
+```loom
+// nodes.loom
+from edges defer import (Edge)
+
+class Node : Any {
+  pub let id: int;
+  pub var edges: list[Edge] = [];   // ✓ — field type annotation, stub ok
+
+  pub func addEdge(edge: Edge): void {  // ✓ — parameter type, stub ok
+    edges.append(edge);
+  }
+}
+```
+
+```loom
+// edges.loom
+from nodes defer import (Node)
+
+class Edge : Any {
+  pub let from: Node;              // ✓ — field type annotation, stub ok
+  pub let to:   Node;              // ✓ — field type annotation, stub ok
+
+  new(from: Node, to: Node) {      // ✓ — parameter type, stub ok
+    this.from = from;
+    this.to   = to;
+  }
+}
+```
+
+Both modules compile. At runtime, whichever is loaded first creates stubs for the
+other's deferred names. After both have initialized, all stubs resolve to their real
+types. Code that constructs `Node` or `Edge` values runs in function bodies, which
+execute after initialization — no `E_DEFERRED_USE_BEFORE_RESOLVED` can fire there.
+
+**Stub identity.** A deferred type stub participates in the type system as a proper
+named type. Two stubs for the same fully-qualified name from different `defer import`
+sites in the same module are the same type. A stub is a subtype of `Any`. Stubs do
+not satisfy interface constraints until resolved; the compiler defers interface
+satisfaction checking to the resolution phase.
+
+**Resolution failure.** If the target module fails to export a `defer`-imported name
+(export missing, type mismatch, or module load error), it is `E_DEFERRED_RESOLUTION_FAILED`.
+The error identifies the importing module, the target module, and the unresolved name.
+
+**`defer import` and generics.** A deferred type may be used as a type argument in
+declarations: `list[Point]` as a field type is valid before resolution. Instantiation
+(`list[Point].new()` at top level) follows the same rule as construction — not
+permitted before resolution.
+
+**Mode availability.** `defer import` is available in `@mode(scripted)`, `@mode(compiled)`,
+and `@mode(native)`. It is NOT available in `@mode(freestanding)` — freestanding modules
+are statically linked with no runtime module loader, so deferred resolution has no
+mechanism (`E_DEFERRED_NOT_FREESTANDING`).
+
+#### §13.10.3 Error Codes
+
+| Code | Condition |
+|---|---|
+| `E_CIRCULAR_IMPORT` | See §13.1 — `import` chain creates a module dependency cycle |
+| `E_DEFERRED_USE_BEFORE_RESOLVED` | A value operation (construction, method call, cast, field access) on a deferred type stub during module top-level initialization, before the stub is resolved |
+| `E_DEFERRED_RESOLUTION_FAILED` | The target module of a `defer import` did not export the requested name, or exported an incompatible type |
+| `E_DEFERRED_NOT_FREESTANDING` | `defer import` used in `@mode(freestanding)` — no runtime module loader |
 
 ## §14 Multiline Strings
 
@@ -4758,6 +5802,12 @@ let text = """
 
 ---
 
+**Multiline string error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_MLS_ALIGN` | Content line does not start with the alignment anchor prefix `P` |
+
 ## §15 Interpolated Strings
 
 *(This section is normative.)*
@@ -4765,8 +5815,8 @@ let text = """
 Interpolated strings embed expressions in single- or double-quoted strings using `{$ ... $}` delimiters:
 
 ```
-let greeting = "Hello, {$ name $}";
-let path = 'out/{$ fileStem $}.txt';
+let greeting = i"Hello, {$ name $}";
+let path = i'out/{$ fileStem $}.txt';
 ```
 
 **Rules:**
@@ -4915,8 +5965,8 @@ Bare expression statements in templates are NOT permitted; use `do` for side eff
 
 ```
 class Template {
-  pub language: string;
-  pub format: string;
+  pub let language: string;
+  pub let format: string;
 
   pub func render(scope: dict[string, Any]): string;
   pub func renderWith(ctx: RenderContext, scope: dict[string, Any]): string;
@@ -4927,8 +5977,8 @@ class Template {
 }
 
 class RenderContext {
-  pub language: string;
-  pub format: string;
+  pub let language: string;
+  pub let format: string;
 }
 ```
 
@@ -4953,7 +6003,7 @@ Any class implementing `Renderable` controls its own text representation in temp
 | `string` | Inserted as-is (no conversion) |
 | `int`, `float`, `bool` | Auto-boxed at the render boundary; rendered via the boxed type's `render(ctx)` method (e.g., `Int.render(ctx)` produces the decimal string representation) |
 | `Int`, `Float`, `Bool`, `String`, `Bytes` (boxed) | Rendered via their `render(ctx)` method |
-| `bytes` | **Error** — `bytes` insertion is a compile-time error unless converted via a filter (e.g., `{$ data \| base64 $}`) |
+| `bytes` | **Error** (`E_TEMPLATE_BYTES`) — `bytes` insertion is a compile-time error unless converted via a filter (e.g., `{$ data \| base64 $}`) |
 | Class implementing `Renderable` | Calls `instance.render(ctx)` |
 | Class NOT implementing `Renderable` | Falls through to `Any.render()` (see below) |
 | `enum` variants | Auto-boxed at the render boundary; rendered via the boxed enum's `render(ctx)` method, which produces the variant name and payload (e.g., `"Some(42)"`, `"Err(\"not found\")"`) |
@@ -4964,6 +6014,32 @@ Any class implementing `Renderable` controls its own text representation in temp
 | `Task[T]` | **Error** — `Task[T]` values are never auto-awaited; inserting a `Task` without `await` is a compile-time error in both templates and interpolated strings |
 | `None` (standalone) | Renders as the empty string `""` |
 | `Any` | Dispatches to the runtime type's `render(ctx)` method if the boxed value implements `Renderable`; otherwise uses `Any.render()` default |
+
+**Built-in filter functions.** The following filters are available in all `{$ expr | filter $}` positions in template fences and interpolated strings. Filters are applied as post-processing steps on the rendered string produced by the expression. Multiple filters may be chained: `{$ expr | upper | trim $}`.
+
+| Filter | Signature | Description |
+|---|---|---|
+| `upper` | `upper` | Convert to ASCII uppercase |
+| `lower` | `lower` | Convert to ASCII lowercase |
+| `trim` | `trim` | Remove leading and trailing whitespace |
+| `trim_start` | `trim_start` | Remove leading whitespace only |
+| `trim_end` | `trim_end` | Remove trailing whitespace only |
+| `escape` | `escape` | HTML-entity-encode `&`, `<`, `>`, `"`, `'` |
+| `raw` | `raw` | Suppress all context-aware escaping; insert value as-is (`SafeHtml`/`Url` values bypass this) |
+| `base64` | `base64` | Base64-encode a `bytes` value; required for inserting `bytes` in templates |
+| `join` | `join(sep)` | Join an `Iterable[T]` with separator string `sep` |
+| `wrap` | `wrap(open, close)` | Prepend `open` and append `close` to the rendered string |
+| `default` | `default(fallback)` | If the rendered string is empty, substitute `fallback` |
+| `truncate` | `truncate(n)` | Truncate rendered string to at most `n` characters, appending `…` |
+| `replace` | `replace(from, to)` | String-replace all occurrences of `from` with `to` |
+
+User-defined filters may be implemented as functions with signature `func(value: string, ...args): string` and called identically: `{$ expr | myFilter $}` or `{$ expr | myFilter(arg) $}`. The first argument is always the rendered-string result of the preceding expression or filter; additional arguments come from the call's argument list. A compile-time error is emitted if a filter function cannot be resolved (`E_FILTER_UNRESOLVED`) or if the argument count does not match (`E_FILTER_ARITY`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_FILTER_UNRESOLVED` | All | `\| filterName` in a template fence refers to a name that does not resolve to a callable function |
+| `E_FILTER_ARITY` | All | Filter function invocation argument count does not match the function's declared parameters |
+| `E_TEMPLATE_BYTES` | All | `{$ byteValue $}` directly inserted into a template without a conversion filter (e.g. `\| base64`) |
 
 **Default `Any.render()` behavior:**
 
@@ -4993,7 +6069,11 @@ The parser tracks the current HTML context as it processes the fence body. The f
 | `url-attr` | URL-valued attribute: `href="{$ x $}"` | URL validation + attribute encoding |
 | `raw` | Via `raw` filter: `{$ x \| raw $}` | None — developer asserts safety |
 
-Unquoted attribute values (`<tag attr={$ x $}>` without surrounding quotes) are a **compile-time error** in `html` fences. All dynamic attributes must be quoted.
+Unquoted attribute values (`<tag attr={$ x $}>` without surrounding quotes) are a **compile-time error** (`E_HTML_UNQUOTED_ATTR`) in `html` fences. All dynamic attributes must be quoted.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_HTML_UNQUOTED_ATTR` | All | `{$ expr $}` interpolation inside an unquoted HTML attribute value in an `html` fence |
 
 #### §16.6.2 Text Context Escaping
 
@@ -5028,7 +6108,7 @@ An interpolation inside a quoted attribute value applies attribute encoding — 
 | `'` | `&#x27;` |
 
 ```
-<input value="{$ userInput $}" placeholder="{$ hint $}" />
+<input value=i"{$ userInput $}" placeholder=i"{$ hint $}" />
 // userInput = `say "hello"` → value="say &quot;hello&quot;"
 ```
 
@@ -5039,7 +6119,11 @@ The following HTML attributes are recognised as URL-valued: `href`, `src`, `acti
 When an interpolation appears in a URL-valued attribute, the compiler:
 
 1. Requires the interpolated value to be of type `core.text.Url` (see §16.6.7). A bare `string` emits a compile-time lint warning.
-2. Validates that the URL's scheme is not `javascript:` or `vbscript:`. A `javascript:` scheme is a **compile-time error** when statically detectable. At runtime, `Url.of()` throws `UrlError` for disallowed schemes.
+2. Validates that the URL's scheme is not `javascript:` or `vbscript:`. A `javascript:` scheme is a **compile-time error** (`E_URL_SCHEME_UNSAFE`) when statically detectable. At runtime, `Url.of()` throws `UrlError` for disallowed schemes.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_URL_SCHEME_UNSAFE` | All | `Url` fence interpolation or literal uses `javascript:` or `vbscript:` scheme — statically detectable only |
 3. Applies attribute encoding to the rendered URL string (same rules as §16.6.3).
 
 ```
@@ -5058,7 +6142,11 @@ When an interpolation appears in a URL-valued attribute, the compiler:
 
 #### §16.6.5 `<script>` and `<style>` Prohibition
 
-Interpolations inside `<script>` or `<style>` blocks in an `html` fence are a **compile-time error**. Encoding for JavaScript and CSS contexts is significantly more complex than HTML encoding and cannot be specified as a simple character substitution table. The correct patterns are:
+Interpolations inside `<script>` or `<style>` blocks in an `html` fence are a **compile-time error** (`E_SCRIPT_STYLE_INTERPOLATION`). Encoding for JavaScript and CSS contexts is significantly more complex than HTML encoding and cannot be specified as a simple character substitution table. The correct patterns are:
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SCRIPT_STYLE_INTERPOLATION` | All | `{$ expr $}` or `{% directive %}` inside a `<script>` or `<style>` block in an `html` fence |
 
 - Pass data from Loom to JavaScript via the structured state serialization mechanism (§19.7) or via `data-` attributes, then read those from JavaScript after the Wasm module loads.
 - Never inject Loom values directly into inline `<script>` blocks.
@@ -5066,11 +6154,11 @@ Interpolations inside `<script>` or `<style>` blocks in an `html` fence are a **
 ```
 // COMPILE-TIME ERROR:
 <script>
-  var name = "{$ userName $}";
+  var name = i"{$ userName $}";
 </script>
 
 // CORRECT: data attribute + read from JS/Wasm interop
-<div id="app" data-user="{$ userName $}"></div>
+<div id="app" data-user=i"{$ userName $}"></div>
 ```
 
 #### §16.6.6 Raw Output Opt-Out
@@ -5272,7 +6360,7 @@ let styles = ``(css)
 
 #### §16.7.5 Availability
 
-`css` fences are available on all targets:
+`css` fences are available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. They are **not available** in `@mode(freestanding)` — there is no UI runtime (`E_FREESTANDING_FENCE`).
 
 | Target | Behavior |
 |---|---|
@@ -5280,17 +6368,18 @@ let styles = ``(css)
 | `service` / SSR | `toCSS()` is inlined in the SSR `<style>` block |
 | `native` | `StyleSheet` is passed to `ui.desktop` as a style descriptor; CSS properties are translated to the platform rendering model |
 | `cli` | `css` fences are valid but `toCSS()` simply returns the CSS string — no DOM is available |
+| `freestanding` | Not available — compile-time error (`E_FREESTANDING_FENCE`) |
 
 
 ---
 
-## §16.8 GPU/Compute Fence Descriptors
+### §16.8 GPU/Compute Fence Descriptors
 
-*(This section is normative. Applies to `@compiled --target native` and `browser` targets where WebGPU is available.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` and `browser` targets where WebGPU is available.)*
 
 Three additional language descriptors extend the template fence system (§16.1) for GPU kernel authoring. These fences produce `GpuKernel` values (§21.30) rather than `Template` strings. The fence body is a shader program in the target shading language; `{$ expr $}` interpolations inject Loom compile-time constant expressions as shader constants.
 
-### §16.8.1 `wgsl` — WebGPU Shading Language
+#### §16.8.1 `wgsl` — WebGPU Shading Language
 
 ```loom
 from native.gpu import (GpuKernel, GpuBuffer, dispatch);
@@ -5314,11 +6403,16 @@ let addKernel = GpuKernel.compile(```(wgsl):(none)
 
 **Rules:**
 - The `wgsl` descriptor is valid on `browser` targets and on native targets with a WebGPU-capable GPU backend.
-- Only compile-time constant Loom expressions (`int`, `float32`, `bool`) are permitted in `{$ expr $}` interpolations inside `wgsl` fences. Runtime values are a compile-time error.
+- Only compile-time constant Loom expressions (`int`, `float32`, `bool`) are permitted in `{$ expr $}` interpolations inside `wgsl` fences. Runtime values are a compile-time error (`E_GPU_FENCE_RUNTIME`).
 - The fence body must be valid WGSL. Syntax errors in the fence body are reported as compile-time errors when the containing file is processed by `loom build --check`; at runtime, `GpuKernel.compile` throws `GpuCompileError` on shader compilation failure.
 - Multiple entry points (`@compute`, `@vertex`, `@fragment`) are permitted in a single fence.
 
-### §16.8.2 `metal` — Metal Shading Language
+| Code | Mode | Condition |
+|---|---|---|
+| `E_GPU_FENCE_RUNTIME` | All | `{$ expr $}` interpolation inside a GPU/compute fence references a non-compile-time-constant value |
+| `E_GPU_FENCE_TARGET` | All | `metal` fence used on a non-macOS/iOS target; or `glsl`/`stablehlo`/`hlo` on an unsupported target |
+
+#### §16.8.2 `metal` — Metal Shading Language
 
 ```loom
 from native.gpu import (GpuKernel, dispatch);
@@ -5339,10 +6433,10 @@ let kernel = GpuKernel.compile(```(metal):(none)
 ```
 
 **Rules:**
-- The `metal` descriptor is valid on `--os macos` and `--os ios` native targets only. Using it on other targets is a compile-time error.
+- The `metal` descriptor is valid on `--os macos` and `--os ios` native targets only. Using it on other targets is a compile-time error (`E_GPU_FENCE_TARGET`).
 - Only `int`, `float32`, and `bool` compile-time constants are permitted in `{$ expr $}` interpolations.
 
-### §16.8.3 `glsl` — OpenGL/Vulkan Compute Shader
+#### §16.8.3 `glsl` — OpenGL/Vulkan Compute Shader
 
 ```loom
 from native.gpu import (GpuKernel, dispatch);
@@ -5367,7 +6461,7 @@ let kernel = GpuKernel.compile(```(glsl):(none)
 - GLSL version must be `#version 450` or higher (Vulkan GLSL).
 - `{$ expr $}` interpolations are valid for compile-time integer constants only.
 
-### §16.8.4 Fence Body Compilation Model
+#### §16.8.4 Fence Body Compilation Model
 
 GPU compute fences follow the same multi-backtick nesting rules as all other fences (§16.1). The `constants` map in `GpuKernel.compile` receives a `dict[string, Any]` whose values must be compile-time constants. The fence interpolations `{$ expr $}` are evaluated at the time the fence expression is evaluated and substituted into the shader source string before it is passed to the GPU driver for compilation. This allows loop unrolling counts, workgroup sizes, and compile-time feature flags to be expressed as Loom values rather than magic numbers in the shader source.
 
@@ -5400,7 +6494,12 @@ async func buildPage(): Task[string] {
 - `await` is prohibited during module initialization — imported modules may not suspend during initialization.
 - `try`/`catch`, `finally`, `defer`, and lexical scope behave identically across suspension points as in synchronous code.
 - `Task[T]` is a first-class class value (`Any`); it is never implicitly converted to `T`.
-- Inserting a `Task[T]` into templates without `await` is an error.
+- Inserting a `Task[T]` into templates without `await` is `E_UNAWAITED_TASK`.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_UNAWAITED_TASK` | All | `Task[T]` value used in a template fence interpolation without `await` |
+| `E_AWAIT_NOT_ASYNC` | All | `await` expression used outside an `async func` body, entry script, or REPL |
 
 ### §17.2 `await group`
 
@@ -5425,10 +6524,14 @@ async func loadDashboard(userId: string): Task[Dashboard] {
 **Rules:**
 
 - `await group { ... }` is a block statement requiring an `async` context.
-- `spawn expr` starts `expr` (type `Task[T]`) as a child task owned by the group. `spawn` is a contextual keyword valid only inside `await group`.
+- `spawn expr` starts `expr` (type `Task[T]`) as a child task. `spawn` is a keyword valid in any `async` context. Inside `await group`, the spawned task is owned by the group and its result is available after the group exits.
 - `binding = spawn expr` is sugar: the binding receives the resolved `T` value after the group exits normally.
 - All spawned tasks must complete or be cancelled before the block exits.
-- Storing a spawned `Task[T]` outside the group scope is a compile-time error (when statically detectable) or a runtime `LifetimeError`.
+- Storing a spawned `Task[T]` outside the group scope is `E_TASK_SCOPE_ESCAPE` (when statically detectable) or a runtime `LifetimeError`.
+| Code | Mode | Condition |
+|---|---|---|
+| `E_TASK_SCOPE_ESCAPE` | All | Spawned `Task[T]` from `await group` is stored or returned outside the group's lexical scope (statically detectable cases) |
+
 - If any spawned task fails, the group cancels all other children, waits for all to settle, then re-raises the failure.
 - `CancellationError` is thrown at the next `await` point inside a cancelled task.
 - `defer` inside `await group` runs after all children have settled.
@@ -5459,6 +6562,10 @@ class TaskGroup {
   pub static func race[T, R](items: list[T], body: async func(T): R): AsyncIterable[R];
   pub static async func withTimeout[T](ms: int, body: async func(): T): Task[T];
   pub static async func withCancellation[T](body: async func(token: CancellationToken): T): Task[T];
+
+  // Bounded concurrency — at most `n` body invocations run simultaneously.
+  // Throws TaskQueueFullError if the internal work queue reaches capacity (see §20.1).
+  pub static async func collectBounded[T, R](items: list[T], maxConcurrency: int, body: async func(T): R): Task[list[R]];
 }
 
 class CancellationToken : Any {
@@ -5482,11 +6589,15 @@ async func processLines(path: string): Task[void] {
 }
 ```
 
-- `for await (x in xs) { ... }` requires an `async` context and `xs` to implement `AsyncIterable[T]`.
+- `for await (x in xs) { ... }` requires an `async` context and `xs` to implement `AsyncIterable[T]` (`E_NOT_ASYNC_ITERABLE` if it does not).
 - `break` on a `for await` loop calls `asyncIter().close()` if that method exists.
 - `for await` participates in structured concurrency cancellation.
 - `CancellationError` thrown inside a `for await` loop body propagates normally (it is not caught by the loop itself).
 - `for await` is permitted in template directives during async rendering.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NOT_ASYNC_ITERABLE` | All | `for await (x in expr)` where `expr` does not implement `AsyncIterable[T]` |
 
 ### §17.5 Async Iterator Combinators
 
@@ -5515,13 +6626,63 @@ Actors provide sequential message processing with supervision:
 
 ```
 class Actor[M] : Any {
+  // Create and start an actor.  `handler` is called once per message in
+  // delivery order; it runs inside a dedicated structured-concurrency child
+  // task and must not itself await indefinitely between messages.
+  pub static async func spawn(handler: async fn(msg: M): Task[void]): Task[Actor[M]];
+
+  // Simplified synchronous-handler overload for actors that do not need await.
+  pub static async func spawn(handler: fn(msg: M): void): Task[Actor[M]];
+
   pub func send(msg: M): void;
-  pub func ask[R](msg: M): Task[R];
+  pub async func ask[R](msg: M): Task[R];
+
+  // Request orderly shutdown: no new messages are accepted; in-flight
+  // messages drain before the actor task exits.
+  pub func stop(): void;
 }
 ```
 
+- `Actor.spawn(handler)` starts the actor in a new child task and returns an `Actor[M]` handle. The call must be `await`-ed inside an `async` context (the actor runs for the lifetime of its enclosing `await group` or until `stop()` is called).
 - `actor.send(msg)` delivers a message asynchronously. Messages are processed sequentially in send order.
-- `actor.ask(msg)` sends a message and returns a `Task[R]` that resolves with the response.
+- `actor.ask(msg)` sends a message and returns a `Task[R]` that resolves with the response. The `handler` must reply via the implicit `ActorContext` (see below) or the `Task[R]` never resolves.
+- `actor.stop()` signals orderly shutdown; the handler finishes the current message, then the actor task exits.
+
+**`ActorContext`** is an implicit value available inside the handler body for replying to `ask` calls:
+
+```
+// Full actor example
+enum CounterMsg {
+  Increment;
+  GetCount;
+}
+
+async func runCounter(): Task[void] {
+  var count = 0;
+
+  let counter = await Actor.spawn(async func(msg: CounterMsg) {
+    match msg {
+      CounterMsg.Increment => { count = count + 1; }
+      CounterMsg.GetCount  => { ActorContext.reply(count); }
+    }
+  });
+
+  counter.send(CounterMsg.Increment);
+  counter.send(CounterMsg.Increment);
+  let total = await counter.ask(CounterMsg.GetCount);  // 2
+  counter.stop();
+}
+```
+
+```
+class ActorContext : Any {
+  // Reply to the current ask() call. No-op if called from a send()-originated invocation.
+  // Only the first reply is delivered; subsequent calls on the same invocation are ignored.
+  pub static func reply[R](value: R): void;
+}
+```
+
+`ActorContext.reply(value)` sends the response for the current `ask` call. Calling `reply` from a `send`-originated invocation is a no-op. Calling `reply` more than once per `ask` is a runtime warning; only the first reply is delivered.
 
 **Supervision strategies:**
 
@@ -5535,7 +6696,61 @@ class Actor[M] : Any {
 
 Actors and supervision trees are built on top of `await group` and `TaskGroup` primitives.
 
-### §17.7 `weak` References in Concurrent Contexts
+### §17.7 `atomic {}` — Cooperative Atomicity Scope
+
+*(This section is normative. Applies to `@mode(scripted)` and `@mode(compiled)`.)*
+
+An `atomic {}` block guarantees that no suspension point occurs within its lexical scope. It is the primary mechanism for closing TOCTOU (time-of-check/time-of-use) races in cooperative async code: all statements between the opening and closing brace execute without interleaving from other tasks.
+
+**Semantics.** The compiler rejects `await` expressions, `for await` loops, and `spawn` statements inside an `atomic {}` block (`E_ATOMIC_AWAIT`). No call to a function declared `async` is permitted inside `atomic {}` unless it is statically proven to not contain any suspension point — in practice, only `safe func` and non-`async` functions are permitted. The cooperative scheduler does not preempt within an `atomic {}` block; other tasks do not run until the block exits.
+
+```loom
+// Without atomic {}: TOCTOU window between check and act
+if (cache.has(key)) {
+  await expensiveOperation()   // another task may evict key here
+  return cache.get(key)        // key may be gone — returns None unexpectedly
+}
+
+// With atomic {}: check and act are uninterruptible
+var cached: Option[string] = None
+atomic {
+  if (cache.has(key)) { cached = Some(cache.get(key)) }
+}
+if (cached != None) { return cached.unwrap() }
+
+let result = await expensiveOperation()
+atomic {
+  cache.set(key, result)
+}
+return result
+```
+
+**`atomic {}` is not a mutex.** It does not prevent interleaving in multi-threaded native mode — for that, use `synchronized` (§23.4.13) or `Mutex[T]` (§17.8.2). In scripted/compiled mode, `atomic {}` is sufficient because there is only one OS thread.
+
+**Permitted and prohibited inside `atomic {}`:**
+
+| Operation | Permitted |
+|---|---|
+| Synchronous function calls | ✓ |
+| `modifier` calls on `synchronized` instances | ✓ (acquires runtime lock — does not block scheduler) |
+| `reads`/`edits`/`takes`/`shares` verb operations | ✓ |
+| `await` expression | ✗ `E_ATOMIC_AWAIT` |
+| `for await` loop | ✗ `E_ATOMIC_AWAIT` |
+| `spawn` / `TaskGroup.collect` | ✗ `E_ATOMIC_AWAIT` |
+| `async func` call (unless proven suspension-free) | ✗ `E_ATOMIC_AWAIT` |
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_ATOMIC_AWAIT` | Scripted, Compiled | Suspension point inside `atomic {}` block |
+| `E_ATOMIC_NOT_WASM` | Native, Freestanding | `atomic {}` used outside scripted/compiled mode; use `synchronized` or `InterruptGuard` |
+
+**Task queue exhaustion (normative).** Spawning tasks in an unbounded loop without awaiting results can exhaust available memory. The runtime enforces a configurable maximum pending-task queue depth via `runtime.configure` (§20.1). When the queue is full, further `spawn` operations throw `TaskQueueFullError` (§26.1). The default limit is implementation-defined but MUST be documented. Use `TaskGroup.collectBounded` (§17.3) as the preferred pattern for high-throughput task production.
+
+---
+
+### §17.7b `weak` References in Concurrent Contexts
 
 On the native ARC target, `weak` references interact with concurrency as follows:
 
@@ -5548,7 +6763,7 @@ On GC runtimes (scripted/Wasm), `weak` references behave consistently — the GC
 
 ### §17.8 OS Thread Parallelism (`--target native`)
 
-*(This section is normative. It applies only to `@compiled` files targeting `--target native`. All constructs in this section are compile-time errors in scripted mode or `@compiled` files targeting Wasm.)*
+*(This section is normative. It applies only to `@mode(native)` and `@mode(freestanding)` files. All constructs in this section are compile-time errors in scripted mode or compiled-mode files targeting Wasm.)*
 
 Loom's cooperative async runtime runs on a single OS thread by default. For CPU-bound workloads on `--target native`, true parallelism is available via OS threads using the primitives in this section. For parallelizing async work itself across cores, see §17.9 (Multi-Threaded Async Executor). OS thread primitives are a lower-level interface intended for compute-heavy work and synchronous blocking operations.
 
@@ -5571,16 +6786,16 @@ interface Sendable {}
 - `Mutex[T]`, `RwLock[T]`, and `Atomic[T]` (see §17.8.2), regardless of `T`.
 - Closures whose captured values are all `Sendable` are themselves `Sendable`.
 
-**Explicit `Sendable` with structural verification.** Classes must explicitly declare `implements Sendable`. The compiler does not infer `Sendable` for classes. When a class declares `implements Sendable`, the compiler performs **structural `Sendable` verification**: every `var` field must be of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]`. These are the only types that provide synchronized mutable access safe for concurrent use. `let` fields are exempt — immutable fields are inherently safe to share across threads regardless of type.
+**Explicit `Sendable` with structural verification.** Classes must explicitly declare `implements Sendable`. The compiler does not infer `Sendable` for classes. When a class declares `implements Sendable`, the compiler performs **structural `Sendable` verification**: every `var` field must be of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]`. `let` fields are exempt — immutable fields are inherently safe to share across threads regardless of type. The one exception to this rule is `synchronized` classes: a class that declares both `synchronized` and `implements Sendable` is exempt from the `var` field restriction — the per-instance mutex provides equivalent thread safety (§23.4.13).
 
 A `var` field of any other type — including `Sendable` types such as `int` or `string` — on a class declaring `implements Sendable` is a compile-time error (`E_SENDABLE_UNPROTECTED_VAR`). Even `Sendable` value types are unsafe as unprotected `var` fields because two threads could simultaneously read-modify-write the field, producing a data race.
 
 ```loom
-@compiled
+@mode(compiled)
 
 // COMPILE ERROR — unprotected var field
 class UnsafeCounter : Any implements Sendable {
-  var count: int = 0    // E_SENDABLE_UNPROTECTED_VAR
+  var count: int = 0;   // E_SENDABLE_UNPROTECTED_VAR
 }
 
 // OK — all mutable state behind Mutex
@@ -5600,12 +6815,12 @@ class SafeCounter : Any implements Sendable {
 To opt out of structural verification when the compiler cannot see the synchronization mechanism — for example, when safety is ensured by an external lock or protocol — annotate the class with `@unsafe("sendable: <reason>")` (see §23.4.6). The `@unsafe` annotation is the explicit, auditable record of the programmer's assertion.
 
 ```loom
-@compiled
+@mode(compiled)
 
 // OK — programmer asserts external synchronization via @unsafe
 @unsafe("sendable: access is serialized by the event loop; no concurrent mutation occurs")
 class LegacyState : Any implements Sendable {
-  var value: int = 0
+  var value: int = 0;
 }
 ```
 
@@ -5613,7 +6828,7 @@ class LegacyState : Any implements Sendable {
 
 | Code | Meaning |
 |---|---|
-| `E_SENDABLE_UNPROTECTED_VAR` | Class declares `implements Sendable` but has a `var` field not of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]` |
+| `E_SENDABLE_UNPROTECTED_VAR` | Class declares `implements Sendable` but has a `var` field not of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]`; suppressed for `synchronized` classes (§23.4.13) |
 
 **Non-`Sendable` types.** Types not implementing `Sendable` may not cross thread boundaries. Attempting to capture a non-`Sendable` value in a `Thread.spawn` closure is a compile-time error.
 
@@ -5679,7 +6894,7 @@ All operations on `Atomic[T]` use sequentially-consistent memory ordering. Weake
 
 `Mutex[T]` and `RwLock[T]` implement `Sendable` unconditionally. Their internal lock is a native OS mutex/rwlock. Re-entrant locking (acquiring the same lock from within a `withLock`/`withRead`/`withWrite` callback) is a `LifetimeError` trap in debug builds and undefined behaviour in release builds.
 
-All three types are in the `sync.thread` module and require `@compiled --target native`.
+`Mutex[T]` and `RwLock[T]` are in the `sync.thread` module and require `@mode(native)` — they depend on OS thread primitives unavailable in `@mode(freestanding)`. `Atomic[T]` is available in both `@mode(native)` and `@mode(freestanding)`; for bare-metal multi-core synchronisation use `Atomic[T]` directly or the `native.atomic` functions (§24.20). Using `Mutex[T]` or `RwLock[T]` in `@mode(freestanding)` is `E_FREESTANDING_RUNTIME`.
 
 #### §17.8.3 `Thread` and `ThreadHandle`
 
@@ -5720,7 +6935,7 @@ class ThreadHandle[T: Sendable] : Any {
 **Example — parallel chunk processing:**
 
 ```loom
-@compiled
+@mode(compiled)
 
 from sync.thread import (Thread, Mutex);
 
@@ -5766,7 +6981,7 @@ class ThreadPool : Any implements Sendable {
 **`borrow[~label]` capture restriction.** Closures passed to `ThreadPool.run` may not capture any `borrow[~label]` binding (`E_BORROW_THREAD_CAPTURE`). The pool work item runs on a separate OS thread and may outlive the calling frame, invalidating any lifetime-labeled borrow. Plain `borrow` captures are separately prevented by the existing `Sendable` requirement on the closure's captured types.
 
 ```loom
-@compiled
+@mode(compiled)
 
 from sync.thread import (ThreadPool);
 
@@ -5787,10 +7002,11 @@ async func renderAllFrames(frames: list[Frame]): Task[list[bytes]] {
 | `await` inside thread body closures | Async tasks are event-loop-bound — compile-time error |
 | `core.inspect` inside thread bodies | Live runtime registry is not thread-safe — compile-time error |
 | `dynamic class` instances crossing thread boundaries | Dynamic fields are not thread-safe — non-`Sendable` by default |
-| `Thread`, `ThreadPool`, `Mutex`, `RwLock`, `Atomic` in scripted mode or Wasm targets | OS threads unavailable — compile-time error |
+| `Thread`, `ThreadPool`, `Mutex`, `RwLock` in scripted mode, compiled-mode Wasm targets, or `@mode(freestanding)` | OS threads unavailable — compile-time error (`E_FREESTANDING_RUNTIME` in freestanding) |
+| `Atomic[T]` in scripted mode or compiled-mode Wasm targets | Available in `@mode(native)` and `@mode(freestanding)` (see §17.8.2); compile-time error elsewhere |
 | `spawnBlocking` in scripted mode or Wasm targets | Available — backed by host thread pool; see §17.10.1 |
-| `native.simd` and `Vec[T, N]` outside `--target native` | SIMD intrinsics require native code generation |
-| `@vectorize` outside `@compiled` | Ignored in scripted mode; compile-time warning |
+| `native.simd` and `Vec[T, N]` outside `@mode(native)` or `@mode(freestanding)` | SIMD intrinsics require native code generation |
+| `@vectorize` in `@mode(scripted)` | Auto-vectorization hint ignored — JIT does not honour compile-time SIMD hints; compile-time lint advisory |
 
 **Data race freedom guarantee.** Any program that passes all compile-time `Sendable` checks is free of data races on objects visible to `core.reflect`. The guarantee does not extend to `extern native` objects accessed from multiple threads — native thread safety is the FFI caller's responsibility.
 
@@ -5798,13 +7014,13 @@ async func renderAllFrames(frames: list[Frame]): Task[list[bytes]] {
 
 ---
 
-## §17.9 Multi-Threaded Async Executor
+### §17.9 Multi-Threaded Async Executor
 
-*(This section is normative. Executor configuration (`RuntimeConfig`, `ExecutorConfig`, work-stealing executor, `@concurrent`, actor isolation, `ThreadLocal[T]`) applies to `@compiled` files targeting `--target native` and is a compile-time error elsewhere. `spawnBlocking` is available on all targets including scripted mode and Wasm — see §17.10.1. `TaskLocal[T]` is available on all targets including scripted mode and Wasm.)*
+*(This section is normative. Executor configuration (`RuntimeConfig`, `ExecutorConfig`, work-stealing executor, `@concurrent`, actor isolation, `ThreadLocal[T]`) applies to `@mode(native)` only — freestanding mode has no async executor. `spawnBlocking` is available in scripted, compiled, and native modes (not freestanding) — see §17.10.1. `TaskLocal[T]` is available in scripted, compiled, and native modes. `TaskLocal[T]` is not available in `@mode(freestanding)` — there is no async task scheduler to bind task-local storage to.)*
 
 The default Loom async executor is a cooperative, single-threaded event loop. For programs that require true parallel execution of async tasks across CPU cores, the executor may be reconfigured to a **work-stealing multi-threaded model** via the `RuntimeConfig` API.
 
-### §17.9.1 `ExecutorConfig` and `RuntimeConfig`
+#### §17.9.1 `ExecutorConfig` and `RuntimeConfig`
 
 ```loom
 namespace runtime;
@@ -5816,8 +7032,9 @@ enum ExecutorConfig {
 }
 
 struct RuntimeConfig {
-  asyncExecutor: ExecutorConfig = ExecutorConfig.SingleThreaded;
-  blockingPoolSize: int = 512;       // Max threads in the blocking pool (§17.9.3)
+  asyncExecutor:     ExecutorConfig = ExecutorConfig.SingleThreaded;
+  blockingPoolSize:  int = 512;    // Max threads in the blocking pool (§17.9.3)
+  maxTaskQueueDepth: int = 0;      // 0 = unlimited; positive value caps pending spawn queue (§20.1)
 }
 
 // Configure the runtime. Must be called before any await expression evaluates.
@@ -5838,7 +7055,7 @@ func configure(config: RuntimeConfig): void;
 **Example — opting into multi-threaded execution:**
 
 ```loom
-@compiled
+@mode(compiled)
 
 from runtime import (RuntimeConfig, ExecutorConfig);
 
@@ -5855,7 +7072,7 @@ async func main(): Task[void] {
 
 `runtime.configure` is a top-level call that SHALL appear before any `await` expression in the entry point. The compiler emits a warning if `await` precedes `runtime.configure` in the same function. At runtime, calling `runtime.configure` after the event loop has started is a `RuntimeConfigError`.
 
-### §17.9.2 Work-Stealing Executor Semantics
+#### §17.9.2 Work-Stealing Executor Semantics
 
 When `ExecutorConfig.MultiThreaded` is active:
 
@@ -5865,7 +7082,7 @@ When `ExecutorConfig.MultiThreaded` is active:
 - **Completion ordering.** Tasks within a single `await group` or `TaskGroup.collect` call complete in arbitrary order, as in single-threaded mode. Result assembly is handled by the structured concurrency primitives.
 - **Sendability enforcement.** In multi-threaded executor mode, async task captures are subject to `Sendable` constraints at the call site (§17.9.4).
 
-### §17.9.3 `spawnBlocking` — Blocking Work Bridge
+#### §17.9.3 `spawnBlocking` — Blocking Work Bridge
 
 ```loom
 namespace sync.thread;
@@ -5889,7 +7106,7 @@ class BlockingTimeoutError : Exception {
 
 **Blocking pool sizing.** The pool is sized by `RuntimeConfig.blockingPoolSize` (default 512). Threads are created on demand and reused. If all threads are occupied and the pool is at capacity, `spawnBlocking` enqueues the work and the calling task suspends until a thread is available.
 
-**Availability.** `spawnBlocking` is available in all executor modes and on all targets including scripted mode, Wasm, and `--target native`. See §17.10.1 for scripted-mode and Wasm-specific semantics. In all cases it offloads work off the async event loop and is the recommended path for any synchronous operation that could block for more than ~1 ms.
+**Availability.** `spawnBlocking` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. It is **not available** in `@mode(freestanding)` — there is no async event loop to suspend. See §17.10.1 for scripted-mode and Wasm-specific semantics. In all available modes it offloads synchronous work off the async event loop and is the recommended path for any operation that could block for more than ~1 ms.
 
 **`ThreadPool` vs `spawnBlocking`.** `ThreadPool` (§17.8.4) is a manually-managed pool with explicit lifecycle, suitable when the program controls pool sizing and shutdown timing. `spawnBlocking` uses the runtime-managed blocking pool and is the recommended default for ad-hoc blocking work.
 
@@ -5898,7 +7115,7 @@ class BlockingTimeoutError : Exception {
 **Example:**
 
 ```loom
-@compiled
+@mode(compiled)
 
 from sync.thread import (spawnBlocking);
 
@@ -5910,7 +7127,14 @@ async func processImage(path: string): Task[bytes] {
 }
 ```
 
-### §17.9.4 Task Sendability Rules (Multi-Threaded Executor)
+**`spawnBlocking` error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_BLOCKING_CAPTURE` | Non-`Sendable` type captured by a `spawnBlocking` closure |
+| `E_AWAIT_IN_BLOCKING` | `await` expression used inside a `spawnBlocking` body closure |
+
+#### §17.9.4 Task Sendability Rules (Multi-Threaded Executor)
 
 The executor mode determines whether `Sendable` constraints apply to async task closures:
 
@@ -5919,7 +7143,7 @@ The executor mode determines whether `Sendable` constraints apply to async task 
 **Rule 2 — Multi-threaded executor.** In `MultiThreaded` executor mode, async task closures SHALL only capture values whose types implement `Sendable`. A non-`Sendable` capture at a `spawn` or `async func` call site is a compile-time error naming the offending captured variables.
 
 ```loom
-@compiled
+@mode(compiled)
 
 // In MultiThreaded executor mode:
 let sharedCache: Cache = Cache.new();   // Cache does not implement Sendable
@@ -5930,11 +7154,11 @@ async func fetch(): Task[void] {
 }
 ```
 
-**Rule 3 — Binary-level enforcement.** The executor mode is a property of the binary, determined by the `runtime.configure()` call in the entry point. The compiler enforces Rule 2 for all async captures in all `@compiled --target native` files when the program is configured for `MultiThreaded` execution.
+**Rule 3 — Binary-level enforcement.** The executor mode is a property of the binary, determined by the `runtime.configure()` call in the entry point. The compiler enforces Rule 2 for all async captures in `@mode(native)` files when the program is configured for `MultiThreaded` execution. `@mode(freestanding)` has no async executor and Rule 3 does not apply.
 
 **Rule 4 — `@concurrent` forces Sendable regardless of mode.** Functions annotated `@concurrent` (§17.9.5) are always subject to `Sendable` capture constraints, regardless of the active executor mode.
 
-### §17.9.5 `@concurrent` Annotation
+#### §17.9.5 `@concurrent` Annotation
 
 `@concurrent` on an `async func` declaration asserts that the function is safe to invoke from any executor thread. The compiler enforces:
 
@@ -5942,7 +7166,7 @@ async func fetch(): Task[void] {
 - The function body does not directly read or write any module-level `var` bindings (module-level mutable state is not thread-safe without explicit synchronization).
 
 ```loom
-@compiled
+@mode(compiled)
 
 @concurrent
 async func fetchAll(urls: list[Url]): Task[list[Response]] {
@@ -5952,7 +7176,7 @@ async func fetchAll(urls: list[Url]): Task[list[Response]] {
 
 `@concurrent` is checked at compile time. It does not alter runtime behavior — it is a documentation and safety-enforcement tool for library authors writing functions intended to work correctly in multi-threaded executor contexts. Callers are not required to verify whether a callee is `@concurrent`; enforcement is on the declared function's own captures and body.
 
-### §17.9.6 Actor Isolation in Multi-Threaded Contexts
+#### §17.9.6 Actor Isolation in Multi-Threaded Contexts
 
 The `Actor[M]` model (§17.6) is inherently safe in multi-threaded executor contexts without changes to the actor API.
 
@@ -5963,7 +7187,7 @@ The `Actor[M]` model (§17.6) is inherently safe in multi-threaded executor cont
 **Rule: Message types must be `Sendable` in multi-threaded mode.** Messages sent via `Actor[M].send(msg)` or `Actor[M].ask(msg)` cross thread boundaries (from the sender's worker to the actor's handler). When `ExecutorConfig.MultiThreaded` is active, `M` must implement `Sendable`. This is enforced at the call sites of `send` and `ask` — compile-time error if `M` is not `Sendable`.
 
 ```loom
-@compiled
+@mode(compiled)
 
 // Internal state does not need to be Sendable — stays inside the actor
 class LocalState : Any {
@@ -5982,12 +7206,13 @@ enum CounterMsg {
 
 In `SingleThreaded` executor mode, `M` has no `Sendable` constraint. The restriction is imposed only when the active executor is `MultiThreaded`.
 
-### §17.9.7 Thread-Local Storage (`ThreadLocal[T]`)
+#### §17.9.7 Thread-Local Storage (`ThreadLocal[T]`)
 
 ```loom
 namespace sync.thread;
 
-// Available on --target native only; compile-time error on Wasm and scripted mode.
+// Available only in @mode(native); compile-time error in @mode(scripted),
+// @mode(compiled), and @mode(freestanding).
 class ThreadLocal[T] : Any {
   // Creates a new ThreadLocal. `init` is called once per OS thread on first access.
   pub static func new(init: fn(): T): ThreadLocal[T];
@@ -6013,7 +7238,7 @@ class ThreadLocal[T] : Any {
 
 **Use cases:** Per-thread allocator scratch buffers, PRNG state, thread-specific profiling contexts.
 
-### §17.9.8 Task-Local Storage (`TaskLocal[T]`)
+#### §17.9.8 Task-Local Storage (`TaskLocal[T]`)
 
 ```loom
 namespace runtime;
@@ -6044,7 +7269,7 @@ class TaskLocal[T] : Any {
 **Example — request-scoped tracing ID:**
 
 ```loom
-@compiled
+@mode(compiled)
 
 from runtime import (TaskLocal);
 
@@ -6068,9 +7293,9 @@ async func handleRequest(id: string): Task[void] {
 
 ---
 
-## §17.10 Script-Mode Parallelism
+### §17.10 Script-Mode Parallelism
 
-*(This section is normative. All constructs in this section are available in scripted mode and on all Wasm targets. `ScriptWorker` and `WorkerChannel[T]` are additionally available in `@compiled` Wasm targets. They are not available in `@compiled --target native` files, where §17.8 and §17.9 primitives apply instead.)*
+*(This section is normative. All constructs in this section are available in scripted mode and on all Wasm targets. `ScriptWorker` and `WorkerChannel[T]` are additionally available in `@mode(compiled)` Wasm targets. They are not available in `@mode(native)` and `@mode(freestanding)` files, where §17.8 and §17.9 primitives apply instead.)*
 
 Loom's scripted runtime executes cooperatively on a single thread by default (§2.1). Two mechanisms provide parallelism within the scripted and Wasm execution environments without requiring a shared GC heap across threads:
 
@@ -6079,7 +7304,7 @@ Loom's scripted runtime executes cooperatively on a single thread by default (§
 
 These two primitives are deliberately complementary: `spawnBlocking` is for short synchronous compute tasks that return a single value; `ScriptWorker` is for long-running or stateful parallel workloads that require bidirectional communication.
 
-### §17.10.1 `spawnBlocking` in Scripted Mode
+#### §17.10.1 `spawnBlocking` in Scripted Mode
 
 `spawnBlocking` is declared in `sync.thread` (§17.9.3) and is available on all targets. This subsection specifies its behaviour specifically in scripted mode and Wasm targets.
 
@@ -6105,7 +7330,7 @@ async func compressData(raw: bytes): Task[bytes] {
 
 **Equivalence.** `spawnBlocking` in scripted mode is semantically equivalent to its `--target native` form (§17.9.3). The only difference is the backing implementation: native OS threads on `--target native`, host thread pool on Wasm/scripted.
 
-### §17.10.2 `ScriptWorker` — Isolated Worker Instances
+#### §17.10.2 `ScriptWorker` — Isolated Worker Instances
 
 `ScriptWorker` provides true parallelism in scripted and Wasm environments by spawning an isolated Loom Wasm instance with its own GC heap. Workers communicate with the host script exclusively through typed `WorkerChannel[T]` message channels. Because workers do not share a heap, all values transferred across the channel must implement `Sendable` and are serialized by copy (§17.10.4).
 
@@ -6138,6 +7363,9 @@ class ScriptWorker[M: Sendable] : Any {
 
   pub let isTerminated: bool;
 }
+
+class ValueError       : Exception {}  // value is semantically invalid for the operation (e.g. slice step=0)
+class GpuCompileError  : Exception { pub let shaderLog: string; }  // GPU shader/kernel compilation failed
 
 class WorkerTerminatedError : Exception {}
 class WorkerPanicError : Exception {
@@ -6184,7 +7412,7 @@ async func workerMain(channel: WorkerChannel[bytes]): Task[void] {
 }
 ```
 
-### §17.10.3 `WorkerChannel[T]` — Typed Message Channel
+#### §17.10.3 `WorkerChannel[T]` — Typed Message Channel
 
 `WorkerChannel[T]` is the worker-side counterpart to `ScriptWorker[T]`. It is only accessible inside a worker module's `workerMain` function.
 
@@ -6210,7 +7438,7 @@ class WorkerChannel[T: Sendable] : Any {
 
 `WorkerChannel[T]` may not be stored as a module-level `var` or captured in a `Thread.spawn` closure. It is valid only within the dynamic extent of `workerMain`. Attempting to store it outside `workerMain` is a compile-time error (`E_CHANNEL_ESCAPE`).
 
-### §17.10.4 Serialization Contract
+#### §17.10.4 Serialization Contract
 
 All values transferred across a `ScriptWorker` channel or through `spawnBlocking` are serialized by the **Loom structured transfer protocol**, which is defined as follows:
 
@@ -6228,6 +7456,13 @@ All values transferred across a `ScriptWorker` channel or through `spawnBlocking
 
 **Class serialization note.** Classes implementing `Sendable` are transferred by serializing their fields using the same rules above. The receiving side constructs a new instance; the two instances do not share identity. Classes with `extern native` fields or non-`Sendable` fields may not declare `implements Sendable` and cannot cross the channel boundary.
 
+**Transfer error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_CHANNEL_ESCAPE` | `WorkerChannel[T]` stored outside `workerMain` scope |
+| `E_TRANSFER_NONSENDABLE` | Non-`Sendable` type used in a channel transfer or `spawnBlocking` argument |
+
 **Observable semantics.** The observable contract is: after a value is transferred, the sender and receiver hold **independent copies**. Mutations to the transferred value in one context are never visible in the other. This contract holds regardless of the underlying implementation (copy, move, or — in future Wasm GC shared-heap implementations — immutable reference sharing for frozen objects). User code must not rely on shared identity across a transfer boundary.
 
 **Transfer errors.** If the serialization of a value fails at runtime (e.g. due to a cycle in a `Sendable` class instance that cannot be represented), the transfer throws `WorkerTransferError` at the call site of `send()`, `reply()`, or `spawnBlocking(...)`.
@@ -6239,7 +7474,7 @@ class WorkerTransferError : Exception {
 }
 ```
 
-### §17.10.5 Worker Scope Restrictions
+#### §17.10.5 Worker Scope Restrictions
 
 A `ScriptWorker` module executes in a restricted scope:
 
@@ -6255,17 +7490,6 @@ A `ScriptWorker` module executes in a restricted scope:
 | `runtime.configure` | ❌ | Worker executor configuration is not supported; always `SingleThreaded`. |
 | Module-level `var` state | ✅ | Each worker has its own independent module state. |
 
-### §17.10.6 Future Evolution Path
-
-The `ScriptWorker` and `spawnBlocking` APIs are designed to evolve transparently as the Wasm platform matures:
-
-**Wasm GC shared-heap threads (standards track).** When the Wasm GC + shared-heap thread proposal is ratified and implemented by host engines, the runtime MAY transition `ScriptWorker` channel transfers for immutable `Sendable` values from copy semantics to zero-copy reference passing. The observable contract (§17.10.4 — independent copies after transfer) remains guaranteed; the implementation may become cheaper. No user code changes are required.
-
-**Multi-threaded executor on Wasm.** Once shared-heap Wasm threads are available, the restriction on `ExecutorConfig.MultiThreaded` (currently `--target native` only, §17.9.1) will be lifted to include Wasm targets. The `RuntimeConfig` API will remain identical.
-
-**Native script path.** If scripted mode gains a non-Wasm native execution path, the §17.8 OS thread layer (`Thread.spawn`, `Mutex`, `RwLock`, `ThreadPool`) will become available in scripted mode on that target without new language surface. `ScriptWorker` will remain available as a higher-level abstraction.
-
-These evolution steps are additive — no API defined in §17.10 will be removed or altered in a breaking way as the platform evolves.
 
 
 ---
@@ -6290,7 +7514,22 @@ extern js val window: Any;
 - `extern js func` and `extern js val` are simple declarations (trailing `;`).
 - Declared Loom types are trusted and not verified at compile time; type mismatches produce runtime errors.
 - `extern js func` returning a JS Promise is declared with return type `Task[T]`; the runtime wraps the Promise automatically.
-- `extern js` declarations are only valid in modules not excluded from the active platform target.
+- `extern js` declarations are only valid on `browser`, `node`, `bun`, and `deno` targets (i.e. targets where a JavaScript runtime is present). Using `extern js` in `@mode(native)` or `@mode(freestanding)` files is a compile-time error (`E_EXTERN_JS_NOT_NATIVE`, defined in §24.22).
+
+**SharedArrayBuffer aliasing (normative).** Any `extern js` declaration that accepts or returns a typed array (e.g., `Uint8Array`, `Float32Array`) backed by a `SharedArrayBuffer` MUST carry `@unsafe("sharedMemory: <reason>")` at the declaration site. The reason string SHALL document which Loom tasks or workers share the buffer and the synchronization protocol used. Without this annotation, the compiler treats the buffer as exclusively owned by the Loom side. Concurrent access by JS code to memory also accessed by Loom constitutes a data race outside Loom's ownership model.
+
+`lang.interop.js` provides `SharedView[T]` as a safe wrapper for `SharedArrayBuffer` access — all reads and writes go through `native.atomic`-backed operations, making the shared-memory protocol explicit at the type level:
+
+```loom
+from lang.interop.js import (SharedView);
+
+// Safe: all accesses are atomic
+let view = SharedView[uint32].fromBuffer(sharedBuf)
+view.store(0, 42u32)
+let val = view.load(0)   // returns uint32
+```
+
+Raw `extern js` declarations of `SharedArrayBuffer`-backed types must use `@unsafe("sharedMemory: ...")` and are subject to the programmer's own synchronization discipline.
 
 ### §18.2 `@jsexport`
 
@@ -6314,9 +7553,14 @@ async func fetchSummary(userId: string): Task[string] {
 - `@jsexport` may annotate `func` or `async func` declarations at module level, or `func` expressions.
 - The runtime marshals JS arguments to declared Loom types using boundary coercions. Unmarshalable arguments produce `FfiTypeError`.
 - `async func` exports return a `Promise<T>` to JS.
-- Synchronous `@jsexport` functions must not contain `await` (compile-time error).
+- Synchronous `@jsexport` functions must not contain `await` (`E_JSEXPORT_AWAIT`).
 - `@jsexport` is only valid on `browser` and `service` targets.
 - Module-level `@jsexport` functions are accessible as named exports of the compiled module's JS representation.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_JSEXPORT_AWAIT` | Scripted, Compiled | `await` expression inside a non-`async` `@jsexport` function body |
+| `E_JSEXPORT_NOT_BROWSER` | All | `@jsexport` used on a target other than `browser` or `service` |
 
 ### §18.3 Typed JS Facades (`lang.interop.js`)
 
@@ -6326,10 +7570,10 @@ async func fetchSummary(userId: string): Task[string] {
 namespace lang.interop.js;
 
 // HTTP
-class Request  : Any { pub url: string; pub method: string; pub body: Option[bytes]; }
+class Request  : Any { pub let url: string; pub let method: string; pub let body: Option[bytes]; }
 class Response : Any {
-  pub status: int;
-  pub ok: bool;
+  pub let status: int;
+  pub let ok: bool;
   pub func text(): Task[string];
   pub func json(): Task[Any];
   pub func bytes(): Task[bytes];
@@ -6347,19 +7591,19 @@ class TimerHandle : Any { }
 func querySelector(selector: string): Option[Element];
 func querySelectorAll(selector: string): list[Element];
 class Element : Any {
-  pub id: string;
-  pub className: string;
+  pub var id: string;
+  pub var className: string;
   pub func getAttribute(name: string): Option[string];
   pub func setAttribute(name: string, value: string): void;
   pub func addEventListener(event: string, handler: fn(Event): void): void;
   pub func removeEventListener(event: string, handler: fn(Event): void): void;
   pub func appendChild(child: Element): void;
   pub func remove(): void;
-  pub innerHTML: string;
-  pub textContent: string;
+  pub var innerHTML: string;
+  pub var textContent: string;
 }
 class Event : Any {
-  pub type: string;
+  pub let type: string;
   pub func preventDefault(): void;
   pub func stopPropagation(): void;
 }
@@ -6377,21 +7621,106 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 **Rules:**
 
 - `extern native "libname"` specifies the shared library by name (without platform-specific prefix/extension; the runtime resolves `libname.so`, `libname.dylib`, `libname.dll`).
-- `NativeHandle` is an opaque type for C pointers — cannot be inspected or dereferenced in Loom code.
-- `extern native` is only valid on `cli` and `service` targets.
+- `NativeHandle` is an opaque built-in type for C pointers — cannot be inspected, dereferenced, or constructed in Loom code. Its definition is compiler-internal: `@repr(C) struct NativeHandle { /* opaque */ }`. Values of type `NativeHandle` are only obtained from `extern native` function return values or by calling `OwnedHandle.inner()` / `BorrowedHandle.inner()`. `NativeHandle` is implicitly non-`Sendable`; cross-thread use requires `@unsafe("threadSafe: ...")` (§18.5).
+- `extern native` is valid in `@mode(native)` (all native targets: `native`, `cli`, `service`, `desktop`) and `@mode(freestanding)`. It is not available in `@mode(scripted)` or `@mode(compiled)` Wasm targets — there is no native ABI at the Wasm GC boundary (`E_EXTERN_JS_NOT_NATIVE` does not apply here; using `extern native` in a Wasm target is `E_EXTERN_NATIVE_WASM`).
 - Passing a Loom `string` to a native function expecting a C string provides a null-terminated UTF-8 copy for the duration of the call.
 - Memory management of native resources is the caller's responsibility; use `defer` for cleanup.
 - All `extern native` function parameters that receive `borrow` or `borrow[~label]` values are implicitly `noescape`. The compiler verifies that no `borrow[~label]` value escapes the native call. A native function that requires the pointer to outlive the call must be annotated `@unsafe("escapingBorrow: <reason>")` at the declaration site; every call site must also carry `@unsafe("escapingBorrow: <reason>")` to acknowledge that the caller asserts the borrowed value outlives the native call. See §23.4.6.
 
 ---
 
+| Code | Mode | Condition |
+|---|---|---|
+| `E_EXTERN_NATIVE_WASM` | Scripted, Compiled | `extern native` declaration in a file targeting Wasm — no native ABI at the Wasm GC boundary |
+| `E_EXTERN_STRUCT_NOT_REPR_C` | Native, Freestanding | Struct parameter or return type in `extern native` signature is not annotated `@repr(C)` |
 
+**`@repr(C)` requirement for struct parameters.** Any Loom `struct` type passed to or returned from an `extern native` function MUST be annotated `@repr(C)`. Without `@repr(C)`, the compiler cannot guarantee that the Loom struct layout matches the C ABI layout expected by the native function, which would produce silent data corruption. A struct without `@repr(C)` used in an `extern native` signature is `E_EXTERN_STRUCT_NOT_REPR_C`. This requirement applies in all compiled modes (`@mode(compiled)` Wasm targets are exempt since C structs are not valid Wasm types; the requirement applies to `@mode(native)` and `@mode(freestanding)`).
 
----
+**Nullable return types — `NativeHandle?` (normative).** An `extern native` function declaration whose return type is `NativeHandle?` (optional `NativeHandle`) maps a null pointer return to `None` automatically. A non-optional `NativeHandle` return maps null to a runtime `NullHandleError` (§26.1). The compiler enforces the distinction at the declaration site:
+
+```loom
+// Null → None: caller uses ?.  pattern-matching
+extern native "libsqlite3" func sqlite3_open(path: string): NativeHandle?
+
+// Null → NullHandleError at runtime (legacy C APIs that document "never null")
+extern native "libfoo" func foo_create(): NativeHandle
+```
+
+`NullHandleError extends RuntimeError` (§26.1) and is catchable.
+
+**`PinnedRef[T]` — ARC-pinned lifetime anchor for FFI (normative).** `PinnedRef[T]` holds a strong ARC retain specifically to prevent collection while a native library holds a raw pointer to the object. The constructor increments `strong_count`; `release()` decrements it. `rawPtr()` requires `@unsafe` to acknowledge the transition out of Loom's ownership model:
+
+```loom
+namespace native.ffi;
+
+class PinnedRef[T] : Any {
+  // Increment strong_count; object will not be collected while pin lives.
+  pub static func new(value: T): PinnedRef[T]
+
+  // Raw pointer for native calls. @unsafe — pointer is valid only while pin is live.
+  @unsafe("pin: pointer is valid only while this PinnedRef is not released")
+  pub func rawPtr(): uint
+
+  // Decrement strong_count. Subsequent rawPtr() calls are invalid.
+  pub func release(): void
+}
+```
+
+Usage pattern:
+
+```loom
+let pin = PinnedRef.new(myObject)
+someNativeLib_register(pin.rawPtr())   // ✓ — object pinned
+// ... later:
+pin.release()                          // ARC retain dropped
+```
+
+**`OwnedHandle` and `BorrowedHandle` — FFI heap ownership types (normative).** These types in `native.ffi` encode ownership intent at the type level, replacing the informal comment convention:
+
+```loom
+namespace native.ffi;
+
+// OwnedHandle: this side is responsible for freeing the resource.
+// Move-only (unique semantics): cannot be aliased.
+// finalize() calls the registered @deallocator automatically.
+unique class OwnedHandle : Any {
+  pub static func wrap(raw: NativeHandle): OwnedHandle
+  pub func inner(): NativeHandle
+  pub func release(): void   // explicit early release; after this, inner() is invalid
+}
+
+// BorrowedHandle: this side does NOT own the resource and must not free it.
+// ARC-managed; the underlying C pointer is valid for the handle's lifetime.
+class BorrowedHandle : Any {
+  pub static func wrap(raw: NativeHandle): BorrowedHandle
+  pub func inner(): NativeHandle
+}
+```
+
+A C library function that allocates (e.g., `sqlite3_open`) should be declared to return `OwnedHandle`; one that lends a pointer (e.g., `sqlite3_db_handle`) should return `BorrowedHandle`. The type-level distinction eliminates the double-free and forget-to-free classes of bug at declaration time.
+
+#### §18.4.1 `native.ffi.ptrAdd` — Raw Pointer Arithmetic
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+
+`native.ffi.ptrAdd` performs raw address arithmetic on `uint`-typed pointer values. It is the single supported mechanism for offsetting raw addresses at the FFI boundary and requires `@unsafe` at each call site because offset validity cannot be checked statically:
+
+```loom
+namespace native.ffi;
+
+// Add a byte offset to a raw address. Requires @unsafe acknowledgment at
+// every call site.
+@unsafe("ptr: caller ensures the offset does not escape the allocation")
+func ptrAdd(base: uint, offset: uint64): uint
+```
+
+`ptrAdd` does not dereference, allocate, or validate. It is pointer-width integer arithmetic surfaced as a named function so that call sites are greppable for audit. Callers MUST carry `@unsafe("ptr: <reason>")` at the acknowledgment position (§23.4.6).
+
+`size_of[T]()` and `align_of[T]()` — the typical companions for computing element offsets — are specified in §24.4.1 and are available in both `@mode(native)` and `@mode(freestanding)`.
 
 ### §18.5 FFI Thread Safety (`@unsafe("threadSafe: ...")`, `ThreadSafeHandle`)
 
-*(This section is normative. Applies to `@compiled` files targeting `--target native`.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
 
 Native libraries accessed via `extern native` vary widely in their thread-safety properties. The FFI layer provides two constructs for expressing and enforcing thread safety of native handles: the `@unsafe("threadSafe: ...")` annotation (§23.4.6) and the `ThreadSafeHandle` wrapper type.
 
@@ -6413,7 +7742,7 @@ extern native "libpq" func pq_exec(conn: NativeHandle, query: string): NativeHan
 
 Without `@unsafe("threadSafe: ...")`, an `extern native` function is assumed non-thread-safe. Its `NativeHandle` arguments are non-`Sendable` by default and may not cross thread boundaries.
 
-The retired `@threadSafe` annotation is no longer accepted. All thread-safety assertions on `extern native` declarations must use `@unsafe("threadSafe: <reason>")`.
+Thread-safety assertions on `extern native` declarations use `@unsafe("threadSafe: <reason>")`.
 
 #### §18.5.2 `ThreadSafeHandle`
 
@@ -6436,7 +7765,7 @@ class ThreadSafeHandle : Any implements Sendable {
 **Example — sharing a thread-safe connection pool across async tasks:**
 
 ```loom
-@compiled
+@mode(compiled)
 
 from native.ffi import (ThreadSafeHandle);
 
@@ -6497,7 +7826,7 @@ let count = signal(0);
 let doubled = derived(func() => count.get() * 2);
 
 effect(func() {
-  log("count is now: {$ count.get() $}");
+  log(i"count is now: {$ count.get() $}");
 });
 
 count.set(1);   // effect runs; doubled is now 2
@@ -6505,9 +7834,17 @@ count.set(1);   // effect runs; doubled is now 2
 
 ### §19.2 Components and `ComponentRegistry`
 
-Components are functions returning `View`:
+Components are functions returning `View`. `signal` must be imported from the `ui` module; the `components` fence descriptor requires a `ComponentRegistry` value to be in scope:
 
-```
+```loom
+@mode(scripted)
+
+from ui import (signal, ComponentRegistry);
+import ui.primitives;   // Row, Column, Text, Button, Image, Slot
+
+// Module-level registry registers built-in primitives:
+let registry = ComponentRegistry.of(ui.primitives.components);
+
 func Counter(initialValue: int): View {
   let count = signal(initialValue);
   return ```(ui):(components=registry)
@@ -6520,6 +7857,8 @@ func Counter(initialValue: int): View {
   ```;
 }
 ```
+
+**`registry` scoping.** The identifier after `components=` in the fence descriptor must be a `ComponentRegistry` value in the enclosing lexical scope at the point the fence expression is evaluated. Referencing an undefined name is a compile-time error. The registry can be a module-level binding, a function parameter, or a local variable — but must be defined before use.
 
 `View` is an opaque type produced by `ui` and `html` template fences. It carries a description of the UI tree that the active rendering backend materialises into pixels or DOM nodes.
 
@@ -6539,17 +7878,23 @@ class ComponentRegistry : Any {
 
 **Tag resolution rules:**
 
-- Uppercase-initial tags are looked up in the registry by exact string match. Not found → compile-time error.
+- Uppercase-initial tags are looked up in the registry by exact string match. Not found → `E_COMPONENT_NOT_FOUND`.
 - Hyphenated tags are first looked up in the `ComponentRegistry`. If the matched entry is a `@webcomponent` class (§19.10), the tag is treated as a web component invocation: attribute values are mapped to the component's `@attribute` fields, and the element is emitted as a custom element tag in HTML output. If no registry match is found: in `html` fences the tag is emitted as literal HTML; in `ui` fences it is a compile-time error.
-- Plain lowercase (non-hyphenated) tags in `html` fences are emitted as literal HTML. In `ui` fences they are a compile-time error (all primitives use PascalCase).
-- `html` and `ui` fences without `components` treat all uppercase tags and unrecognised hyphenated tags as compile-time errors.
+- Plain lowercase (non-hyphenated) tags in `html` fences are emitted as literal HTML. In `ui` fences they are a compile-time error (`E_UI_LOWERCASE_TAG`; all primitives use PascalCase).
+- `html` and `ui` fences without `components` treat all uppercase tags and unrecognised hyphenated tags as `E_COMPONENT_NOT_FOUND`.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_COMPONENT_NOT_FOUND` | All | PascalCase or hyphenated tag in a template fence has no matching entry in the `ComponentRegistry` |
+| `E_COMPONENT_NOT_VIEW` | All | Registry entry for a tag name is not a function returning `View` or `Task[View]` |
+| `E_UI_LOWERCASE_TAG` | All | Lowercase non-hyphenated tag in a `ui` fence (all `ui` primitives are PascalCase) |
 
 **Component rules:**
 
 - Components are not classes; no lifecycle methods. Setup code runs once at instantiation.
 - Signal reads inside fences establish reactive dependencies.
 - Async components (`async func` returning `Task[View]`) are supported.
-- When a registered value in a `ComponentRegistry` is not a function returning `View` or `Task[View]`, and is not a `@webcomponent` class, the compiler emits a compile-time error.
+- When a registered value in a `ComponentRegistry` is not a function returning `View` or `Task[View]` (`E_COMPONENT_NOT_VIEW`), and is not a `@webcomponent` class, the compiler emits a compile-time error.
 
 **Event handler compilation in `html` fences.** Event handler attributes (`onclick`, `oninput`, `onchange`, `onsubmit`, `onkeydown`, `onfocus`, `onblur`, and all other `on*` attributes) in `html` fences accept Loom callable values typed as `fn(): void` or `fn(Event): void`. They do **not** produce inline JavaScript handler strings.
 
@@ -6563,9 +7908,9 @@ The compiler transforms event handler attribute bindings:
 <button data-loom-ev="click:__ev_7f3a2b">+</button>
 ```
 
-The compiler assigns a stable, deterministic event slot ID (content-addressed from the closure's source location and module path) and registers the handler in the Wasm module's event table. After the Wasm module loads, the Loom runtime wires all `data-loom-ev` elements via `addEventListener` — no inline JavaScript is emitted. See §27.6 for the bootstrap sequence.
+The compiler assigns a stable, deterministic event slot ID (content-addressed from the closure's source location and module path) and registers the handler in the Wasm module's event table. After the Wasm module loads, the Loom runtime wires all `data-loom-ev` elements via `addEventListener` — no inline JavaScript is emitted. See §28.6 for the bootstrap sequence.
 
-Passing a literal JavaScript string as an event handler value is a **compile-time error**:
+Passing a literal JavaScript string as an event handler value is a **compile-time error** (`E_INLINE_JS_EVENT_HANDLER`):
 
 ```
 // COMPILE-TIME ERROR: inline JavaScript string not permitted
@@ -6587,7 +7932,18 @@ class MountHandle : Any {
 }
 ```
 
-`MountTarget` is resolved per backend:
+`MountTarget` is a built-in opaque type representing a platform-specific rendering root. Values are obtained via:
+
+- `"#selector"` string literal (browser DOM selector — accepted by implicit coercion)
+- `Element` value (browser DOM node)
+- `Window` value (desktop window)
+- `runtime.ui.rootMount()` — returns the platform-appropriate default target
+
+```
+// MountTarget is an opaque built-in; values are constructed implicitly from
+// selector strings, Element values, or Window values, or via runtime.ui.rootMount().
+opaque class MountTarget : Any {}
+```
 
 - On `browser`: `mount(view, "#selector")` or `mount(view, element: Element)`.
 - On `desktop`: `mount(view, window: Window)`.
@@ -6697,7 +8053,7 @@ struct SelectOption[T] { label: string; value: T; }
 - On `browser`: primitives map to HTML elements with CSS layout (`Row` → `<div style="display:flex;flex-direction:row">`, etc.).
 - On `desktop`: primitives map to the implementation-defined rendering backend.
 
-The rendering contract guarantees that `Row`, `Column`, `Stack`, `Text`, `Button`, `Image`, and `Slot` produce visually equivalent results across backends. `Slot` is valid only inside the `render()` method of a `@webcomponent` class (§19.10); it maps to the browser's `<slot>` element on `browser` target and is a compile-time error on all other targets. Platform-specific visual details (native scrollbar chrome, button appearance, font rendering) are left to the backend.
+The rendering contract guarantees that `Row`, `Column`, `Stack`, `Text`, `Button`, `Image`, and `Slot` produce visually equivalent results across backends. `Slot` is valid only inside the `render()` method of a `@webcomponent` class (§19.10); it maps to the browser's `<slot>` element on `browser` target and is a compile-time error on all other targets (`E_SLOT_NOT_WEBCOMPONENT`). Platform-specific visual details (native scrollbar chrome, button appearance, font rendering) are left to the backend.
 
 **All `ui` fence directives from §16.2 are supported.** `{% if %}`, `{% for %}`, `{% match %}`, `{% let %}`, `{% try %}`, and `{% suspend %}` all work inside `ui` fences identically to `html` fences.
 
@@ -6717,10 +8073,10 @@ struct RenderToStringOptions {
 }
 
 func renderToString(component: View,
-                   options: RenderToStringOptions = RenderToStringOptions()): string;
+                   options: RenderToStringOptions = RenderToStringOptions()): SafeHtml;
 ```
 
-`renderToString` renders a component tree to static HTML on `service` targets.
+`renderToString` renders a component tree to static HTML on `service` targets. The return type is `SafeHtml` (§16.6.7) — the output has passed through the full context-aware escaping pipeline and may be embedded in another HTML context without further escaping or double-encoding.
 
 **`hydrate`:**
 
@@ -6752,7 +8108,7 @@ class StateSerializer {
 }
 ```
 
-**Normative rule.** The runtime SHALL escape all occurrences of `<` as `<` and `>` as `>` in the JSON-serialized state block. The serialized string SHALL NOT contain the literal byte sequence `</` in any case variant (`</`, `</`, `</`, etc.).
+**Normative rule.** The runtime SHALL escape all occurrences of `<` as `\u003C` and `>` as `\u003E` in the JSON-serialized state block. The serialized string SHALL NOT contain the literal byte sequence `</` in any case variant — neither the raw two-byte sequence `0x3C 0x2F` nor any Unicode-escape variant (`\u003C/`, `\u003c/`) — guaranteeing the state block cannot prematurely terminate its enclosing `<script>` element.
 
 `renderToString` accepts options for enhanced integrity. When `stateIntegrity = true`, the state script tag includes a `data-integrity` attribute containing the SHA-256 hash of the serialized content (hex-encoded). The `hydrate` function verifies this hash before reading state.
 
@@ -6892,6 +8248,10 @@ struct ScreenInfo {
 
 `runtime.ui.rootMount()` returns `"#root"` on browser targets and the primary `Window` on desktop targets, enabling target-agnostic entry points.
 
+| Code | Mode | Condition |
+|---|---|---|
+| `E_INLINE_JS_EVENT_HANDLER` | Scripted, Compiled | Event handler attribute value is a literal JavaScript string (e.g. `onclick="count++"`) rather than a Loom closure |
+
 ### §19.9 Cross-Platform Example
 
 ```
@@ -6927,13 +8287,13 @@ mount(TodoApp(), runtime.ui.rootMount());
 This file compiles and runs unchanged on `browser`, `desktop`, and `service` targets. Adding web-specific enrichment (SSR, DOM access) or desktop-specific features (native menus, file dialogs) is opt-in via the respective backend submodules.
 
 
-## §19.10 Web Components
+### §19.10 Web Components
 
 *(This section is normative. Available on `browser` target only.)*
 
-Loom provides first-class support for the W3C Custom Elements v1 standard via the `@webcomponent` annotation and the `WebComponentLifecycle` interface (§11.2). A `@webcomponent` class compiles to a `customElements.define()` registration in the browser bootstrap (§27.6).
+Loom provides first-class support for the W3C Custom Elements v1 standard via the `@webcomponent` annotation and the `WebComponentLifecycle` interface (§11.2). A `@webcomponent` class compiles to a `customElements.define()` registration in the browser bootstrap (§28.6).
 
-### §19.10.1 Declaring a Web Component
+#### §19.10.1 Declaring a Web Component
 
 ```loom
 from ui import (signal, View);
@@ -6975,33 +8335,50 @@ class CounterElement implements WebComponentLifecycle {
 }
 ```
 
-### §19.10.2 `@webcomponent` Rules
+#### §19.10.2 `@webcomponent` Rules
 
 - The annotation argument must be a compile-time string literal that is a valid Custom Elements tag name: it must contain at least one hyphen and consist only of ASCII lowercase letters, digits, hyphens, periods, and underscores. The compiler SHALL reject invalid tag names.
 - The class must declare a `func render(): View` method. The absence of `render()` is a compile-time error.
 - The `@webcomponent` annotation is only valid on `browser` target. Using it on other targets is a compile-time error.
 - Duplicate tag name registrations within a compilation unit are a compile-time error.
-- `@webcomponent` classes may not use `@compiled` mode.
+- `@webcomponent` is only valid in `@mode(scripted)` files on the `browser` target. A `@webcomponent` class in `@mode(compiled)`, `@mode(native)`, or `@mode(freestanding)` files is a compile-time error (`E_WEBCOMPONENT_NOT_SCRIPTED`).
 
-### §19.10.3 `@attribute` Rules
+**`@webcomponent` error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_WEBCOMPONENT_NOT_SCRIPTED` | `@webcomponent` class declared outside `@mode(scripted)` on `browser` target |
+
+#### §19.10.3 `@attribute` Rules
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_ATTRIBUTE_NO_BACKING_FIELD` | Scripted, Compiled | `@attribute` on a `get`-only property with no backing stored field |
+| `E_ATTRIBUTE_NOT_WEBCOMPONENT` | Scripted, Compiled | `@attribute` used on a class that is not annotated `@webcomponent` |
+
+
 
 `@attribute` marks a class member as an observed HTML attribute. It is valid on:
 
 - **`var` fields:** The field type must be `string`, `int`, `float`, or `bool`. The compiler generates the coercion from the HTML attribute string to the declared type. For `int` and `float`, a malformed attribute string leaves the field at its default value and emits a runtime warning. For `bool`, presence of the attribute (any value) sets `true`; absence sets `false`.
 - **Property `get`/`set` pairs:** The `set` parameter type determines the coercion rule (same rules as for fields). A `get`-only property (no `set`) declares a reflected read-only attribute; the value is readable from the DOM but setting it via HTML markup has no effect and emits a runtime warning.
-- `@attribute` on a `get`-only property without a backing stored field is a compile-time error — the runtime requires a stable stored value to service `getAttribute` calls.
+- `@attribute` on a `get`-only property without a backing stored field is a compile-time error (`E_ATTRIBUTE_NO_BACKING_FIELD`) — the runtime requires a stable stored value to service `getAttribute` calls.
 
 The compiler generates:
 1. A static `observedAttributes` array from the names of all `@attribute` members. The attribute name is derived from the member name: camelCase names are lowercased verbatim (no kebab-case conversion). If a different attribute name is required, pass it explicitly: `@attribute("my-label") var myLabel: string = ""`.
 2. An `attributeChangedCallback` dispatcher that updates the corresponding field or calls the `set` accessor, then calls `attributeChanged(name, old, next)` on the class.
 
-### §19.10.4 Shadow DOM and Slots
+#### §19.10.4 Shadow DOM and Slots
 
 Every `@webcomponent` class renders into an open shadow root created automatically by the runtime. The shadow root is accessible via `this.shadowRoot: ShadowRoot` (see §21.22).
 
-`<Slot>` (in `ui` fences) or `<slot>` (in `html` fences) maps to the browser's native `<slot>` element. Named slots use `<Slot name="footer" />` or `<slot name="footer"></slot>`. Slot elements are only valid inside the `render()` method of a `@webcomponent` class; their use elsewhere is a compile-time error.
+`<Slot>` (in `ui` fences) or `<slot>` (in `html` fences) maps to the browser's native `<slot>` element. Named slots use `<Slot name="footer" />` or `<slot name="footer"></slot>`. Slot elements are only valid inside the `render()` method of a `@webcomponent` class; their use elsewhere is a compile-time error (`E_SLOT_NOT_WEBCOMPONENT`).
 
-### §19.10.5 CSS Inside Web Components
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SLOT_NOT_WEBCOMPONENT` | All | `<Slot>` or `<slot>` used outside the `render()` method of a `@webcomponent` class |
+
+#### §19.10.5 CSS Inside Web Components
 
 `css` fences used inside `render()` are attached to the shadow root via Constructable Stylesheets rather than the document `<head>`. Hash-scoped class name mangling is suppressed (see §16.7.1). The shadow boundary provides native encapsulation.
 
@@ -7019,7 +8396,7 @@ func render(): View {
 }
 ```
 
-### §19.10.6 Using Web Components in Fences
+#### §19.10.6 Using Web Components in Fences
 
 Registered web components may be used inside `html` and `ui` fences via a `ComponentRegistry`:
 
@@ -7037,11 +8414,11 @@ let view = ```(html):(components=registry)
 ```;
 ```
 
-Attribute values in web component tags follow the same escaping rules as regular HTML attributes (§16.6.3). Non-`@attribute` properties are a compile-time error in this context.
+Attribute values in web component tags follow the same escaping rules as regular HTML attributes (§16.6.3). Non-`@attribute` properties are a compile-time error (`E_ATTRIBUTE_NOT_WEBCOMPONENT`) in this context.
 
-### §19.10.7 Bootstrap Registration
+#### §19.10.7 Bootstrap Registration
 
-The Loom runtime registers all `@webcomponent` classes via `customElements.define()` during bootstrap step 6 (§27.6), before `mount()` is called. Registration order follows source declaration order within each module and dependency order across modules.
+The Loom runtime registers all `@webcomponent` classes via `customElements.define()` during bootstrap step 6 (§28.6), before `mount()` is called. Registration order follows source declaration order within each module and dependency order across modules.
 
 ## §20 Runtime Root and Capabilities
 
@@ -7049,7 +8426,7 @@ The Loom runtime registers all `@webcomponent` classes via `customElements.defin
 
 ### §20.1 `runtime` Object
 
-A root-level identifier `runtime` is always available in scope:
+A root-level identifier `runtime` is available in scope in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. In `@mode(freestanding)`, the Loom runtime is not linked and `runtime` is **not available** — using it is a compile-time error (`E_FREESTANDING_RUNTIME`). Bare-metal entry points interact with hardware directly using `@entry`, `asm { }`, and the `native.mem` / `native.atomic` modules (§24).
 
 ```
 interface Runtime {
@@ -7059,6 +8436,11 @@ interface Runtime {
   func has(name: string): bool;
   func compile(source: string): Module;
   func compile(source: string, options: CompileOptions): Module;
+
+  // Configure the runtime executor, blocking pool, and task queue.
+  // Must be called before any await expression evaluates; throws RuntimeConfigError
+  // if called after the event loop starts. See §17.9.1 for RuntimeConfig fields.
+  func configure(config: RuntimeConfig): void;
 
   // Capability sub-namespaces (accessed as properties, not method calls)
   let fs: io.fs.Fs;
@@ -7075,17 +8457,14 @@ class CompileOptions {
   /// Whether to type-check the module (default: true).
   pub let typeCheck: bool = true;
 }
+```
 
-class Module {
-  /// The module's exported names.
-  pub func exports(): list[string];
-  /// Get an exported value by name. Throws `KeyError` if not found.
-  pub func get(name: string): Any;
-  /// Check whether a name is exported.
-  pub func has(name: string): bool;
-  /// Call an exported function by name with positional arguments.
-  pub func call(name: string, args: list[Any]): Any;
-}
+`Module` is the built-in type for compiled modules (full declaration in §2.3): it carries `__name__`, `__file__`, `__execmode__` introspection properties and the reflection methods `exports()`, `get(name)`, `has(name)`, and `call(name, args)`.
+
+**`runtime.configure` — task queue depth (normative).** The `runtime.configure` call (§17.9.1) accepts a `RuntimeConfig` value. The `maxTaskQueueDepth: int` field caps the pending spawn queue: when the queue already contains `maxTaskQueueDepth` entries, further `spawn` operations throw `TaskQueueFullError` (§26.1). The default value `0` means unlimited. Set a positive value to bound memory usage under heavy task production; the runtime's release notes MUST document the platform-specific default behaviour.
+
+```loom
+runtime.configure(RuntimeConfig(maxTaskQueueDepth: 10_000))
 ```
 
 Capability sub-namespaces are properties on `runtime`: `runtime.fs.open(path)`, not `runtime.fs().open(path)`.
@@ -7099,7 +8478,7 @@ If a capability is not available on the current platform target, calling any met
 ```
 let mod = runtime.compile("""
   pub func greet(name: string): string {
-    return "Hello, {$ name $}!";
+    return i"Hello, {$ name $}!";
   }
 
   pub func add(a: int, b: int): int {
@@ -7114,7 +8493,7 @@ let names = mod.exports();                    // ["greet", "add"]
 
 The compiled module inherits the caller's capability set. Imports within the compiled source are resolved against the same module graph as the caller.
 
-`runtime.compile` requires the `eval` capability. It is available on `cli`, `service`, `desktop`, and `native` targets. On `browser` targets, it throws `CapabilityError`. In `@compiled` mode, it is a compile-time error.
+`runtime.compile` requires the `eval` capability. It is available on `cli`, `service`, `desktop`, and `native` targets. On `browser` targets, it throws `CapabilityError`. In `@mode(compiled)`, it is a compile-time error — compiled Wasm modules cannot JIT-compile new modules at runtime. In `@mode(freestanding)`, the entire `runtime` object is unavailable (`E_FREESTANDING_RUNTIME`).
 
 The optional `CompileOptions` parameter controls the module name (used in stack traces and `__module__` dunder) and whether type-checking is performed.
 
@@ -7134,6 +8513,9 @@ Entry scripts and REPL sessions receive convenience helpers as surface sugar ove
 
 | Helper | Equivalent |
 |---|---|
+| `print(value)` | Write `value` rendered as a string to stdout, followed by a newline. Accepts any `Renderable` value or primitive. `runtime.proc.stdout.writeLine(value.render(...))` |
+| `printErr(value)` | Same as `print` but writes to stderr |
+| `readLine()` | Read one line from stdin (blocking); returns `string?` — `None` at EOF. `runtime.proc.stdin.readLine()` |
 | `args()` | `runtime.args()` |
 | `env(name)` | `runtime.env(name)` |
 | `readBytes(path)` | `runtime.fs.read(path)` |
@@ -7165,11 +8547,11 @@ namespace debug;
 enum TraceEventKind { Call, Return, Line, Exception, Await, Resume, Portal, Signal }
 
 class TraceEvent {
-  pub kind: TraceEventKind;
-  pub portal: Option[string];
-  pub callable: Option[string];
-  pub file: string;
-  pub line: int;
+  pub let kind: TraceEventKind;
+  pub let portal: Option[string];
+  pub let callable: Option[string];
+  pub let file: string;
+  pub let line: int;
 }
 
 interface TraceHook {
@@ -7177,9 +8559,9 @@ interface TraceHook {
 }
 
 class PortalActivation {
-  pub name: string;
-  pub condition: Option[string];
-  pub once: bool;
+  pub let name: string;
+  pub let condition: Option[string];
+  pub let once: bool;
 }
 
 interface DebugRuntime {
@@ -7215,12 +8597,12 @@ Both share the same portal registry and tracing substrate.
 
 ```
 class DebugFrame {
-  pub file: string;
-  pub line: int;           // -1 if source map unavailable
-  pub column: int;         // -1 if source map unavailable
-  pub callable: string;    // always present from static metadata or core.reflect
-  pub execMode: string;    // "interpreted" | "compiled"
-  pub traceLevel: TraceLevel;
+  pub let file: string;
+  pub let line: int;           // -1 if source map unavailable
+  pub let column: int;         // -1 if source map unavailable
+  pub let callable: string;    // always present from static metadata or core.reflect
+  pub let execMode: string;    // "scripted" | "compiled" | "native" | "freestanding"
+  pub let traceLevel: TraceLevel;
   pub func locals(): dict[string, Any];  // populated only when traceLevel == Full
 }
 
@@ -7238,9 +8620,9 @@ enum TraceLevel {
 - Whether each callable has an explicit portal declaration.
 - The source file and module name (baked at compile time).
 
-The runtime uses the metadata table to populate `TraceEvent.callable` for compiled frames using the same string representation as `core.reflect.callableName` (§21.11). Portal names are therefore consistent whether accessed from interpreted or compiled contexts.
+The runtime uses the metadata table to populate `TraceEvent.callable` for compiled frames using the same string representation as `core.reflect.callableName` (§21.11). Portal names are therefore consistent whether accessed from scripted or native contexts.
 
-**Boundary crossing semantics.** When execution crosses from interpreted code into a compiled function call:
+**Boundary crossing semantics.** When execution crosses from scripted (GC) code into a native (ARC) function call:
 
 1. A `Call` trace event fires. `callable` is populated from the compiled module's metadata table.
 2. The frame's `execMode` is set to `"compiled"`.
@@ -7251,11 +8633,8 @@ When returning from compiled to interpreted code, a `Return` event fires (callab
 
 **Opaque frames.** When an interpreted caller calls an opaque compiled function, the ring buffer receives a synthetic boundary `Call` event followed by a synthetic `Return` event after completion. The interior is invisible to the time-travel recorder — equivalent to stepping over a native C library in a conventional debugger.
 
-**Reflection integration.** `TraceEvent.callable` is populated via `core.reflect.callableName` (§21.11), which is available in all modes including `@compiled`. This eliminates the dependency on `core.inspect` for trace event population.
+**Reflection integration.** `TraceEvent.callable` is populated via `core.reflect.callableName` (§21.11), which is available in all modes including `@mode(compiled)`. This eliminates the dependency on `core.inspect` for trace event population.
 
-
-
----
 
 
 ---
@@ -7266,20 +8645,22 @@ When returning from compiled to interpreted code, a `Return` event fires (callab
 
 The standard library provides `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, and `ui.*` modules available on all targets without a separate `loom install` step. GPU/accelerator packages (`loom.tensor`, `native.gpu`, `native.hal`, etc.) are documented in the [Loom Packages Reference](loom-packages-reference-v1_10.md).
 
+Numbered subsections §21.1–§21.27 are defined in the stdlib reference document. Cross-references in this specification of the form §21.N refer to those sections.
+
 ---
 
 ## §22 Compiled Mode
 
 *(This section is normative.)*
 
-Compiled mode enables ahead-of-time (AOT) compilation of Loom source files. The primary AOT target is WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). Compiled mode may also target native binaries via LLVM or Cranelift (§23). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §27.1).
+Compiled mode enables ahead-of-time (AOT) compilation of Loom source files. The primary AOT target is WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). Compiled mode may also target native binaries via LLVM or Cranelift (§23). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §28.1).
 
-### §22.1 `@compiled` Directive
+### §22.1 Compiled Mode Declaration
 
-The `@compiled` directive marks a file for ahead-of-time compilation with restricted semantics:
+The `@mode(compiled)` directive marks a file for ahead-of-time compilation with restricted semantics:
 
 ```
-@compiled
+@mode(compiled)
 
 struct Point {
   x: float;
@@ -7295,56 +8676,70 @@ func distance(a: Point, b: Point): float {
 
 **Placement rules:**
 
-- `@compiled` must appear as the first non-comment, non-blank line in the file.
-- `@compiled` is a file-level directive, not a function or block annotation.
+- `@mode(compiled)` must appear as the first non-comment, non-blank line in the file.
+- `@mode(compiled)` is a file-level directive, not a function or block annotation.
 - A file is either entirely compiled or entirely scripted.
+
+
 
 ### §22.2 Restrictions
 
-The following constructs are prohibited in `@compiled` files:
+The following constructs are prohibited in compiled-mode files:
 
 | Prohibited Construct | Reason |
 |---|---|
-| `Any` as a declared type | No dynamic dispatch |
-| `dynamic class` | No dynamic fields |
-| `core.inspect` usage | Requires live runtime registry (use `core.reflect` for structural queries) |
-| Top-level control flow (`if`, `while`, `for`, `match`, expression statements) | No sequential top-level execution |
-| `extern js` and `@jsexport` | No JavaScript interop in compiled mode |
+| `Any` as a declared type (`E_ANY_IN_COMPILED`) | No dynamic dispatch |
+| `dynamic class` (`E_DYNAMIC_IN_COMPILED`) | No dynamic fields |
+| `core.inspect` usage (`E_INSPECT_IN_COMPILED`) | Requires live runtime registry (use `core.reflect` for structural queries) |
+| Top-level control flow (`if`, `while`, `for`, `match`, expression statements) (`E_TOPLEVEL_CONTROL_COMPILED`) | No sequential top-level execution |
 | Non-constant top-level initializers | All top-level data must be statically determinable |
-| `unowned[~name]` outside `--target native` | Meaningful only under ARC; no-op under GC |
+| `unowned[~name]` outside `@mode(native)` or `@mode(freestanding)` | Compile-time-proven lifetime requires static ownership analysis; not available under GC |
 | Bare `unowned` on a class field (without `[~name]` annotation) | Compile-time error `E_UNOWNED_NO_LIFETIME` — all `unowned` class fields must use `unowned[~name]` (§23.4.3) |
-| `[weak ...] ` capture lists outside `--target native` | Meaningful only under ARC |
-| `Thread.spawn`, `ThreadPool`, `Mutex`, `RwLock`, `Atomic` outside `--target native` | OS threads unavailable on Wasm targets |
+| `[weak ...]` capture lists outside `@mode(native)` | Requires ARC zeroing side table — not available in GC or freestanding contexts |
+| `Thread.spawn`, `ThreadPool`, `Mutex`, `RwLock`, `Atomic` outside `@mode(native)` | OS threads unavailable on Wasm and freestanding targets |
 | Non-`Sendable` captures in `Thread.spawn` closures | Data race prevention (§17.8) |
 | Non-`Sendable` captures in async task closures with `MultiThreaded` executor | Data race prevention (§17.9.4) |
 | `runtime.configure` called after first `await` | `RuntimeConfigError` — executor is already started |
-| `spawnBlocking` on Wasm or scripted targets | OS threads unavailable — compile-time error |
 | `ThreadLocal[T]` on Wasm or scripted targets | OS threads unavailable — compile-time error |
 | Explicit augmented assignment `operator func` on structs | Value-type semantics incompatible with in-place mutation |
-| `borrow` outside `@compiled --target native` | ARC elision requires static ownership analysis; meaningless under GC |
-| `noescape fn` outside `@compiled --target native` | Non-escaping closure optimisation only meaningful under ARC |
+| `borrow` keyword outside `@mode(native)` and `@mode(freestanding)` | Requires static ownership analysis; not available under GC. Note: the `reads` and `edits` verbs (§23.4.9) replace `borrow` and `excl borrow` and are available in all modes including compiled and scripted. |
+| `unique` outside `@mode(native)` and `@mode(freestanding)` | ARC-free single-owner semantics require static ownership tracking; meaningless under GC (`E_UNIQUE_NOT_NATIVE`) |
+| `noescape fn` outside `@mode(native)` and `@mode(freestanding)` | Non-escaping closure contract requires static ownership analysis and escape verification |
 
-**Additionally permitted in `@compiled` mode:**
+**Additionally permitted in compiled mode:**
 
 - `core.reflect` — structural introspection from static metadata (§21.11).
 - `portal` blocks — registered with shared activation registry at module load.
 - `weak` field qualifier — maps to ARC zeroing weak pointer (native) or GC weak reference (Wasm).
-- `operator func` method modifier — desugars to named method slots at compile time.
-- `box` keyword expression — explicit widening at `Option[Any]` boundary positions.
+- `box` keyword expression — explicit widening at `Option[Any]` boundary positions (compiled mode only; `Any` is prohibited in `@mode(native)` and `@mode(freestanding)`, making `box` unavailable there).
 - `as` and `as?` cast operators — narrowing at `Option[Any]` boundary positions.
-- `borrow` parameter modifier — ARC retain/release elision for provably non-escaping values; `--target native` only.
-- `excl borrow` parameter modifier — exclusive borrow on struct-typed parameters; deeply exclusive by construction (§10.3.1); `--target native` only (§23.4.1.1).
-- `borrow[~name]` parameter — lifetime-tracked non-owning reference; `--target native` only (§7.1, §23.4.2).
-- `borrow` struct field qualifier — non-owning struct field; `--target native` only.
-- `lifetime ~name` generic parameter — declares a named region for lifetime tracking; `--target native` only (§10.11, §11.4, §12.1, §23.4.2).
-- `noescape fn(T): R` function type — non-escaping closure contract; allows stack allocation of captured variables; `--target native` only.
+- `borrow` parameter modifier — non-owning reference with stack-frame escape analysis; `@mode(native)` and `@mode(freestanding)` only. In native mode, also elides ARC retain/release.
+- `excl borrow` parameter modifier — exclusive borrow on struct-typed and `unique`-typed parameters; `@mode(native)` and `@mode(freestanding)` only (§23.4.1.1).
+- `unique` binding and field qualifier — single-owner class reference with no ARC; move-only semantics; `@mode(native)` and `@mode(freestanding)` only (§23.4.7).
+- `consume` expression — explicit downgrade from `unique T` to ARC-managed `T`; one-way ownership transfer; `@mode(native)` only — ARC must be present (§23.4.7).
+- `borrow[~name]` parameter — lifetime-tracked non-owning reference; `@mode(native)` and `@mode(freestanding)` only (§7.1, §23.4.2).
+- `borrow` struct field qualifier — non-owning struct field; `@mode(native)` and `@mode(freestanding)` only.
+- `lifetime ~name` generic parameter — declares a named region for lifetime tracking; `@mode(native)` and `@mode(freestanding)` only (§10.11, §11.4, §12.1, §23.4.2).
+- `noescape fn(T): R` function type — non-escaping closure contract; allows stack allocation of captured variables; `@mode(native)` and `@mode(freestanding)` only.
 
-The `if (__name__ == "__main__")` guard pattern is prohibited in `@compiled` files — not because `__name__` is unavailable, but because top-level branching is prohibited (see above). `__name__` and `__file__` remain available as compile-time string constants for use inside function bodies (e.g., logging, error messages).
+The `if (__name__ == "__main__")` guard pattern is prohibited in compiled-mode files — not because `__name__` is unavailable, but because top-level branching is prohibited (see above). `__name__` and `__file__` remain available as compile-time string constants for use inside function bodies (e.g., logging, error messages).
 
-Only declarations are permitted at file top level in `@compiled` files: `class`, `enum`, `struct`, `interface`, `func`, `let`, `var`, `type`, and `import`.
+| Code | Condition |
+|---|---|
+| `E_ANY_IN_COMPILED` | `Any` used as a declared parameter, return, or field type in `@mode(compiled)` |
+| `E_DYNAMIC_IN_COMPILED` | `dynamic class` declared in `@mode(compiled)` |
+| `E_INSPECT_IN_COMPILED` | `core.inspect` called in `@mode(compiled)` — use `core.reflect` instead |
+| `E_TOPLEVEL_CONTROL_COMPILED` | `if`, `while`, `for`, `match`, or expression statement at file top level in `@mode(compiled)` |
+| `E_BOX_IN_NATIVE` | `box expr` used in `@mode(native)` or `@mode(freestanding)` where `Any` is prohibited |
+
+Only declarations are permitted at file top level in compiled-mode files: `class`, `enum`, `struct`, `interface`, `func`, `let`, `var`, `type`, and `import`.
 
 **Permitted in compiled mode:**
 
+- Ownership transfer verbs: `reads`, `edits`, `takes`, `shares` — call-site ownership contracts available in all modes (§23.4.9)
+- `modifier` method keyword, `safe {}` blocks, `safe func` — mutation contracts and safe contexts available in all modes (§23.4.11–§23.4.12)
+- `synchronized` class — runtime-locked mutation; available in compiled mode (§23.4.13)
+- `requires` clauses with `distinct()` — parameter contracts available in all modes (§23.4.10)
 - Structs, classes (non-dynamic), enums, interfaces
 - Functions (sync, async, gen, async gen)
 - `async`/`await` and `Task[T]` — the async runtime for native targets uses OS threads or a lightweight coroutine scheduler rather than a host event loop
@@ -7359,22 +8754,26 @@ Only declarations are permitted at file top level in `@compiled` files: `class`,
 - `extern native` declarations with zero-overhead FFI — native function calls compile to direct call instructions with no marshalling layer
 - `Option[Any]` at error boundaries (`Scoped[T].scope_exit`, exception `cause`)
 
-The compiler SHALL emit a compile-time error for any prohibited construct in a `@compiled` file.
+The compiler SHALL emit a compile-time error for any prohibited construct in a compiled-mode file.
 
-**Import rules.** `@compiled` files may import other `@compiled` files. Importing a scripted-mode file from a `@compiled` file is a compile-time error. Conversely, scripted-mode files may import `@compiled` files — the JIT runtime loads the compiled module's exports as pre-compiled native or Wasm code.
+**Import rules.** compiled-mode files may import other compiled-mode files. Importing a scripted-mode file from a compiled-mode file is a compile-time error. Conversely, scripted-mode files may import compiled-mode files — the JIT runtime loads the compiled module's exports as pre-compiled native or Wasm code. `@mode(freestanding)` modules may not be imported by any other mode — see §24.2 for complete cross-mode import rules.
 
-The restriction is subtractive, not a different language: `@compiled` files use the same Loom syntax, type system, and semantics as scripted files for all permitted features.
+The restriction is subtractive, not a different language: compiled-mode files use the same Loom syntax, type system, and semantics as scripted files for all permitted features.
+
+**v1.16 features available in compiled mode:** `atomic {}` blocks (§17.7), `reinterpretChecked[T, U]` (§24.18). The `atomic {}` block is permitted because compiled mode targets the same Wasm cooperative-scheduler environment as scripted mode.
 
 ### §22.3 Execution Semantics
 
 Compiled mode files have different execution semantics from scripted mode:
 
-- **No sequential top-level execution.** Top-level code in `@compiled` files consists only of declarations (types, functions, constants). There is no statement-by-statement execution. Only function bodies execute at call time.
+- **No sequential top-level execution.** Top-level code in compiled-mode files consists only of declarations (types, functions, constants). There is no statement-by-statement execution. Only function bodies execute at call time.
 - **Static data.** All top-level `let`/`var` bindings must have compile-time-constant initializers (literals, const arithmetic, enum variant constructors). These are compiled as static data, initialized before `main` or module load.
-- **Compile-time type resolution.** All type declarations in `@compiled` files are resolved entirely at compile time. There is no runtime type registry for compiled types. `core.reflect.typeOf` on a compiled-mode type returns a `Type` value with static metadata baked in at compile time.
+- **Compile-time type resolution.** All type declarations in compiled-mode files are resolved entirely at compile time. There is no runtime type registry for compiled types. `core.reflect.typeOf` on a compiled-mode type returns a `Type` value with static metadata baked in at compile time.
 - **Module introspection dunders.** `__name__` is set to the module's fully-qualified dotted name and `__file__` is set to the source file path, both as compile-time string constants baked into the binary. `__name__` is never `"__main__"` in compiled mode. `__execmode__` is `"compiled"`.
 
 **Exports.** Compiled modules may export functions, classes, enums, interfaces, structs, and constants. The export mechanism uses the same `pub` visibility rules as scripted mode.
+
+**Wasm call-stack exhaustion.** The Wasm call-stack exhaustion contract from §2.1 applies identically to compiled mode. `StackOverflowError` (§26.1) is thrown at the deepest active compiled call frame and propagates through any `try/catch` blocks in the compiled module normally.
 
 **Interop boundary.** Compiled modules can be imported by scripted modules and vice versa (subject to the import rules in §22.2). At the boundary:
 
@@ -7426,7 +8825,7 @@ loom build --target native --lib static     # static library (.a/.lib)
 
 The native compilation pipeline:
 
-1. Parse and type-check all `@compiled` source files.
+1. Parse and type-check all `@mode(compiled)` source files.
 2. Lower to MIR (mid-level intermediate representation).
 3. Emit LLVM IR or Cranelift IR (selected by `--backend llvm|cranelift`; default: `llvm`).
 4. Optimise (LLVM: `O0`–`O3` via `--opt`; Cranelift: speed-focused).
@@ -7484,7 +8883,7 @@ LTO requires the LLVM backend and is disabled by default.
 
 **Compiler-inserted retain/release.** The compiler analyses ownership at each assignment, function call, and scope exit and inserts `retain()` and `release()` calls automatically. User code never calls `retain()` or `release()` directly — these are `@internal` runtime functions.
 
-**Value types.** Structs, enums, tuples, and primitives are not reference counted. They are copied by value. Structs containing class fields carry reference count operations when copied.
+**Value types.** Structs, enums, tuples, and primitives are not reference counted. They are copied by value. Structs may contain `unique`-qualified class fields (§23.4.7); such structs are move-only (§10.3.2) — assignment transfers ownership rather than copying, and no ARC retain/release is inserted.
 
 **Deterministic finalization.** `finalize()` is called when the last strong reference drops. `del handle;` releases the strong reference immediately. `with`/`Scoped[T]` releases at block exit. Both remain the preferred idioms for resource management; under ARC they provide early release rather than a safety net.
 
@@ -7496,6 +8895,8 @@ Use `unowned[~name]` (§23.4.3) for class fields whose lifetime relationship can
 
 ### §23.4.1 ARC Elision via `borrow` and `noescape fn`
 
+*(This section is normative. Applies to `@mode(native)`. In `@mode(freestanding)`, `borrow` and `noescape fn` serve their memory-safety and stack-allocation roles without ARC retain/release elision, since no ARC runtime is present. See §24.4 for freestanding availability.)*
+
 Two constructs guide the compiler to elide ARC operations on specific hot paths:
 
 **`borrow` parameters.** The compiler omits `retain()` on function entry and `release()` on function exit for `borrow` parameters. The ABI passes the value as a raw pointer with no reference count modification. The compiler verifies via escape analysis that the value does not outlive the call frame — any violation is a compile-time error before the elision is applied.
@@ -7505,7 +8906,7 @@ Two constructs guide the compiler to elide ARC operations on specific hot paths:
 The combined pattern produces zero ARC activity on hot iteration paths. For lifetime tracking of `borrow[~name]` references that flow beyond the call frame, see §23.4.2.
 ### §23.4.1.1 `excl borrow` on Structs
 
-*(This section is normative. Applies to `@compiled --target native`.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
 
 `excl borrow` is an exclusive borrow modifier for struct-typed parameters. It extends `borrow` with a compile-time exclusivity guarantee: the compiler verifies that no other `borrow` or `excl borrow` of the same binding is active simultaneously at the call site.
 
@@ -7525,7 +8926,7 @@ func fill(excl borrow buf: Buffer): void {
 **Compiler verification.** At each call site, the compiler verifies that the argument binding has no simultaneous active `borrow` or `excl borrow`. If the same binding is borrowed — either shared or exclusively — at the point of a `excl borrow` call, `E_EXCL_BORROW_ALIAS` is emitted.
 
 ```loom
-@compiled
+@mode(native)
 
 struct Cursor {
   var pos: int;
@@ -7558,24 +8959,24 @@ func process(): void {
 
 **Restrictions.**
 
-- `excl borrow` is valid only on struct-typed parameters. Using it on a class type, primitive, enum, or `Any` is `E_EXCL_BORROW_NOT_STRUCT`.
+- `excl borrow` is valid on struct-typed parameters and on `unique`-typed parameters. For `unique` values, exclusivity is trivially guaranteed — the compiler has already proven single ownership, so no simultaneous borrow alias check is required. Using `excl borrow` on a plain ARC class type, primitive, enum, or `Any` is `E_EXCL_BORROW_NOT_STRUCT`.
 - `excl borrow` is prohibited in `async func` signatures — async functions may suspend after the caller's frame has advanced (`E_EXCL_BORROW_ASYNC`).
 - `excl borrow` bindings may not be captured by `Thread.spawn`, `Thread.spawnWith`, or `ThreadPool.run` closures (`E_EXCL_BORROW_THREAD_CAPTURE`).
-- `excl borrow` is valid only in `@compiled --target native`. Using it in scripted mode or Wasm-targeted compiled mode is a compile-time error.
+- `excl borrow` is valid only in `@mode(native)` and `@mode(freestanding)`. Using it in scripted mode or Wasm-targeted compiled mode is a compile-time error.
 
 **Error codes.**
 
 | Code | Meaning |
 |---|---|
 | `E_EXCL_BORROW_ALIAS` | A `excl borrow` argument binding has a simultaneous active `borrow` or `excl borrow` at the call site |
-| `E_EXCL_BORROW_NOT_STRUCT` | `excl borrow` applied to a non-struct type |
+| `E_EXCL_BORROW_NOT_STRUCT` | `excl borrow` applied to a plain ARC class type, primitive, enum, or `Any`; structs and `unique`-typed values are valid targets |
 | `E_EXCL_BORROW_ASYNC` | `excl borrow` parameter declared in an `async func` signature |
 | `E_EXCL_BORROW_THREAD_CAPTURE` | `excl borrow` binding captured by a thread-spawning closure |
 
 
 
 ```loom
-@compiled
+@mode(native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
   for (item in items) {
@@ -7591,7 +8992,7 @@ forEach(borrow myList, func(borrow item) {
 
 ### §23.4.2 Lifetime Tracking and Region Inference
 
-*(This section is normative. Applies to `@compiled --target native`.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
 
 Lifetime tracking is a compile-time mechanism for verifying the safety of non-owning references (`borrow[~name]`) that flow beyond the call frame. It is entirely orthogonal to ARC: ARC manages the reference-counted heap lifetime of class instances; lifetime tracking manages the stack-frame lifetime of borrowed struct and value data. Neither system interferes with the other — a `borrow[~src] T` still elides ARC retain/release activity on `T` exactly as a plain `borrow T` would.
 
@@ -7627,7 +9028,6 @@ Lifetime tracking is a compile-time mechanism for verifying the safety of non-ow
 | `E_UNOWNED_NO_LIFETIME` | `unowned` field on a class has no lifetime annotation — must use `unowned[~name]` |
 | `E_UNOWNED_CLASS_NO_PARAM` | Class has an `unowned[~name]` field but does not declare `[lifetime ~name]` as a class parameter |
 | `E_UNOWNED_LIFETIME_MISMATCH` | Value assigned to `unowned[~name]` field does not originate from a scope that contains `~name` |
-| `E_SENDABLE_UNPROTECTED_VAR` | Class declares `implements Sendable` but has a `var` field not of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]` (§17.8.1) |
 
 **Relationship to ARC.** ARC and lifetime tracking address separate questions:
 
@@ -7637,13 +9037,14 @@ Lifetime tracking is a compile-time mechanism for verifying the safety of non-ow
 | Does a non-owning reference outlive its source stack frame? | Lifetime tracking (`borrow[~name]`) | Compile time |
 | Does an `unowned[~name]` field referent outlive the holder? | Region containment (rule 7) | Compile time |
 | Can a class instance be shared across threads safely? | `Sendable` + structural verification (§17.8.1) | Compile time |
+| Is a class instance exclusively owned with no ARC overhead? | `unique` qualifier (§23.4.7) | Compile time |
 
 These three mechanisms are independent. A function may use all three simultaneously: an ARC-managed class parameter, a `borrow` parameter (ARC elided), and a `borrow[~src]` parameter (ARC elided, lifetime tracked) without any interaction between the systems.
 
 
 ### §23.4.3 Lifetime-Verified `unowned[~name]` Fields
 
-*(This section is normative. Applies to `@compiled --target native`.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
 
 `unowned[~name]` is a field qualifier that holds a non-owning, non-retaining reference whose validity is **proven at compile time** via the region system (§23.4.2). It is the only form of `unowned` permitted on class fields. Bare `unowned` on a class field (without a lifetime annotation) is a compile-time error (`E_UNOWNED_NO_LIFETIME`).
 
@@ -7654,7 +9055,7 @@ Because safety is compiler-proven, `unowned[~name]` fields do not insert any run
 A class with `unowned[~name]` fields must declare `[lifetime ~name]` as a class-level lifetime parameter. This anchors the class instance's own lifetime to the `~name` region, which the compiler uses to verify that the class cannot outlive any of its `unowned[~name]` referents.
 
 ```loom
-@compiled
+@mode(native)
 
 class TreeNode[lifetime ~owner] : Any {
   pub let value: int;
@@ -7677,7 +9078,7 @@ class TreeNode[lifetime ~owner] : Any {
 The compiler applies rule 7 of §23.4.2 at every site that writes to an `unowned[~name]` field. The value's declaration scope must statically contain the `~name` region:
 
 ```loom
-@compiled
+@mode(native)
 
 func buildTree[lifetime ~tree](): TreeNode[~tree] {
   // root is declared in ~tree — it is the ~tree anchor.
@@ -7710,9 +9111,9 @@ A subclass of a `[lifetime ~owner]` class automatically inherits the lifetime pa
 
 | Code | Meaning |
 |---|---|
-| `E_UNOWNED_NO_LIFETIME` | Bare `unowned` on a class field — must use `unowned[~name]` |
-| `E_UNOWNED_CLASS_NO_PARAM` | Class has `unowned[~name]` field but does not declare `[lifetime ~name]` |
-| `E_UNOWNED_LIFETIME_MISMATCH` | Value assigned to `unowned[~name]` does not originate from a scope containing `~name` |
+| `E_UNOWNED_NO_LIFETIME` | See §23.4.3 |
+| `E_UNOWNED_CLASS_NO_PARAM` | See §23.4.3 |
+| `E_UNOWNED_LIFETIME_MISMATCH` | See §23.4.3 |
 
 #### Relationship to `weak`
 
@@ -7722,7 +9123,7 @@ A subclass of a `[lifetime ~owner]` class automatically inherits the lifetime pa
 
 ### §23.4.4 Inferred Struct Lifetimes
 
-*(This section is normative. Applies to `@compiled --target native`.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
 
 When a struct's fields are all declared with `borrow` or `borrow[~name]` qualifiers, the compiler infers an implicit single lifetime for the struct without requiring explicit `[lifetime ~name]` parameter declarations. This covers the common "temporary view" pattern — a struct that borrows into a larger buffer for the duration of a local computation — without any user-visible lifetime annotation burden.
 
@@ -7736,7 +9137,7 @@ When a struct's fields are all declared with `borrow` or `borrow[~name]` qualifi
 The inferred lifetime is transparent to the programmer: no `[lifetime ~self]` appears in source code, no annotation is required at the constructor call site, and the compiled binary carries no lifetime metadata.
 
 ```loom
-@compiled
+@mode(native)
 
 // All fields are borrow — lifetime inferred; no annotation needed
 struct PacketView {
@@ -7765,48 +9166,17 @@ func parsePacket(borrow buf: bytes): void {
 
 ---
 
-### §23.4.5 `@noalias` — Disjoint Buffer Annotation
+### §23.4.5 Buffer Disjointness Contracts
 
-*(This section is normative. Applies to `@compiled --target native`.)*
+*(This section is normative. Applies to all execution modes.)*
 
-`@noalias` is a function-parameter annotation that asserts two or more `borrow` parameters do not alias — that is, they do not point to overlapping memory regions. It is a programmer assertion that the compiler trusts without verification.
+Buffer disjointness contracts are expressed using `distinct()` in a `requires` clause (§23.4.10). `distinct(a, b, ...)` asserts that the listed parameters do not point to overlapping memory regions and is statically verified by the compiler where possible, with an auditable `@unsafe` escape path for statically unknowable cases. The LLVM `noalias` ABI attribute is emitted for all `distinct()` parameters on native targets, providing the same auto-vectorisation benefit as the removed `@noalias` annotation.
 
-**Motivation.** The LLVM and Cranelift backends can auto-vectorise loops operating on disjoint buffers, but only when they can prove no aliasing exists. For `borrow` parameters, the compiler cannot statically determine aliasing in the general case. `@noalias` provides the missing information, unlocking auto-vectorisation and enabling the compiler to emit C `restrict`-qualified pointers in the ABI, matching the performance of carefully written C or Fortran numerical code.
-
-**Syntax.** `@noalias` is placed before the parameter modifier keyword:
-
-```loom
-@compiled
-
-func vectorAdd(
-  @noalias borrow out: bytes,
-  @noalias borrow a: bytes,
-  @noalias borrow b: bytes,
-  n: int,
-): void {
-  // Compiler is permitted to auto-vectorise this loop because @noalias
-  // asserts out, a, and b do not overlap.
-  for (let i = 0; i < n; i = i + 1) {
-    out[i] = a[i] + b[i];
-  }
-}
-```
-
-**Rules:**
-
-- `@noalias` is valid only on `borrow` and `borrow[~name]` parameters.
-- `@noalias` on a non-`borrow` parameter is a compile-time error.
-- `@noalias` is a programmer assertion — the compiler does not verify disjointness. If the programmer lies and passes overlapping buffers, the resulting behaviour is undefined in release builds.
-- `@noalias` applies to all call sites of the annotated function. There is no per-call-site override.
-- `@noalias` is valid only in `@compiled` files. Using it in scripted-mode files is a compile-time error.
-- The reference formatter emits a `noalias-unchecked` lint advisory for every `@noalias` parameter as a reminder during code review.
-- Multiple `@noalias` parameters in the same function signature assert pairwise disjointness: all pairs `(p_i, p_j)` where `i ≠ j` are asserted non-overlapping.
-
-**ABI effect.** On native targets, `@noalias borrow T` parameters are emitted with the `noalias` LLVM IR attribute (equivalent to C's `__restrict__`). This propagates the aliasing information through the optimisation pipeline.
+See §23.4.10 for the complete specification of `distinct()` contracts.
 
 ### §23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary
 
-*(This section is normative. Applies to `@compiled --target native` unless otherwise noted.)*
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` unless otherwise noted.)*
 
 `@unsafe(reason: string)` is the single, unified annotation for all programmer-asserted safety claims in Loom. It consolidates what were previously scattered, ad-hoc annotations into one auditable surface. Every use of `@unsafe` is a greppable record of a specific safety property that the programmer asserts and the compiler cannot verify.
 
@@ -7819,8 +9189,10 @@ func vectorAdd(
 | `extern native func` declaration | The function has programmer-asserted safety properties — thread safety, escaping borrow lifetime, or both |
 | `class` declaration | The class's `implements Sendable` claim is valid despite having `var` fields that do not pass structural verification (§17.8.1) |
 | `func` declaration | The function body calls `@unsafe`-annotated APIs; marks the function as an auditable unsafe boundary |
+| `distinct()` call-site acknowledgment | The caller asserts that the listed parameters do not alias despite the compiler being unable to statically prove disjointness (§23.4.10); form: `@unsafe("distinct: reason")` in the argument list |
+| `asm {}` block (native mode) | The inline assembly block is programmer-verified safe; required in `@mode(native)` (§24.7); form: `@unsafe("asm: reason")` preceding the `asm {}` block |
 
-**Thread-safety assertion on `extern native`.** Replaces the retired `@threadSafe` annotation:
+**Thread-safety assertion on `extern native`:**
 
 ```loom
 @unsafe("threadSafe: sqlite3 is documented thread-safe in serialized mode")
@@ -7833,7 +9205,7 @@ extern native "libsqlite3" func sqlite3_exec(
 ): int;
 ```
 
-**Escaping borrow assertion on `extern native`.** Replaces the retired `@escapingBorrow` / `@unsafeEscapingBorrow` annotations:
+**Escaping borrow assertion on `extern native`:**
 
 ```loom
 // Declaration site — asserts the pointer may outlive the call
@@ -7852,7 +9224,7 @@ Both the declaration site and every call site must carry `@unsafe` when a borrow
 ```loom
 @unsafe("sendable: mutations are confined to the initialization phase; fully immutable after construction")
 class ImmutableAfterInit : Any implements Sendable {
-  var data: list[int] = []   // written only during init, never thereafter
+  var data: list[int] = [];  // written only during init, never thereafter
 
   pub func build(items: list[int]): void {
     data = items;   // only called before sharing
@@ -7870,20 +9242,658 @@ This is the primary safety audit tool. The reason strings provide context for ea
 
 **`@unsafe` does not suppress other errors.** `@unsafe` bypasses only the specific verification it is designed to opt out of. It does not suppress unrelated compile-time errors. A `@unsafe` class with a `borrow[~name]` field still violates `E_SENDABLE_LIFETIME`. A `@unsafe` `extern native` function still requires correct parameter types.
 
-**Retired annotations.** The following annotations no longer exist and are compile-time errors if used:
 
-| Retired annotation | Replacement |
+
+### §23.4.7 `unique` Ownership
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+
+`unique` is a compile-time ownership qualifier for class instances. A `unique`-qualified binding or field holds a class instance with **compiler-proven single ownership**: no other binding or field may alias the same instance. There is no `strong_count`, no ARC retain/release, and no side-table tracking. The entire ownership model is static — the compiler enforces exclusivity at all use sites.
+
+**`unique` is not ARC.** ARC allows unlimited aliasing; `unique` prohibits it entirely. A `unique` value is therefore always safe to access without synchronization, always safe to pass as `edits` (exclusive borrow requires no alias scan), and always zero-overhead in terms of reference counting.
+
+#### Syntax — standalone bindings
+
+```loom
+@mode(native)
+
+unique let conn = Connection.open(addr)      // immutable unique binding
+unique var buf = Buffer.alloc(1024)          // mutable unique binding
+```
+
+`unique let` — the binding is unique and the local binding itself is immutable (the object's `var` fields may still be mutated via methods or `edits` borrow).
+`unique var` — the binding is unique and may be reassigned to a different `unique` instance.
+
+#### Syntax — struct fields
+
+```loom
+@mode(native)
+
+struct Request {
+  var path: string;
+  unique var conn: Connection;   // uniquely-owned class field
+}
+```
+
+A struct with `unique` fields is move-only (§10.3.2). The `unique` qualifier on a struct field is valid only in `@mode(native)` and `@mode(freestanding)`.
+
+#### Move semantics
+
+Assigning a `unique` binding to another binding **moves** ownership — the source is consumed and may not be used again:
+
+```loom
+unique let a = Connection.open(addr)
+unique let b = a         // MOVE: b owns the Connection; a is consumed
+use(a)                   // E_USE_AFTER_MOVE
+```
+
+To transfer ownership of a `unique` value into a function, declare the parameter with `takes`. A no-verb parameter is an implicit `reads` borrow and does not consume the binding:
+
+```loom
+// takes — ownership transferred; caller's binding consumed
+func process(takes conn: unique Connection): void { ... }
+
+unique let c = Connection.open(addr)
+process(takes: c)        // MOVE: c consumed
+use(c)                   // E_USE_AFTER_TAKE
+```
+
+```loom
+// reads (implicit) — borrow only; caller retains ownership
+func inspect(conn: unique Connection): void { ... }  // implicit reads
+
+unique let c = Connection.open(addr)
+inspect(c)               // borrow — c still valid
+use(c)                   // OK — c not consumed
+```
+
+#### Borrowing `unique` values
+
+`reads` and `edits` are both valid on `unique` bindings. Because single ownership is compiler-proven, exclusivity for `edits` is trivially guaranteed — no alias check is needed:
+
+```loom
+unique let conn = Connection.open(addr)
+
+read(conn)                   // implicit reads borrow — conn not consumed
+read(reads: conn)            // explicit reads — identical
+write(edits: conn)           // exclusive borrow — trivially safe, conn not consumed
+use(conn)                    // OK — conn still uniquely owned
+```
+
+#### `consume` — explicit downgrade to ARC
+
+`consume expr` explicitly transfers a `unique` value into the ARC ownership model, producing a regular ARC-managed reference. The source binding is consumed. The downgrade is **one-way and irreversible** — once a value enters ARC, the compiler no longer tracks uniqueness.
+
+```loom
+unique let conn = Connection.open(addr)
+
+// Configure conn exclusively before sharing
+write(edits: conn)
+
+// Hand off to shared ARC ownership
+let shared: Connection = consume conn     // conn consumed; shared is normal ARC
+let alias: Connection = shared            // ARC alias — fine, uniqueness is gone
+use(conn)                                 // E_USE_AFTER_MOVE
+```
+
+`consume` is required for passing a `unique` value to a function that expects a plain ARC class reference, storing it in an ARC-managed collection, or returning it from a factory function that produces shared values.
+
+`consume` applied to a non-`unique` binding is `E_CONSUME_NON_UNIQUE`.
+
+#### `unique` and `Sendable`
+
+`unique` values are not `Sendable` under the standard rule — `Sendable` is about safe sharing across threads, and `unique` values are not shared. However, a `unique` value may be **moved** into a `Thread.spawn` closure, transferring ownership to the spawned thread. This is safe because the caller loses access to the value at the move point — there is no concurrent access.
+
+```loom
+unique let conn = Connection.open(addr)
+
+let handle = Thread.spawn(func() {
+  use(consume conn)    // conn moved into thread — caller loses access
+})
+use(conn)              // E_USE_AFTER_MOVE — conn was moved into the closure
+```
+
+`consume` inside the closure downgrades to ARC within the thread's ownership context, which is correct since the thread may share the value within its own scope.
+
+#### `unique` and `finalize` / `del`
+
+`del` on a `unique` binding calls `finalize()` immediately and releases the memory — there is no ARC decrement since there is no reference count. The binding is consumed by `del`:
+
+```loom
+unique let handle = NativeResource.open("data.bin")
+// ... use handle ...
+del handle    // finalize() called; memory freed immediately; handle consumed
+```
+
+`with`/`Scoped[T]` works identically — the `unique` value is finalized at block exit and consumed.
+
+#### Restrictions
+
+- `unique` is valid only in `@mode(native)` and `@mode(freestanding)` (`E_UNIQUE_NOT_NATIVE`).
+- `unique let` on a struct field is a compile-time error — struct fields must use `unique var` (`E_UNIQUE_FIELD_LET`). `unique` is not valid as a qualifier on class fields: class instances are ARC-managed and aliasable by definition, which is incompatible with the single-owner invariant. Use `unique let` or `unique var` as a local binding qualifier, or a `unique var` struct field, to hold a uniquely-owned class instance.
+- A `unique` binding may not be captured by closures that escape the frame (e.g., assigned to an escaping `fn` binding or passed to `Thread.spawn` without moving via a function parameter — the closure capture must be a move, not a reference).
+- `unique` on a non-class type (struct, primitive, enum) is a compile-time error — value types are already exclusively owned by nature (`E_UNIQUE_NOT_CLASS`).
+
+#### Error codes
+
+| Code | Meaning |
 |---|---|
-| `@threadSafe` | `@unsafe("threadSafe: <reason>")` |
-| `@escapingBorrow` | `@unsafe("escapingBorrow: <reason>")` on declaration |
-| `@unsafeEscapingBorrow` | `@unsafe("escapingBorrow: <reason>")` at call site |
-
-**Relationship to `@noalias`.** `@noalias` (§23.4.5) is a separate, narrowly-scoped performance assertion about buffer disjointness. It is not subsumed by `@unsafe` — `@noalias` remains its own annotation. The distinction: `@unsafe` asserts a safety property (correctness could be compromised if wrong); `@noalias` asserts a performance property (results could be incorrect if wrong, but only in undefined-behaviour-inducing misuse).
-
+| `E_UNIQUE_NOT_NATIVE` | `unique` used outside `@mode(native)` and `@mode(freestanding)` |
+| `E_CONSUME_NON_UNIQUE` | `consume` applied to a non-`unique` binding |
+| `E_UNIQUE_NOT_CLASS` | `unique` qualifier applied to a non-class type |
+| `E_UNIQUE_FIELD_LET` | `unique let` used on a struct field — struct fields must use `unique var` |
 
 
 
-### §23.5 ARC and the Interpreted/Compiled Boundary
+### §23.4.8 `arc let`, `unique class`, and Integer Safety Error Codes
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` unless noted.)*
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_ARC_LET_NOT_NATIVE` | All | `arc let` / `arc var` used outside `@mode(native)` |
+| `E_ARC_LET_NOT_CLASS` | Native | `arc let` applied to a value type |
+| `E_ARC_LET_ON_FIELD` | Native | `arc let` or `arc var` used as a class or struct field qualifier |
+| `E_CONSUME_NOT_FREESTANDING` | Freestanding | `consume` used in `@mode(freestanding)` — no ARC runtime to transfer ownership into |
+| `E_BORROW_ESCAPE` | Native, Freestanding | Plain `borrow` of a local escapes function scope without lifetime annotation |
+| `E_BORROW_LOOP_MUTATION` | Compiled, Native, Freestanding | Collection mutated inside a `for-in` loop that holds an implicit borrow of it |
+| `E_MODE_POSITION` | All | `@mode` directive not the first active token in the file |
+| `E_MODE_DUPLICATE` | All | More than one `@mode` directive in a single file |
+| `E_MODE_UNKNOWN` | All | Unrecognised mode name in `@mode(...)` |
+| `E_MODE_TARGET_MISMATCH` | All | File `@mode` incompatible with the `--target` build flag |
+| `E_BOUNDS_LITERAL` | All | Array/list indexed with a compile-time constant that is out of range |
+| `E_PREFER_COMPILED_NOT_SCRIPTED` | Native, Freestanding | `prefer compiled` import clause used outside `@mode(scripted)` |
+
+**`--require-explicit-arc`** (build flag, `@mode(native)` only). When set, constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits lint advisory `implicit-arc-binding`. Promote to an error with `// loom:error(implicit-arc-binding)`.
+
+**`--overflow=trap`** (build flag, `@mode(native)` and `@mode(freestanding)`). When set, plain `+`, `-`, `*`, `/` on fixed-width integer types trap on overflow in all build configurations (debug and release), providing stronger guarantees than Rust's default (release builds silently wrap). The explicit overflow arithmetic methods (§24.19) remain available alongside this flag.
+
+
+
+### §23.4.9 Ownership Transfer Verbs
+
+*(This section is normative. Applies to all execution modes.)*
+
+The ownership transfer verb system provides a unified, mode-agnostic vocabulary for expressing ownership relationships at parameter declaration sites and call sites. Verbs replace `borrow` and `excl borrow` in function signatures with English words that declare intent and require a matching acknowledgment at every call site.
+
+**The four verbs.**
+
+| Verb | Semantics | Replaces |
+|---|---|---|
+| `reads` | Shared immutable borrow — caller retains ownership. May be written explicitly or omitted (implicit default). | `borrow` |
+| `edits` | Exclusive mutable borrow — no concurrent reads or writes | `excl borrow` |
+| `takes` | Ownership transfer — caller's binding is consumed at the call site | by-value move |
+| `shares` | ARC retain — both caller and callee hold the value after the call | by-value ARC |
+
+**Availability.** Verbs are available in all execution modes: `@mode(scripted)`, `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)`. This removes the mode gate that previously restricted `borrow` and `excl borrow` to `@mode(native)` and `@mode(freestanding)`.
+
+**Declaration syntax.**
+
+```loom
+func f(reads  x: T): void { ... }   // explicit reads — shared immutable borrow
+func f(        x: T): void { ... }  // implicit reads — identical to the line above
+func f(edits  x: T): void { ... }   // exclusive mutable borrow
+func f(takes  x: T): void { ... }   // ownership transfer
+func f(shares x: T): void { ... }   // ARC retain
+```
+
+**Implicit default — `reads`.** A parameter declared without a verb is implicitly `reads`. Omitting the verb on a parameter is exactly equivalent to writing `reads`. This makes the safe, common case — passing a value for reading — require no annotation:
+
+```loom
+func render(buf: Buffer): string { ... }     // implicitly reads buf
+func render(reads buf: Buffer): string { ... } // explicitly reads buf — identical
+```
+
+**Call site syntax.** `reads` is the implicit default and its acknowledgment is optional. `edits`, `takes`, and `shares` are explicit and their acknowledgments are required — omitting them is `E_VERB_REQUIRED`. A mismatched verb is `E_VERB_MISMATCH`:
+
+```loom
+// reads — both forms are always valid; explicit form preferred for clarity
+f(reads:  x)   // ✓ explicit reads acknowledgment — always valid
+f(x)           // ✓ implicit reads — valid when intent is clear
+
+// edits / takes / shares — acknowledgment required
+f(edits:  x)   // ✓
+f(takes:  x)   // ✓
+f(shares: x)   // ✓
+f(x)           // ✗  E_VERB_REQUIRED — edits/takes/shares must be acknowledged
+```
+
+**`reads` semantics.** A `reads` parameter accepts a shared immutable borrow. `reads` is also the implicit default: a parameter declared without any verb is treated identically to one declared with `reads`. Both forms are fully valid — use `reads` explicitly when making the read-only contract visible in the signature aids clarity; omit it when the intent is obvious from context. Multiple `reads` borrows on the same value may be active simultaneously. The function body may not write to the parameter (`E_READS_MUTATION`). The caller retains ownership after the call returns. Zero ARC overhead.
+
+**`edits` semantics.** An `edits` parameter accepts an exclusive mutable borrow. The compiler verifies at the call site that no other active borrow of the same value exists. The function may read and write the parameter freely. The caller retains ownership after the call returns. On `unique` values, the exclusivity check is trivially satisfied — no liveness scan needed. On plain ARC values, the compiler performs a live-borrow scan at the call site.
+
+**`takes` semantics.** A `takes` parameter accepts an ownership transfer. The source binding is consumed at the call site and may not be used thereafter (`E_USE_AFTER_TAKE`). On ARC values, the retain count is transferred rather than incremented. On `unique` values, the move is zero-cost with no ARC operation.
+
+**`shares` semantics.** A `shares` parameter accepts an ARC retain. Both the caller and the callee hold a reference after the call returns. On `unique` values, `shares` triggers an implicit unique-to-ARC downgrade, permanently surrendering the exclusivity proof. After `shares` on a `unique` binding, the binding becomes a plain ARC reference.
+
+**Interaction with `unique`.**
+
+| Verb on `unique` | Runtime cost | Uniqueness proof after call |
+|---|---|---|
+| `reads` | Zero | Retained |
+| `edits` | Zero — no liveness scan | Retained |
+| `takes` | Zero — no ARC decrement | Consumed |
+| `shares` | One ARC retain | **Permanently surrendered** |
+
+**Backward compatibility.** `borrow` and `excl borrow` remain valid in `@mode(native)` and `@mode(freestanding)`.
+
+**ARC behavior change for no-verb parameters.** In prior ARC semantics, a plain parameter `func f(x: Buffer)` in `@mode(native)` implicitly ARC-retained `x` on entry and released it on exit. With the implicit `reads` default, `x` is now a zero-overhead borrow — no retain or release is inserted. Code that relied on the retain to extend the lifetime of `x` beyond the call frame must now use `shares` explicitly. The compiler catches this: in `@mode(native)` and `@mode(freestanding)`, attempting to store or return a `reads` parameter beyond the call frame emits `E_BORROW_ESCAPE`, guiding the programmer to use `shares` instead. `E_READS_MUTATION` is a separate error that fires when the function body attempts to write to a `reads` parameter directly — for example, assigning to one of its fields. `reads` is semantically equivalent to `borrow`. `edits` on struct-typed and `unique`-typed parameters is semantically equivalent to `excl borrow`. However, `edits` extends exclusive borrowing to plain ARC class instance parameters — a capability that `excl borrow` does not provide (`excl borrow` on a plain ARC class type is `E_EXCL_BORROW_NOT_STRUCT`, §23.4.1.1). This extension is the primary safety improvement of the verb system over the prior `borrow`/`excl borrow` vocabulary. The reference formatter emits a `prefer-verbs` lint advisory for `borrow` and `excl borrow` usage in new code.
+
+**`edits` in `async func` signatures.** `edits` on a struct-typed parameter is semantically equivalent to `excl borrow` and inherits the `E_EXCL_BORROW_ASYNC` restriction (§23.4.1.1): it may not appear in `async func` signatures because the caller's stack frame may no longer be valid when the function resumes after suspension. `edits` on a class-typed parameter does not inherit this restriction — ARC keeps the object alive across suspension points, and exclusivity is verified per-call rather than as a persistent live borrow.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_VERB_REQUIRED` | All | Call site omits required verb acknowledgment for an `edits`, `takes`, or `shares` parameter — `reads` and no-verb parameters do not require acknowledgment |
+| `E_VERB_MISMATCH` | All | Call site verb does not match declaration verb |
+| `E_USE_AFTER_TAKE` | All | Value used after being transferred via `takes` |
+| `E_EDITS_WHILE_READS` | All | `edits` called while an active `reads` borrow of the same value is live |
+| `E_EDITS_ALIAS` | All | Same value passed as `edits` more than once in a single call |
+| `E_EDITS_READS_ALIAS` | All | Same value passed as both `edits` and `reads` in a single call |
+| `E_EDITS_AFTER_SHARES` | All | `edits` attempted after `shares` downgraded a `unique` binding to ARC |
+| `E_READS_MUTATION` | All | `reads` parameter written inside the function body |
+| `E_EDITS_STRUCT_ASYNC` | All | `edits` on a struct-typed parameter declared in an `async func` signature |
+
+---
+
+### §23.4.10 `requires` Clauses and `distinct()`
+
+*(This section is normative. Applies to all execution modes.)*
+
+A `requires` clause expresses ownership contracts that span multiple parameters simultaneously or assert spatial relationships between parameters. It appears after the parameter list and before the return type annotation.
+
+**Syntax.**
+
+```
+requires_clause   ::= 'requires' requires_contract (',' requires_contract)*
+requires_contract ::= verb_req | distinct_req
+verb_req          ::= ('reads'|'edits'|'takes'|'shares') '(' IDENT (',' IDENT)* ')'
+distinct_req      ::= 'distinct' '(' distinct_arg (',' distinct_arg)* ')'
+distinct_arg      ::= IDENT | IDENT '[' expr ':' expr ']'
+```
+
+Multiple contracts are comma-separated. When stacked for readability:
+
+```loom
+func merge(dst: Buffer, src: Buffer, aux: Buffer)
+  requires
+    edits(dst),             // overrides implicit reads on dst
+    distinct(dst, src, aux) // src and aux are implicitly reads
+: void { ... }
+```
+
+**Multi-parameter verb shorthand.** Applying a verb to multiple parameters in `requires` is exactly equivalent to placing that verb inline on each parameter individually:
+
+```loom
+// Both declaration forms are valid and mean exactly the same thing.
+// Explicit reads is recommended when making the read-only contract visible matters:
+func compare(reads x: Buffer, reads y: Buffer): bool  // explicit — contract visible in signature
+func compare(x: Buffer, y: Buffer): bool              // implicit — concise when obvious
+
+// The redundant form is requires reads(...) on a parameter that is already reads
+// (either explicit or implicit) — the compiler emits a redundant-requires lint:
+func compare(x: Buffer, y: Buffer) requires reads(x, y): bool  // redundant-requires lint
+
+// requires is valuable for edits, takes, shares, and distinct:
+func fillAll(dst: Buffer, src: Buffer)
+  requires edits(dst), distinct(dst, src): void { ... }
+```
+
+When a parameter already carries an inline verb, repeating it in `requires` is redundant and the compiler emits a `redundant-requires` lint advisory. The same applies to no-verb parameters: `requires reads(x)` on a no-verb parameter is redundant because no-verb is already implicitly `reads`. A `requires` clause may specify a verb for a no-verb parameter to override the implicit default — `requires edits(dst)` on a no-verb `dst` parameter makes it `edits`, which is equivalent to declaring `edits dst: Buffer` inline.
+
+**Call site acknowledgment.** `requires edits(...)`, `requires takes(...)`, `requires shares(...)`, and `requires distinct(...)` contracts must be acknowledged at every call site. `requires reads(...)` acknowledgments are optional at call sites — consistent with `reads` being the implicit default:
+
+```loom
+merge(dstBuf, srcBuf, auxBuf,
+  edits(dstBuf),                      // required — edits must be acknowledged
+  distinct(dstBuf, srcBuf, auxBuf),   // required — distinct must be acknowledged
+  // reads(srcBuf, auxBuf)            // optional — implicit reads, may be omitted
+)
+```
+
+**Implicit `safe func`.** A function is implicitly `safe func` (§23.4.12) when its `requires` clause contains any `edits(...)` or `distinct(...)` contract. A function with only `reads(...)` contracts is not implicitly safe.
+
+**`distinct()` contract.** `distinct(a, b, ...)` asserts that the listed parameters do not point to overlapping memory regions. Valid only on `reads`- or `edits`-qualified parameters. See §23.4.5 for the relationship to buffer disjointness contracts.
+
+The compiler produces one of three outcomes at each call site:
+
+1. **Statically provable.** Parameters originate from separate heap allocations. Verified at compile time; no additional annotation required.
+
+2. **Statically refutable.** The same binding appears more than once. `E_DISTINCT_ALIAS` is emitted.
+
+3. **Statically unknowable.** Parameters are derived slices of the same allocation. The caller must add `@unsafe("distinct: reason")` to acknowledge explicitly. The annotation is preserved in debug metadata and is greppable for audit. The LLVM `noalias` ABI attribute is emitted for cases 1 and 3. Case 2 is a compile-time error — no code is generated.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_DISTINCT_ALIAS` | All | Same binding appears more than once in `distinct()` |
+| `E_DISTINCT_NOT_READS_EDITS` | All | `distinct()` applied to a non-`reads`/`edits` parameter |
+| `E_REQUIRES_UNACKNOWLEDGED` | All | Call site omits acknowledgment of a `requires` contract |
+| `E_REQUIRES_MISMATCH` | All | Call site acknowledgment does not match declaration contract |
+
+---
+
+### §23.4.11 `modifier` — Method Mutation Contract
+
+*(This section is normative. Applies to all execution modes.)*
+
+A `modifier` method declares that it writes to one or more `var` fields on `self`. `modifier` applies only to **class** methods. Struct methods do not use `modifier` — structs have value semantics (copy on assignment, §10.3), so no aliasing can occur through struct method calls; the safety enforcement that `modifier` provides for class instances is unnecessary and inapplicable. A `modifier` declaration on a struct method is a compile-time error (`E_MODIFIER_ON_STRUCT`).
+
+The compiler enforces this declaration bidirectionally for class methods.
+
+**Declaration syntax.**
+
+```loom
+class Foo {
+  var _count: int = 0
+
+  pub modifier increment(): void { _count = _count + 1 }   // writes self
+  pub func     value(): int      { return _count }          // read only
+}
+```
+
+**Compiler-enforced invariants.**
+
+1. *Declaration invariant.* A non-`modifier` method that writes to any `var` field on `self` is `E_MODIFIER_REQUIRED`. This is enforced for direct field assignments and for calls to `modifier` methods on `self` from within a non-modifier body.
+
+2. *Call site invariant.* A `modifier` method called on a plain ARC instance requires a safe context (§23.4.12). The compiler verifies that no other live reference to the receiver exists at the point of the call.
+
+**Setters are automatically `modifier`.** All `set` accessors are implicitly `modifier` and enforce the same call site rules. No additional annotation is required.
+
+**`operator func` methods and `modifier`.** Operator methods are not implicitly `modifier` — the `modifier` keyword must be written explicitly when the body writes `var` fields on `self`. The syntax is `modifier operator func +=` (the `modifier` keyword precedes `operator`). Without `modifier`, writing to a `var` field inside an `operator func` body is `E_MODIFIER_REQUIRED`. With `modifier`, calling the operator on a plain ARC instance requires safe context at the call site, exactly like any other `modifier` method.
+
+```loom
+class Config {
+  var _timeout: int = 30
+  pub get timeout(): int  { return _timeout }   // non-modifier
+  pub set timeout(t: int) { _timeout = t    }   // implicitly modifier
+}
+```
+
+**`modifier` on `unique` receivers.** No safe context required — `unique` proves exclusivity statically.
+
+**`modifier` on `synchronized` receivers.** No safe context required — the runtime lock provides exclusivity dynamically (§23.4.13).
+
+**Direct external writes to `pub var` fields.** A direct external write to a `pub var` field on a plain ARC class instance — such as `config.timeout = 60` from outside the class — is subject to the same safe context requirement as calling a `modifier` method on that instance. The compiler enforces this as `E_SAFE_CONTEXT_REQUIRED`. On `unique` receivers, direct field writes are unconditionally safe. On `synchronized` class instances, direct external field writes acquire the instance lock automatically, identical to calling a `modifier`.
+
+**`modifier` propagation.** When any function body — whether a top-level function, a class method, or a static method — calls a `modifier` method on a plain ARC class receiver, that call requires a safe context. The function may either wrap the call in a `safe {}` block, or declare itself `safe func` — which propagates the requirement to its callers in the same way `async` propagates upward through the call stack. A `safe func` may call `modifier` methods on plain ARC receivers freely within its body without additional `safe {}` wrappers.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_MODIFIER_REQUIRED` | All | Non-`modifier` method writes to a `var` field on `self` |
+| `E_MODIFIER_ON_STRUCT` | All | `modifier` declaration used on a struct method |
+| `E_MODIFIER_OVERRIDE_MISMATCH` | All | Non-`modifier` method overrides a `modifier` method in a superclass or implements a `modifier` interface method (§11.1) |
+| `E_SAFE_CONTEXT_REQUIRED` | All | `modifier` called on plain ARC receiver outside safe context |
+
+---
+
+### §23.4.12 `safe` Contexts and `safe func` Propagation
+
+*(This section is normative. Applies to all execution modes.)*
+
+A `safe` context is a lexical scope within which the compiler activates shared-XOR-mutable enforcement across all values visible in that scope, including plain ARC class instances. Outside a safe context, ARC semantics apply without ownership enforcement. Inside, the compiler verifies:
+
+1. No `edits` borrow is active while any other borrow of the same value is live.
+2. No `modifier` method is called while any other live reference to the receiver exists.
+3. No `var` field write occurs through an aliased ARC reference.
+
+**`safe {}` block.** Introduces a safe context for its lexical scope. Values declared before the block that remain in scope are subject to enforcement within it:
+
+```loom
+let config = Config()
+let alias  = config
+
+safe {
+  config.setTimeout(60)    // ✗ E_SAFE_ALIAS_MUTABLE — alias is live in scope
+}
+
+safe {
+  let cfg = Config()       // no alias
+  cfg.setTimeout(60)       // ✓
+}
+```
+
+**`safe func` declaration.** A function declared `safe func` both requires and provides a safe context. It may call other `safe func`s and `modifier` methods freely without additional `safe {}` wrappers:
+
+```loom
+safe func process(edits buf: Buffer): void {
+  fill(edits: buf)    // ✓ safe context active
+}
+```
+
+**Propagation.** `safe` propagates identically to `async`: a `safe func` is a context requirement that travels upward through the call stack until anchored by a `safe {}` block:
+
+```loom
+safe func fill(edits buf: Buffer): void { ... }
+
+// Option 1 — propagate upward
+safe func prepare(edits buf: Buffer): void {
+  fill(edits: buf)                    // ✓ already in safe func
+}
+
+// Option 2 — anchor inline
+func setup(edits buf: Buffer): void {
+  safe { fill(edits: buf) }           // ✓ safe{} anchors the requirement
+}
+```
+
+**`safe {}` blocks and `await`.** A `safe {}` block may not contain an `await` expression — `E_SAFE_BLOCK_AWAIT`. The compiler cannot maintain exclusivity proofs across suspension points: after an `await`, another task may have obtained a reference to any ARC value that was subject to `edits` or `modifier` enforcement inside the block. Use `synchronized` (§23.4.13) for mutation that must span `await` boundaries.
+
+**`safe async func`, `safe gen func`, `safe async gen func`.** `safe` may be combined with `async`, `gen`, or both. A `safe async func` enforces safety checks at each individual call site within the function body — each `edits:` call and each `modifier` call is independently verified at the moment it executes. The `await` between calls is not a problem because the exclusivity check is per-call, not a persistent live borrow spanning the suspension point:
+
+```loom
+safe async func loadAndProcess(edits buf: Buffer): void {
+  let data = await fetchData()    // ✓ async context
+  fill(edits: buf)                 // ✓ safe context
+}
+```
+
+**Implicit `safe func`.** A function is implicitly `safe func` when any parameter carries `edits`, or when the `requires` clause contains `edits(...)` or `distinct(...)` contracts. Both conditions are visible in the function signature and deterministic from the outside.
+
+When a function body calls a `modifier` on a plain ARC receiver outside a `safe {}` block, the compiler emits `E_SAFE_CONTEXT_REQUIRED` at that call site. The function does not become implicitly `safe func`. The programmer must explicitly choose: wrap the call in `safe {}`, or declare the function `safe func`. This keeps propagation visible and intentional, consistent with the explicit meaning design goal (§1).
+
+**Availability.** `safe {}` and `safe func` are available in all execution modes. This removes the mode gate that previously restricted ownership enforcement to `@mode(native)` and `@mode(freestanding)`.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SAFE_CONTEXT_REQUIRED` | All | `safe func`, `modifier`, or `edits` called outside safe context on non-unique, non-synchronized value |
+| `E_SAFE_ALIAS_MUTABLE` | All | `modifier` called or `edits` taken while an alias of the receiver is live inside safe context |
+| `E_SAFE_BLOCK_AWAIT` | All | `await` expression inside a `safe {}` block |
+
+---
+
+### §23.4.13 `synchronized` Class — Runtime-Locked Mutation
+
+*(This section is normative. Applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`.)*
+
+A `synchronized` class serializes all `modifier` method invocations through a per-instance mutex, providing mutation safety in contexts where compile-time proof is impossible: across `await` suspension points, across OS thread boundaries, and from event callbacks.
+
+**Declaration syntax.**
+
+```loom
+synchronized class Config {
+  var _timeout:  int    = 30
+  var _endpoint: string = ""
+
+  pub modifier setTimeout(t: int): void     { _timeout  = t }
+  pub modifier setEndpoint(e: string): void { _endpoint = e }
+  pub func     isReady(): bool { return _endpoint != "" }
+}
+```
+
+**Lock semantics.** Each instance carries a per-instance mutex acquired automatically on entry to any `modifier` method and released automatically on return or exception unwind. The programmer never calls lock or unlock explicitly. The lock is not reentrant: a `modifier` that calls another `modifier` on the same `self` is `E_SYNCHRONIZED_REENTRANT`.
+
+**Call site.** `modifier` methods on `synchronized` instances require no safe context:
+
+```loom
+let config = Config()    // synchronized
+let alias  = config      // ARC alias
+
+config.setTimeout(60)    // ✓ lock acquired at runtime
+alias.setTimeout(90)     // ✓ blocks until first modifier finishes
+```
+
+**Non-modifier methods.** Do not acquire the lock. Verified read-only by the compiler. Callable from any context.
+
+**The three-tier safety model.**
+
+| Tier | Mechanism | Cost | Use case |
+|---|---|---|---|
+| 1 | `unique` binding | Zero — static proof | Local exclusive processing |
+| 2 | `safe {}` / `safe func` | Zero — compile-time enforcement | Shared ARC, bounded scope |
+| 3 | `synchronized` class | Runtime lock per call | Async, threads, callbacks |
+
+A `safe {}` context cannot span an `await` suspension point, a thread boundary, or a callback — the compiler's exclusivity proof is invalidated at each boundary. `synchronized` handles these cases correctly because the lock is acquired and released independently at each call site.
+
+**`synchronized` in the type system.** `synchronized` is part of the class declaration and is visible in the type. A function parameter typed `synchronized Config` communicates that modifiers may be called without a safe context.
+
+**`synchronized` and `Sendable`.** A `synchronized` class may declare `implements Sendable`. The compiler recognises `synchronized` as providing thread safety equivalent to `Mutex[T]`-wrapped fields and suppresses `E_SENDABLE_UNPROTECTED_VAR` for `var` fields on classes that declare both `synchronized` and `implements Sendable`. This is the only exception to the structural `Sendable` verification rule (§17.8.1). Non-modifier read methods on a `synchronized Sendable` class are inherently thread-safe because the compiler verifies they contain no `var` field writes.
+
+```loom
+synchronized class Counter : Any implements Sendable {
+  var _value: int = 0            // ✓ no E_SENDABLE_UNPROTECTED_VAR
+                                 //   synchronized exempts var fields
+  pub modifier increment(): void { _value = _value + 1 }
+  pub func     value(): int      { return _value }
+}
+
+let counter = Counter()          // Sendable — can be passed to Thread.spawn
+```
+
+**`@lockOrder(n: int)` — lock ordering annotation (normative).** To prevent deadlock from inconsistent lock acquisition order, `synchronized` classes may be annotated with `@lockOrder(n)` where `n` is a positive integer. Within a `modifier` method body, if the method calls a `modifier` on another `synchronized` object of a different class, that object's `@lockOrder` value MUST be strictly greater than the current class's `@lockOrder` value. Violations are compile-time errors (`E_LOCK_ORDER_VIOLATION`).
+
+```loom
+@lockOrder(1)
+synchronized class Account : Any {
+  var _balance: int = 0
+  pub modifier debit(amount: int): void { _balance -= amount }
+  pub func balance(): int { return _balance }
+}
+
+@lockOrder(2)
+synchronized class Ledger : Any {
+  pub modifier transfer(edits account: Account, amount: int): void {
+    // ✓ Account (lockOrder 1) < Ledger (lockOrder 2)
+    account.debit(amount)
+  }
+}
+
+@lockOrder(1)
+synchronized class BudgetAccount : Any {
+  pub modifier settle(edits ledger: Ledger): void {
+    // ✗ E_LOCK_ORDER_VIOLATION — Ledger (lockOrder 2) > BudgetAccount (lockOrder 1)
+    // ledger.transfer(...)
+  }
+}
+```
+
+Classes without `@lockOrder` may not call `modifier` methods on other `synchronized` objects from within their own `modifier` bodies — this would be an unordered lock acquisition (`E_LOCK_ORDER_MISSING`). Assign `@lockOrder` to all `synchronized` classes that participate in multi-object locking.
+
+**Freestanding mode.** `@lockOrder` is only valid on `synchronized` classes. Since `synchronized` is unavailable in `@mode(freestanding)` (`E_SYNCHRONIZED_FREESTANDING`), `@lockOrder` is implicitly unavailable in freestanding mode as well. `@lockOrder` on a non-`synchronized` class in any mode is `E_LOCK_ORDER_NOT_SYNCHRONIZED`.
+
+**Error codes for `@lockOrder`:**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_LOCK_ORDER_VIOLATION` | Scripted, Compiled, Native | A `modifier` calls a `modifier` on a `synchronized` object whose `@lockOrder` is ≤ the current class's `@lockOrder` |
+| `E_LOCK_ORDER_MISSING` | Scripted, Compiled, Native | A `modifier` calls a `modifier` on a `synchronized` object when neither class has `@lockOrder` |
+| `E_LOCK_ORDER_NOT_SYNCHRONIZED` | All | `@lockOrder` applied to a non-`synchronized` class |
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SYNCHRONIZED_REENTRANT` | Scripted, Compiled, Native | A `modifier` on a `synchronized` instance calls another `modifier` on the same `self` |
+| `E_SYNCHRONIZED_FREESTANDING` | Freestanding | `synchronized` class declared in `@mode(freestanding)` — no mutex primitive is provided |
+
+---
+
+### §23.4.14 `unsafe {}` Within `synchronized` Classes — Lock-Release Regions
+
+*(This section is normative. Applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`.)*
+
+Inside a `modifier` method on a `synchronized` class, an `unsafe {}` block explicitly releases the per-instance lock for its lexical scope, allowing expensive work to proceed without holding the lock.
+
+**The default is locked.** Inside a `synchronized` modifier, the lock is always held unless explicitly released via `unsafe {}`. This is an inversion of the traditional lock()/unlock() model and eliminates the bug class where a programmer forgets to reacquire a lock after releasing it.
+
+**Semantics.** On entry to an `unsafe {}` block, the instance lock is released. On exit (normal or exception), the lock is reacquired before execution continues. The compiler enforces that no `self` field is accessed within the block.
+
+**Syntax and required reason string.**
+
+```loom
+synchronized class Cache {
+  var _entries: dict[string, string] = {}
+  var _hits:    int = 0
+
+  pub modifier fetch(key: string): string {
+    // Lock held — self fully accessible
+    if (_entries.has(key)) {
+      _hits = _hits + 1                   // ✓ write under lock
+      return _entries[key]                // ✓ read under lock
+    }
+
+    // Declare result variable before the lock-release region
+    var value = ""
+
+    // Lock released for duration of unsafe{} block
+    unsafe("fetching from remote — lock released for network call duration") {
+      value = remoteFetch(key)            // ✓ assigns to outer var — fine
+      let ttl = computeTTL(value)         // ✓ local computation — fine
+      _entries[key] = value               // ✗  E_SELF_ACCESS_UNSAFE — lock not held
+    }
+    // Lock reacquired automatically on unsafe{} exit
+
+    // Lock held again — value is in scope, self is accessible
+    _entries[key] = value                 // ✓ write under lock
+    return value
+  }
+}
+```
+
+**Required reason string.** The reason string is mandatory — `unsafe {}` without a reason string is `E_UNSAFE_NO_REASON`. The reason is preserved in debug metadata. Grepping for `unsafe(` inside `synchronized` class definitions provides a complete audit trail of every lock-release region in a codebase.
+
+**Permitted and prohibited operations inside `unsafe {}` in a `synchronized` modifier.**
+
+| Operation | Permitted |
+|---|---|
+| Read or write `self` fields | ✗ `E_SELF_ACCESS_UNSAFE` |
+| Call `modifier` on `self` | ✗ `E_SELF_ACCESS_UNSAFE` |
+| Call non-`modifier` on `self` | ✗ `E_SELF_ACCESS_UNSAFE` |
+| Read/write local variables and parameters | ✓ |
+| Call external functions | ✓ |
+| `await` expressions | ✓ |
+| Call `modifier` on other `synchronized` instances | ✓ (acquires their locks independently) |
+
+**Nesting.** `unsafe {}` blocks may not be nested inside each other within a `synchronized` modifier — `E_UNSAFE_NESTED`. Functions called from within `unsafe {}` that are themselves `synchronized` modifiers acquire their own instance locks independently.
+
+**Relationship to other safety mechanisms.**
+
+| Mechanism | Purpose |
+|---|---|
+| `safe {}` / `safe func` | Compile-time exclusivity scope |
+| `@unsafe(reason)` | Auditable assertion of an unverifiable safety property |
+| `unsafe {}` in `synchronized` modifier | Runtime lock-release region within a `synchronized` modifier |
+
+These three mechanisms are independent and address separate concerns. `unsafe {}` in a `synchronized` modifier does not suppress borrow-checker errors, does not bypass `distinct()` contracts, and does not interact with `safe {}` scope tracking.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SELF_ACCESS_UNSAFE` | Scripted, Compiled, Native | `self` field or method accessed inside `unsafe {}` in a `synchronized` modifier |
+| `E_UNSAFE_NESTED` | Scripted, Compiled, Native | Nested `unsafe {}` blocks inside a `synchronized` modifier |
+| `E_UNSAFE_NO_REASON` | All | `unsafe {}` block used without a reason string |
+| `E_UNSAFE_NOT_SYNCHRONIZED` | All | `unsafe {}` block used outside a `synchronized` modifier |
+
+---
+
+### §23.5 ARC and the Scripted/Native Mode Boundary
 
 When a compiled (ARC) object is passed into interpreted (GC) code, the runtime inserts a **bridge retain**:
 
@@ -7892,16 +9902,24 @@ When a compiled (ARC) object is passed into interpreted (GC) code, the runtime i
 3. The GC manages the wrapper object's lifetime.
 4. When the GC collects the wrapper, the wrapper's finalizer calls `release()` on the ARC object.
 
-From the interpreted side, the ARC object appears as a normal class instance. From the compiled side, the retain count is elevated by one for each live interpreted reference.
+From the scripted side, the ARC object appears as a normal class instance. From the native side, the retain count is elevated by one for each live scripted reference.
 
-When an interpreted (GC-managed) object is passed into compiled (ARC) code:
+When a scripted (GC-managed) object is passed into native (ARC-managed) code:
 
 1. The compiled function's entry point registers the GC object reference as a GC root.
-2. The root is released when the compiled function returns or when the last local binding to the object is released within compiled code.
+2. The root is released when the compiled function returns or when the last local binding to the object is released within native code.
 
-**`del` at the boundary.** Calling `del handle;` on a bridge wrapper releases the ARC retain immediately and invalidates the GC wrapper. Subsequent access to `handle` from interpreted code throws `LifetimeError`.
+**`del` at the boundary.** Calling `del handle;` on a bridge wrapper releases the ARC retain immediately and invalidates the GC wrapper. Subsequent access to `handle` from scripted code throws `LifetimeError`.
 
-**Cross-boundary cycles.** Cross-boundary cycles (ARC object → GC object → ARC object) are not automatically broken. Use `weak` references on one side. The compiler emits a lint warning when it detects a probable cross-boundary cycle in static analysis.
+**Cross-boundary cycles (normative).** Cross-boundary cycles (ARC object → GC object → ARC object) are not automatically broken by either runtime. An ARC object whose fields include a GC-managed object type that in turn statically holds the original ARC type constitutes a cycle that neither collector will reclaim — this is a permanent memory leak in long-running programs.
+
+The compiler SHALL emit `E_CROSS_BOUNDARY_CYCLE` as a **compile-time error** for any statically-detectable case where: (1) an ARC-managed class field holds a GC-managed class type, AND (2) that GC-managed class statically holds a strong reference back to the ARC class type. Break cycles by using a `weak` reference on the ARC side: the `weak var` field does not keep the GC-managed object alive from the ARC side, allowing the GC to collect it and thus drop the reference back to the ARC object.
+
+For cases that are not statically detectable — for example, reference graphs constructed at runtime — the compiler emits the `cross-boundary-cycle` lint advisory. ARC objects that participate in such graphs MUST hold references to GC-managed objects only via `weak` fields on the ARC side. Failure to do so causes a permanent, unrecoverable memory leak.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_CROSS_BOUNDARY_CYCLE` | Native | Statically-detectable ARC→GC→ARC reference cycle without `weak` on the ARC side |
 
 ### §23.6 ABI Stability
 
@@ -7974,6 +9992,8 @@ void        loom_string_free(LoomString* s);
 | `int8` | `int8_t` | |
 | `int16` | `int16_t` | |
 | `int32` | `int32_t` | |
+| `uint` | `uintptr_t` (64-bit targets) / `uint32_t` (32-bit targets) | Pointer-sized; maps the same as `uint64`/`uint32` on the respective platform |
+| `char` | `uint32_t` | Unicode scalar value (§4.1.5); maps to 32-bit unsigned at the ABI boundary |
 | `uint8` | `uint8_t` | |
 | `uint16` | `uint16_t` | |
 | `uint32` | `uint32_t` | |
@@ -8012,7 +10032,7 @@ loom import-headers --lib sqlite3 /usr/include/sqlite3.h -o sqlite3.loom
 // sqlite3.loom — generated by loom import-headers
 // DO NOT EDIT
 
-@compiled
+@mode(compiled)
 
 extern native "libsqlite3" func sqlite3_open(filename: string, ppDb: NativeHandle): int;
 extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
@@ -8075,18 +10095,1516 @@ loom build --target native --backend cranelift    # fast Cranelift backend
 loom build --target native --lib shared           # shared library
 loom build --target native --lib static           # static library
 loom build --target native --arch aarch64 --os linux  # cross-compile
+loom build --target native --stack-size 8388608        # 8 MB stack (default: platform ABI default)
 loom export-headers --target native mymodule.loom -o include/mymodule.h
 loom import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loom
 ```
 
 ### §23.9 Requirements
 
-- Native compilation requires `@compiled` mode for all source files in the compilation unit.
+- Native compilation requires `@mode(native)` for all source files.
+- `extern js` and `@jsexport` are prohibited — no JavaScript runtime is present in a native binary (`E_EXTERN_JS_NOT_NATIVE`).
+- Structs passed to `extern native` functions must be annotated `@repr(C)` (`E_EXTERN_STRUCT_NOT_REPR_C`).
 - All types must be statically known. `Any` as a declared type, `dynamic class`, and `core.inspect` are prohibited.
-- `extern js` and `@jsexport` are prohibited.
 - ARC is mandatory; there is no GC option for `--target native`.
 
-## §24 Macros and Metaprogramming
+**Stack overflow in native mode (normative).** The `--stack-size N` build flag (bytes, must be a multiple of the platform page size) sets the OS thread stack size for the main thread and all `Thread.spawn` threads. The Loom native runtime SHALL install a stack guard page (one platform page below the stack bottom) on all platforms that support `mprotect`/`VirtualProtect`. An access to the guard page produces a signal (SIGBUS/SIGSEGV on POSIX, structured exception on Windows) that the runtime maps to `StackOverflowError` and delivers to the current thread's exception handler. On platforms that do not support guard pages, a `--stack-size` overflow produces undefined behavior; the runtime documentation MUST note this for each target triple. The `deep-async-stack` lint advisory fires when an `async func` declares local variables whose total stack footprint exceeds 64 KB — async coroutine frames are heap-allocated but can still be unexpectedly large.
+
+**Overflow arithmetic methods.** Fixed-width integer types in all modes have `checkedAdd`, `wrappingAdd`, `saturatingAdd` (and the equivalent `Sub`, `Mul`, `Div` families) for explicit overflow control. See §24.19 for the full specification.
+
+
+---
+
+## §24 Freestanding Mode
+
+*(This section is normative.)*
+
+### §24.1 Overview
+
+Freestanding mode (`@mode(freestanding)`) compiles Loom source to a native binary with **no Loom runtime linked**. It targets kernels, bootloaders, embedded firmware, hypervisors, and any environment where no OS, no libc, and no host runtime exists. The binary contains only what Loom source files explicitly produce plus any `extern native` libraries the programmer declares.
+
+**Design goals:**
+
+1. **Zero-cost memory safety** — the full ownership system: `reads`/`edits`/`takes`/`shares` verbs, `modifier`, `safe {}`, and `distinct()` contracts (v1.15, all modes); `unique`/`borrow`/`excl borrow`/`lifetime ~name` (native/freestanding). No ARC overhead or runtime support required. v1.16 adds `@interruptSafe`, `InterruptGuard`, `DmaBuffer[T]`, `PartialInit[T]`, `native.mpu`, and `native.atomic.hwFence` to close hardware-specific safety gaps (§24.20, §24.24).
+2. **Direct hardware access** — inline assembly, volatile MMIO, interrupt handlers, and raw linker section control.
+3. **Auditable unsafe surface** — every unsafe operation requires `@unsafe` or a purpose-specific annotation; the surface is greppable and minimal.
+4. **Rust-equivalent or stronger guarantees** — the memory-safety properties in `@mode(freestanding)` match or exceed those provided by Rust's `no_std` environment (see §23.4 and release notes for the formal comparison).
+
+### §24.2 Target Declaration and Compilation
+
+```
+loom build --target freestanding --arch x86_64
+loom build --target freestanding --arch aarch64
+loom build --target freestanding --arch riscv64 --march rv64imac
+```
+
+| `--arch` | Description |
+|---|---|
+| `x86_64` | 64-bit x86 (AMD64/Intel 64) |
+| `aarch64` | 64-bit ARM (ARMv8-A) |
+| `riscv64` | 64-bit RISC-V; `--march` specifies the extension string |
+| `x86` | 32-bit x86 (IA-32) — limited support |
+
+Output format defaults to ELF. Override with `--output-format elf|raw|pe|macho`.
+
+Every source file in a freestanding compilation unit MUST declare `@mode(freestanding)` as its first active token (§2.5).
+
+**Cross-mode import rules.** `@mode(freestanding)` files may import:
+
+- Other `@mode(freestanding)` files in the same compilation unit.
+- `extern native` C libraries declared with `extern native "libname"` — these are linked directly and require no Loom runtime.
+
+`@mode(freestanding)` files may NOT import:
+
+- `@mode(native)` modules — native modules require the ARC runtime, which is not available in freestanding mode (`E_FREESTANDING_IMPORT_NATIVE`).
+- `@mode(compiled)` or `@mode(scripted)` modules — these require the Wasm GC runtime or the JIT runtime (`E_FREESTANDING_IMPORT_MANAGED`).
+- Any standard library module not in the permitted subset (§24.20) (`E_FREESTANDING_MODULE`).
+
+Conversely, `@mode(native)` files may NOT import `@mode(freestanding)` modules — freestanding modules lack an ARC runtime and expose raw pointer APIs that are incompatible with ARC memory management (`E_NATIVE_IMPORT_FREESTANDING`).
+
+### §24.3 Stripped Features
+
+| Feature | Error code | Reason |
+|---|---|---|
+| ARC runtime (`weak`, retain/release) | `E_FREESTANDING_ARC` | No runtime library |
+| `async`/`await`, `Task[T]`, `spawn` | `E_FREESTANDING_ASYNC` | No event loop |
+| `throw` / `try` / `catch` | `E_FREESTANDING_EXCEPTIONS` | No `.eh_frame`; unwinding is fatal |
+| Template fences (HTML, CSS, etc.) | `E_FREESTANDING_FENCE` | No rendering pipeline |
+| Reactive UI (`ui.*`) | `E_FREESTANDING_UI` | No UI framework |
+| `core.reflect` / `core.inspect` | `E_FREESTANDING_REFLECT` | Requires runtime metadata |
+| `dynamic class` / `!{}` | `E_FREESTANDING_DYNAMIC` | Requires runtime type table |
+| `portal` statements | `E_FREESTANDING_PORTAL` (release) / `E_FREESTANDING_PORTAL_NO_CHANNEL` (debug, unconfigured) | Release builds: stripped unconditionally. `--debug` builds: permitted when at least one of `@debug_control_channel`, `@debug_trace_channel`, or `portal_ring_size > 0` is configured (§24.25). Otherwise `E_FREESTANDING_PORTAL_NO_CHANNEL`. Condition expressions always prohibited (`E_FREESTANDING_PORTAL_CONDITION`). |
+| `bigint` | `E_FREESTANDING_RUNTIME` | Requires GMP-compatible multi-precision library |
+| `decimal` | `E_FREESTANDING_RUNTIME` | Requires IEEE 754-2019 decimal128 library |
+| Class construction without `@allocator` | `E_FREESTANDING_CLASS_NO_ALLOC` | No implicit heap |
+
+Panics route through the `--panic` policy (§24.6) since exceptions are unavailable.
+
+### §24.4 Available Features
+
+All native-mode features not dependent on the ARC runtime, async executor, exceptions, or standard library. In particular:
+
+- `reads`/`edits`/`takes`/`shares` verbs, `modifier`, `safe {}` / `safe func`, `distinct()` in `requires` clauses
+- `unique let`/`unique var`/`unique class`
+- `borrow`/`excl borrow`/`borrow[~name]`/`lifetime ~name`/`noescape fn`
+- `unowned[~name]`, `@unsafe(reason)`, `Sendable`
+- `extern native`, `MaybeUninit[T]`, `reinterpret[T, U]`
+- Overflow arithmetic methods (§24.19)
+- `native.mem`, `native.simd`, `native.atomic` (including `hwFence` and `MemoryOrder`), `native.ffi`, `core.math`, `core.text`
+- `native.dma` — DMA buffer ownership (§24.20)
+- `native.mpu` — MPU stack-guard installation (§24.20)
+- `size_of[T]()`, `align_of[T]()` — compile-time layout queries (§24.4.1)
+- `reinterpretChecked[T, U]` — checked type reinterpretation (§24.18)
+- `PartialInit[T]` — field-tracked struct initialization (§24.17a)
+- `@interruptSafe` annotation + `InterruptGuard` — interrupt-context safety (§24.24)
+- `portal` statements — freestanding debug portal service (§24.25, `--debug` builds only)
+- `debug.freestanding` — debug service startup and polling (§24.25, `--debug` builds only)
+
+Plus the hardware-access features described in §24.5–§24.24 and the freestanding debug service in §24.25.
+
+### §24.4.1 `size_of[T]()` and `align_of[T]()` — Compile-Time Layout Queries
+
+*(This section is normative. Applies to `@mode(freestanding)` and `@mode(native)`.)*
+
+`size_of[T]()` and `align_of[T]()` are compile-time built-in generic expressions that return the size and minimum alignment of type `T` in bytes, respectively. Both are evaluated entirely at compile time and produce a `uint64` constant; they have zero runtime cost and cannot be used on unsized types.
+
+```loom
+@mode(freestanding)
+
+let sz  = size_of[PageTable]()      // uint64: 4096 (512 × 8-byte entries)
+let al  = align_of[PageTable]()     // uint64: 4096 (from @align(4096))
+let u32 = size_of[uint32]()         // uint64: 4
+let ptr = size_of[uint]()           // uint64: 8 (on 64-bit targets)
+```
+
+**Rules:**
+- `T` must be a type with a statically-known, finite size (`E_SIZE_OF_UNSIZED`). `Any`, open-ended union types, and function types are unsized.
+- `T` must be a primitive, `@repr(C)` struct, enum, or tuple. Using `size_of` on a managed class type is `E_SIZE_OF_CLASS`.
+- Both built-ins are valid in `@mode(native)` and `@mode(freestanding)`.
+- The `~` sigil used in lifetime labels is not permitted in the type argument.
+
+`size_of[T]()` and `align_of[T]()` are available in the `native.ffi` module scope. They are also available as bare expressions in `@mode(freestanding)` without an explicit import.
+
+
+
+### §24.5 `@entry` — Bare Entry Point
+
+`@entry` marks the single function the linker uses as the binary entry symbol. The function runs before any C runtime initialization.
+
+```loom
+@mode(freestanding)
+
+@entry
+@callconv(naked)
+func _start(): void {
+    asm {
+        "lea rsp, [__stack_top]"
+        "xor rbp, rbp"
+        "call kernelMain"
+        ::: "memory"
+    }
+}
+```
+
+Override the exported symbol name with `@entry(symbol: "_kernel_start")`.
+
+**Rules:**
+- One `@entry` per compilation unit (`E_ENTRY_DUPLICATE`).
+- Return type must be `void` (`E_ENTRY_NONVOID`).
+- Must have no parameters (`E_ENTRY_PARAMS`).
+- Valid only in `@mode(freestanding)` (`E_ENTRY_NOT_FREESTANDING`).
+
+### §24.6 `@panic_handler` and Panic Policy
+
+**Panic sources:** bounds check failures, `--overflow=trap` violations, explicit `panic("msg")`, and `Option[T].unwrap()` on `None`.
+
+**`PanicSource` — panic discriminant (normative).** The `@panic_handler` receives a `PanicSource` enum value as an additional parameter (appended to the signature) when `--panic=custom` is set, allowing handlers to distinguish the source of the panic:
+
+```loom
+enum PanicSource {
+  Assertion;        // explicit panic("msg") or assert_eq! failure
+  BoundsCheck;      // array/slice out-of-bounds access
+  OverflowTrap;     // integer overflow with --overflow=trap
+  UnwrapNone;       // Option[T].unwrap() on None
+  StackOverflow;    // MPU guard-page fault (via native.mpu.installStackGuard)
+  Unknown;          // unclassified runtime fault
+}
+```
+
+`@panic_handler` with `PanicSource` has the extended signature:
+`(msg: string, file: string, line: int, source: PanicSource): void`.
+The compiler selects the correct signature variant based on the presence of the `source` parameter; both forms are valid.
+
+**`--panic` build flag:**
+
+| Flag | Behaviour |
+|---|---|
+| `--panic=halt` | Default. Disables interrupts; executes an infinite `hlt` loop. |
+| `--panic=abort` | Triggers a CPU fault (x86_64: `ud2`). |
+| `--panic=custom` | Calls the `@panic_handler` function. |
+
+```loom
+@mode(freestanding)
+
+@panic_handler
+func kernelPanic(msg: string, file: string, line: int): void {
+    serialWrite("PANIC: ")
+    serialWrite(msg)
+    asm { "cli" }
+    while (true) { asm { "hlt" } }
+}
+```
+
+**Rules.** The `@panic_handler` function MUST match one of the two normative signatures defined above (basic `(msg, file, line): void` or extended `(msg, file, line, source: PanicSource): void`); any other signature is `E_PANIC_HANDLER_SIG`:
+
+- **Basic:** `(msg: string, file: string, line: int): void`
+- **Extended:** `(msg: string, file: string, line: int, source: PanicSource): void` — recommended when the handler needs to distinguish panic causes (e.g. routing stack-overflow panics to a different recovery path)
+
+`--panic=custom` without a `@panic_handler` is `E_PANIC_HANDLER_MISSING`. The handler must not call any function that can itself panic (`E_PANIC_HANDLER_REENTRANT`).
+
+**Bounds checking inside `@panic_handler`.** The compiler suppresses all runtime bounds checks inside the `@panic_handler` body. This prevents the handler from triggering a second panic (and infinite recursion) if it performs array or string indexing. The programmer is responsible for ensuring that all indexing inside the handler is in-range. Out-of-range accesses inside the handler produce undefined behavior rather than a second panic.
+
+**Stack overflow inside `@panic_handler`.** If the handler itself overflows the stack, the behavior is undefined (the system will likely triple-fault or reset). Panic handlers SHOULD be written to use minimal stack space — avoid recursion, large local arrays, and deep function calls.
+
+**`--double-fault` build flag (normative).** Specifies the system response when the `@panic_handler` itself triggers a panic (a "double fault"). This resolves the previously unspecified behavior of re-entrant panic handling.
+
+| Flag | Behaviour |
+|---|---|
+| `--double-fault=halt` | Default. Disables interrupts; executes an infinite `hlt`/`wfi`/`wfe` loop. |
+| `--double-fault=reset` | Triggers CPU reset via the architecture-specific reset mechanism (x86_64: triple-fault via invalid IDT; AArch64: `brk #0`; RISC-V: `ebreak` in M-mode with `mtvec` cleared). |
+| `--double-fault=nop` | Silently ignores the second panic and returns from the handler. Intended for test environments that instrument panics. |
+
+The double-fault handler is distinct from `@panic_handler` and does not receive a message string. It runs with the minimal stack that was valid at the point of double-fault entry.
+
+### §24.7 `asm { }` — Inline Assembly
+
+`asm { }` blocks embed inline assembly for CPU-specific instructions that have no higher-level Loom equivalent.
+
+**Basic form:**
+
+```loom
+@mode(freestanding)
+
+func disableInterrupts(): void { asm { "cli" } }
+func enableInterrupts(): void  { asm { "sti" } }
+func memoryBarrier(): void     { asm { "mfence" } }
+```
+
+**Full form with operands:**
+
+```loom
+@mode(freestanding)
+
+func readMsr(msr: uint32): uint64 {
+    var lo: uint32 = 0
+    var hi: uint32 = 0
+    asm {
+        "rdmsr"
+        out: lo = "=a", hi = "=d"
+        in:  "ecx" = msr
+        clobbers: []
+    }
+    return (hi as uint64 << 32) | lo as uint64
+}
+```
+
+**Grammar:**
+
+```
+asm_block    ::= 'asm' '{' asm_string+ asm_ops? '}'
+asm_ops      ::= asm_out? asm_in? asm_clobbers?
+asm_out      ::= 'out' ':' (ident '=' string_lit) (',' ident '=' string_lit)*
+asm_in       ::= 'in'  ':' (string_lit '=' expr)  (',' string_lit '=' expr)*
+asm_clobbers ::= 'clobbers' ':' '[' string_lit* ']'
+```
+
+Constraint strings follow GCC/LLVM conventions. Output operands bind to mutable local variables. Type mismatches between operand variables and constraint widths are `E_ASM_OPERAND_TYPE`.
+
+**`clobbers: "all"` shorthand.** The string literal `"all"` in the clobbers list is a normative shorthand for all caller-saved registers on the compilation target. It is the conservative safe choice when the clobber list is uncertain:
+
+```loom
+asm {
+    "cpuid"
+    out: eax = "=a", ebx = "=b", ecx = "=c", edx = "=d"
+    in:  "eax" = leaf, "ecx" = subleaf
+    clobbers: ["memory"]
+}
+
+// Conservative: clobbers all caller-saved regs
+asm {
+    "syscall"
+    out: result = "=a"
+    in:  "rax" = nr
+    clobbers: ["all"]
+}
+```
+
+**Architecture-specific clobber presets.** The following named presets expand to the correct register lists at compile time:
+
+| Preset | Architecture | Expands to |
+|---|---|---|
+| `"msr-read"` | x86_64 | `["rcx", "rdx", "rax", "memory"]` |
+| `"msr-write"` | x86_64 | `["memory"]` |
+| `"cpuid"` | x86_64 | `["rax", "rbx", "rcx", "rdx"]` |
+| `"sysenter"` | x86_64 | `["rax", "rcx", "r11", "memory"]` |
+| `"svc"` | AArch64 | `["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "memory"]` |
+| `"mret"` | RISC-V | `["a0", "a1", "memory"]` |
+
+Use a preset or `"all"` rather than an incomplete manual list to avoid the silent register-corruption bug class.
+
+**`borrow` values as `asm` input operands.** A `borrow T` parameter or binding may appear as an `asm` input operand. The address of the borrowed value is passed to the constraint as an integer pointer (equivalent to taking the address with `"=m"` or `"r"` constraints). The compiler verifies that the borrow's lifetime is still valid at the `asm` block. Passing a consumed or expired `borrow` as an `asm` input is `E_ASM_EXPIRED_BORROW`. In `@mode(freestanding)`, `asm` blocks do not require `@unsafe`; the compiler emits per-function lint advisory `asm-unchecked` (suppressible with `// loom:allow(asm-unchecked)`). In `@mode(native)`, `asm` blocks require `@unsafe("asm: <reason>")`.
+
+### §24.8 `@volatile` — MMIO Semantics
+
+`@volatile` on a `borrow` parameter asserts that reads/writes through that reference are observable side effects that the optimizer must not reorder, merge, hoist, sink, or eliminate.
+
+```loom
+@mode(freestanding)
+
+@repr(packed)
+struct UartRegs {
+    var data: uint8;
+    var lsr:  uint8;
+}
+
+func uartWrite(@volatile borrow uart: UartRegs, byte: uint8): void {
+    while (uart.lsr & 0x20 == 0) {}  // volatile busy-wait
+    uart.data = byte                   // volatile store
+}
+```
+
+`@volatile` is valid only on `borrow`/`borrow[~name]` parameters (`E_VOLATILE_NOT_BORROW`) and only in `@mode(freestanding)` (`E_VOLATILE_NOT_FREESTANDING`). `@volatile` does not imply atomicity; use `native.atomic` for atomic hardware access.
+
+### §24.9 `Volatile[T]` — MMIO Type Wrapper
+
+`Volatile[T]` wraps a raw hardware address and enforces volatile semantics on all accesses.
+
+```loom
+@mode(freestanding)
+
+let UART_DR = Volatile[uint8].at(0x3F8)
+
+func serialWrite(byte: uint8): void { UART_DR.write(byte) }
+func serialRead():  uint8          { return UART_DR.read() }
+```
+
+**API:**
+
+```loom
+struct Volatile[T] {
+    @unsafe("mmio: address must be a valid mapped device register for T")
+    pub static func at(addr: uint): Volatile[T]
+
+    pub func read(): T
+    pub func write(val: T): void
+    // Modify: read-modify-write — NOT atomic; see note below
+    pub func modify(f: noescape fn(T): T): void
+    pub func addr(): uint
+}
+```
+
+`T` must be a primitive or `@repr(C)` struct type (`E_VOLATILE_NOT_REPR`).
+
+**`Volatile[T].modify` is not atomic.** The `modify` method performs a volatile read, calls the closure, then performs a volatile write — but these two operations are NOT a single atomic transaction. On multi-core systems, another CPU may write to the same address between the read and the write, causing a lost update. For atomic read-modify-write on multi-core hardware, use `native.atomic.fetchAdd`, `native.atomic.compareExchange`, or similar primitives from the `native.atomic` module (§24.20). Reserve `Volatile[T].modify` for single-core contexts or cases where the device register semantics guarantee that concurrent access cannot occur.
+
+**Hardware barrier after volatile stores.** On weakly-ordered architectures (ARM, RISC-V), a volatile store alone does not guarantee that the peripheral device observes the write before subsequent CPU instructions execute. Follow every volatile store to a device register with `native.atomic.hwFence(MemoryOrder.DeviceRelease)` to insert the required hardware barrier. Example:
+
+```loom
+uart.data = byte                                          // volatile store
+native.atomic.hwFence(MemoryOrder.DeviceRelease)          // hardware barrier — ARM DSB ST / RISC-V FENCE ow,ow
+```
+
+On x86/x86_64, the strong memory model makes this barrier a no-op (the instruction is emitted but elided by the CPU); the code is therefore portable across architectures without performance penalty on x86.
+
+### §24.10 `@repr` — Struct Layout Control
+
+`@repr` controls the memory layout of a struct — essential for hardware register maps, DMA descriptors, and any structure where byte layout is mandated by hardware spec.
+
+```loom
+@mode(freestanding)
+
+@repr(C)
+struct ElfHeader {
+    var e_ident:   tuple[uint8; 16];
+    var e_type:    uint16;
+    var e_machine: uint16;
+    // ... all fields
+}
+
+@repr(packed)
+struct UdpHeader {
+    var src_port:  uint16;
+    var dst_port:  uint16;
+    var length:    uint16;
+    var checksum:  uint16;
+}
+
+@repr(transparent)
+struct PageTableEntry {
+    var raw: uint64;
+}
+```
+
+| Variant | Meaning |
+|---|---|
+| `@repr(C)` | C layout: fields in declaration order, each at its ABI alignment. Required for `extern native` structs. |
+| `@repr(packed)` | No padding. Potentially unaligned fields. Loom emits unaligned load/store sequences — defined behavior (not UB). |
+| `@repr(transparent)` | Single-field wrapper; ABI identical to the inner type. |
+
+Valid in `@mode(freestanding)` and `@mode(native)`. Compile-time error in scripted/compiled modes (`E_REPR_NOT_NATIVE`).
+
+### §24.11 `@align` — Alignment Annotations
+
+`@align(n)` specifies minimum alignment in bytes for a struct type, function, or static binding. `n` must be a power of two.
+
+```loom
+@mode(freestanding)
+
+@align(4096)
+@repr(C)
+struct PageTable {
+    var entries: tuple[uint64; 512]
+}
+
+@align(16)
+static IDT: InterruptDescriptorTable = InterruptDescriptorTable.zero()
+```
+
+`@align` applies to all instances of the annotated type or binding; the linker inserts padding as needed.
+
+### §24.12 `@section` — ELF/Mach-O Section Placement
+
+`@section("name")` places a function or static binding into the named linker section. The linker script assigns virtual and physical addresses to each named section.
+
+```loom
+@mode(freestanding)
+
+@section(".text.boot")
+@entry
+func _start(): void { ... }
+
+@section(".rodata.strings")
+static BANNER: string = "Loom Kernel v1.14"
+
+@section(".data.percpu")
+static CPU_STATE: CpuState = CpuState.zero()
+```
+
+Valid only in `@mode(freestanding)` (`E_SECTION_NOT_FREESTANDING`).
+
+### §24.13 `@interrupt` — Interrupt Service Routines
+
+`@interrupt` generates the ISR calling convention: saves/restores all registers and returns with `iretq`/`eret`/`mret` rather than a normal return.
+
+```loom
+@mode(freestanding)
+
+@repr(C)
+struct InterruptFrame {
+    let rip: uint64; let cs: uint64; let rflags: uint64;
+    let rsp: uint64; let ss:  uint64;
+}
+
+@interrupt(arch: "x86_64", has_error_code: true)
+func pageFaultHandler(frame: borrow InterruptFrame, error: uint64): void {
+    let addr = readCr2()
+    handlePageFault(frame, addr, error)
+}
+
+@interrupt(arch: "x86_64", has_error_code: false)
+func timerHandler(frame: borrow InterruptFrame): void {
+    tickClock()
+    sendEoi()
+}
+```
+
+| `arch` | With error code signature | Without error code signature |
+|---|---|---|
+| `x86_64` | `(borrow InterruptFrame, uint64): void` | `(borrow InterruptFrame): void` |
+| `aarch64` | N/A | `(borrow InterruptFrame): void` |
+| `riscv64` | N/A | `(borrow InterruptFrame): void` |
+
+
+**Architecture-specific `InterruptFrame` layouts.** `InterruptFrame` is a built-in `@repr(C)` struct whose fields match the CPU-pushed exception frame for the compilation target architecture. The compiler selects the correct definition based on `--arch`.
+
+**x86_64 (`--arch x86_64`):**
+
+```loom
+@repr(C)
+struct InterruptFrame {
+    let rip:    uint64;  // saved instruction pointer
+    let cs:     uint64;  // code segment (padded to 8 bytes)
+    let rflags: uint64;  // RFLAGS register
+    let rsp:    uint64;  // saved stack pointer (on privilege change)
+    let ss:     uint64;  // stack segment (padded to 8 bytes)
+}
+```
+
+**AArch64 (`--arch aarch64`):**
+
+```loom
+@repr(C)
+struct InterruptFrame {
+    let elr_el1:  uint64;  // exception link register (return address)
+    let spsr_el1: uint64;  // saved program status register
+    let sp_el0:   uint64;  // EL0 stack pointer (on EL0→EL1 transition)
+    let esr_el1:  uint64;  // exception syndrome register (fault info)
+}
+```
+
+**RISC-V 64-bit (`--arch riscv64`):**
+
+```loom
+@repr(C)
+struct InterruptFrame {
+    let mepc:   uint64;  // machine exception program counter
+    let mcause: uint64;  // machine cause register
+    let mstatus:uint64;  // machine status register
+    let mtval:  uint64;  // machine trap value (fault address or instruction)
+}
+```
+
+`InterruptFrame` values are produced by the CPU exception mechanism and passed to `@interrupt` functions by the compiler-generated trampoline. User code cannot construct `InterruptFrame` directly — attempting to do so is `E_INTERRUPT_FRAME_CONSTRUCT`.
+
+`@interrupt` functions must not be called directly from Loom code (`E_INTERRUPT_DIRECT_CALL`), must not be `async` (`E_INTERRUPT_ASYNC`), and must return `void` (`E_INTERRUPT_NONVOID`).
+
+### §24.14 `@naked` — Naked Functions
+
+`@naked` suppresses compiler-generated prologue and epilogue. The function body must consist entirely of `asm { }` blocks.
+
+**`@naked` requires `@unsafe` (normative).** Every `@naked` function MUST also be annotated `@unsafe("naked: <reason>")`. The reason string SHALL document which calling convention is used and that the programmer has verified register save/restore correctness. A `@naked` function without `@unsafe` is `E_NAKED_NOT_UNSAFE`. The `@unsafe` annotation is the explicit, auditable record that the programmer accepts full responsibility for calling convention correctness, stack alignment, and return instruction selection.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_NAKED_NOT_UNSAFE` | Freestanding | `@naked` function declared without `@unsafe("naked: <reason>")` |
+| `E_NAKED_NON_ASM` | Freestanding | Non-`asm` statement in a `@naked` function body |
+| `E_NAKED_ASYNC` | Freestanding | `@naked` function declared `async` |
+| `E_NAKED_NOT_FREESTANDING` | All | `@naked` outside `@mode(freestanding)` |
+
+```loom
+@mode(freestanding)
+
+@naked
+@unsafe("naked: sysv64 ABI; saves rsp and rbp; returns via ret")
+@section(".text.trampoline")
+func contextSwitch(from_sp: uint, to_sp: uint): void {
+    asm {
+        "mov [rdi], rsp"
+        "mov [rdi + 8], rbp"
+        "mov rsp, [rsi]"
+        "mov rbp, [rsi + 8]"
+        "ret"
+    }
+}
+```
+
+Additionally, the compiler emits the `naked-missing-return` lint advisory when a `@naked` function's `asm {}` blocks do not contain any string that matches the target architecture's standard return instruction patterns (`"ret"` on x86_64, `"ret"` on AArch64, `"jalr zero, 0(ra)"` on RISC-V). This catches the common mistake of a naked function that falls through.
+
+```loom
+@mode(freestanding)
+
+@naked
+@section(".text.trampoline")
+func contextSwitch(from_sp: uint, to_sp: uint): void {
+    asm {
+        "mov [rdi], rsp"
+        "mov [rdi + 8], rbp"
+        "mov rsp, [rsi]"
+        "mov rbp, [rsi + 8]"
+        "ret"
+    }
+}
+```
+
+**Parameters in `@naked` functions.** A `@naked` function may declare parameters. They are passed to the function per the active calling convention (registers/stack positions, as selected by `@callconv`), but the compiler does NOT generate any code to spill, reload, or otherwise manage them. The function body must use `asm` input operands to access parameter values:
+
+```loom
+@mode(freestanding)
+
+@naked
+func contextSwitch(from_ctx: uint, to_ctx: uint): void {
+    // from_ctx is in rdi, to_ctx is in rsi (sysv64 calling convention)
+    asm {
+        "mov [rdi], rsp"
+        "mov [rdi + 8], rbp"
+        "mov rsp, [rsi]"
+        "mov rbp, [rsi + 8]"
+        "ret"
+    }
+}
+```
+
+Naming a parameter inside a non-`asm` Loom expression (e.g. `let x = from_ctx + 1`) inside a `@naked` function body is `E_NAKED_NON_ASM`.
+
+Any non-`asm` statement in a `@naked` function is `E_NAKED_NON_ASM`. `@naked` functions must not be `async` (`E_NAKED_ASYNC`).
+
+### §24.15 `@callconv` — Calling Convention Override
+
+Overrides the calling convention for a function. The default in freestanding mode is the platform C ABI.
+
+| Convention | Description |
+|---|---|
+| `C` | Platform default C ABI (default) |
+| `sysv64` | System V AMD64 ABI — Linux, macOS x86_64 |
+| `win64` | Microsoft x64 ABI — Windows and UEFI on x86_64 |
+| `aapcs64` | ARM Procedure Call Standard 64-bit |
+| `naked` | Equivalent to `@naked` |
+| `interrupt` | Equivalent to `@interrupt` |
+
+```loom
+@mode(freestanding)
+
+@callconv(win64)
+func efiMain(image: uint64, table: uint64): uint64 { ... }
+```
+
+### §24.16 `@allocator` and `@deallocator`
+
+Registers a custom heap allocator. Class construction is a compile-time error without a registered allocator (`E_FREESTANDING_CLASS_NO_ALLOC`). Once registered, class construction may return `unique T` or propagate `AllocError` if the allocator signals failure.
+
+```loom
+@mode(freestanding)
+
+@allocator
+func kernelAlloc(size: uint64, align: uint64): uint? {
+    return slabAllocator.alloc(size, align)  // returns None if pool exhausted
+}
+
+@deallocator
+func kernelFree(ptr: uint, size: uint64, align: uint64): void {
+    slabAllocator.free(ptr, size, align)
+}
+```
+
+**Signatures (normative):** `@allocator` must be `(size: uint64, align: uint64): uint?` (`E_ALLOCATOR_SIG`). The `?` return type is mandatory — an allocator whose return type is plain `uint` (without `?`) is `E_ALLOCATOR_SIG_V16`, not `E_ALLOCATOR_SIG`; `E_ALLOCATOR_SIG` covers other signature violations (wrong parameter count or types). A `None` return from the allocator signals allocation failure; the compiler maps this to `AllocError` (§26.1) and propagates it via `?` at every class-construction call site that is inside an error-propagating context, or panics (via `--panic` policy) if no propagation context is available.
+
+`@deallocator` must be `(ptr: uint, size: uint64, align: uint64): void` (`E_DEALLOCATOR_SIG`). At most one of each per compilation unit. `@allocator` without a matching `@deallocator` is `E_ALLOCATOR_UNPAIRED`. `consume` on `unique class` values is always `E_UNIQUE_CLASS_CONSUME` in freestanding mode — ARC is unavailable.
+
+`native.mem.alloc` gains a fallible sibling `native.mem.tryAlloc(n: uint64, align: uint64): Result[uint, AllocError]` that returns `Err(AllocError)` on failure without panicking. The existing `native.mem.alloc` retains its panic-on-failure behavior for backward compatibility.
+
+### §24.17 `MaybeUninit[T]` — Uninitialized Memory
+
+`MaybeUninit[T]` represents memory that may not yet be initialized — the safe mechanism for hardware-provided data, DMA buffers, and C-style out-parameter patterns.
+
+```loom
+@mode(freestanding)
+
+var pt: MaybeUninit[PageTable] = MaybeUninit.uninit()
+let raw = pt.rawPtr()
+native.mem.zero(raw, size_of[PageTable]())
+
+@unsafe("init: PageTable zeroed; all fields valid")
+let table = pt.assumeInit()
+```
+
+**API:**
+
+```loom
+struct MaybeUninit[T] {
+    pub static func uninit(): MaybeUninit[T]
+    pub static func zeroed(): MaybeUninit[T]
+    pub static func new(val: T): MaybeUninit[T]
+    pub func rawPtr(): uint
+
+    @unsafe("init: all fields of T written before calling")
+    pub func assumeInit(): T
+
+    @unsafe("init: fields may be partial; caller asserts validity")
+    pub func assumeInitRef(): borrow T
+}
+```
+
+**`assumeInit()` return ownership.** `assumeInit(): T` returns `T` by value. For primitive and `@repr(C)` struct types — the only permitted `T` values — this is a plain value copy. No ownership transfer or ARC retain occurs; the returned value is an independent copy of the bytes in the `MaybeUninit` storage. In `@mode(freestanding)` with an `@allocator` registered, `MaybeUninit[T]` may not be instantiated with a class type `T` (classes require the allocator path, not `MaybeUninit`) — `T` is restricted to primitives and `@repr(C)` structs.
+
+Available in `@mode(native)` and `@mode(freestanding)`. `T` must be a primitive or `@repr(C)` type (`E_MAYBUNINIT_NOT_REPR`).
+
+### §24.17a `PartialInit[T]` — Field-Tracked Struct Initialization
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+
+`PartialInit[T]` wraps a struct under construction and tracks which fields have been initialized at compile time. Reading an uninitialized field is a compile-time error (`E_PARTIAL_INIT_READ`). Calling `complete()` consumes the partial init and produces a fully initialized `T`, verifying completeness at compile time for structs of statically-known layout.
+
+This closes the partial-initialization gap in `MaybeUninit[T]`: rather than relying on a single `@unsafe("init: all fields written")` assertion, each field write is individually tracked.
+
+```loom
+@mode(freestanding)
+
+@repr(C)
+struct NetworkHeader {
+  var srcPort:  uint16;
+  var dstPort:  uint16;
+  var length:   uint16;
+  var checksum: uint16;
+}
+
+func buildHeader(src: uint16, dst: uint16, len: uint16): NetworkHeader {
+  var p = PartialInit[NetworkHeader].begin()
+  p.set(.srcPort,  src)
+  p.set(.dstPort,  dst)
+  p.set(.length,   len)
+  p.set(.checksum, 0u16)
+  return p.complete()   // ✓ all fields set
+}
+
+// Compile-time error — .checksum not set:
+func badHeader(src: uint16, dst: uint16, len: uint16): NetworkHeader {
+  var p = PartialInit[NetworkHeader].begin()
+  p.set(.srcPort, src)
+  p.set(.dstPort, dst)
+  return p.complete()   // ✗ E_PARTIAL_INIT_INCOMPLETE — .length and .checksum not set
+}
+```
+
+**`field_ref[T, F]` — compile-time field reference.** `field_ref[T, F]` is a compile-time type representing a reference to a specific field `F` on struct type `T`. Field references are produced with the `.fieldName` dot-literal syntax in a `PartialInit.set` call and are resolved entirely at compile time — they have zero runtime representation. `field_ref` is not a first-class value type; it can only appear as a `PartialInit.set` argument.
+
+**API:**
+
+```loom
+struct PartialInit[T] {
+  pub static func begin(): PartialInit[T]
+  pub func set[F](field: field_ref[T, F], value: F): void
+  pub func complete(): T    // compile-time error if any field unset (E_PARTIAL_INIT_INCOMPLETE)
+  pub func isComplete(): bool  // runtime check — always true before complete() or compile-time verified
+}
+```
+
+`T` must be a `@repr(C)` struct type (`E_PARTIAL_INIT_NOT_REPR`). Available in `@mode(native)` and `@mode(freestanding)`.
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_PARTIAL_INIT_READ` | Native, Freestanding | Reading a field of a `PartialInit[T]` that has not yet been set via `.set()` |
+| `E_PARTIAL_INIT_INCOMPLETE` | Native, Freestanding | `complete()` called before all fields are set |
+| `E_PARTIAL_INIT_NOT_REPR` | Native, Freestanding | `PartialInit[T]` with a non-`@repr(C)` struct type |
+| `E_FIELD_REF_INVALID` | Native, Freestanding | `.fieldName` in `PartialInit.set` does not name a field of `T` |
+
+### §24.18 `reinterpret[T, U]` — Type-Safe Memory Reinterpretation
+
+`reinterpret[T, U](value)` reinterprets the bit pattern of a value of type `T` (the source type) as type `U` (the target type) without conversion — stricter than Rust's `transmute` because size/alignment mismatch is always a compile-time error rather than a lint warning.
+
+```loom
+@mode(freestanding)
+
+@unsafe("transmute: float bit-pattern extraction")
+let bits: uint32 = reinterpret[float32, uint32](f)
+```
+
+**Rules:**
+- `size_of[T]()` must equal `size_of[U]()` (`E_REINTERPRET_SIZE_MISMATCH`).
+- `align_of[T]()` must equal `align_of[U]()` (`E_REINTERPRET_ALIGN_MISMATCH`).
+- Both `T` and `U` must be primitives or `@repr(C)` types (`E_REINTERPRET_NOT_REPR`).
+- Always requires `@unsafe` with a reason string (`E_REINTERPRET_NOT_UNSAFE`).
+- Available in `@mode(native)` and `@mode(freestanding)`.
+
+**Alignment warning.** The compiler emits the `reinterpret-align-upcast` lint advisory when `align_of[U]() > align_of[T]()` is statically provable — for example, casting a `uint8` to a `uint64`. Misaligned access via `reinterpret` is the programmer's responsibility; the advisory makes the risk visible at the call site.
+
+**`reinterpretChecked[T, U](value: T): Result[U, AlignmentError]` (normative). `T` is the source type of the input value; `U` is the desired target type.** This is the safe default variant. It performs the same compile-time size/alignment checks as `reinterpret[T, U]` and additionally verifies at runtime that the source value's address satisfies `align_of[U]()`. On alignment failure it returns `Err(AlignmentError)` rather than producing undefined behavior. `reinterpretChecked` does not require `@unsafe`. Use `reinterpret[T, U]` with `@unsafe` only when the caller has externally verified alignment through means invisible to the compiler.
+
+```loom
+// Safe default — checked at runtime
+let result = reinterpretChecked[uint32, float32](rawBits)
+match result {
+  Ok(f)  => processFloat(f),
+  Err(e) => panic(e.message),
+}
+
+// Unsafe shortcut — programmer asserts alignment is correct
+@unsafe("transmute: float bit-pattern extraction; f is 4-byte aligned by construction")
+let bits: uint32 = reinterpret[float32, uint32](f)
+```
+
+`AlignmentError extends RuntimeError` (§26.1) and is catchable.
+
+### §24.19 Integer Overflow Arithmetic Methods
+
+All fixed-width integer types (`int8`–`int64`, `uint8`–`uint64`) gain three method families in `@mode(native)` and `@mode(freestanding)`.
+
+**Checked — returns `Option[T]`:**
+
+```loom
+let result = uint8.checkedAdd(250u8, 10u8)    // Option[uint8]: None
+let result = uint8.checkedSub(250u8, 10u8)    // Option[uint8]: Some(240)
+let result = uint8.checkedMul(250u8, 10u8)    // Option[uint8]: None
+let result = uint8.checkedDiv(250u8, 10u8)    // Option[uint8]: Some(25)
+```
+
+**Wrapping — always succeeds, wraps on overflow:**
+
+```loom
+let result = uint8.wrappingAdd(250u8, 10u8)   // uint8: 4
+let result = uint8.wrappingSub(250u8, 10u8)   // uint8: 240
+let result = uint8.wrappingMul(250u8, 10u8)   // uint8: 132
+```
+
+**Saturating — clamps to min/max:**
+
+```loom
+let result = uint8.saturatingAdd(250u8, 10u8) // uint8: 255
+let result = uint8.saturatingSub(250u8, 10u8) // uint8: 240
+let result = uint8.saturatingMul(250u8, 10u8) // uint8: 255
+```
+
+The naming convention is `TypeName.family(a, b)`. These methods are available in all execution modes. In `@mode(scripted)` and `@mode(compiled)`, plain `+`, `-`, `*` on fixed-width integers throw `NumericOverflowError` on overflow; the explicit methods let callers express their intent without relying on exceptions. In `@mode(native)` and `@mode(freestanding)`, plain arithmetic wraps by default, making `checkedAdd` and `saturatingAdd` the primary tools for defensive numeric code.
+
+**`--overflow=trap` build flag.** When set, plain `+`, `-`, `*`, `/` on fixed-width integers trap on overflow in all build configurations. The explicit method families remain available alongside this flag.
+
+### §24.20 Available Standard Library Subset
+
+| Module | Description |
+|---|---|
+| `core.math` | Pure math functions — no heap |
+| `core.text` | UTF-8 string operations on borrowed slices — no allocation |
+| `native.mem` | Raw memory operations (see API below) |
+| `native.simd` | SIMD vector types and intrinsics |
+| `native.atomic` | Atomic load, store, CAS, fetch-add |
+| `native.ffi` | C FFI utilities: size/align queries, pointer arithmetic, `PinnedRef`, `OwnedHandle`, `BorrowedHandle` |
+| `native.dma` | DMA buffer ownership API — exclusive CPU/DMA access (see below) |
+| `native.mpu` | MPU stack-guard installation — freestanding only (see below) |
+| `debug.freestanding` | Freestanding debug service — `--debug` builds only; `E_FREESTANDING_MODULE` in release builds. Provides `debug.freestanding.start(cfg)` and `debug.freestanding.poll()` (§24.25) |
+
+**`native.mem` API (freestanding and native):**
+
+```loom
+// Copy n bytes from src to dst (may overlap — uses memmove semantics)
+func native.mem.copy(dst: uint, src: uint, n: uint64): void
+
+// Zero n bytes starting at ptr
+func native.mem.zero(ptr: uint, n: uint64): void
+
+// Compare n bytes at a and b; returns 0 if equal, <0 if a < b, >0 if a > b
+func native.mem.compare(a: uint, b: uint, n: uint64): int32
+
+// Allocate n bytes with the given alignment via the registered @allocator.
+// Panics if no @allocator is registered or allocation fails.
+func native.mem.alloc(n: uint64, align: uint64): uint
+
+// Free a pointer previously returned by native.mem.alloc.
+func native.mem.free(ptr: uint, n: uint64, align: uint64): void
+```
+
+**`native.atomic` API (freestanding and native):**
+
+```loom
+// Atomic load with acquire ordering
+func native.atomic.load[T](ptr: uint): T
+
+// Atomic store with release ordering
+func native.atomic.store[T](ptr: uint, val: T): void
+
+// Atomic fetch-add; returns the previous value
+func native.atomic.fetchAdd[T](ptr: uint, val: T): T
+
+// Atomic fetch-sub; returns the previous value
+func native.atomic.fetchSub[T](ptr: uint, val: T): T
+
+// Compare-and-swap; returns true if the swap occurred
+func native.atomic.compareExchange[T](ptr: uint, expected: T, desired: T): bool
+
+// Compiler fence — prevents reordering of memory accesses across the fence.
+// Prevents the COMPILER from reordering memory accesses; does not insert a hardware barrier instruction.
+func native.atomic.fence(): void
+
+// Save the current interrupt enable state and return it as an opaque uint.
+// Used with writeInterruptFlags to implement save/restore critical sections.
+// @mode(freestanding) only.
+func native.atomic.readInterruptFlags(): uint
+
+// Restore interrupt enable state saved by readInterruptFlags.
+// @mode(freestanding) only.
+func native.atomic.writeInterruptFlags(flags: uint): void
+
+// Hardware memory barrier — inserts the architecture-specific barrier instruction.
+// Required after volatile MMIO writes on weakly-ordered architectures (ARM, RISC-V).
+// order: Acquire | Release | AcquireRelease | SeqCst | DeviceRelease
+func native.atomic.hwFence(order: MemoryOrder): void
+```
+
+**`MemoryOrder` enum:**
+
+```loom
+namespace native.atomic;
+
+enum MemoryOrder {
+  // Prevent loads from being reordered before this point.
+  Acquire;
+  // Prevent stores from being reordered after this point.
+  Release;
+  // Both Acquire and Release.
+  AcquireRelease;
+  // Full sequentially consistent barrier — strongest ordering.
+  SeqCst;
+  // Device memory barrier — maps to DSB ST (ARM) / FENCE ow,ow (RISC-V) / SFENCE (x86_64).
+  // Use after volatile writes to peripheral registers to ensure the device observes the write.
+  DeviceRelease;
+}
+```
+
+The normative MMIO pattern requiring a hardware barrier after a volatile store:
+
+```loom
+uart.data = byte                              // volatile store (optimizer-barrier)
+native.atomic.hwFence(MemoryOrder.DeviceRelease)  // hardware-barrier (CPU reorder-barrier)
+```
+
+`T` must be a fixed-width integer type (`uint8`, `uint16`, `uint32`, `uint64`, `int8`, `int16`, `int32`, `int64`) or a pointer-sized type. Atomic operations on `T` that is not naturally aligned are `E_ATOMIC_UNALIGNED`.
+
+**`native.mem` addition — `tryAlloc` (normative):**
+
+```loom
+// Fallible allocation: returns Ok(ptr) or Err(AllocError) without panicking.
+func native.mem.tryAlloc(n: uint64, align: uint64): Result[uint, AllocError]
+```
+
+**`native.dma` API (freestanding only):**
+
+`native.dma.DmaBuffer[T]` models DMA buffer ownership using Loom's ownership verb system. The CPU and the DMA controller cannot access the buffer simultaneously — the `startTransfer` call acquires an exclusive `edits` borrow that blocks CPU access for the transfer duration.
+
+```loom
+namespace native.dma;
+
+// Allocate a cache-coherent, page-aligned DMA buffer for n elements of T.
+// Returns Err(AllocError) if the DMA-capable region is exhausted.
+func alloc[T](n: int): Result[DmaBuffer[T], AllocError]
+
+unique class DmaBuffer[T] : Any {
+  // Length in elements.
+  pub func len(): int
+
+  // CPU read access — valid only when no active DmaTransfer holds the buffer.
+  pub func read(index: int): T
+
+  // CPU write access — valid only when no active DmaTransfer holds the buffer.
+  pub modifier write(index: int, value: T): void
+
+  // Begin a DMA transfer. Returns an exclusive handle; CPU access is blocked
+  // until DmaTransfer.complete() or DmaTransfer.abort() is called.
+  // E_DMA_BUFFER_ACTIVE if a transfer is already in progress.
+  pub func startTransfer(edits self, controller: DmaController, dest: uint): DmaTransfer[T]
+}
+
+unique class DmaTransfer[T] : Any {
+  // Wait for transfer completion (synchronous busy-wait or interrupt-driven depending on controller).
+  // Releases the edits borrow on the buffer; CPU access is re-enabled.
+  pub func complete(): void
+
+  // Abort the transfer immediately. Buffer contents are undefined; CPU access is re-enabled.
+  pub func abort(): void
+}
+```
+
+**`native.mpu` API (freestanding only):**
+
+```loom
+namespace native.mpu;
+
+// Install a stack guard region. Accesses to [guardBase, guardBase+guardSize) trap as a fault.
+// The @panic_handler receives PanicSource.StackOverflow when this guard fires.
+// Returns Err if the MPU does not support the requested region configuration.
+func installStackGuard(stackTop: uint, guardSize: uint): Result[void, MpuError]
+
+// Remove a previously installed guard region.
+func removeStackGuard(stackTop: uint): void
+
+enum MpuError {
+  NotSupported;    // platform MPU does not support guard pages
+  RegionConflict;  // requested region overlaps an existing MPU region
+  AlignmentError;  // base or size not aligned to MPU region requirements
+}
+```
+
+All other standard library modules are unavailable (`E_FREESTANDING_MODULE`).
+
+### §24.21 `.lmpkg` Extensions for Freestanding
+
+```toml
+[build]
+mode     = "freestanding"
+target   = "freestanding"
+arch     = "x86_64"
+panic    = "custom"           # halt | abort | custom
+
+[linker]
+script   = "kernel.ld"       # path to linker script
+entry    = "_start"           # entry symbol (matches @entry)
+map      = "kernel.map"       # optional: emit linker map
+
+[freestanding]
+stack_size  = 65536           # NORMATIVE: stack size in bytes; must be page-size multiple
+                              # The linker script SHALL reserve this many bytes for the stack region.
+                              # Affects MPU guard placement when native.mpu.installStackGuard is called.
+no_float    = true            # forbid float/float32/float64/decimal
+no_simd     = false           # allow SIMD (requires FPU save in context switch)
+overflow    = "trap"          # wrap | trap
+double_fault = "halt"         # halt | reset | nop — see §24.6 --double-fault flag
+
+# Debug portal configuration (--debug builds only; ignored in release)
+portal_ring_size         = 4096   # bytes; JTAG-readable fallback ring buffer (default 4096)
+                                   # Set to 0 to suppress BSS allocation
+portal_trace_buffer_size = 8192   # bytes; trace channel DMA staging buffer (default 8192)
+portal_filter            = ["*"]  # compile-time glob prune of activation table
+                                   # e.g. ["mykernel.irq.*", "mykernel.boot"]
+                                   # Unmatched portals stripped as in release
+```
+
+**`portal_ring_size`** — statically allocated in the `.debug_ring` linker section. Used as the sole trace store when no `@debug_trace_channel` is provided; readable by JTAG/OpenOCD without a live host connection. Set to `0` to suppress allocation when BSS space is critical.
+
+**`portal_trace_buffer_size`** — staging buffer between portal event emission and `FreestandingTraceChannel.write`. Flushed when the buffer reaches `traceFlushThreshold` bytes or `traceFlushIntervalUs` microseconds elapse (configured in `FreestandingDebugConfig`).
+
+**`portal_filter`** — glob patterns matched at compile time against fully-qualified portal names. Only matching portals are included in the activation table and instrumented. Default `["*"]` includes all portals.
+
+**`no_float = true`** forbids all floating-point types in `@mode(freestanding)` source. Use is `E_FREESTANDING_FLOAT`. Critical on x86_64 where FPU state must be saved explicitly; most kernels forbid FP in kernel mode to avoid the overhead.
+
+### §24.22 Freestanding Error Codes
+
+| Code | Condition |
+|---|---|
+| `E_FREESTANDING_ARC` | ARC feature used in freestanding mode |
+| `E_FREESTANDING_RUNTIME` | Feature requiring a linked runtime library used in freestanding mode (`bigint`, `decimal`, `runtime` object, or other runtime-backed stdlib) |
+| `E_FREESTANDING_ASYNC` | `async`/`await`/`Task[T]`/`spawn` used in freestanding mode |
+| `E_FREESTANDING_EXCEPTIONS` | `throw`/`try`/`catch` used in freestanding mode |
+| `E_FREESTANDING_FENCE` | Template fence used in freestanding mode |
+| `E_FREESTANDING_UI` | `ui.*` module used in freestanding mode |
+| `E_FREESTANDING_REFLECT` | `core.reflect`/`core.inspect` used in freestanding mode |
+| `E_FREESTANDING_DYNAMIC` | `dynamic class`/`!{}` used in freestanding mode |
+| `E_FREESTANDING_PORTAL` | `portal` statement in a release freestanding build (portals unconditionally stripped) |
+| `E_FREESTANDING_PORTAL_NO_CHANNEL` | `portal` in `--debug` freestanding build but no channel or ring buffer configured |
+| `E_FREESTANDING_PORTAL_CONDITION` | Condition expression on a `portal` statement in `@mode(freestanding)` |
+| `E_FREESTANDING_CONTROL_CHANNEL_SIG` | `@debug_control_channel` function has wrong signature or return type |
+| `E_FREESTANDING_CONTROL_CHANNEL_DUPLICATE` | Multiple `@debug_control_channel` function definitions |
+| `E_FREESTANDING_TRACE_CHANNEL_SIG` | `@debug_trace_channel` function has wrong signature or return type |
+| `E_FREESTANDING_TRACE_CHANNEL_DUPLICATE` | Multiple `@debug_trace_channel` function definitions |
+| `E_FREESTANDING_DEBUG_START_RELEASE` | `debug.freestanding.start()` or `debug.freestanding.poll()` called in a release build |
+| `E_FREESTANDING_CLASS_NO_ALLOC` | Class constructed without `@allocator` |
+| `E_FREESTANDING_MODULE` | Prohibited stdlib module imported |
+| `E_FREESTANDING_IMPORT_NATIVE` | `@mode(freestanding)` file imports a `@mode(native)` module |
+| `E_FREESTANDING_IMPORT_MANAGED` | `@mode(freestanding)` file imports a `@mode(compiled)` or `@mode(scripted)` module |
+| `E_NATIVE_IMPORT_FREESTANDING` | `@mode(native)` file imports a `@mode(freestanding)` module |
+| `E_FREESTANDING_FLOAT` | Float type used when `no_float = true` |
+| `E_ENTRY_DUPLICATE` | Multiple `@entry` functions |
+| `E_ENTRY_NONVOID` | `@entry` has non-`void` return type |
+| `E_ENTRY_PARAMS` | `@entry` has parameters |
+| `E_ENTRY_NOT_FREESTANDING` | `@entry` outside `@mode(freestanding)` |
+| `E_PANIC_HANDLER_SIG` | `@panic_handler` wrong signature |
+| `E_PANIC_HANDLER_MISSING` | `--panic=custom` with no `@panic_handler` |
+| `E_PANIC_HANDLER_DUPLICATE` | Multiple `@panic_handler` functions |
+| `E_PANIC_HANDLER_NOT_FREESTANDING` | `@panic_handler` outside `@mode(freestanding)` |
+| `E_PANIC_HANDLER_REENTRANT` | `@panic_handler` calls a function that can panic |
+| `E_ASM_OPERAND_TYPE` | ASM output operand type incompatible with constraint |
+| `E_ASM_NOT_COMPILED` | `asm { }` in scripted or Wasm-compiled mode |
+| `E_ASM_EXPIRED_BORROW` | `borrow` value used as `asm` input after its lifetime has ended |
+| `E_ATOMIC_UNALIGNED` | `native.atomic` operation on a naturally-unaligned address |
+| `E_VOLATILE_NOT_BORROW` | `@volatile` on a non-`borrow` parameter |
+| `E_VOLATILE_NOT_FREESTANDING` | `@volatile` outside `@mode(freestanding)` |
+| `E_VOLATILE_NOT_REPR` | `Volatile[T]` with non-primitive, non-`@repr(C)` type |
+| `E_REPR_NOT_STRUCT` | `@repr` on a non-struct type |
+| `E_REPR_NOT_NATIVE` | `@repr` in scripted or compiled mode |
+| `E_REPR_TRANSPARENT_MULTI_FIELD` | `@repr(transparent)` struct has multiple non-zero-sized fields |
+| `E_EXTERN_STRUCT_NOT_REPR_C` | `extern native` struct without `@repr(C)` |
+| `E_EXTERN_JS_NOT_NATIVE` | `extern js` or `@jsexport` used in `@mode(native)` or `@mode(freestanding)` — no JavaScript runtime present |
+| `E_ALIGN_NOT_POWER_OF_TWO` | `@align(n)` where `n` is not a power of two |
+| `E_ALIGN_TOO_SMALL` | `@align(n)` less than the type's natural ABI alignment |
+| `E_SECTION_INVALID_NAME` | `@section` name contains invalid characters |
+| `E_SECTION_NOT_FREESTANDING` | `@section` outside `@mode(freestanding)` |
+| `E_INTERRUPT_NONVOID` | `@interrupt` function non-`void` return type |
+| `E_INTERRUPT_DIRECT_CALL` | `@interrupt` function called directly |
+| `E_INTERRUPT_ASYNC` | `@interrupt` function declared `async` |
+| `E_INTERRUPT_NOT_FREESTANDING` | `@interrupt` outside `@mode(freestanding)` |
+| `E_INTERRUPT_FRAME_CONSTRUCT` | User code attempts to construct `InterruptFrame` directly |
+| `E_NAKED_NON_ASM` | `@naked` function body contains non-`asm` statement |
+| `E_NAKED_ASYNC` | `@naked` function declared `async` |
+| `E_NAKED_NOT_FREESTANDING` | `@naked` outside `@mode(freestanding)` |
+| `E_CALLCONV_NOT_FREESTANDING` | `@callconv` outside `@mode(freestanding)` |
+| `E_ALLOCATOR_SIG` | `@allocator` wrong signature |
+| `E_DEALLOCATOR_SIG` | `@deallocator` wrong signature |
+| `E_ALLOCATOR_DUPLICATE` | Multiple `@allocator` functions |
+| `E_DEALLOCATOR_DUPLICATE` | Multiple `@deallocator` functions |
+| `E_ALLOCATOR_UNPAIRED` | `@allocator` without `@deallocator` or vice versa |
+| `E_ALLOCATOR_NOT_FREESTANDING` | `@allocator`/`@deallocator` outside `@mode(freestanding)` |
+| `E_MAYBUNINIT_NOT_REPR` | `MaybeUninit[T]` with non-primitive, non-`@repr(C)` type |
+| `E_REINTERPRET_SIZE_MISMATCH` | `reinterpret[T, U]` where `size_of[T]() ≠ size_of[U]()` |
+| `E_REINTERPRET_ALIGN_MISMATCH` | `reinterpret[T, U]` where `align_of[T]() ≠ align_of[U]()` |
+| `E_REINTERPRET_NOT_REPR` | `reinterpret[T, U]` where `T` or `U` is not primitive or `@repr(C)` |
+| `E_REINTERPRET_NOT_UNSAFE` | `reinterpret[T, U]` without `@unsafe` annotation |
+| `E_SIZE_OF_UNSIZED` | `size_of[T]()` or `align_of[T]()` applied to an unsized type |
+| `E_SIZE_OF_CLASS` | `size_of[T]()` or `align_of[T]()` applied to a managed class type |
+| `E_DMA_BUFFER_ACTIVE` | `DmaBuffer[T]` operation attempted while a `DmaTransfer` holds the exclusive borrow |
+| `E_INTERRUPT_SAFE_VIOLATION` | Non-`@interruptSafe` operation inside an `@interruptSafe` function |
+| `E_INTERRUPT_GUARD_NOT_FREESTANDING` | `InterruptGuard` used outside `@mode(freestanding)` |
+| `E_INTERRUPT_GUARD_NESTED` | `InterruptGuard` scopes nested — inner guard re-enables interrupts before outer exits; use save/restore pattern |
+| `E_ALLOCATOR_SIG_V16` | `@allocator` return type is not `uint?` — missing `?` makes allocation failure undetectable |
+
+*(Error codes for cross-mode features introduced in v1.16 — `E_ATOMIC_AWAIT`, `E_ATOMIC_NOT_WASM`, `E_LOCK_ORDER_*`, `E_CROSS_BOUNDARY_CYCLE`, `E_NAKED_NOT_UNSAFE`, `E_PARTIAL_INIT_*`, `E_FIELD_REF_INVALID`, `E_SIGNAL_SAFE_NOT_NATIVE` — are defined in their respective sections: §17.7, §23.4.13, §23.5, §24.14, §24.17a, §26.9, §27.16.)*
+
+### §24.23 Example — x86_64 Kernel Stub
+
+```loom
+@mode(freestanding)
+
+import native.mem
+import native.atomic
+
+// ── Hardware layouts ──────────────────────────────────────────────────────
+
+@repr(packed) @align(1)
+struct UartRegs {
+    var data: uint8; var ier: uint8; var iir: uint8; var lcr: uint8;
+    var mcr: uint8;  var lsr: uint8; var msr: uint8; var scr: uint8;
+}
+
+@repr(C)
+struct InterruptFrame {
+    let rip: uint64; let cs: uint64; let rflags: uint64
+    let rsp: uint64; let ss:  uint64
+}
+
+// ── UART driver ───────────────────────────────────────────────────────────
+
+let COM1 = Volatile[UartRegs].at(0x3F8)
+
+func serialWrite(s: string): void {
+    for (c in s) {
+        while (COM1.read().lsr & 0x20 == 0) {}
+        COM1.modify(func(r) => r with { data = c as uint8 })
+    }
+}
+
+// ── CPU helpers ───────────────────────────────────────────────────────────
+
+func readCr2(): uint64 {
+    var cr2: uint64 = 0
+    asm { "mov rax, cr2"  out: cr2 = "=a"  clobbers: [] }
+    return cr2
+}
+
+// ── Interrupt handlers ────────────────────────────────────────────────────
+
+@interrupt(arch: "x86_64", has_error_code: true)
+func pageFaultHandler(frame: borrow InterruptFrame, error: uint64): void {
+    serialWrite("PAGE FAULT
+")
+    while (true) { asm { "hlt" } }
+}
+
+@interrupt(arch: "x86_64", has_error_code: false)
+func timerHandler(frame: borrow InterruptFrame): void {
+    tickClock()
+    sendEoi()
+}
+
+// ── Panic handler ─────────────────────────────────────────────────────────
+
+@panic_handler
+func kernelPanic(msg: string, file: string, line: int): void {
+    serialWrite("PANIC: ")
+    serialWrite(msg)
+    serialWrite("\n")
+    asm { "cli" }
+    while (true) { asm { "hlt" } }
+}
+
+// ── Kernel entry ──────────────────────────────────────────────────────────
+
+func kernelMain(): void {
+    serialWrite("Loom kernel v1.14\n")
+    // Load IDT, enable interrupts ...
+    asm { "sti" }
+    while (true) { asm { "hlt" } }
+}
+
+@entry @naked @section(".text.boot")
+func _start(): void {
+    asm {
+        ".global _start"
+        "lea rsp, [__stack_top]"
+        "xor rbp, rbp"
+        "call kernelMain"
+        "cli"
+        "1: hlt"
+        "jmp 1b"
+    }
+}
+```
+
+**Corresponding `.lmpkg`:**
+
+```toml
+[package]
+name    = "mykernel"
+version = "0.1.0"
+
+[build]
+mode  = "freestanding"
+target = "freestanding"
+arch  = "x86_64"
+panic = "custom"
+
+[linker]
+script = "kernel.ld"
+entry  = "_start"
+map    = "kernel.map"
+
+[freestanding]
+stack_size = 65536
+no_float   = true
+overflow   = "trap"
+```
+
+
+### §24.24 `@interruptSafe` Annotation and `InterruptGuard`
+
+*(This section is normative. Applies to `@mode(freestanding)` only.)*
+
+#### §24.24.1 `@interruptSafe` — Interrupt-Context Safety Annotation
+
+`@interruptSafe` declares that a function may be called from an interrupt handler context. The compiler enforces that `@interruptSafe` functions access `static var` bindings only through `native.atomic` operations — direct field reads or writes on a `static var` inside an `@interruptSafe` context are `E_INTERRUPT_SAFE_VIOLATION`.
+
+This annotation closes the interrupt-reentrancy gap: a mutable global accessed from both the main loop and an interrupt handler is a data race that Loom's ownership system does not track by default. `@interruptSafe` makes the constraint statically enforced.
+
+```loom
+@mode(freestanding)
+
+static var interruptCount: uint64 = 0
+
+// ✓ @interruptSafe — accesses static var only via native.atomic
+@interruptSafe
+func onTimerIrq(): void {
+    native.atomic.fetchAdd[uint64](
+        native.ffi.addrOf(interruptCount),
+        1u64
+    )
+}
+
+// ✗ E_INTERRUPT_SAFE_VIOLATION — direct access to static var
+@interruptSafe
+func badIrqHandler(): void {
+    interruptCount += 1   // not atomic — E_INTERRUPT_SAFE_VIOLATION
+}
+```
+
+`@interruptSafe` functions may not call non-`@interruptSafe` functions. This transitively ensures the entire call tree is interrupt-safe. The `interrupt-unsafe-call` lint fires when a non-`@interruptSafe` function is called from an `@interruptSafe` context.
+
+`@interrupt`-annotated ISR entry points (§24.13) are implicitly `@interruptSafe`.
+
+#### §24.24.2 `InterruptGuard` — Interrupt-Masking Critical Section
+
+`InterruptGuard` implements `Scoped[void]` and masks interrupts for the duration of its lexical scope. This provides mutual exclusion between the main execution path and interrupt handlers without requiring a runtime mutex.
+
+```loom
+namespace native.freestanding;
+
+class InterruptGuard : Any implements Scoped[void] {
+  // Disable interrupts (architecture-specific: CLI on x86_64, MSR DAIF on AArch64, CSRCI mstatus.MIE on RISC-V).
+  pub static func disable(): InterruptGuard
+
+  // Re-enable interrupts and release the guard (called automatically by `with` block exit).
+  pub func release(): void
+}
+```
+
+Usage with `with`:
+
+```loom
+@mode(freestanding)
+
+static var sharedCounter: uint32 = 0
+
+func incrementSafely(): void {
+    with (g = InterruptGuard.disable()) {
+        // Interrupts are masked — access to sharedCounter is race-free
+        sharedCounter += 1
+    }   // interrupts re-enabled automatically on with-block exit
+}
+```
+
+`InterruptGuard` is not reentrant — nesting two `InterruptGuard` scopes results in the inner guard re-enabling interrupts on release before the outer guard exits (`E_INTERRUPT_GUARD_NESTED` lint advisory). When nesting is required, use an interrupt-save/restore pattern instead:
+
+```loom
+// Save and restore interrupt state across nested calls
+let flags = native.atomic.readInterruptFlags()
+InterruptGuard.disable()
+// ... critical section ...
+native.atomic.writeInterruptFlags(flags)
+```
+
+`InterruptGuard` is available only in `@mode(freestanding)`. Using it outside freestanding mode is `E_INTERRUPT_GUARD_NOT_FREESTANDING`.
+
+---
+
+
+### §24.25 Freestanding Debug Service
+
+*(This section is normative. Applies to `@mode(freestanding)` with `--debug` only.)*
+
+#### §24.25.1 Overview
+
+When `loom build --debug --target freestanding` is invoked and at least one debug channel or ring buffer is configured via `.lmpkg`, the compiler synthesizes a freestanding debug service that provides:
+
+- A static **activation table** in BSS: one `atomic uint8` per portal, indexed by compile-time portal ID. All entries are zero-initialized. Portal sites perform a single aligned atomic byte load; a zero value is the fast path (inert). Inactive-portal cost: one aligned atomic load per portal site, no branch.
+- A read-only **portal name table** in the `.debug_portals` linker section: maps portal IDs to fully-qualified name strings, source file paths, and line numbers. Baked at link time. Analogous to the static metadata table in `@mode(native)`.
+- A compiler-emitted **`FreestandingDebugFrame`** value constructed at each active portal site and passed to the trace channel or written to the ring buffer.
+- An optional **time-travel ring** (`.debug_ttravel` section) — a compiler-synthesized static circular array of `FreestandingDebugFrame` values for post-hoc replay (§24.25.9). This is not a user-instantiable type; it is allocated and managed entirely by the compiler when `timeTravelEnabled = true`.
+- An optional **dual-channel debug service** started by calling `debug.freestanding.start()`.
+
+Release builds strip all portal instrumentation, the activation table, the portal name table, the `.debug_ttravel` ring, and the `.debug_ring` fallback ring. No BSS overhead in release.
+
+#### §24.25.2 `FreestandingDebugFrame`
+
+```loom
+@repr(C)
+struct FreestandingDebugFrame {
+    pub let eventKind:  uint8;   // 0=Portal, 1=Call, 2=Return
+    pub let portalId:   uint32;
+    pub let nameOffset: uint32;  // byte offset into .debug_portals name table
+    pub let fileOffset: uint32;  // byte offset into .debug_portals file table
+    pub let line:       uint32;
+    pub let column:     uint32;
+    pub let seqNum:     uint32;  // monotonic sequence number; wraps at uint32 max
+}
+```
+
+No heap allocation. All pointer-like fields are offsets into read-only link-time sections. `TraceLevel` is always `PortalOnly` in freestanding debug builds — full local-variable capture requires a GC heap and is unavailable. `sizeof(FreestandingDebugFrame) = 28` bytes under `@repr(C)` on all supported targets (1 byte `eventKind` + 3 bytes alignment padding + six `uint32` fields).
+
+`seqNum` is a per-portal monotonically incrementing counter maintained in the activation table's extended slot. The host uses it to detect dropped frames on lossy transports.
+
+#### §24.25.3 Channel Annotations
+
+Two optional annotations provide the compiler with user-supplied transport implementations. Neither is mandatory; §24.25.5 specifies behavior when one or both are absent.
+
+**Transport and configuration types (normative):**
+
+```loom
+// Bidirectional control transport; returned by an @debug_control_channel function.
+// read/write are function-pointer fields; both are mandatory.
+@repr(C)
+struct FreestandingControlChannel {
+    pub let read:  fn(buf: borrow[~ch] *uint8, len: uint32): uint32;
+    pub let write: fn(buf: borrow[~ch] *uint8, len: uint32): uint32;
+}
+
+// Unidirectional trace transport; returned by an @debug_trace_channel function.
+// write is mandatory; flush is optional (set to None when not needed).
+@repr(C)
+struct FreestandingTraceChannel {
+    pub let write: fn(buf: borrow[~ch] *uint8, len: uint32): uint32;
+    pub let flush: Option[fn(): void];
+}
+
+// Selects how the debug service polls the control channel for incoming commands.
+enum ControlPollMode {
+    Polling;    // call debug.freestanding.poll() periodically from user code
+    Interrupt;  // control ISR registered via @interrupt handles incoming bytes
+}
+
+// Configuration passed to debug.freestanding.start().
+struct FreestandingDebugConfig {
+    pub let controlPollMode:      ControlPollMode;
+    pub let traceFlushThreshold:  uint32;   // flush when N bytes pending; 0 = flush every event
+    pub let traceFlushIntervalUs: uint32;   // flush every N µs; 0 = disable timer flush
+    pub let timeTravelEnabled:    bool;     // allocate .debug_ttravel ring (§24.25.9)
+    pub let timeTravelRingFrames: uint32;   // ring capacity in frames; 0 uses default of 256
+}
+```
+
+These types are available exclusively in `--debug` freestanding builds. Referencing them in release builds or in non-freestanding modes is `E_FREESTANDING_MODULE`.
+
+**`@debug_control_channel`**
+
+```loom
+@debug_control_channel
+func myControlChannel(): FreestandingControlChannel {
+    return FreestandingControlChannel {
+        read:  func(buf: borrow[~ch] *uint8, len: uint32): uint32 { ... },
+        write: func(buf: borrow[~ch] *uint8, len: uint32): uint32 { ... },
+    }
+}
+```
+
+Bidirectional. Used for command/response traffic (portal query, activate, deactivate, replay buffer request). Low-volume. Typically backed by UART, semihosting, or a memory-mapped command FIFO.
+
+**`@debug_trace_channel`**
+
+```loom
+@debug_trace_channel
+func myTraceChannel(): FreestandingTraceChannel {
+    return FreestandingTraceChannel {
+        write: func(buf: borrow[~ch] *uint8, len: uint32): uint32 { ... },
+        flush: func(): void { ... },   // optional; called on buffer drain or flush interval
+    }
+}
+```
+
+Write-only from the target perspective. `flush` is optional; if provided, the compiler calls it when the staging buffer drains or the flush interval elapses (configured in `FreestandingDebugConfig`). Suitable for ITM/SWO over CoreSight, DMA FIFOs, or any high-throughput unidirectional transport.
+
+Both annotations follow the `@panic_handler` error pattern: wrong signature is the `_SIG` error code; multiple definitions is `_DUPLICATE`.
+
+#### §24.25.4 Starting the Debug Service
+
+```loom
+// FreestandingDebugConfig field types:
+//   controlPollMode:      ControlPollMode   // .Polling or .Interrupt
+//   traceFlushThreshold:  uint32            // flush staging buffer when N bytes pending
+//   traceFlushIntervalUs: uint32            // flush every N µs; 0 = disable timer flush
+//   timeTravelEnabled:    bool              // allocate .debug_ttravel ring (§24.25.9)
+//   timeTravelRingFrames: uint32            // ring capacity in frames; default 256
+
+// Example — polling control, 512-byte flush threshold, time-travel enabled:
+debug.freestanding.start(FreestandingDebugConfig {
+    controlPollMode:      ControlPollMode.Polling,
+    traceFlushThreshold:  512u32,
+    traceFlushIntervalUs: 0u32,
+    timeTravelEnabled:    true,
+    timeTravelRingFrames: 256u32,
+})
+```
+
+`debug.freestanding.start()` is available only in `--debug` builds. Calling it in a release build is `E_FREESTANDING_DEBUG_START_RELEASE`.
+
+`controlPollMode`:
+- `ControlPollMode.Interrupt` — the control channel read handler runs in a background interrupt. The user is responsible for registering the ISR via `@interrupt`.
+- `ControlPollMode.Polling` — `debug.freestanding.poll()` must be called periodically (from a main loop or cooperative scheduler tick) to service incoming control commands. **`debug.freestanding.poll()` normative behaviour:** reads up to one complete control-channel message per call, dispatches the response (e.g. sends `PORTAL_TABLE` in reply to `QUERY_PORTALS`, activates a portal in reply to `ACTIVATE`), then returns immediately. It is the caller's responsibility to call it often enough that command latency meets the application's requirements. `poll()` is a no-op if no bytes are available on the control channel.
+
+`timeTravelEnabled` — when `true`, the compiler allocates a static circular ring buffer (`.debug_ttravel` BSS section, capacity `timeTravelRingFrames` frames). Each portal event appends a `FreestandingDebugFrame` to the ring regardless of whether a `@debug_trace_channel` is configured. The host retrieves a snapshot of the ring at any time via `READ_REPLAY_BUFFER` over the control channel (§24.25.6). See §24.25.9 for full semantics.
+
+#### §24.25.5 Channel Fallback Matrix
+
+| `@debug_control_channel` | `@debug_trace_channel` | `portal_ring_size` | Behavior |
+|---|---|---|---|
+| Provided | Provided | Any | Commands over control; trace events stream over trace channel; time-travel ring available if `timeTravelEnabled` |
+| Provided | Absent | > 0 | Commands over control; trace events queued in ring buffer; host retrieves via `READ_TRACE_BUFFER` command |
+| Provided | Absent | 0 | Commands over control; trace events discarded; time-travel ring available if `timeTravelEnabled` (ring lives in BSS, retrieved via control channel) |
+| Absent | Provided | Any | All portals unconditionally active; events stream over trace channel; no runtime activation control; time-travel ring available if `timeTravelEnabled` |
+| Absent | Absent | > 0 | Ring buffer only; JTAG memory-read path; no live host connection. If `timeTravelEnabled = true`, the `.debug_ttravel` ring is also allocated and JTAG-readable, but `READ_REPLAY_BUFFER` is unavailable (no control channel) |
+| Absent | Absent | 0 | `E_FREESTANDING_PORTAL_NO_CHANNEL` |
+
+The "always-on trace" configuration (fourth row) is the embedded always-on logging path. Dynamic activation control is unavailable because there is no control channel; every portal fires unconditionally for the duration of the debug build.
+
+#### §24.25.6 Control Channel Protocol
+
+Binary protocol over the control channel. All integers little-endian.
+
+**Host → Target:**
+
+| Opcode | Name | Payload |
+|---|---|---|
+| `0x01` | `QUERY_PORTALS` | — |
+| `0x02` | `ACTIVATE` | `portal_id: u32` |
+| `0x03` | `DEACTIVATE` | `portal_id: u32` |
+| `0x04` | `DEACTIVATE_ALL` | — |
+| `0x05` | `READ_TRACE_BUFFER` | `max_bytes: u32` |
+| `0x06` | `READ_REPLAY_BUFFER` | `max_frames: u32` — requests time-travel ring contents |
+
+**Target → Host:**
+
+| Opcode | Name | Payload |
+|---|---|---|
+| `0x81` | `PORTAL_TABLE` | `count: u32`, then `count` × `{id: u32, name_len: u16, name: utf8, file_len: u16, file: utf8, line: u32}` |
+| `0x82` | `ACK` | `acked_opcode: u8` |
+| `0x83` | `ERR` | `acked_opcode: u8, code: u8` |
+| `0x84` | `TRACE_BUFFER_CHUNK` | `len: u16, data: bytes` |
+| `0x85` | `REPLAY_BUFFER_CHUNK` | `frame_count: u16`, then `frame_count` × `FreestandingDebugFrame` (§24.25.2) |
+
+#### §24.25.7 Trace Channel Protocol
+
+Target → host only. All integers little-endian.
+
+| Opcode | Name | Payload |
+|---|---|---|
+| `0x01` | `PORTAL_EVENT` | `id: u32, file_offset: u32, line: u32, column: u32, seq: u32` |
+| `0x02` | `CALL_EVENT` | `id: u32, file_offset: u32, line: u32, column: u32, seq: u32` |
+| `0x03` | `RETURN_EVENT` | `id: u32, file_offset: u32, line: u32, column: u32, seq: u32` |
+| `0xFF` | `TRACE_SYNC` | `seq: u32` |
+
+`seq` is the per-portal sequence number from `FreestandingDebugFrame.seqNum`. `TRACE_SYNC` is emitted periodically (compiler-configurable interval) so the host detects dropped events on lossy transports. The host tracks expected sequence per portal ID; a gap indicates lost frames.
+
+#### §24.25.8 Host Tooling
+
+The `loom debug attach` command connects to a running freestanding debug service:
+
+```
+loom debug attach --uart /dev/ttyUSB0 --baud 115200
+loom debug attach --tcp 192.168.1.100:2345
+loom debug attach --semihosting                          # ARM/RISC-V via debug probe
+loom debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
+```
+
+`--trace-swo` (or `--trace-uart`, `--trace-tcp`) specifies a separate transport for the trace channel when control and trace are physically distinct. When only one transport is specified, it carries both channels multiplexed by opcode prefix. After attaching, the host reads the portal name table via `QUERY_PORTALS` and presents the standard portal activation interface.
+
+Time-travel replay is available via `READ_REPLAY_BUFFER` over the control channel when `timeTravelEnabled = true`. The host renders the captured event ring as a portal-level trace timeline with `TraceLevel.PortalOnly` semantics — the same visualization produced by time-travel capture in `@mode(native)`. Unlike native mode, the ring buffer resides on-target rather than in host memory, making replay available even after a target reset when using a non-volatile ring placement.
+
+#### §24.25.9 Time-Travel Replay for Freestanding
+
+*(This section is normative.)*
+
+When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates a static circular ring of `FreestandingDebugFrame` values in the `.debug_ttravel` linker section. The ring size is `timeTravelRingFrames × sizeof(FreestandingDebugFrame)` bytes, statically allocated in BSS.
+
+**Write path.** Each time an active portal fires, the debug service appends a `FreestandingDebugFrame` to the ring (overwriting the oldest frame when full). This write occurs independently of — and in addition to — any `@debug_trace_channel` emission. The ring is therefore populated even in the trace-only and ring-only configurations from §24.25.5. The write is interrupt-safe: the ring uses a lock-free single-producer scheme compatible with `@interruptSafe` portal sites.
+
+**Read path.** The host requests ring contents via the `READ_REPLAY_BUFFER` control command (§24.25.6), receiving up to `max_frames` `FreestandingDebugFrame` records in `REPLAY_BUFFER_CHUNK` response messages. The ring state is not disturbed by a read — the target continues appending; the host receives a snapshot.
+
+**Replay semantics.** Freestanding time-travel is `TraceLevel.PortalOnly` — the ring contains call/return/portal events with source locations, but no local-variable state. The host `loom debug attach` session renders the captured event sequence as a portal-level trace timeline. This is the same visualization produced by `TraceLevel.PortalOnly` capture in `@mode(native)`, with the distinction that the ring is stored on-target rather than in host memory.
+
+**Zero-overhead when disabled.** When `timeTravelEnabled = false` (the default), no ring is allocated, no write path code is emitted, and BSS is unaffected. The `READ_REPLAY_BUFFER` opcode returns `ERR` with code `0x01` (feature disabled).
+
+**Ring size guidance.** At `sizeof(FreestandingDebugFrame) = 28` bytes (7 fields, `@repr(C)` padded), a 256-frame ring occupies 7 KB of BSS. For interrupt-dense kernels with short capture windows, 256–1024 frames is typically sufficient. For extended capture across a full boot sequence, 4096 frames (112 KB) or a ring-and-flush strategy via the trace channel is recommended.
+
+**Interaction with `portal_ring_size`.** `portal_ring_size` (§24.21) is the static JTAG-readable fallback ring (readable without a live host). The `.debug_ttravel` time-travel ring is the dynamic ring retrieved via the control channel when `@debug_control_channel` is configured. Both may coexist: the `portal_ring_size` ring stores a JTAG-accessible snapshot; the `.debug_ttravel` ring is the deeper history retrievable via `READ_REPLAY_BUFFER`.
+
+#### §24.25.10 Design Notes
+
+*(This section is non-normative.)*
+
+**Why two channels.** Control and trace have fundamentally different traffic profiles. Control is low-volume and requires ACKs; trace is potentially high-volume and unidirectional. Sharing a channel creates back-pressure coupling: a burst of trace events can starve an incoming `ACTIVATE` command. On ARM targets, the natural split is UART for control and ITM/SWO over CoreSight for trace — ITM is hardware-buffered and DMA-friendly.
+
+**Why dynamic activation is preserved.** The principal value of the portal system is surgical, zero-overhead transient capture. Always-on instrumentation obliterates performance in hot paths — interrupt handlers, scheduler ticks, DMA completion routines. Dynamic activation via the control channel preserves the ability to leave all portals dark during normal operation and activate only the portals of interest for a bounded capture window.
+
+**Zero-overhead guarantee.** The activation table check at each portal site is a single aligned atomic byte load. When the byte is zero the fast path falls through with no branch misprediction penalty on any architecture targeted by freestanding mode. This matches the "observationally inert" guarantee specified in §6.7.
+
+**Time-travel vs. always-on trace.** Always-on trace via `@debug_trace_channel` streams events to the host in real time. The time-travel ring is a circular buffer on-target: it captures the most recent N events regardless of host connectivity. The two are complementary — use the trace channel for live monitoring during normal operation and the time-travel ring to diagnose what happened immediately before an unexpected halt or reset.
+
+---
+
+## §25 Macros and Metaprogramming
 
 *(This section is normative.)*
 
@@ -8094,7 +11612,7 @@ Loom provides a hygienic macro system for compile-time code generation:
 
 **Hygiene.** Macro-introduced bindings do not capture or shadow caller bindings. The macro body has its own scope. Spliced parameters (`${param}`) are substituted as syntactic AST fragments before name resolution — the caller's names are never visible inside the macro body unless explicitly spliced.
 
-**Expansion timing.** Macros are expanded at compile time before type-checking. Macro output must be well-typed; ill-typed macro output is a compile-time error at the expansion site.
+**Expansion timing.** Macros are expanded at compile time before type-checking. Macro output must be well-typed; ill-typed macro output is `E_MACRO_TYPE_ERROR` at the expansion site.
 
 **Typed quasiquotes.** Macros use `quote { }` blocks to construct AST fragments. Inside a `quote` block, `${param}` splices the AST node bound to the named parameter into the output:
 
@@ -8104,7 +11622,7 @@ macro assert_eq(a, b) {
     let __left = ${a};
     let __right = ${b};
     if (__left != __right) {
-      throw AssertionError("Expected {$ __left $} == {$ __right $}");
+      throw AssertionError(i"Expected {$ __left $} == {$ __right $}");
     }
   }
 }
@@ -8112,15 +11630,24 @@ macro assert_eq(a, b) {
 assert_eq!(compute(), expected);
 ```
 
-**Quasiquote AST categories.** A `quote` block may contain any syntactically valid Loom constructs: statements, expressions, declarations, and type annotations. Splice positions (`${param}`) are resolved by the macro expander using the category of the surrounding syntax — a splice in expression position must receive an expression, a splice in type position must receive a type, and so on. A category mismatch is a compile-time error at the macro declaration site.
+**Quasiquote AST categories.** A `quote` block may contain any syntactically valid Loom constructs: statements, expressions, declarations, and type annotations. Splice positions (`${param}`) are resolved by the macro expander using the category of the surrounding syntax — a splice in expression position must receive an expression, a splice in type position must receive a type, and so on. A category mismatch is `E_MACRO_SPLICE_CATEGORY` at the macro declaration site.
 
-**Parameters and arity.** Macro parameters are positional identifiers. Macros do not support default values, rest parameters, or keyword arguments. Invoking a macro with the wrong number of arguments is a compile-time error.
+**Parameters and arity.** Macro parameters are positional identifiers. Macros do not support default values, rest parameters, or keyword arguments. Invoking a macro with the wrong number of arguments is a compile-time error (`E_MACRO_ARITY`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_MACRO_TYPE_ERROR` | All | Macro expansion produces ill-typed output — type error at the expansion call site |
+| `E_MACRO_SPLICE_CATEGORY` | All | `${param}` splice position category (expression, type, statement) does not match the AST node being spliced |
+| `E_MACRO_ARITY` | All | Macro invoked with a different number of arguments than declared parameters |
+| `E_MACRO_RECURSIVE` | All | Macro directly or indirectly invokes itself — recursive macros are prohibited |
 
 **Limitations.**
 - Macros cannot perform I/O, import modules, or access runtime state.
-- Macros cannot be recursive (a macro may not invoke itself, directly or indirectly).
+- Macros cannot be recursive (`E_MACRO_RECURSIVE`; a macro may not invoke itself, directly or indirectly).
 - Macros operate on syntactic structure only; they cannot inspect types of their arguments.
 - `quote` bodies may not contain `await` or `yield` at the top level (they may appear inside lambdas within the quote body).
+
+**Mode availability.** Macro declarations (`macro`, `pub macro`) and invocations (`name!(...)`) are compile-time features available in all four execution modes. The macro is expanded before type-checking; the expanded output must conform to the restrictions of the target mode. For example, a macro that expands to `throw SomeError(...)` will produce a compile-time error when expanded in a `@mode(freestanding)` file because exceptions are unavailable there.
 
 **Scope and export.** Macro definitions are scoped to the module where they are declared. Export a macro with `pub macro name(...) { ... }`. Consumers import macro names with the standard import syntax; the `!` invocation suffix is used at the call site.
 
@@ -8130,17 +11657,17 @@ assert_eq!(compute(), expected);
 - Macros are invoked with `name!(args)` syntax (the `!` distinguishes macro invocations from function calls).
 - Macros are a separate compilation phase and cannot perform I/O or runtime operations.
 - Macro definitions are scoped to the module where they are declared and can be exported with `pub`.
-- The formal grammar for macro declarations and invocations is in §26.11.
+- The formal grammar for macro declarations and invocations is in §27.11.
 
 ---
 
-## §25 Failure Policy
+## §26 Failure Policy
 
-*(This section is normative.)*
+*(This section is normative. This section applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. In `@mode(freestanding)`, the exception system is unavailable — `throw`, `try`, and `catch` are compile-time errors (`E_FREESTANDING_EXCEPTIONS`). Freestanding failure handling is specified in §24.6 (`@panic_handler` and `--panic` policy).)*
 
 This section consolidates all failure behaviors across the Loom language.
 
-### §25.1 Exception Hierarchy
+### §26.1 Exception Hierarchy
 
 All exception types extend a root `BaseException` class. The catchable subset extends `Exception`, which itself extends `BaseException`. Not all exceptional conditions are errors — `SystemExit` is a deliberate process termination, `KeyboardInterrupt` is an external signal, and `GeneratorExit` is a generator lifecycle event. These extend `BaseException` directly and are not caught by `catch (Exception)`.
 
@@ -8175,14 +11702,60 @@ class ExceptionGroup : Exception {
 enum LifetimeErrorKind {
   TaskEscapedScope;     // a spawned task reference outlived its await-group scope
   UseAfterFree;         // an unowned field was accessed after its referent was freed
-  BridgeDeallocated;    // del was called on a GC↔ARC bridge wrapper; subsequent access
+  BridgeDeallocated;    // del was called on a GC↔ARC bridge wrapper; subsequent access throws LifetimeError
+}
+
+// Simple marker exceptions — no extra fields beyond BaseException
+class TypeError            : Exception {}  // type mismatch at runtime (as, as?, mismatched overload)
+class MatchError           : Exception {}  // non-exhaustive match reached end without matching
+class AssertionError       : Exception {}  // assert statement failed
+class DestructureError     : Exception {}  // list/dict destructure failed (length or key mismatch)
+class IndexError           : Exception {}  // sequence index out of range
+class KeyError             : Exception {}  // dict key not found
+class CancellationError    : Exception {}  // task cancelled via TaskGroup cancellation
+class NumericOverflowError : Exception {}  // fixed-width integer overflow in scripted/compiled mode
+class IoError              : Exception { pub let code: int; }
+class TimeoutError         : Exception {}  // operation timed out (spawnBlocking, etc.)
+class RuntimeConfigError   : Exception { pub let field: string; }  // runtime.configure() called after first await
+class CapabilityError      : Exception { pub let capability: string; }  // unavailable capability object called
+class FfiTypeError         : Exception {}  // FFI boundary type mismatch (extern js / @jsexport)
+class WsNetworkError       : Exception {}  // WebSocket network failure
+class WsStateError         : Exception {}  // WebSocket operation in wrong connection state
+
+// Root class for runtime-environment faults — distinct from user-domain errors.
+// Subclasses include stack overflow, task queue exhaustion, null FFI handle,
+// misalignment, and freestanding allocator exhaustion.
+class RuntimeError         : Exception {}
+
+// Raised by the runtime on lifetime-violation detection. Inspect `.kind` to
+// distinguish the specific check that triggered. See §23.4.14, §23.5, §26.3.
+class LifetimeError        : Exception { pub let kind: LifetimeErrorKind; }
+
+class StackOverflowError : RuntimeError {}
+
+class TaskQueueFullError : RuntimeError {
+  pub let queueDepth: int;    // configured maxTaskQueueDepth at time of throw
+}
+
+class NullHandleError : RuntimeError {
+  pub let functionName: string;   // extern native function that returned null
+}
+
+class AlignmentError : RuntimeError {
+  pub let requiredAlign: int;
+  pub let actualAlign: int;
+}
+
+class AllocError : RuntimeError {
+  pub let requestedSize: uint64;
+  pub let requestedAlign: uint64;
 }
 
 class StackFrame : Any {
-  pub file: string;
-  pub line: int;
-  pub column: int;
-  pub function: Option[string];
+  pub let file: string;
+  pub let line: int;
+  pub let column: int;
+  pub let function: Option[string];
 }
 
 class ModuleLoadError : Exception {
@@ -8217,10 +11790,22 @@ Any
         ├── IoError
         ├── NumericOverflowError
         ├── RuntimeError
+        ├── AssertionError
         ├── RuntimeConfigError
         ├── BlockingTimeoutError
         ├── WsNetworkError
         ├── WsStateError
+        ├── StackOverflowError                  (scripted/compiled: from Wasm trap; native: from stack guard)
+        ├── TaskQueueFullError                  (task queue depth limit exceeded, §17.3/§20.1)
+        ├── NullHandleError                     (NativeHandle return was null, §18.4)
+        ├── AlignmentError                      (reinterpretChecked[T,U] alignment mismatch, §24.18)
+        ├── AllocError                          (allocator returned None, §24.16)
+        ├── UrlError                             (disallowed URL scheme or malformed URL, §16.6.4)
+        ├── WorkerTerminatedError                 (send/receive on already-terminated ScriptWorker, §17.10.2)
+        ├── WorkerPanicError                      (ScriptWorker exited via unhandled exception; carries `message` and `stack`, §17.10.2)
+        ├── ValueError                              (value semantically invalid for the operation, e.g. slice step=0)
+        ├── GpuCompileError                         (shader/kernel compilation failed, §16.8)
+        ├── WorkerTransferError                   (runtime serialization failure during channel transfer or spawnBlocking, §17.10.4)
         └── User-defined exceptions (extending Exception)
 ```
 
@@ -8237,7 +11822,7 @@ All exception types carry `message: string`, `cause: Option[Any]`, and `stackTra
 
 All `BaseException` subtypes — including those not caught by `catch (Exception)` — still execute cleanup frames (`defer`, `with`, `finally`) during propagation.
 
-### §25.2 User-Defined Exceptions
+### §26.2 User-Defined Exceptions
 
 User-defined exception types MUST extend `Exception` (directly or transitively) for catchable exceptions. Any class that extends `Exception` is a valid exception type and can be thrown and caught:
 
@@ -8253,16 +11838,20 @@ class AppError : Exception {
 
 class NotFoundError : AppError {
   new(resource: string) {
-    super("Not found: {$ resource $}", code=404);
+    super(i"Not found: {$ resource $}", code=404);
   }
 }
 ```
 
-Throwing a value that does not extend `BaseException` is a compile-time error.
+Throwing a value that does not extend `BaseException` is a compile-time error (`E_THROW_NOT_EXCEPTION`).
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_THROW_NOT_EXCEPTION` | All | `throw expr` where `expr` has a type that does not extend `BaseException` |
 
 Users MAY extend `BaseException` directly for exceptions that should not be caught by `catch (Exception)`. The compiler SHALL emit a warning when a user-defined type extends `BaseException` directly (rather than `Exception`), advising that the type will not be caught by generic exception handlers.
 
-### §25.3 Exception Categories
+### §26.3 Exception Categories
 
 **Compile-time errors (uncatchable — not part of the exception hierarchy):**
 - Parse/lex errors
@@ -8288,6 +11877,22 @@ Users MAY extend `BaseException` directly for exceptions that should not be caug
 - `NumericOverflowError` — integer overflow on fixed-width types (scripted/Wasm mode)
 - `IoError` — filesystem, network, or process errors
 - `ExceptionGroup` — group of `Exception` subtypes from concurrent task failures
+- `AssertionError` — failed programmer assertion (e.g. from macro-expanded `assert_eq!`)
+- `RuntimeError` — general-purpose runtime error for cases not covered by a more specific type
+- `RuntimeConfigError` — invalid runtime configuration (e.g. `runtime.configure` called after first `await`)
+- `BlockingTimeoutError` — `spawnBlockingWithTimeout` deadline exceeded; carries `timeoutMs: int`
+- `ModuleLoadError` — module could not be loaded or instantiated; carries `modulePath`, `compiledAttempted`, `scriptedAttempted`
+- `WsNetworkError` — WebSocket network-level error
+- `WsStateError` — WebSocket operation in invalid state
+- `StackOverflowError` — Wasm call-stack exhaustion (scripted/compiled) or native stack guard fault
+- `TaskQueueFullError` — task queue depth limit exceeded; carries `queueDepth: int`
+- `NullHandleError` — `extern native` function declared `NativeHandle` (non-optional) returned null
+- `AlignmentError` — `reinterpretChecked[T, U]` detected misaligned source value
+- `AllocError` — freestanding `@allocator` returned `None`; carries `requestedSize` and `requestedAlign`
+- `UrlError` — `Url.of()` rejected a malformed or disallowed URL scheme (e.g. `javascript:`); carries `scheme: string?`
+- `WorkerTerminatedError` — `send()` called on a `ScriptWorker` that has already exited (§17.10.2)
+- `WorkerPanicError` — `ScriptWorker.join()` awaited a worker that threw an unhandled exception; carries `message: string` and `stack: Option[string]` (§17.10.2)
+- `WorkerTransferError` — runtime-level serialization failure while transferring a value across a `ScriptWorker` channel or through `spawnBlocking` (e.g. a cycle in a `Sendable` class) (§17.10.4)
 
 **Runtime exceptions NOT caught by `catch (Exception)` (BaseException-only):**
 - `SystemExit` — deliberate process exit request via `runtime.exit(code)`. Carries `code: int`.
@@ -8299,12 +11904,12 @@ Users MAY extend `BaseException` directly for exceptions that should not be caug
 - Typed, recoverable errors using `Result[T, E]`.
 - The `?` operator converts between error types via `From[E]`.
 
-### §25.4 Exception Propagation Rules
+### §26.4 Exception Propagation Rules
 
 - Exceptions propagate up the call stack through `try`/`catch`/`finally` and `defer` blocks.
 - ALL `BaseException` subtypes propagate through cleanup frames (`defer`, `with`, `finally`). `BaseException`-only subtypes (`SystemExit`, `KeyboardInterrupt`, `GeneratorExit`) bypass `catch (Exception)` handlers but still execute cleanup.
 - `finally` always executes; if `finally` throws, its exception replaces the pending exception with the original attached as `cause`.
-- `return`, `break`, `continue` inside `finally` are compile-time errors.
+- `return`, `break`, `continue` inside `finally` are compile-time errors (`E_FINALLY_CONTROL`).
 - `defer` is **block-scoped**, not function-scoped. A `defer` registered inside a
   `try` block runs when the `try` block exits (as part of that block's scope exit),
   which is **before** the `catch` handler executes. A `defer` registered outside
@@ -8331,7 +11936,7 @@ Users MAY extend `BaseException` directly for exceptions that should not be caug
 - Exception chaining via `cause` preserves the full error context.
 - The runtime's default error reporting prints the full cause chain.
 
-### §25.5 Catch Pattern Matching
+### §26.5 Catch Pattern Matching
 
 The `catch` clause supports union type patterns to catch multiple exception types in a single handler:
 
@@ -8340,14 +11945,14 @@ try {
   riskyOperation();
 } catch (TypeError | MatchError as err) {
   // err is typed as TypeError | MatchError
-  print("Logic error: {$ err.message $}");
+  print(i"Logic error: {$ err.message $}");
 } catch (IoError as err) {
   // err is typed as IoError
-  print("I/O error: {$ err.message $}");
+  print(i"I/O error: {$ err.message $}");
 } catch (Exception as err) {
   // catches any remaining Exception subtype
   // does NOT catch SystemExit, KeyboardInterrupt, GeneratorExit
-  print("Unexpected: {$ err.message $}");
+  print(i"Unexpected: {$ err.message $}");
 }
 ```
 
@@ -8367,7 +11972,7 @@ try {
   runtime.exit(0);
 } catch (SystemExit as err) {
   // Intercept exit — e.g., in a test harness
-  print("Exit with code: {$ err.code $}");
+  print(i"Exit with code: {$ err.code $}");
 }
 
 // catch (Exception) would NOT catch SystemExit:
@@ -8380,27 +11985,27 @@ try {
 // SystemExit propagates past catch(Exception), runs cleanup, exits process
 ```
 
-### §25.6 Template Exceptions
+### §26.6 Template Exceptions
 
 - Hard fail by default for evaluation and formatting errors.
 - Buffered `try`/`catch` in template fences.
 - `render`/`renderWith` fail if evaluation reaches `await`.
-- Parse/lex errors and alignment violations are uncatchable (compile-time errors, not part of the exception hierarchy).
+- Parse/lex errors and alignment violations are uncatchable (compile-time errors, not part of the exception hierarchy — they prevent the program from running at all).
 
-### §25.7 Task Failures
+### §26.7 Task Failures
 
 - A task that fails and is never awaited becomes an unhandled task failure reported by the runtime.
 - `await` on a failed task rethrows the failure.
 - In `await group`, a failing child cancels all siblings.
 - When multiple tasks fail in a `TaskGroup`, the exceptions are collected into an `ExceptionGroup` (if all are `Exception` subtypes) or a `BaseExceptionGroup` (if any are `BaseException`-only subtypes).
 
-### §25.8 FFI Exceptions
+### §26.8 FFI Exceptions
 
 - Outbound: type mismatches at `extern js`/`extern native` boundaries produce `FfiTypeError`.
 - Inbound: unmarshalable JS arguments to `@jsexport` functions produce `FfiTypeError`.
 - `@jsexport async func` failures cause the returned Promise to reject.
 
-### §25.9 Signal Handling
+### §26.9 Signal Handling
 
 The runtime provides signal handling for graceful shutdown and interrupt processing on `cli`, `service`, `desktop`, and `native` targets. Signal handling is not available on `browser` or `wasm` targets.
 
@@ -8422,11 +12027,51 @@ The runtime provides signal handling for graceful shutdown and interrupt process
 
 **Custom signal handlers.** The `io.proc` module provides `onSignal(signal, handler)` to register custom signal handlers, `resetSignal(signal)` to restore defaults, and `awaitSignal(signal)` for async signal-driven workflows. See §21.8 for the full API.
 
+**`@signalSafe` annotation (normative, `@mode(native)` only).** Functions that may be called from OS signal handler context must be annotated `@signalSafe`. The compiler enforces that `@signalSafe` functions do not call any operation that is not signal-safe. The following are NOT signal-safe in Loom and are compile-time errors from a `@signalSafe` context:
+
+- ARC `retain()` / `release()` — ARC operations are not signal-safe
+- Any heap allocation — `malloc` and ARC `alloc` are not signal-safe
+- Any `synchronized` modifier invocation — acquires a mutex, not signal-safe
+- Any `Mutex[T].lock()` or `RwLock[T].writeLock()` — not signal-safe
+- `core.reflect` — live runtime registry is not signal-safe
+- `io.*` / `net.*` — async I/O primitives are not signal-safe
+
+The following ARE signal-safe and are permitted inside `@signalSafe` contexts:
+
+- `native.atomic.*` operations — all atomic operations are signal-safe
+- Writes to `Atomic[T]` fields (§17.8.2) — signal-safe
+- `Mutex[T].tryLock()` — non-blocking; signal-safe (may return `None`)
+- Static field reads of `let` (immutable) bindings — signal-safe
+
+```loom
+@mode(native)
+
+let signalFlag = Atomic[bool].new(false)
+
+// ✓ @signalSafe — only touches an Atomic[bool]
+@signalSafe
+func sigtermHandler(): void {
+    signalFlag.store(true)
+}
+
+// Register at startup:
+io.proc.onSignal(SIGTERM, sigtermHandler)
+```
+
+`@signalSafe` is only valid in `@mode(native)`. Using it in other modes is `E_SIGNAL_SAFE_NOT_NATIVE`. The `signal-unsafe-call` lint fires when a non-`@signalSafe` function is called from a `@signalSafe` context.
+
+**Error codes.**
+
+| Code | Mode | Condition |
+|---|---|---|
+| `E_SIGNAL_SAFE_NOT_NATIVE` | Scripted, Compiled, Freestanding | `@signalSafe` annotation used outside `@mode(native)` |
+| `E_SIGNAL_UNSAFE_CALL` | Native | Signal-unsafe operation (ARC retain/release, heap allocation, mutex lock, `core.reflect`) inside a `@signalSafe` context |
+
 
 
 ---
 
-## §26 Grammar
+## §27 Grammar
 
 *(This section is normative.)*
 
@@ -8443,7 +12088,7 @@ This section provides the complete formal grammar for the Loom language in Exten
 - `UPPER_CASE` denotes lexical tokens.
 - `PascalCase` denotes non-terminal symbols.
 
-### §26.1 Lexical Grammar
+### §27.1 Lexical Grammar
 
 ```ebnf
 (* Source encoding: UTF-8 *)
@@ -8462,7 +12107,7 @@ IdentStart     ::= UNICODE_LETTER | "_"
 IdentContinue  ::= UNICODE_LETTER | UNICODE_DIGIT | "_"
 UpperIdent     ::= UPPER_LETTER { IdentContinue }
 LowerIdent     ::= ( LOWER_LETTER | "_" ) { IdentContinue }
-(* UpperIdent and LowerIdent encode the casing conventions described in §3.4.
+(* UpperIdent and LowerIdent encode the casing conventions described in §3.5.
    They are used by the reference formatter and linter to flag violations but are
    NOT used in syntactic grammar productions — all declaration sites accept the
    general Identifier token. Casing violations are lint advisories, not errors. *)
@@ -8488,7 +12133,9 @@ StringLiteral  ::= DoubleString | SingleString | InterpDoubleString | InterpSing
 DoubleString   ::= '"' { StringChar | EscapeSeq } '"'
 SingleString   ::= "'" { StringChar | EscapeSeq } "'"
 InterpDoubleString ::= "i" '"' { InterpStringChar | EscapeSeq | InlineExpr } '"'
+                       (* Interpolated: evaluates {$ expr $} inline expressions. §15 *)
 InterpSingleString ::= "i" "'" { InterpStringChar | EscapeSeq | InlineExpr } "'"
+                       (* Single-quoted interpolated form. §15 *)
 RawDoubleString ::= "r" '"' { ANY_CHAR - '"' } '"'
 RawSingleString ::= "r" "'" { ANY_CHAR - "'" } "'"
 
@@ -8498,7 +12145,12 @@ BytesChar      ::= ANY_CHAR - ( '"' | "'" | "\\" )
                    (* any byte value that is not a quote delimiter or backslash;
                       hex-byte escapes \xHH are handled via EscapeSeq *)
 EscapeSeq      ::= "\\" ( "\\" | "'" | '"' | "n" | "r" | "t" | "0"
-                         | "u" HEX4 | "u{" HEX1_6 "}" | "x" HEX2 )
+                         | "u" HEX4 | "u{" HEX1_6 "}" )
+                   (* Shared escape sequences for strings and char literals.
+                      Does NOT include \\xHH — that is bytes-literal-only. *)
+BytesEscapeSeq ::= EscapeSeq | "\\" "x" HEX2
+                   (* Extends EscapeSeq with \\xHH for arbitrary byte values;
+                      valid only in BytesLiteral. §3.6 *)
 HEX4           ::= HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
 HEX2           ::= HEX_DIGIT HEX_DIGIT
 HEX1_6         ::= HEX_DIGIT
@@ -8510,14 +12162,17 @@ HEX1_6         ::= HEX_DIGIT
                (* exactly 1 to 6 hex digits; values above U+10FFFF are a compile-time error *)
 
 (* Char literal — exactly one Unicode scalar value after escape resolution *)
-CharLiteral    ::= "c" ( '"' CharContent '"'
-                        | "'" CharContent "'" )
-CharContent    ::= EscapeSeq | ANY_CHAR - ( '"' | "'" | "\\" )
-                   (* compile-time error if content ≠ exactly 1 scalar value *)
+CharLiteral    ::= "c" '"' CharContentD '"'
+                 | "c" "'" CharContentS "'"
+CharContentD   ::= EscapeSeq | ANY_CHAR - ( '"' | "\\" )
+                   (* Double-quoted form; single-quote is a valid unescaped char. *)
+CharContentS   ::= EscapeSeq | ANY_CHAR - ( "'" | "\\" )
+                   (* Single-quoted form; double-quote is a valid unescaped char. *)
+                   (* Both forms: compile-time error if content ≠ exactly 1 scalar value *)
 
 (* Bytes literals *)
-BytesLiteral   ::= "b" ( '"' { BytesChar | EscapeSeq } '"'
-                        | "'" { BytesChar | EscapeSeq } "'" )
+BytesLiteral   ::= "b" ( '"' { BytesChar | BytesEscapeSeq } '"'
+                        | "'" { BytesChar | BytesEscapeSeq } "'" )
 
 (* Boolean literals *)
 BoolLiteral    ::= "true" | "false"
@@ -8534,6 +12189,10 @@ TripleDoubleClose ::= '"""'
 TripleSingleOpen  ::= "'''"
 TripleSingleClose ::= "'''"
 MlsDescriptor    ::= "(" DescriptorList ")"
+DescriptorList   ::= DescriptorKV { "," DescriptorKV }
+DescriptorKV     ::= Identifier "=" ( StringLiteral | [ "+" | "-" ] IntLiteral )
+                     (* Multiline string formatting parameters: indent_type,
+                        indent (±N), eol. See §14 for valid keys and values. *)
 MlsContentLine   ::= ANCHOR { ANY_CHAR } NEWLINE
 
 (* Template fence — variable-length backtick runs, exact-match closing *)
@@ -8563,14 +12222,27 @@ StmtClose      ::= "%}"    (* or active alternative *)
 ```
 
 
-### §26.2 Syntactic Grammar — Programs and Modules
+### §27.2 Syntactic Grammar — Programs and Modules
 
 ```ebnf
-Program        ::= [ CompiledDirective ] { TopLevelItem }
-CompiledDirective ::= "@compiled" NEWLINE
+Program        ::= [ ModeDirective ] [ NamespaceDecl ] { TopLevelItem }
+                   (* ModeDirective is the optional @mode(...) file-level annotation;
+                      when present it must be the first non-comment token in the file.
+                      NamespaceDecl, if present, immediately follows ModeDirective
+                      and precedes all imports and declarations. §13.0 *)
+ModeDirective  ::= "@mode" "(" ModeName ")" NEWLINE
+ModeName       ::= "scripted" | "compiled" | "native" | "freestanding"
+NamespaceDecl  ::= "namespace" AbsolutePath ";"
+                   (* Associates the file with a module namespace path. §13.0 *)
 
 TopLevelItem   ::= ImportStmt ";"
+                   (* Parenthesized form: from X import (...); — requires trailing ";" *)
+                 | GroupedImportStmt
+                   (* Block form: from X { ... } — NO trailing ";" (ends with "}") *)
                  | ReExportStmt ";"
+                   (* Parenthesized form: pub from X import (...); — requires trailing ";" *)
+                 | GroupedReExportStmt
+                   (* Block form: pub from X { ... } — NO trailing ";" (ends with "}") *)
                  | Declaration
                  | SimpleStmt ";"
                  | BlockStmt
@@ -8584,17 +12256,37 @@ Declaration    ::= FuncDecl
                  | InterfaceDecl
                  | StructDecl
                  | TypeAliasDecl ";"
+                 | MacroDecl
+                   (* Macro declaration: pub macro name(params) { quote { ... } }. §27.11 *)
+                 | ExternJsFunc
+                 | ExternJsVal
+                   (* JavaScript FFI declarations; ";" is part of their own syntax. §27.9 *)
+                 | ExternNative
+                   (* Native C FFI declaration; ";" is part of its own syntax. §27.9 *)
+                 | ExternNativeVal
+                   (* Native C constant/variable import; ";" is part of its own syntax. §27.9 *)
                  | AnnotatedDecl
+AnnotatedDecl  ::= Annotation { Annotation } VarDecl
+                   (* One or more annotations on a module-level binding: @doc("...") let MAX = 100.
+                      Requires at least one annotation to avoid ambiguity with SimpleStmt. *)
 ```
 
-### §26.3 Syntactic Grammar — Imports and Exports
+### §27.3 Syntactic Grammar — Imports and Exports
 
 ```ebnf
-ImportStmt     ::= "from" ModulePath "import" "(" ImportList ")" [ "prefer" "compiled" ] ";"
-                 | "from" ModulePath "{" GroupedImportList "}"
+ImportStmt     ::= "from" ModulePath "import" "(" ImportList ")" [ "prefer" "compiled" ]
+                 | "from" ModulePath "defer" "import" "(" ImportList ")"
+                   (* Deferred import: creates type stubs resolved after initialization.
+                      Breaks module dependency cycles. "prefer compiled" not permitted
+                      on defer imports. Available in scripted, compiled, native. §13.10 *)
+                   (* Both forms require a trailing ";" provided by TopLevelItem. *)
+GroupedImportStmt ::= "from" ModulePath "{" GroupedImportList "}"
+                   (* Block form — no trailing ";"; appears directly in TopLevelItem. *)
 
-ReExportStmt   ::= "pub" "from" ModulePath "import" "(" ImportList ")"
-                 | "pub" "from" ModulePath "{" GroupedImportList "}"
+ReExportStmt        ::= "pub" "from" ModulePath "import" "(" ImportList ")"
+                        (* Requires trailing ";" provided by TopLevelItem. *)
+GroupedReExportStmt ::= "pub" "from" ModulePath "{" GroupedImportList "}"
+                        (* Block form — no trailing ";"; appears directly in TopLevelItem. *)
 
 ModulePath     ::= RelativePath | AbsolutePath
 RelativePath   ::= "." [ "." ] [ "|" ".." ] [ "." Identifier { "." Identifier } ]
@@ -8610,10 +12302,11 @@ GroupedImportItem  ::= Identifier { "." Identifier } "import" "(" ImportList ")"
                        [ "prefer" "compiled" ]
 ```
 
-### §26.4 Syntactic Grammar — Statements
+### §27.4 Syntactic Grammar — Statements
 
 ```ebnf
-Stmt           ::= SimpleStmt ";" | BlockStmt
+Stmt           ::= SimpleStmt [ ";" ] | BlockStmt
+                   (* Semicolon is optional after SimpleStmt; newline terminates. *)
 
 SimpleStmt     ::= VarDecl
                  | ExprStmt
@@ -8628,7 +12321,7 @@ SimpleStmt     ::= VarDecl
                  | YieldStmt
                  | YieldFromStmt
 
-VarDecl        ::= ( "let" | "var" ) DestructPattern [ ":" Type ] [ "=" Expr ]
+VarDecl        ::= ( [ "unique" ] | [ "arc" ] ) ( "let" | "var" ) DestructPattern [ ":" Type ] [ "=" Expr ]
 ExprStmt       ::= Expr [ AssignOp Expr ]
 ReturnStmt     ::= "return" [ Expr ]
 ThrowStmt      ::= "throw" Expr [ "from" Expr ]
@@ -8641,10 +12334,12 @@ NonlocalDecl   ::= "nonlocal" Identifier
 YieldStmt      ::= "yield" Expr
 YieldFromStmt  ::= "yield" "*" Expr
 
-AssignOp       ::= "=" | "+=" | "-=" | "*=" | "/=" | "%="
+AssignOp       ::= "=" | "+=" | "-=" | "*=" | "/=" | "//=" | "%="
                  | "**=" | "<<=" | ">>=" | "&=" | "|=" | "^="
 
-BlockStmt      ::= IfStmt
+BlockStmt      ::= AnnotatedStmt
+                   (* Annotation on a block statement: @vectorize for (...) {}. §8.8 *)
+                 | IfStmt
                  | WhileStmt
                  | ForStmt
                  | ForInStmt
@@ -8657,6 +12352,13 @@ BlockStmt      ::= IfStmt
                  | PortalStmt
                  | MatchExpr
                  | AwaitGroupStmt
+                 | SafeBlock
+                 | SyncUnsafeBlock
+                 | AtomicBlock
+                   (* Valid in @mode(scripted) and @mode(compiled) only.
+                      @mode(native)/@mode(freestanding) usage is E_ATOMIC_NOT_WASM. §17.7 *)
+                 | AsmBlock
+                   (* Valid in @mode(native) and @mode(freestanding) only. §24.7 *)
                  | FuncDecl
                  | AsyncFuncDecl
                  | GenFuncDecl
@@ -8669,8 +12371,10 @@ BlockStmt      ::= IfStmt
 IfStmt         ::= "if" "(" Expr ")" Block { "else" "if" "(" Expr ")" Block } [ "else" Block ]
 WhileStmt      ::= "while" "(" Expr ")" Block
 ForStmt        ::= [ Label ":" ] "for" "(" VarDecl ";" Expr ";" Expr ")" Block
-ForInStmt      ::= [ Label ":" ] "for" "(" ( "let" | "var" ) DestructPattern "in" Expr ")" Block
-ForAwaitStmt   ::= [ Label ":" ] "for" "await" "(" ( "let" | "var" ) DestructPattern "in" Expr ")" Block
+ForInStmt      ::= [ Label ":" ] "for" "(" [ "let" | "var" ] DestructPattern "in" Expr ")" Block
+ForAwaitStmt   ::= [ Label ":" ] "for" "await" "(" [ "let" | "var" ] DestructPattern "in" Expr ")" Block
+                   (* "let"/"var" are optional; default binding is immutable ("let"). §6.4 *)
+                   (* "let"/"var" are optional; default binding is immutable ("let"). §6.4 *)
 DoWhileStmt    ::= [ Label ":" ] "do" Block "while" "(" Expr ")" ";"
 TryStmt        ::= "try" Block { CatchClause } [ FinallyClause ]
 CatchClause    ::= "catch" "(" TypePattern "as" Identifier ")" Block
@@ -8679,7 +12383,27 @@ FinallyClause  ::= "finally" Block
 WithStmt       ::= "with" "(" WithBindingList ")" Block
 WithBindingList ::= WithBinding { "," WithBinding }
 WithBinding    ::= Identifier "=" Expr
-DeferBlock     ::= "defer" Block
+DeferBlock        ::= "defer" Block
+SafeBlock         ::= "safe" Block
+SyncUnsafeBlock   ::= "unsafe" "(" StringLiteral ")" Block
+AtomicBlock       ::= "atomic" Block
+                      (* No await/spawn inside; see §17.7 for full restriction list.
+                         Valid in @mode(scripted) and @mode(compiled) only.
+                         Usage in @mode(native) or @mode(freestanding) is E_ATOMIC_NOT_WASM. *)
+AnnotatedStmt     ::= Annotation { Annotation } BlockStmt
+                      (* One or more annotations on a block statement.
+                         Use case: @vectorize for (...) { } §8.8, §21.16 *)
+AsmBlock          ::= [ "@unsafe" "(" StringLiteral ")" ] "asm" "{" AsmBody "}"
+                      (* In @mode(native), @unsafe annotation is required. In
+                         @mode(freestanding), it is optional (omitting emits asm-unchecked
+                         lint). Semantics, operand grammar, and constraint strings: §24.7 *)
+AsmBody           ::= StringLiteral { StringLiteral } [ AsmOps ]
+AsmOps            ::= [ AsmOut ] [ AsmIn ] [ AsmClobbers ]
+AsmOut            ::= "out" ":" AsmOutOp { "," AsmOutOp }
+AsmIn             ::= "in"  ":" AsmInOp  { "," AsmInOp  }
+AsmClobbers       ::= "clobbers" ":" "[" { StringLiteral } "]"
+AsmOutOp          ::= Identifier "=" StringLiteral
+AsmInOp           ::= StringLiteral "=" Expr
 DynamicView    ::= "dynamic" Expr "as" Identifier Block
                    (* Scoped dynamic-field access. See §8.7 for semantics.
                       Expr must implement the Dynamic interface. The Identifier
@@ -8693,16 +12417,16 @@ Label          ::= Identifier
 Block          ::= "{" { Stmt } "}"
 ```
 
-### §26.5 Syntactic Grammar — Expressions
+### §27.5 Syntactic Grammar — Expressions
 
 ```ebnf
-Expr           ::= TernaryExpr | AssignExpr | SpreadExpr
+Expr           ::= TernaryExpr | AssignExpr | SpreadExpr | WithCopyExpr
 
 TernaryExpr    ::= NullCoalExpr "?" Expr ":" Expr
 AssignExpr     ::= NullCoalExpr AssignOp Expr
 
 (* Canonical style: "or" and "and" are idiomatic; "||" and "&&" are legal aliases.    *)
-(* The formatter rewrites symbol forms to keyword forms. See §3.6 and §27.4.            *)
+(* The formatter rewrites symbol forms to keyword forms. See §3.7 and §28.4.            *)
 (* Precedence (low→high): ternary(21) < ??(20) < or(19) < and(18) < equality < ...     *)
 NullCoalExpr   ::= LogicalOrExpr { "??" LogicalOrExpr }
 LogicalOrExpr  ::= LogicalAndExpr { ( "or" | "||" ) LogicalAndExpr }
@@ -8722,6 +12446,7 @@ MultiplicativeExpr ::= ExponentExpr { ( "*" | "/" | "//" | "%" ) ExponentExpr }
 ExponentExpr   ::= UnaryExpr [ "**" ExponentExpr ]
 UnaryExpr      ::= ( "-" | "not" | "!" | "bnot" | "typeof" ) UnaryExpr
                  | "box" UnaryExpr
+                 | "consume" UnaryExpr
                  | PostfixExpr
 (* box is contextual: treated as BoxExpr only when followed by a valid expression start. *)
 (* as? is the two-token sequence "as" "?"; parser resolves ambiguity with postfix ? by  *)
@@ -8731,6 +12456,9 @@ PostfixOp      ::= "(" ArgList ")"
                  | "[" Expr "]"
                  | "[" [ Expr ] ":" [ Expr ] [ ":" [ Expr ] ] "]"
                  | "." Identifier
+                 | "." IntLiteral
+                   (* Tuple element access: pair.0, triple.2. Index must be a
+                      compile-time non-negative integer constant. §4.9 *)
                  | "?." Identifier
                  | "?." Identifier "(" ArgList ")"
                  | "?." "[" Expr "]"
@@ -8743,6 +12471,7 @@ PrimaryExpr    ::= Identifier
                  | FloatLiteral
                  | StringLiteral
                  | BytesLiteral
+                 | CharLiteral
                  | BoolLiteral
                  | "None"
                  | MultilineString
@@ -8756,14 +12485,37 @@ PrimaryExpr    ::= Identifier
                  | SetComprehension
                  | GeneratorExpr
                  | LambdaExpr
-                 | AsyncLambdaExpr
                  | MatchExpr
                  | AwaitExpr
                  | SpawnExpr
                  | "(" Expr ")"
-                 | "new" Type "(" ArgList ")"
+                 | "super" "(" [ ArgList ] ")"
+                   (* Superclass constructor call — valid only in constructor bodies.
+                      Chains to the direct superclass constructor. §8.4 *)
+                 | "reinterpret" "[" Type "," Type "]" "(" Expr ")"
+                   (* SourceType = declared type of input expr; TargetType = desired interpretation.
+                      Requires @unsafe. @mode(native) and @mode(freestanding) only. §24.18 *)
+                 | "reinterpretChecked" "[" Type "," Type "]" "(" Expr ")"
+                   (* SourceType = declared type of the input expr; TargetType = desired interpretation.
+                      Returns Result[TargetType, AlignmentError]; no @unsafe required. §24.18 *)
+                 | "size_of" "[" Type "]" "(" ")"
+                   (* Compile-time size in bytes; @mode(native) and @mode(freestanding). §24.4.1 *)
+                 | "align_of" "[" Type "]" "(" ")"
+                   (* Compile-time alignment in bytes; @mode(native) and @mode(freestanding). §24.4.1 *)
+                 | MacroInvoke
+                   (* Macro invocation: name!(args). §27.11. The "!" sigil
+                      distinguishes macro calls from regular function calls. *)
 
 SpreadExpr     ::= "*" Expr | "**" Expr
+
+WithCopyExpr   ::= PostfixExpr "with" "(" WithCopyList ")"
+                   (* Struct copy-with-modification: `s with (field=newVal)` produces
+                      a copy of s with the named fields replaced. §10.7. Valid on struct
+                      values only; on a class instance this is `E_WITH_COPY_WRONG_TYPE`.
+                      `with` is disambiguated from the WithStmt context manager by the
+                      parser: WithCopyExpr requires PostfixExpr before "with". *)
+WithCopyList   ::= WithCopyItem { "," WithCopyItem }
+WithCopyItem   ::= Identifier "=" Expr
 
 (* Collection literals *)
 ListLiteral    ::= "[" [ ExprList ] "]"
@@ -8784,7 +12536,7 @@ ComprehensionClause ::= "for" "(" DestructPattern "in" Expr ")" { ComprehensionF
 ComprehensionFilter ::= "if" "(" Expr ")"
 ComprehensionFor    ::= "for" "(" DestructPattern "in" Expr ")"
 
-(* Lambda expressions — CaptureList is only valid in @compiled --target native files *)
+(* Lambda expressions — CaptureList is only valid in @mode(native) files; ARC retain cycles cannot occur in other modes *)
 LambdaExpr     ::= "func" "(" [ ParamList ] ")" [ CaptureList ] ( "=>" Expr | Block )
                | "async" "func" "(" [ ParamList ] ")" [ CaptureList ] ( "=>" Expr | Block )
 
@@ -8792,12 +12544,13 @@ CaptureList    ::= "[" CaptureItem { "," CaptureItem } "]"
 CaptureItem    ::= ( "weak" | "unowned" ) Identifier
 (* @unownedUnchecked is removed. All unowned closure captures trap on dangling access. *)
 
-(* AsyncLambdaExpr is now unified into LambdaExpr above. *)
-AsyncLambdaExpr ::= "async" "func" "(" [ ParamList ] ")" [ CaptureList ] ( "=>" Expr | Block )
 
 (* Match expression *)
-MatchExpr      ::= "match" Expr "{" { MatchArm } "}"
-MatchArm       ::= Pattern [ "if" "(" Expr ")" ] "=>" Expr ","
+MatchExpr      ::= "match" Expr "{" MatchArmList "}"
+MatchArmList   ::= MatchArm { "," MatchArm } [ "," ]
+                   (* Comma separates arms; trailing comma is optional. *)
+MatchArm       ::= Pattern [ "if" "(" Expr ")" ] "=>" ( Expr | Block )
+                   (* Block body: None => { db.commit(); return true; } *)
 
 (* Await and spawn *)
 AwaitExpr      ::= "await" Expr
@@ -8805,29 +12558,54 @@ SpawnExpr      ::= "spawn" Expr
 
 (* Function call arguments *)
 ArgList        ::= Arg { "," Arg } [ "," ]
-Arg            ::= Expr | Identifier "=" Expr | "*" Expr | "**" Expr
+Arg            ::= VerbAckArg       (* reads: x  /  edits: x  /  takes: x  /  shares: x *)
+                 | RequiresAckArg   (* reads(a,b)  /  edits(a)  /  distinct(a,b) *)
+                 | UnsafeAckArg     (* @unsafe("reason") — for statically unknowable distinct() *)
+                 | Expr
+                 | Identifier "=" Expr
+                 | "*" Expr
+                 | "**" Expr
+
+VerbAckArg     ::= ( "reads" | "edits" | "takes" | "shares" ) ":" Expr
+RequiresAckArg ::= ( "reads" | "edits" | "takes" | "shares" ) "(" Expr { "," Expr } ")"
+                 | "distinct" "(" DistinctAckArg { "," DistinctAckArg } ")"
+DistinctAckArg ::= Expr | Expr "[" Expr ":" Expr "]"
+UnsafeAckArg   ::= "@unsafe" "(" StringLiteral ")"
 ```
 
-### §26.6 Syntactic Grammar — Patterns
+### §27.6 Syntactic Grammar — Patterns
 
 ```ebnf
 Pattern        ::= "_"
                  | Identifier
                  | Identifier "(" [ PatternList ] ")"
+                   (* Positional: Circle(r) or Rect(w, h) *)
+                 | Identifier "(" [ NamedAssignPatternList ] ")"
+                   (* Named with =: Point(x=px, y=py) or Point(x=0.0, y=0.0) *)
                  | Identifier "{" [ NamedPatternList ] "}"
                  | "(" PatternList ")"
                  | "[" PatternList "]"
                  | "{" DictPatternList "}"
                  | Type "(" Identifier ")"
+                 | "borrow" [ "[" "~" Identifier "]" ] Identifier
+                   (* Binds a borrow[~name] payload from a lifetime-parameterized
+                      enum variant. Valid in @mode(native) and @mode(freestanding).
+                      Example: Token.Word(borrow[~src] w) — §9.1, §23.4.2 *)
                  | Literal
 
 PatternList    ::= Pattern { "," Pattern } [ "," "*" Identifier ]
 NamedPatternList ::= NamedPattern { "," NamedPattern }
-NamedPattern   ::= Identifier ":" Pattern [ "=" Expr ]
+NamedPattern         ::= Identifier ":" Pattern [ "=" Expr ]
+NamedAssignPatternList ::= NamedAssignPattern { "," NamedAssignPattern }
+NamedAssignPattern   ::= Identifier "=" Pattern
+                        (* Named binding using = notation: x=px, y=py.
+                           Used in struct/enum patterns: Point(x=px, y=py). §10.8 *)
 DictPatternList ::= DictPattern { "," DictPattern } [ "," "**" Identifier ]
 DictPattern    ::= StringLiteral ":" Identifier [ "=" Expr ]
 
 DestructPattern ::= Identifier
+                  | Identifier "(" NamedAssignDestructList ")"
+                    (* Struct/enum constructor destructuring: Point(x=px, y=py) §10.8 *)
                   | "(" DestructList ")"
                   | "[" DestructList "]"
                   | "{" DictDestructList "}"
@@ -8835,49 +12613,92 @@ DestructList   ::= DestructItem { "," DestructItem } [ "," "*" Identifier ]
 DestructItem   ::= Identifier | "_" | DestructPattern
 DictDestructList ::= DictDestructItem { "," DictDestructItem } [ "," "**" Identifier ]
 DictDestructItem ::= StringLiteral ":" Identifier [ "=" Expr ]
+NamedAssignDestructList ::= NamedAssignDestructItem { "," NamedAssignDestructItem }
+NamedAssignDestructItem ::= Identifier "=" DestructItem
+                            (* field=binding: Point(x=px) binds field x to px;
+                               DestructItem allows "_" and nested DestructPattern *)
 
-Literal        ::= IntLiteral | FloatLiteral | StringLiteral | BoolLiteral | "None"
+Literal        ::= IntLiteral | FloatLiteral | StringLiteral | BytesLiteral | CharLiteral | BoolLiteral | "None"
 ```
 
-### §26.7 Syntactic Grammar — Types
+### §27.7 Syntactic Grammar — Types
 
 ```ebnf
 Type           ::= UnionType
 UnionType      ::= BaseType { "|" BaseType }
 BaseType       ::= PrimaryType [ "?" ]
-PrimaryType    ::= "int" | "float" | "bool" | "string" | "bytes" | "void"
+PrimaryType    ::= "int" | "float" | "bool" | "char" | "string" | "bytes" | "void"
+                 | "uint"
+                   (* pointer-sized unsigned integer; alias for uint64 on 64-bit targets,
+                      uint32 on 32-bit. Used in @mode(native) and @mode(freestanding)
+                      for raw addresses and FFI interop. §4.1 *)
                  | Identifier [ TypeArgs ]
-                 | "fn" "(" [ TypeList ] ")" ":" Type
-                 | "async" "fn" "(" [ TypeList ] ")" ":" Type
+                 | "fn" "(" [ FnTypeParamList ] ")" ":" Type
+                 | "async" "fn" "(" [ FnTypeParamList ] ")" ":" Type
+                 | "borrow" [ "[" "~" Identifier "]" ] Type
+                   (* non-owning reference type; valid in @mode(native) and
+                      @mode(freestanding) only; "borrow[~name] T" ties the
+                      reference to a declared lifetime region (§23.4.2) *)
+                 | "noescape" "fn" "(" [ FnTypeParamList ] ")" ":" Type
+                 | "async" "noescape" "fn" "(" [ FnTypeParamList ] ")" ":" Type
                  | "list" "[" Type "]"
                  | "dict" "[" Type "," Type "]"
                  | "set" "[" Type "]"
                  | "tuple" "[" TypeList "]"
+                 | "MaybeUninit" "[" Type "]"
+                   (* Uninitialised-memory wrapper; @mode(native) and @mode(freestanding) only. §24.17 *)
                  | "(" Type ")"
 
 TypeArgs       ::= "[" TypeList "]"
 TypeList       ::= Type { "," Type } [ "," ]
-FunctionType   ::= [ "async" ] [ "noescape" ] "fn" "(" [ TypeList ] ")" ":" Type
+FunctionType    ::= [ "async" ] [ "noescape" ] "fn" "(" [ FnTypeParamList ] ")" ":" Type
+FnTypeParamList ::= FnTypeParam { "," FnTypeParam }
+FnTypeParam     ::= [ FnTypeVerbMod ] Type
+FnTypeVerbMod   ::= "reads" | "edits" | "takes" | "shares"
+                  | "borrow" | "excl" "borrow"
 ```
 
-### §26.8 Syntactic Grammar — Declarations
+### §27.8 Syntactic Grammar — Declarations
 
 ```ebnf
-FuncDecl        ::= { Annotation } "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
-AsyncFuncDecl   ::= { Annotation } "async" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
-GenFuncDecl     ::= { Annotation } "gen" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
-AsyncGenFuncDecl ::= { Annotation } "async" "gen" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
+FuncDecl         ::= { Annotation } [ "safe" ] "func" Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                     [ RequiresClause ] [ ":" Type ] Block
+AsyncFuncDecl    ::= { Annotation } [ "safe" ] "async" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                     [ RequiresClause ] [ ":" Type ] Block
+GenFuncDecl      ::= { Annotation } [ "safe" ] "gen" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                     [ RequiresClause ] [ ":" Type ] Block
+AsyncGenFuncDecl ::= { Annotation } [ "safe" ] "async" "gen" "func" Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                     [ RequiresClause ] [ ":" Type ] Block
+
+RequiresClause   ::= "requires" RequiresContract { "," RequiresContract }
+RequiresContract ::= VerbReq | DistinctReq
+VerbReq          ::= ( "reads" | "edits" | "takes" | "shares" ) "(" Identifier { "," Identifier } ")"
+DistinctReq      ::= "distinct" "(" DistinctArg { "," DistinctArg } ")"
+DistinctArg      ::= Identifier | Identifier "[" Expr ":" Expr "]"
 
 ParamList      ::= Param { "," Param } [ "," "*" [ Identifier ":" Type ] ] [ "," ParamList_KW ] [ "," "**" Identifier ":" Type ]
                  | "*" [ "," ParamList_KW ]
 ParamList_KW   ::= Param { "," Param }
-Param          ::= [ "borrow" ] Identifier ":" Type [ "=" Expr ]
+Param          ::= [ "reads" | "edits" | "takes" | "shares"
+                  | "excl" "borrow" | "borrow" [ "[" "~" Identifier "]" ] ]
+                  DestructPattern ":" Type [ "=" Expr ]
+                  (* Identifier is the common case. DestructPattern supports
+                     tuple and list destructuring in parameter position:
+                     func f((x, y): tuple[float, float]) — see §6.8.
+                     "borrow[~name]" binds the parameter to a named lifetime region.
+                     Valid only in @mode(native) and @mode(freestanding). §23.4.2 *)
 
 TypeParams     ::= "[" TypeParam { "," TypeParam } "]"
-TypeParam      ::= Identifier [ ":" TypeConstraint ]
+TypeParam      ::= [ "out" | "in" ] Identifier [ ":" TypeConstraint ]
+                 (* variance annotation: "out" = covariant, "in" = contravariant,
+                    no annotation = inferred by compiler (default invariant) *)
+                 | "lifetime" "~" Identifier
+                 (* lifetime parameter — declares a named region for borrow tracking.
+                    Valid only in @mode(native) and @mode(freestanding). See §23.4.2. *)
 TypeConstraint ::= Type { "+" Type }
 
-ClassDecl      ::= { Annotation } [ "abstract" ] [ "dynamic" ] "class" Identifier [ TypeParams ]
+ClassDecl      ::= { Annotation } [ "synchronized" ] [ "unique" ] [ "abstract" ] [ "dynamic" ]
+                   "class" Identifier [ TypeParams ]
                    [ ":" Type ] [ "implements" TypeList ] "{" { ClassMember } "}"
 ClassMember    ::= FieldDecl ";"
                  | ConstructorDecl
@@ -8885,54 +12706,113 @@ ClassMember    ::= FieldDecl ";"
                  | StaticMethodDecl
                  | StaticFieldDecl ";"
                  | PropertyDecl
+                 | OperatorMethodDecl
                  | TypeAliasDecl ";"
 
-FieldDecl      ::= [ AccessMod ] [ "weak" | "unowned" | "borrow" ] ( "let" | "var" )
-                   Identifier ":" Type [ "=" Expr ] ";"
+FieldDecl      ::= [ "pub" ] [ "weak" | "unowned" "[" "~" Identifier "]" ] ( "let" | "var" )
+                   Identifier ":" Type [ "=" Expr ]
+                   (* "pub" is the only access modifier. "unowned" requires a lifetime
+                      annotation (bare unowned is E_UNOWNED_NO_LIFETIME). "borrow" is
+                      not valid on class fields — use StructField for borrow fields.
+                      Trailing ";" is provided by ClassMember ::= FieldDecl ";". *)
 ConstructorDecl ::= "new" "(" [ ParamList ] ")" Block
-MethodDecl     ::= { Annotation } [ "pub" ] [ "abstract" ] [ "async" ] [ "gen" ] "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] ( Block | ";" )
-StaticMethodDecl ::= { Annotation } [ "pub" ] "static" [ "async" ] "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
+MethodDecl     ::= { Annotation } [ "pub" ] [ "abstract" ]
+                   ( [ "safe" ] [ "async" ] [ "gen" ] "func" | "modifier" )
+                   Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                   [ RequiresClause ] [ ":" Type ] ( Block | ";" )
+StaticMethodDecl ::= { Annotation } [ "pub" ] "static" [ "safe" ] [ "async" ] [ "gen" ] "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
 StaticFieldDecl ::= [ "pub" ] "static" ( "let" | "var" ) Identifier ":" Type [ "=" Expr ]
 PropertyDecl   ::= [ "pub" ] ( "get" Identifier "(" ")" ":" Type Block
                              | "set" Identifier "(" Param ")" Block )
 
+OperatorMethodDecl ::= { Annotation } [ "pub" ] [ "static" ] [ "modifier" ] "operator" "func"
+                       OperatorSymbol [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] Block
+                       (* "modifier" is optional; when present, declares that this
+                          operator method writes var fields on self and requires
+                          safe context at call sites. Operator methods are NOT
+                          implicitly modifier — explicit declaration required. §23.4.11 *)
+OperatorSymbol ::= "+" | "-" | "*" | "/" | "//" | "%" | "**"
+                 | "&" | "|" | "^" | "bnot" | "<<" | ">>"
+                 | "[]" | "[]=" | "contains" | "()"
+                 | "==" | "+=" | "-=" | "*=" | "/=" | "//=" | "%="
+                 | "**=" | "<<=" | ">>=" | "&=" | "|=" | "^="
+
 EnumDecl       ::= { Annotation } "enum" Identifier [ TypeParams ] "{" VariantList "}"
-VariantList    ::= Variant { "," Variant } [ "," ]
+VariantList    ::= Variant { VariantSep Variant } [ VariantSep ]
+                   (* Both comma and semicolon separators are normative. §9.1.
+                      Mixing "," and ";" in one enum body is `E_ENUM_MIXED_SEP`;
+                      enforced semantically rather than grammatically. *)
+VariantSep     ::= "," | ";"
 Variant        ::= Identifier
                  | Identifier "(" FieldList ")"
+                 | Identifier "(" NamedFieldList ")"
+                   (* Named payload in parens: Circle(radius: float) — common form *)
                  | Identifier "{" NamedFieldList "}"
+                   (* Named payload in braces: Circle{ radius: float } — alt form *)
 FieldList      ::= Type { "," Type }
+                   (* Positional: Circle(float) — type-only list *)
 NamedFieldList ::= NamedField { "," NamedField }
 NamedField     ::= Identifier ":" Type
 
-InterfaceDecl  ::= "interface" Identifier [ TypeParams ] "{" { InterfaceMember } "}"
-InterfaceMember ::= [ "pub" ] [ "static" ] [ "async" ] [ "gen" ] "func" Identifier [ TypeParams ] "(" [ ParamList ] ")" [ ":" Type ] ";"
-                  | [ "pub" ] ( "get" | "set" ) Identifier "(" [ Param ] ")" [ ":" Type ] ";"
+InterfaceDecl  ::= "interface" Identifier [ TypeParams ] [ ":" TypeList ]
+                   "{" { InterfaceMember } "}"
+                   (* TypeList names zero or more superinterfaces.
+                      A superinterface extends the contract: all members of the
+                      superinterface become members of the declaring interface.
+                      A class implementing the sub-interface must implement all
+                      inherited members as well. §11 *)
+InterfaceMember ::= [ "pub" ] [ "static" ] [ "safe" ] [ "async" ] [ "gen" ] "func"
+                    Identifier [ TypeParams ] "(" [ ParamList ] ")"
+                    [ RequiresClause ] [ ":" Type ] ( Block | ";" )
+                  | [ "pub" ] "modifier" Identifier [ TypeParams ]
+                    "(" [ ParamList ] ")" [ RequiresClause ] [ ":" Type ] ( Block | ";" )
+                    (* modifier methods cannot be static, async, or gen;
+                       implementing classes must also declare the method as modifier *)
+                  | [ "pub" ] [ "modifier" ] "operator" "func" OperatorSymbol "(" [ ParamList ] ")" [ ":" Type ] ( Block | ";" )
+                    (* "modifier" on operator func: same semantics as modifier on regular func;
+                       implementing classes must also declare modifier. §23.4.11 *)
+                  | [ "pub" ] ( "get" | "set" ) Identifier "(" [ Param ] ")" [ ":" Type ] ( Block | ";" )
+                  (* A ";" terminates an abstract method declaration; a Block provides a default implementation. *)
 
 StructDecl     ::= { Annotation } "struct" Identifier [ TypeParams ] [ "implements" TypeList ] "{" { StructMember } "}"
 StructMember   ::= StructField ";"
                  | MethodDecl
                  | StaticMethodDecl
-StructField    ::= [ "pub" ] [ "var" ] Identifier ":" Type [ "=" Expr ]
+                 | OperatorMethodDecl
+                 | TypeAliasDecl ";"
+StructField    ::= [ "pub" ] [ "unique" "var" | "var" ] Identifier ":" Type [ "=" Expr ]
+                 | [ "pub" ] "borrow" [ "[" "~" Identifier "]" ] Identifier ":" Type
+                   (* borrow struct fields hold non-owning references; no default values.
+                      "borrow[~name]" ties the field to a named lifetime region (§23.4.2).
+                      Valid only in @mode(native) and @mode(freestanding). *)
 
 TypeAliasDecl  ::= [ "pub" ] "type" Identifier [ TypeParams ] "=" Type
 
 Annotation     ::= "@" Identifier [ "(" ArgList ")" ]
 ```
 
-### §26.9 Syntactic Grammar — FFI Declarations
+### §27.9 Syntactic Grammar — FFI Declarations
+
+**`NativeHandle?` in `extern native` return type position (§18.4).** `NativeHandle?` is parsed by the existing `T?` nullable-type grammar (§4.3). No new production is needed; the compiler maps an optional return type to automatic null-to-`None` checking at the FFI boundary. Plain `NativeHandle` (non-optional) maps null to a runtime `NullHandleError`.
 
 ```ebnf
 ExternJsFunc    ::= "extern" "js" "func" Identifier "(" [ ParamList ] ")" ":" Type ";"
-ExternJsVal    ::= "extern" "js" "val" Identifier ":" Type ";"
-ExternNative   ::= "extern" "native" StringLiteral "func" Identifier "(" [ ParamList ] ")" ":" Type ";"
+ExternJsVal     ::= "extern" "js" "val" Identifier ":" Type ";"
+ExternNative    ::= { Annotation } "extern" "native" StringLiteral "func" Identifier
+                    "(" [ ParamList ] ")" ":" Type ";"
+                    (* Annotation supports @unsafe("reason") for thread-safety and
+                       escaping-borrow assertions on native C functions. §23.4.6 *)
+ExternNativeVal ::= "extern" "native" StringLiteral "val" Identifier ":" Type ";"
+                    (* Imports a native constant or variable by name from a C library. *)
 ```
 
-### §26.10 Syntactic Grammar — Template Directives
+### §27.10 Syntactic Grammar — Template Directives
 
 ```ebnf
-TmplStmt       ::= TmplIf | TmplWhile | TmplFor | TmplForIn | TmplForAwait
-                 | TmplDoWhile | TmplMatch | TmplTry | TmplCompute
+TmplStmt       ::= TmplIf | TmplElif | TmplElse
+                 | TmplWhile | TmplFor | TmplForIn | TmplForAwait
+                 | TmplDoWhile | TmplMatch | TmplMatchArm
+                 | TmplTry | TmplCompute
                  | TmplBreak | TmplContinue | TmplEnd | TmplSuspend
 
 TmplIf         ::= "if" "(" Expr ")"
@@ -8944,6 +12824,8 @@ TmplForIn      ::= [ Label ":" ] "for" "(" DestructPattern "in" Expr ")"
 TmplForAwait   ::= [ Label ":" ] "for" "await" "(" DestructPattern "in" Expr ")"
 TmplDoWhile    ::= "do" | "while" "(" Expr ")"
 TmplMatch      ::= "match" Expr
+TmplMatchArm   ::= Pattern "=>"
+                   (* Template match arm: {% Variant(x) => %} ... §9.4 *)
 TmplTry        ::= "try" | "catch" "(" TypePattern "as" Identifier ")" | "finally"
 TmplCompute    ::= ( "let" | "var" ) Identifier "=" Expr ";"
                  | "do" Expr ";"
@@ -8956,9 +12838,12 @@ TmplSuspend    ::= "suspend" [ "fallback" "=" InlineExpr ]
 ComponentTag   ::= "<" UpperIdent { CompAttr } ( "/>" | ">" TmplContent "</" UpperIdent ">" )
 CompAttr       ::= LowerIdent "=" ExprOpen Expr ExprClose
                  | LowerIdent
+TmplContent    ::= { ComponentTag | HtmlInterpolation | TmplStmt | TextRun }
+TextRun        ::= (* Any literal text that is not a component tag, interpolation,
+                      or template directive — consumed verbatim by the fence renderer. *)
 ```
 
-### §26.11 Syntactic Grammar — Macro Declarations
+### §27.11 Syntactic Grammar — Macro Declarations
 
 ```ebnf
 MacroDecl      ::= [ "pub" ] "macro" Identifier "(" [ MacroParamList ] ")" "{" MacroBody "}"
@@ -8976,55 +12861,21 @@ MacroInvoke    ::= Identifier "!" "(" [ ArgList ] ")"
 
 For any valid Loom source text, parsing it into an AST and then pretty-printing that AST back to source text and parsing again SHALL produce an equivalent AST (round-trip property).
 
-### §26.12 Syntactic Grammar — Additional Productions
+### §27.12 Syntactic Grammar — Additional Productions
 
-#### Cast Operators
-
-```ebnf
-CastExpr       ::= PostfixExpr "as" Type
-                 | PostfixExpr "as?" Type
-```
-
-`as?` is the two-token sequence `"as" "?"`. The parser resolves the ambiguity with the postfix `?` (result propagation) by context: `as?` must be immediately followed by a type expression.
-
-#### Box Operator
-
-```ebnf
-BoxExpr        ::= "box" UnaryExpr
-```
-
-`box` is contextual: it is only treated as `BoxExpr` when it appears in a position where an expression is expected AND is followed by a valid expression start token. Otherwise it is parsed as an identifier.
-
-*(The UnaryExpr and LambdaExpr productions below are now fully defined in §26.5. §26.12 continues with additional productions not covered in §26.5.)*
+*(CastExpr is fully defined in §27.5 as part of the canonical expression hierarchy. BoxExpr is fully defined in §27.5 UnaryExpr. §27.12 contains additional productions not covered in §27.5.)*
 
 #### Field Qualifier Keywords
 
-```ebnf
-FieldQualifier ::= "weak"
-               | "unowned" "[" "~" Identifier "]"
+*(FieldDecl is fully defined in §27.8. The qualifier forms `weak` and `unowned[~name]` are inlined there.)*
 
-FieldDecl      ::= [ AccessMod ] [ FieldQualifier ] ( "let" | "var" )
-                   Identifier ":" Type [ "=" Expr ] ";"
-```
-
-`unowned[~name]` is only valid in `@compiled` files with `--target native`. Bare `unowned` (without a lifetime annotation) on a class field is `E_UNOWNED_NO_LIFETIME`. The class must carry `[lifetime ~name]` as a class-level lifetime parameter.
+`unowned[~name]` is valid in `@mode(native)` and `@mode(freestanding)` files. Bare `unowned` (without a lifetime annotation) on a class field is `E_UNOWNED_NO_LIFETIME`. The class must carry `[lifetime ~name]` as a class-level lifetime parameter.
 
 #### Operator Method Modifier
 
-```ebnf
-MethodDecl     ::= [ AccessMod ] [ "static" ] [ "operator" ] "func"
-                   OperatorMethodName "(" [ ParamList ] ")" ":" Type FunBody
+*(MethodDecl, OperatorMethodDecl, and OperatorSymbol are fully defined in §27.8. Operator methods use the form `[ "modifier" ] "operator" "func" OperatorSymbol ...` as a separate production from regular method declarations.)*
 
-OperatorMethodName ::= Identifier | OperatorSymbol
-
-OperatorSymbol ::= "+" | "-" | "*" | "/" | "%" | "**"
-                 | "&" | "|" | "^" | "bnot" | "<<" | ">>"
-                 | "[]" | "[]=" | "contains" | "()"
-                 | "==" | "+=" | "-=" | "*=" | "/=" | "%="
-                 | "**=" | "<<=" | ">>=" | "&=" | "|=" | "^="
-```
-
-*(CaptureList and CaptureItem are now defined in §26.5 as part of the canonical LambdaExpr production. Capture lists are valid only in `@compiled --target native` files; the compiler emits a compile-time error otherwise.)*
+*(CaptureList and CaptureItem are now defined in §27.5 as part of the canonical LambdaExpr production. Capture lists are valid only in `@mode(native)` files; the compiler emits a compile-time error otherwise.)*
 
 #### `ui` Fence Language Descriptor
 
@@ -9040,11 +12891,13 @@ Component tags in `ui` fences follow the same grammar as in `html` fences:
 UiComponentTag ::= "<" UpperIdent { CompAttr } ( "/>" | ">" UiContent "</" UpperIdent ">" )
 CompAttr       ::= LowerIdent "=" ExprOpen Expr ExprClose
                  | LowerIdent
+UiContent      ::= { UiComponentTag | HtmlInterpolation | TextRun }
+                   (* TextRun is any literal text not matched by the above alternatives *)
 ```
 
-Lowercase tags are a compile-time error in `ui` fences (all primitives use PascalCase). This contrasts with `html` fences where lowercase tags are emitted as literal HTML.
+Lowercase tags are `E_UI_LOWERCASE_TAG` in `ui` fences (all primitives use PascalCase). This contrasts with `html` fences where lowercase tags are emitted as literal HTML.
 
-### §26.13 Syntactic Grammar — Template Fence and HTML Context Productions
+### §27.13 Syntactic Grammar — Template Fence and HTML Context Productions
 
 #### Variable-length fence backtick runs
 
@@ -9062,6 +12915,21 @@ BACKTICK_EXACT_N   ::= (* exactly the same number of backticks as the opener *)
 ```
 
 The parser is stateful: on encountering a `TemplateFenceOpen`, it records `N` and only produces a `TemplateFenceClose` token when it sees exactly `N` backticks (no more, no fewer) at the anchor position on a line by itself.
+
+**Recognised `Language` tokens (normative).** The `Language` token in `TemplateFenceOpen` is an `Identifier`. The compiler recognises the following as named fence types with special semantics; all other identifiers are treated as user-defined fences with no special compiler processing:
+
+| Language token | Fence type | Section |
+|---|---|---|
+| `html` | HTML context-tracking template | §16.6 |
+| `css` | CSS stylesheet fence | §16.7 |
+| `wgsl` | WebGPU Shading Language compute fence | §16.8.1 |
+| `metal` | Metal Shading Language compute fence | §16.8.2 |
+| `glsl` | OpenGL/Vulkan compute shader fence | §16.8.3 |
+| `sql` | SQL query fence (§21) | stdlib |
+| `ui` | Reactive UI layout fence | §19.6 |
+| `stablehlo` / `hlo` | XLA HLO tensor computation fence (§21) | stdlib |
+
+Unrecognised language tokens are not a compile-time error; they produce a `Template` value whose body is the raw fence content as a `string`.
 
 #### HTML context tracking (compile-time)
 
@@ -9089,7 +12957,7 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 | `()` `[]` `.` `?.` `!{}` `?.[` | 1 | Call, index, member access | §5.1 |
 | `typeof` | 2 | Type-of operator | §4.7 |
 | `-` (unary) `not` `!` `bnot` | 3 | Unary operators | §5.1 |
-| `box` | 4 | Boxing/widening | §4.3 |
+| `box` `consume` | 4 | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | §4.3, §23.4.7 |
 | `**` | 5 | Exponentiation | §5.1 |
 | `*` `/` `//` `%` | 6 | Multiplicative / floor division | §5.1 |
 | `+` `-` | 7 | Additive | §5.1 |
@@ -9103,8 +12971,8 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 | `==` `!=` | 15 | Equality | §5.1 |
 | `is` `instanceof` | 16 | Type check | §4.5, §4.7, §9.5 |
 | `as` `as?` | 17 | Cast | §4.3 |
-| `and` `&&` | 18 | Logical AND (`and` canonical; `&&` alias) | §3.6 |
-| `or` `\|\|` | 19 | Logical OR (`or` canonical; `\|\|` alias) | §3.6 |
+| `and` `&&` | 18 | Logical AND (`and` canonical; `&&` alias) | §3.7 |
+| `or` `\|\|` | 19 | Logical OR (`or` canonical; `\|\|` alias) | §3.7 |
 | `??` | 20 | Null coalescing | §5.6 |
 | `? :` | 21 | Ternary | §5.4 |
 | `?` (postfix) | 22 | Result propagation | §5.7 |
@@ -9115,11 +12983,253 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 
 ---
 
-## §27 Tooling
+
+### §27.14 Syntactic Grammar — v1.14 Additions
+
+*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`. Productions new in v1.14.)*
+
+**Mode directive:**
+
+```
+mode_directive ::= '@mode' '(' mode_name ')'
+mode_name      ::= 'scripted' | 'compiled' | 'native' | 'freestanding'
+```
+
+Valid only as the first non-comment, non-blank token in a source file.
+
+**`arc let` / `arc var`:**
+
+```
+var_decl ::= ('let' | 'var' | 'arc let' | 'arc var'
+             | 'unique let' | 'unique var') pattern (':' type)? ('=' expr)? ';'
+```
+
+**`unique class` (v1.14 addition):**
+
+```
+class_decl     ::= class_decl_mod* 'class' IDENT type_params? ':' type
+                   ('implements' type_list)? '{' class_body '}'
+
+class_decl_mod ::= 'unique' | 'abstract' | 'dynamic'
+                   (* 'unique' is new in v1.14; 'abstract' and 'dynamic' are from §27.8.
+                      'unique abstract' and 'unique dynamic' are mutually exclusive
+                      compile-time errors; 'abstract dynamic' is also an error.
+                      Renamed from `modifier` in v1.15 to avoid conflict with the
+                      `modifier` method declaration keyword introduced in §23.4.11. *)
+```
+
+**Inline assembly:**
+
+```
+asm_block    ::= 'asm' '{' asm_string+ asm_ops? '}'
+asm_ops      ::= asm_out? asm_in? asm_clobbers?
+asm_out      ::= 'out' ':' asm_out_op (',' asm_out_op)*
+asm_in       ::= 'in'  ':' asm_in_op  (',' asm_in_op)*
+asm_out_op   ::= IDENT '=' string_lit
+asm_in_op    ::= string_lit '=' expr
+asm_clobbers ::= 'clobbers' ':' '[' string_lit* ']'
+```
+
+**`@volatile` parameter modifier:** `@volatile` immediately precedes a `borrow` parameter modifier.
+
+**`reinterpret[T, U]` expression:**
+
+```
+primary_expr ::= ... | 'reinterpret' '[' type ',' type ']' '(' expr ')'
+```
+
+**`MaybeUninit[T]` type:**
+
+```
+builtin_generic_type ::= ... | 'MaybeUninit' '[' type ']'
+```
+
+**`@entry` annotation (with optional symbol override):**
+
+```
+entry_annotation ::= '@entry' | '@entry' '(' 'symbol' ':' string_lit ')'
+```
+
+**`size_of` and `align_of` expressions:**
+
+```
+size_expr  ::= 'size_of'  '[' type ']' '(' ')'
+align_expr ::= 'align_of' '[' type ']' '(' ')'
+```
+
+Both are compile-time constant expressions of type `uint64`.
+
+
+
+### §27.15 Syntactic Grammar — v1.15 Additions
+
+*(This section is normative. Productions new in v1.15. Applies to all modes unless noted.)*
+
+**Ownership transfer verbs — parameter modifiers (§23.4.9):**
+
+```
+param_modifier  ::= 'reads' | 'edits' | 'takes' | 'shares'
+                  | 'borrow' | 'borrow' '[' '~' IDENT ']'
+                  | 'excl' 'borrow'
+
+param_decl      ::= param_modifier? IDENT ':' type
+```
+
+The first four productions are the v1.15 verb system. The remainder are retained for backward compatibility in `@mode(native)` and `@mode(freestanding)`.
+
+**Verb acknowledgment at call sites (§23.4.9):**
+
+```
+arg             ::= verb_ack_arg | value_arg
+verb_ack_arg    ::= verb_ack ':' expr
+verb_ack        ::= 'reads' | 'edits' | 'takes' | 'shares'
+value_arg       ::= (IDENT ':')? expr
+```
+
+**`requires` clause (§23.4.10):**
+
+```
+func_decl         ::= func_mods 'func' IDENT type_params? '(' param_list ')'
+                      requires_clause? ':' type block
+
+requires_clause   ::= 'requires' requires_contract (',' requires_contract)*
+requires_contract ::= verb_req | distinct_req
+verb_req          ::= ('reads'|'edits'|'takes'|'shares') '(' IDENT (',' IDENT)* ')'
+distinct_req      ::= 'distinct' '(' distinct_arg (',' distinct_arg)* ')'
+distinct_arg      ::= IDENT | IDENT '[' expr ':' expr ']'
+func_mods         ::= ('safe')? ('async')?  (* 'safe' precedes 'async'; both optional. §27.8 *)
+```
+
+**`requires` acknowledgments at call sites (§23.4.10):**
+
+```
+call_arg_list   ::= call_arg (',' call_arg)*
+call_arg        ::= verb_ack_arg | value_arg | requires_ack | unsafe_ack
+requires_ack    ::= verb_req | distinct_req
+unsafe_ack      ::= '@unsafe' '(' string_lit ')'
+```
+
+**`modifier` method declaration (§23.4.11):**
+
+```
+method_kw       ::= 'func' | 'modifier' | 'get' | 'set' | 'gen'
+method_decl     ::= visibility? method_kw IDENT type_params? '(' param_list ')' ':' type block
+```
+
+`set` accessors are implicitly `modifier`.
+
+**`safe {}` block (§23.4.12):**
+
+```
+safe_block      ::= 'safe' '{' stmt* '}'
+stmt            ::= ... | safe_block
+```
+
+**`synchronized` class declaration (§23.4.13):**
+
+```
+class_decl_mod  ::= ('synchronized')? ('unique')? ('abstract')? ('dynamic')?
+class_decl      ::= class_decl_mod 'class' IDENT type_params? (':' type)?
+                    ('implements' type_list)? '{' class_body '}'
+```
+
+`synchronized` is not valid in `@mode(freestanding)`. `synchronized unique`, `synchronized abstract`, and `synchronized dynamic` are mutually exclusive compile-time errors.
+
+The `class_decl_mod` production was introduced in §27.14 to replace the production formerly named `modifier`, avoiding conflict with the `modifier` method declaration keyword.
+
+**`unsafe {}` lock-release block (§23.4.14):**
+
+```
+sync_unsafe_block ::= 'unsafe' '(' string_lit ')' '{' stmt* '}'
+```
+
+Valid only inside a `modifier` method body on a `synchronized` class. Usage elsewhere is `E_UNSAFE_NOT_SYNCHRONIZED`. The `string_lit` reason is mandatory.
+
+
+### §27.16 Syntactic Grammar — v1.16 Additions
+
+*(This section is normative. Productions new in v1.16. Applies to all modes unless noted.)*
+
+**`atomic {}` block (§17.7, scripted and compiled only):**
+
+```
+atomic_block    ::= 'atomic' '{' stmt* '}'
+stmt            ::= ... | atomic_block
+```
+
+`atomic` is a new reserved keyword. Usage in `@mode(native)` or `@mode(freestanding)` is `E_ATOMIC_NOT_WASM`.
+
+**`reinterpretChecked[T, U]` expression (§24.18):**
+
+```
+reinterpret_expr ::= 'reinterpret' '[' type ',' type ']' '(' expr ')'
+                   | 'reinterpretChecked' '[' type ',' type ']' '(' expr ')'
+```
+
+`reinterpretChecked` does not require `@unsafe`. `reinterpret` still requires `@unsafe`.
+
+**`@lockOrder` annotation (§23.4.13):**
+
+```
+lock_order_annotation ::= '@lockOrder' '(' integer_lit ')'
+class_annotation      ::= ... | lock_order_annotation
+```
+
+`@lockOrder(n)` is valid only on `synchronized` class declarations. `n` must be a positive integer literal.
+
+**`@interruptSafe` annotation (§24.24.1, freestanding only):**
+
+```
+func_annotation ::= ... | '@interruptSafe'
+```
+
+**`@signalSafe` annotation (§26.9, native only):**
+
+```
+func_annotation ::= ... | '@signalSafe'
+```
+
+**`@debug_control_channel` and `@debug_trace_channel` annotations (§24.25.3, freestanding `--debug` only):**
+
+```
+func_annotation     ::= ... | '@debug_control_channel' | '@debug_trace_channel'
+```
+
+`@debug_control_channel` and `@debug_trace_channel` are valid only on `func` declarations at module scope in `@mode(freestanding)` `--debug` builds. Using either in a release build is `E_FREESTANDING_MODULE`. Wrong return type is `E_FREESTANDING_CONTROL_CHANNEL_SIG` or `E_FREESTANDING_TRACE_CHANNEL_SIG`. Multiple definitions of either are `E_FREESTANDING_CONTROL_CHANNEL_DUPLICATE` or `E_FREESTANDING_TRACE_CHANNEL_DUPLICATE`.
+
+**`@naked` with required `@unsafe` (§24.14):**
+
+The grammar for `@naked` functions is unchanged. The normative requirement is semantic: a `@naked` function MUST have `@unsafe("naked: ...")` in its annotation list. The compiler enforces this as `E_NAKED_NOT_UNSAFE` at the declaration site.
+
+**`NativeHandle?` return type (§18.4):**
+
+`NativeHandle?` in an `extern native` return type position is parsed as `type_nullable` (the existing `T?` grammar, §4.3). No new grammar production is required; the compiler maps optional `NativeHandle` to null-pointer checking at the FFI boundary.
+
+**`field_ref[T, F]` — compile-time field reference (§24.17a):**
+
+```
+field_ref_expr  ::= '.' IDENT
+```
+
+A bare `.fieldName` expression (leading dot, no receiver) in the argument position of `PartialInit.set(field, value)` is parsed as a `field_ref[T, F]` compile-time expression. It is not valid in any other expression position. The type `T` is inferred from the `PartialInit[T]` receiver; `F` is the field type. `E_FIELD_REF_INVALID` if the identifier does not name a field of `T`.
+
+**`PanicSource` (§24.6):**
+
+The `PanicSource` enum is a new built-in enum type available in `@mode(freestanding)`. Its definition and use as an optional extended parameter to `@panic_handler` are specified in §24.6. No new grammar productions are needed — it uses the existing enum and function-parameter grammar.
+
+**New keywords added in v1.16:**
+
+| Keyword | Section | Notes |
+|---|---|---|
+| `atomic` | §17.7 | Reserved in all modes; only usable in scripted/compiled |
+
+---
+
+## §28 Tooling
 
 *(This section is non-normative.)*
 
-### §27.1 Command-Line Interface
+### §28.1 Command-Line Interface
 
 **`loom run path/to/file.loom`** — Execute a Loom source file using the JIT compilation pipeline. This is the baseline single-file execution workflow. The script prelude (§20.2) is available in the entry file.
 
@@ -9129,16 +13239,22 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 loom build --target browser         # Wasm module for browser
 loom build --target cli             # Wasm module for CLI
 loom build --target service         # Wasm module for server
-loom build --target desktop         # Native desktop app (requires @compiled)
-loom build --target native          # Native binary (requires @compiled)
+loom build --target desktop         # Native desktop app (requires @mode(native))
+loom build --target native          # Native binary (requires @mode(native))
 loom build --target native --lib shared   # Shared library
 loom build --target native --lib static   # Static library
+loom build --target freestanding --arch x86_64   # Freestanding kernel/bare-metal
+loom build --target freestanding --arch aarch64  # Freestanding AArch64
+loom build --target freestanding --arch riscv64 --march rv64imac  # RISC-V
 loom build --debug                  # Include DWARF debug info in output
 loom build --release                # Optimised release build
 loom build --lto thin               # ThinLTO (LLVM backend only)
 loom build --lto full               # Full LTO
 loom build --backend cranelift      # Use Cranelift instead of LLVM
-loom build --arch aarch64 --os linux   # Cross-compile
+loom build --arch aarch64 --os linux              # Cross-compile
+loom build --target native --stack-size 4194304   # Set OS stack size to 4 MB (default: platform ABI default)
+loom build --target native --overflow trap         # Trap on fixed-width integer overflow (native/freestanding)
+loom build --target freestanding --panic custom --double-fault reset  # Double-fault policy (freestanding)
 loom build --check                      # Type-check and validate fence syntax; no output produced
 ```
 
@@ -9159,7 +13275,7 @@ loom import-headers --lib ssl --lib crypto /usr/include/openssl/ssl.h -o openssl
 loom import-headers --hints openssl.hints /usr/include/openssl/ssl.h -o openssl.loom
 ```
 
-**`loom add <package>[@version]`** — Resolve and add a dependency to `.lmpkg`, update `loom.lock`, and precompile the newly added package's modules to the Wasm cache (§27.7).
+**`loom add <package>[@version]`** — Resolve and add a dependency to `.lmpkg`, update `loom.lock`, and precompile the newly added package's modules to the Wasm cache (§28.7).
 
 **`loom install`** — Install all dependencies recorded in `loom.lock` and precompile each installed module to the Wasm cache. `loom install` is idempotent: packages with up-to-date cache entries are not recompiled.
 
@@ -9186,7 +13302,7 @@ loom test --watch                      # re-run on file change
 
 **`loom auth login`** — Authenticate with a registry and store credentials in the system keychain.
 
-**`loom fmt`** — Format Loom source files using the reference formatter. Rewrites symbol logical operators to their canonical keyword forms: `&&` → `and`, `||` → `or`, `!` → `not` (see §3.6, §27.4).
+**`loom fmt`** — Format Loom source files using the reference formatter. Rewrites symbol logical operators to their canonical keyword forms: `&&` → `and`, `||` → `or`, `!` → `not` (see §3.7, §28.4).
 
 **`loom check`** — Type-check without executing.
 
@@ -9206,6 +13322,17 @@ loom unlink my-utils
 
 **`loom cache clean`** — Remove all entries from the global Wasm cache (`~/.loom/cache/`). Does not affect the project-local cache.
 
+**`loom debug attach`** — Connect to a running freestanding debug service (§24.25.8):
+
+```
+loom debug attach --uart /dev/ttyUSB0 --baud 115200
+loom debug attach --tcp 192.168.1.100:2345
+loom debug attach --semihosting
+loom debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
+```
+
+Reads the portal name table from the target via `QUERY_PORTALS`, presents the portal activation interface, and optionally streams time-travel replay (`READ_REPLAY_BUFFER`). Requires a `--debug` freestanding binary with at least one channel configured (§24.25). See §24.25.8 for the full transport option reference.
+
 **`loom cache clean --local`** — Remove all entries from the project-local cache (`.loom/cache/`) only. Does not affect the global cache.
 
 **`loom cache clean --prune-orphans`** — Remove only global cache entries for packages no longer in `loom.lock`. Add `--local` to also prune the project-local cache.
@@ -9221,17 +13348,17 @@ Global cache (~/.loom/cache/):
   loom.db    1.5.2  [toolchain 1.3.0]  src_hash: e5f6...  204 KB
 ```
 
-### §27.2 Shebang Support
+### §28.2 Shebang Support
 
 Unix-style shebang execution is supported:
 
 ```
 #!/usr/bin/env loom run
 let name = env("USER") ?? "world";
-print("Hello, {$ name $}!");
+print(i"Hello, {$ name $}!");
 ```
 
-### §27.3 REPL
+### §28.3 REPL
 
 The reference toolchain provides a REPL for exploratory scripting. The REPL:
 
@@ -9239,7 +13366,7 @@ The reference toolchain provides a REPL for exploratory scripting. The REPL:
 - Provides the script prelude.
 - Sets `__name__` to `"__main__"` and `__file__` to `"<repl>"`.
 
-### §27.4 Formatter
+### §28.4 Formatter
 
 The reference formatter shares the parser and rendering rules used by execution. It formats Loom source files to a canonical style. Key formatting rules include:
 
@@ -9259,9 +13386,9 @@ This rewrite is applied unconditionally. Lines annotated with `// loom:allow(sym
 
 **Trailing commas.** The formatter adds trailing commas to multi-line collection literals, function argument lists, and parameter lists.
 
-**Semicolons.** The formatter preserves required semicolons and does not add or remove them where optional.
+**Semicolons.** Semicolons are optional in Loom (§3.3). The formatter preserves semicolons exactly as the programmer wrote them — it does not add missing semicolons or remove present ones.
 
-### §27.5 Language Server
+### §28.5 Language Server
 
 *(This section is non-normative.)*
 
@@ -9276,10 +13403,10 @@ Neovim, Emacs, JetBrains IDEs via the LSP plugin).
 | `textDocument/completion` | Keyword, type, identifier, and import completions |
 | `textDocument/hover` | Type, doc-comment, and inferred-type display |
 | `textDocument/definition` | Go-to-definition across files and packages |
-| `textDocument/references` | Find all references including `@compiled` files |
+| `textDocument/references` | Find all references including compiled-mode files |
 | `textDocument/rename` | Safe rename across the project; respects `pub` visibility |
 | `textDocument/diagnostics` | Type errors, lint advisories, and `E_*` error codes |
-| `textDocument/formatting` | Invokes the reference formatter (§27.4) |
+| `textDocument/formatting` | Invokes the reference formatter (§28.4) |
 | `textDocument/inlayHint` | Inferred types on `let`/`var` bindings; lifetime labels |
 | `textDocument/codeAction` | Quick-fixes for lint advisories (e.g. `symbol-logical-ops`) |
 | `textDocument/semanticTokens` | Full semantic token classification |
@@ -9302,7 +13429,7 @@ provided for Loom interpolation expressions (`{$ ... $}`). The fence body
 (HTML, CSS, SQL, etc.) is forwarded to an embedded sub-server for that
 language when available.
 
-### §27.6 Browser Bootstrap and Performance
+### §28.6 Browser Bootstrap and Performance
 
 *(This section is non-normative.)*
 
@@ -9371,7 +13498,7 @@ dist/
 - Watches source files and triggers incremental `loom build` on change.
 - Sends a reload signal to connected browsers via a lightweight WebSocket after each successful rebuild.
 - Sets `Cache-Control: no-cache` on all responses so rebuilt artifacts are always fresh.
-- When started with `--inspect`, injects a debug bootstrap `<script>` into the served `index.html` that calls `debug.browser.start()` before the application entry point. See §27.6.2.
+- When started with `--inspect`, injects a debug bootstrap `<script>` into the served `index.html` that calls `debug.browser.start()` before the application entry point. See §28.6.2.
 
 **CSP configuration.** The minimum required Content Security Policy is:
 
@@ -9384,7 +13511,7 @@ Content-Security-Policy:
 
 No `'unsafe-inline'` or `'unsafe-eval'` is required. `'wasm-unsafe-eval'` permits Wasm evaluation but not `eval()` or `new Function()`.
 
-### §27.6.1 Source Map Delivery
+### §28.6.1 Source Map Delivery
 
 *(This section cross-references §2.1, which defines normative source map rules.)*
 
@@ -9413,7 +13540,7 @@ The following conventions apply to source map serving in both development and pr
 
 The Loom DevTools Extension reads this field to place CDP breakpoints at portal entry points by name.
 
-### §27.6.2 Debug Server Bootstrap (`--inspect`)
+### §28.6.2 Debug Server Bootstrap (`--inspect`)
 
 `loom serve --inspect` and `loom build --debug --inspect` activate the browser debug bridge:
 
@@ -9434,7 +13561,7 @@ The Loom DevTools Extension reads this field to place CDP breakpoints at portal 
 
 **Production note.** `--inspect` should not be used in production builds. The portal registry and trace event stream expose internal application structure. `loom build --release` without `--inspect` strips all `debug.browser` calls to no-ops.
 
-### §27.7 Module Wasm Cache
+### §28.7 Module Wasm Cache
 
 *(This section is non-normative.)*
 
@@ -9498,7 +13625,7 @@ Cache entries for removed packages are not automatically cleaned — use `loom c
 
 **Interaction with `prefer compiled`.** The fallback resolution algorithm (§13.7) checks both cache tiers (project-local first, then global) as part of its compiled-artefact search, before searching the source directory. A cache hit at either tier satisfies `prefer compiled`.
 
-**User-authored modules.** The Wasm cache covers installed packages only. User-authored modules in the project's `src/` tree use the JIT pipeline with incremental re-compilation (§2.1). Persistent caching of user modules is left to a future incremental compilation cache feature (§29).
+**User-authored modules.** The Wasm cache covers installed packages only. User-authored modules in the project's `src/` tree use the JIT pipeline with incremental re-compilation (§2.1). Persistent caching of user modules is left to a future incremental compilation cache feature (§30).
 
 **.gitignore recommendation.** The following entries are recommended for projects using version control:
 
@@ -9509,7 +13636,7 @@ Cache entries for removed packages are not automatically cleaned — use `loom c
 The global cache (`~/.loom/cache/`) is never committed — it lives outside the project tree. The project-local cache contains compiled artifacts that are fully reproducible from source and should not be committed.
 
 
-### §27.8 Project-Local Cache and Development Isolation
+### §28.8 Project-Local Cache and Development Isolation
 
 *(This section is non-normative.)*
 
@@ -9563,15 +13690,15 @@ The reference toolchain provides language-server diagnostics (LSP) for IDE integ
 - Rename refactoring
 
 
-### §27.9 Hardware Management Commands
+### §28.9 Hardware Management Commands
 
 *(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
 
 Hardware management commands (`loom hardware detect`, `loom hardware compile`,
 `loom hardware list`) are available when hardware backend packages are
-installed.  See the Packages Reference §27.9 for the complete CLI reference.
+installed.  See the Packages Reference §28.9 for the complete CLI reference.
 
-## §28 Progressive Disclosure
+## §29 Progressive Disclosure
 
 *(This section is non-normative.)*
 
@@ -9585,7 +13712,7 @@ Loom is a single language and semantic model. There are no separate beginner and
 - Collections (`list`, `dict`, `set`, `tuple`)
 - Imports (`from ... import`)
 - Script prelude (`readText`, `writeText`, `exec`, `env`, `args`)
-- Interpolated strings (`"Hello, {$ name $}"`)
+- Interpolated strings (`i"Hello, {$ name $}"`)
 - `core.text` (including `char`, `byteLength`, `graphemes`, `normalize`), `data.json`, `core.collections`
 
 ### Tier 2: Intermediate
@@ -9599,6 +13726,8 @@ Loom is a single language and semantic model. There are no separate beginner and
 - Explicit `portal` blocks
 - Structs
 - Union types
+- Ownership verbs: `reads`, `edits`, `takes`, `shares` — parameter ownership contracts available in all modes (§23.4.9)
+- `modifier` — class method mutation contracts (§23.4.11)
 
 ### Tier 3: Advanced
 
@@ -9609,26 +13738,45 @@ Loom is a single language and semantic model. There are no separate beginner and
 - Dynamic objects (`dynamic class`, `!{}`)
 - Generators and `yield`
 - Decorators
-- `@compiled` mode and native compilation
+- `@mode(compiled)`, `@mode(native)`, `@mode(freestanding)` — execution modes (§2.4)
+- `safe {}` / `safe func` — compile-time shared-XOR-mutable enforcement (§23.4.12)
+- `synchronized` class — runtime-locked mutation for async and multi-threaded contexts (§23.4.13)
+- `requires distinct()` — parameter disjointness contracts (§23.4.10)
+- `unique class`, `arc let` — explicit ownership at the type and binding level (§8.11, §6.2)
+- Freestanding mode: `asm { }`, `@interrupt`, `@volatile`, `@repr` (§24)
 - Lifetime parameters (`lifetime ~name`, `borrow[~name]`) and region inference
 - Macros
 - Actors and supervision
 - Direct capability objects (`runtime.fs`, `runtime.proc`, `runtime.net`)
 - `debug` and time-travel debugging
+- `atomic {}` — cooperative atomicity scope (§17.7)
+- Freestanding debug portals and time-travel replay — dual-channel debug service, `FreestandingDebugConfig`, `ControlPollMode`, ring buffer retrieval via `READ_REPLAY_BUFFER` (§24.25)
+- `@lockOrder(n)` — lock ordering contracts on `synchronized` classes (§23.4.13)
+- `@interruptSafe` + `InterruptGuard` — interrupt-context safety in freestanding mode (§24.24)
+- `@signalSafe` — signal handler safety annotation, native mode (§26.9)
+- `reinterpretChecked[T, U]` — runtime-checked type reinterpretation (§24.18)
+- `PartialInit[T]` — compile-time field-tracked struct initialization (§24.17a)
+- `DmaBuffer[T]`, `native.dma` — ownership-mapped DMA for freestanding (§24.20)
+- `native.atomic.hwFence` + `MemoryOrder` — hardware memory barriers (§24.20)
+- `native.mpu` — MPU stack-guard installation (§24.20)
+- `PinnedRef[T]`, `OwnedHandle`, `BorrowedHandle` — FFI ownership types (§18.4)
 
 ### Guidance
 
 - Compiler diagnostics explicitly explain when a user crosses into advanced concepts.
 - Generated project templates prefer task-focused entry points: `script`, `cli`, `generator`, `service`, `webapp`.
 - Beginner-facing materials teach interpolated strings before template fences, `Option[T]` before `Result[T,E]`, and sync examples before async.
+- WCET (worst-case execution time) and real-time deadline modeling are intentionally outside the language specification; see §30 for the rationale and future tooling integration notes.
 
 ---
 
-## §29 Future Directions
+## §30 Future Directions
 
 *(This section is non-normative.)*
 
 The following features are under consideration for future versions of the Loom specification:
+
+- **WCET and timing constraints.** Worst-case execution time analysis, hard real-time deadline modeling, and timing-constraint annotations for safety-critical targets (automotive, medical, aviation) are explicitly out of scope for the Loom language specification. These capabilities belong in external static analysis tooling (e.g., a future `loom analyze --wcet` command) that operates on the compiled binary rather than the source language. The specification will document WCET tool integration points when such tooling is standardized.
 
 - **Incremental compilation cache.** Fine-grained caching of compilation artifacts for faster rebuilds.
 - **`loom lsp` improvements.** ARC cycle detection code actions, operator interface scaffolding, HTML context escaping hints.
@@ -9644,6 +13792,7 @@ The following features are under consideration for future versions of the Loom s
 - **XLA kernel cache.** Persistent caching of compiled XLA/StableHLO executables across process restarts, keyed on program hash and device topology.
 - **SIMD on Wasm.** `native.simd` mapped to the WebAssembly SIMD proposal for browser and Wasm targets.
 - **Extended numeric math.** `core.math` module extended with additional transcendental functions for `float32` variants and SIMD vectors (see §21.18).
+- **Verb modifiers in function types with named parameters.** Full `fn(reads src: T, edits dst: T) requires distinct(src, dst): R` syntax for function type positions, enabling disjointness contracts on higher-order function parameters. Currently blocked by positional-only parameters in function types (§4.4).
 - **Algebraic effects.** First-class effect handlers as an alternative to exceptions and async.
 
 - **Async work-stealing tuning.** Adaptive work-stealing strategies and executor affinity hints for NUMA-aware scheduling.
@@ -9662,12 +13811,12 @@ The following features are under consideration for future versions of the Loom s
 
 ---
 
-## §30 Hardware Backend Lifecycle
+## §31 Hardware Backend Lifecycle
 
 *(Non-normative. Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
 
 The hardware backend lifecycle (detection, compilation, registration, staleness
-policy) is described in the Packages Reference §30.
+policy) is described in the Packages Reference §31.
 
 ## Appendix A: Keyword Index
 
@@ -9676,92 +13825,155 @@ policy) is described in the Packages Reference §30.
 | Keyword | Section | Description |
 |---|---|---|
 | `abstract` | §8.3 | Abstract class/method declaration |
-| `and` | §3.6 | Logical AND operator |
+| `and` | §3.7 | Logical AND operator |
 | `as` | §13.1 | Import alias, catch binding, dynamic view |
 | `async` | §7.1 | Async function declaration |
 | `await` | §17.1 | Suspend until task completes |
 | `break` | §6.4 | Exit loop |
 | `catch` | §6.9 | Exception handler |
 | `class` | §8.1 | Class declaration |
+| `consume` | §23.4.7 | Downgrade `unique` binding to ARC-managed reference (`@mode(native)` only) |
 | `continue` | §6.4 | Skip to next loop iteration |
-| `defer` | §6.5 | Register cleanup action |
+| `defer` | §6.5, §13.10 | Register cleanup action (`defer expr`/`defer { }`); also `from X defer import (...)` for deferred type stubs that break import cycles |
 | `del` | §6.11 | Deterministic finalization |
 | `do` | §6.4 | Do-while loop |
 | `dynamic` | §8.7 | Dynamic class declaration, dynamic view |
 | `else` | §6.3 | Alternative branch |
 | `enum` | §9.1 | Enum declaration |
 | `extern` | §18 | FFI declaration |
-| `false` | §3.5 | Boolean literal |
+| `false` | §3.6 | Boolean literal |
 | `finally` | §6.9 | Unconditional cleanup block |
 | `fn` | §4.4 | Function type |
 | `for` | §6.4 | Loop |
 | `from` | §13.1 | Import source, exception chaining |
 | `func` | §7.1 | Function declaration |
 | `gen` | §7.5 | Generator function |
-| `get` | §7.7 | Property getter |
+| `get` | §7.7 | Property getter keyword (contextual — also valid as a method or field name) |
 | `global` | §7.3 | Module-scope variable mutation |
 | `if` | §6.3 | Conditional |
 | `implements` | §11.1 | Interface implementation |
 | `import` | §13.1 | Import declaration |
-| `in` | §6.4, §3.6 | For-in loop, membership test |
+| `in` | §6.4, §3.7 | For-in loop, membership test |
 | `instanceof` | §4.7 | Type check operator |
 | `interface` | §11.1 | Interface declaration |
 | `is` | §4.5, §9.5 | Type narrowing check |
 | `let` | §6.2 | Immutable binding |
 | `lifetime` | §7.1, §10.11, §11.4, §12.1, §23.4.2 | Lifetime region parameter declaration |
+| `macro` | §27.11 | Macro declaration: `pub macro name(params) { quote { ... } }` |
 | `match` | §9.4 | Pattern matching |
 | `new` | §8.4 | Constructor |
+| `namespace` | §13, §27.2 | File-level namespace declaration: `namespace pkg.module;` |
 | `nonlocal` | §7.3 | Enclosing-scope variable mutation |
-| `none` | §9.3 | None value |
-| `not` | §3.6 | Logical NOT |
-| `or` | §3.6 | Logical OR |
+| `none` | §3.4 | Reserved to prevent confusion with `None` (the uppercase absent-value literal, §9.3); `none` (lowercase) is not itself a value |
+| `not` | §3.7 | Logical NOT |
+| `or` | §3.7 | Logical OR |
+| `operator` | §7.7, §11.2 | Method declaration qualifier: `operator func SymOp` declares an operator overload; `modifier operator func` for mutating overloads |
 | `portal` | §6.7 | Debug activation point |
 | `prefer` | §13.1 | Import keyword for `prefer compiled` clause |
 | `pub` | §8.2 | Public visibility |
 | `return` | §7.1 | Return from function |
-| `set` | §7.7 | Property setter |
+| `Self` | §8.4, §11 | Type alias for the implementing type; available inside class, struct, interface, and enum bodies |
+| `set` | §7.7 | Property setter keyword (contextual — also valid as a method or field name) |
 | `spawn` | §17.2 | Spawn task in await group |
+| `super` | §8.4 | Superclass constructor call: `super(args)` inside a subclass constructor body |
 | `static` | §8.5 | Static member |
 | `struct` | §10 | Struct declaration |
 | `suspend` | §19.5 | Async component loading |
+| `this` | §8.4 | Implicit current-instance reference inside instance methods and constructors |
 | `throw` | §6.10 | Throw exception |
-| `true` | §3.5 | Boolean literal |
+| `true` | §3.6 | Boolean literal |
 | `try` | §6.9 | Exception handling |
 | `type` | §4.6 | Type alias |
 | `typeof` | §4.7 | Type-of operator |
+| `unique` | §8, §23.4.7 | Ownership qualifier: `unique let`/`var` (single-owner binding), `unique class` (single-owner class type) |
 | `var` | §6.2 | Mutable binding |
 | `while` | §6.4 | While loop |
-| `with` | §6.6 | Scoped resource management |
+| `with` | §6.6, §10.7 | Scoped resource management (`with (x = expr) { ... }`); also struct copy-with-modification (`s with (field=newValue)`) |
 | `yield` | §7.5 | Generator yield |
-| `borrow` | §7.1, §23.4.1, §23.4.2 | Parameter modifier / field qualifier / lifetime-tracked reference |
-| `bnot` | §3.6, §5.1 | Bitwise NOT operator |
+| `reads` | §23.4.9 | Ownership verb: shared immutable borrow — parameter modifier and call-site acknowledgment (all modes) |
+| `edits` | §23.4.9 | Ownership verb: exclusive mutable borrow — parameter modifier and call-site acknowledgment (all modes) |
+| `takes` | §23.4.9 | Ownership verb: ownership transfer — parameter modifier and call-site acknowledgment (all modes) |
+| `shares` | §23.4.9 | Ownership verb: ARC retain — parameter modifier and call-site acknowledgment (all modes) |
+| `modifier` | §23.4.11 | Method declaration keyword: declares a method that writes `var` fields on `self` (all modes) |
+| `requires` | §23.4.10 | Contract clause keyword: applies verbs to multiple parameters, declares `distinct()` contracts (all modes) |
+| `safe` | §23.4.12 | Context keyword: `safe {}` activates shared-XOR-mutable enforcement; `safe func` propagates the requirement (all modes) |
+| `synchronized` | §23.4.13 | Class modifier: per-instance mutex serializing all `modifier` invocations (scripted, compiled, native) |
+| `unsafe` | §23.4.14 | Lock-release block statement inside a `synchronized` modifier: `unsafe("reason") { ... }` (scripted, compiled, native) |
+| `borrow` | §7.1, §23.4.1, §23.4.2 | Parameter modifier / field qualifier / lifetime-tracked reference — prefer `reads`/`edits` verbs in new code |
+| `arc` | §6.2, §23.4.8 | Explicit ARC ownership binding qualifier (`arc let`, `arc var`) |
+| `atomic` | §17.7 | Cooperative atomicity scope — no suspension points within the block (scripted/compiled) |
+| `bnot` | §3.7, §5.1 | Bitwise NOT operator |
 | `noescape` | §4.4, §23.4.1 | Function type modifier |
+
+**Annotations** — Compile-time annotations recognised by the Loom toolchain:
+
+| Annotation | Section | Description |
+|---|---|---|
+| `@mode` | §2.5 | File-level execution mode declaration |
+| `@entry` | §24.5 | Freestanding: marks the bare binary entry point |
+| `@panic_handler` | §24.6 | Freestanding: custom panic hook (`--panic=custom`) |
+| `@interrupt` | §24.13 | Freestanding: interrupt service routine calling convention |
+| `@naked` | §24.14 | Freestanding: suppresses function prologue and epilogue |
+| `@callconv` | §24.15 | Freestanding: overrides calling convention |
+| `@allocator` | §24.16 | Freestanding: registers custom heap allocator |
+| `@deallocator` | §24.16 | Freestanding: registers matching deallocator |
+| `@volatile` | §24.8 | Freestanding: MMIO volatile borrow parameter modifier |
+| `@repr` | §24.10 | Freestanding/native: struct memory layout control |
+| `@align` | §24.11 | Freestanding/native: minimum alignment in bytes |
+| `@section` | §24.12 | Freestanding: ELF/Mach-O section placement |
+| `@jsexport` | §18.2 | Export a function as callable from JavaScript |
+| `@concurrent` | §17.9.5 | Asserts an `async func` is safe to call from any executor thread |
+| `@deprecated(msg)` | §8.8 | Mark a symbol for future removal; usages emit a compile-time warning |
+| `@webcomponent(name)` | §19.10 | Register a class as a Custom Element with the given tag name |
+| `@attribute` | §19.10 | Declare an observed HTML attribute on a `@webcomponent` class |
+| `@unsafe(reason)` | §23.4.6 | Programmer-asserted safety boundary; bypasses specific compiler verification |
+| `@overflowWrapping` | §4.1.1 | Opt-in wrapping arithmetic for all fixed-width integers in a function |
+| `@interruptSafe` | §24.24.1 | Freestanding: declare a function safe to call from interrupt handler context |
+| `@signalSafe` | §26.9 | Native: declare a function safe to call from OS signal handler context |
+| `@lockOrder(n)` | §23.4.13 | Native: assign a lock-ordering level to a `synchronized` class |
+| `@debug_control_channel` | §24.25.3 | Freestanding `--debug`: register the bidirectional control transport |
+| `@debug_trace_channel` | §24.25.3 | Freestanding `--debug`: register the unidirectional trace transport |
+| `@vectorize` | §8.8 | Hint the compiler to auto-vectorize a `for` loop |
+| `@vectorize(width=N)` | §8.8 | Auto-vectorize hint with explicit SIMD lane count |
 
 **Reserved words** — Reserved for future use; SHALL NOT be used as user identifiers:
 
 | Reserved Word | Section | Description |
 |---|---|---|
-| `final` | §3.3 | Reserved for future use |
-| `macro` | §3.3, §24 | Reserved; used in macro declarations |
-| `module` | §3.3 | Reserved for future use |
-| `override` | §3.3 | Reserved for future use |
-| `package` | §3.3 | Reserved for future use |
-| `sealed` | §3.3 | Reserved for future use |
-| `self` | §3.3 | Reserved for future use |
-| `Self` | §3.3 | Reserved; used as self-type in interfaces |
-| `super` | §3.3 | Reserved for future use |
-| `trait` | §3.3 | Reserved for future use |
-| `volatile` | §3.3 | Reserved for future use |
-| `where` | §3.3 | Reserved for future use |
+| `final` | §3.4 | Reserved for future use |
+| `module` | §3.4 | Reserved for future use |
+| `override` | §3.4 | Reserved for future use |
+| `package` | §3.4 | Reserved for future use |
+| `sealed` | §3.4 | Reserved for future use |
+| `trait` | §3.4 | Reserved for future use |
+| `volatile` | §3.4 | Reserved for future use |
+| `where` | §3.4 | Reserved for future use |
 
 **Contextual keywords** — Special meaning only in specific syntactic positions; may be used as ordinary identifiers elsewhere:
 
 | Contextual Keyword | Section | Description |
 |---|---|---|
+| `box` | §3.4, §4.3 | Contextual in prefix position; makes widening to `Any` explicit. `E_BOX_IN_NATIVE` in native/freestanding |
+| `excl` | §3.4, §23.4.1.1 | Contextual immediately before `borrow` in parameter declarations (`excl borrow`) |
 | `group` | §17.2 | Contextual in `await group { ... }` |
 | `once` | §20.3 | Contextual in debug activation requests |
+| `distinct` | §23.4.10 | Contextual in `requires` clauses and call-site contract acknowledgments |
+| `reinterpret` | §3.4, §24.18 | Contextual in `reinterpret[T, U](expr)`; native/freestanding only; requires `@unsafe` |
+| `reinterpretChecked` | §3.4, §24.18 | Contextual in `reinterpretChecked[T, U](expr)`; native/freestanding only; returns `Result[U, AlignmentError]` |
+| `size_of` | §3.4, §24.4.1 | Contextual in `size_of[T]()`; native/freestanding only |
+| `align_of` | §3.4, §24.4.1 | Contextual in `align_of[T]()`; native/freestanding only |
+| `compiled`, `native`, `scripted`, `freestanding` | §3.4, §2.5 | Contextual mode names in `@mode(X)` and `prefer compiled` clauses; valid identifiers elsewhere |
+| `excl` | §23.4.1.1 | Contextual immediately before `borrow`: `excl borrow param: T`; `@mode(native)` and `@mode(freestanding)` only |
+| `compiled` | §2.4.2, §2.5 | Mode name in `@mode(compiled)` and `prefer compiled` import clauses; valid identifier elsewhere |
+| `scripted` | §2.4.1, §2.5 | Mode name in `@mode(scripted)`; valid identifier elsewhere |
+| `native` | §2.4.3, §23 | Mode name in `@mode(native)`; valid identifier elsewhere |
+| `freestanding` | §2.4.4, §24 | Mode name in `@mode(freestanding)`; valid identifier elsewhere |
+| `reinterpret` | §24.18 | Contextual in `reinterpret[T, U](expr)`; requires `@unsafe`; `@mode(native)` and `@mode(freestanding)` only |
+| `reinterpretChecked` | §24.18 | Contextual in `reinterpretChecked[T, U](expr)`; no `@unsafe` required; returns `Result[U, AlignmentError]`; `@mode(native)` and `@mode(freestanding)` only |
+| `size_of` | §24.4.1 | Contextual in `size_of[T]()`; `@mode(native)` and `@mode(freestanding)` only |
+| `align_of` | §24.4.1 | Contextual in `align_of[T]()`; `@mode(native)` and `@mode(freestanding)` only |
 
-**Lifetime labels** — Reserved sigil for compile-time region identifiers (`--target native` only):
+**Lifetime labels** — Reserved sigil for compile-time region identifiers (`@mode(native)` and `@mode(freestanding)` only):
 
 | Identifier | Section | Description |
 |---|---|---|
@@ -9774,7 +13986,7 @@ policy) is described in the Packages Reference §30.
 |---|---|---|
 | `__name__` | §2.2 | Module name (`"__main__"` for entry script) |
 | `__file__` | §2.2 | Absolute file path of the module |
-| `__execmode__` | §2.2 | `"interpreted"` or `"compiled"` |
+| `__execmode__` | §2.2 | `"interpreted"` (scripted/REPL), `"compiled"` (AOT Wasm), `"native"`, or `"freestanding"` |
 | `__module__` | §2.3 | Declaration-level dunder on named types and functions |
 
 ---
@@ -9786,7 +13998,7 @@ policy) is described in the Packages Reference §30.
 | `()` `[]` `.` `?.` `!{}` `?.[` | 1 | Left | Call, index, member access, safe nav, dynamic access, null-safe index | §5.1 |
 | `typeof` | 2 | Prefix | Type-of operator | §4.7 |
 | `-` (unary) `not` `!` `bnot` | 3 | Prefix | Unary negation, logical not, bitwise not | §5.1 |
-| `box` | 4 | Prefix | Boxing/widening operator | §4.3 |
+| `box` `consume` | 4 | Prefix | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | §4.3, §23.4.7 |
 | `**` | 5 | Right | Exponentiation | §5.1 |
 | `*` `/` `//` `%` | 6 | Left | Multiplication, division, floor division, modulo | §5.1 |
 | `+` `-` | 7 | Left | Addition, subtraction, string concatenation | §5.1 |
@@ -9800,12 +14012,12 @@ policy) is described in the Packages Reference §30.
 | `==` `!=` | 15 | Left | Equality | §5.1 |
 | `is` `instanceof` | 16 | Left | Type check | §4.5, §4.7, §9.5 |
 | `as` `as?` | 17 | Left | Cast operators (narrowing) | §4.3 |
-| `and` `&&` | 18 | Left | Logical AND (short-circuit) | §3.6 |
-| `or` `\|\|` | 19 | Left | Logical OR (short-circuit) | §3.6 |
+| `and` `&&` | 18 | Left | Logical AND (short-circuit) | §3.7 |
+| `or` `\|\|` | 19 | Left | Logical OR (short-circuit) | §3.7 |
 | `??` | 20 | Left | Null coalescing | §5.6 |
 | `? :` | 21 | Right | Ternary conditional | §5.4 |
 | `?` (postfix) | 22 | Postfix | Result propagation | §5.7 |
-| `=` `+=` `-=` `*=` `/=` `%=` `**=` `<<=` `>>=` `&=` `\|=` `^=` | 23 | Right | Assignment | §6.2 |
+| `=` `+=` `-=` `*=` `/=` `//=` `%=` `**=` `<<=` `>>=` `&=` `\|=` `^=` | 23 | Right | Assignment | §6.2 |
 | `*` `**` (prefix, spread) | 24 | Prefix | Spread | §5.8 |
 
 ---
@@ -9824,6 +14036,7 @@ This appendix lists built-in language types only.  Standard library types are in
 | `int16` | 16-bit signed integer | §4.1 |
 | `int32` | 32-bit signed integer | §4.1 |
 | `int64` | 64-bit signed integer | §4.1 |
+| `uint` | Pointer-sized unsigned integer (alias for `uint64` on 64-bit, `uint32` on 32-bit) | §4.1 |
 | `uint8` | 8-bit unsigned integer | §4.1 |
 | `uint16` | 16-bit unsigned integer | §4.1 |
 | `uint32` | 32-bit unsigned integer | §4.1 |
@@ -9862,4 +14075,70 @@ Box types are ABI-internal. User code should not reference them directly. See §
 |---|---|---|
 | `Option[T]` | `Some(T)`, `None` | §9.3 |
 | `Result[T, E]` | `Ok(T)`, `Err(E)` | §9.3 |
+
+### Language Built-in Class Types
+
+These types are defined by the language specification and are available without any import.
+
+| Type | Description | Section |
+|---|---|---|
+| `Any` | Root type for all heap-allocated and boxed values; all classes inherit from `Any` | §4.3 |
+| `Module` | Represents a compiled or loaded module; carries `__name__`, `__file__`, `__execmode__` and reflection methods | §2.3 |
+| `Template` | Compile-time value produced by a template fence; carries `language`, `format`, and rendering methods | §16.3 |
+| `RenderContext` | Rendering context (language + format) passed to `Renderable.render()` | §16.3 |
+| `SafeHtml` | Pre-escaped trusted HTML content; inserted without further escaping in `html` fences | §16.6.7 |
+| `Url` | Validated URL wrapper; rejects disallowed schemes (e.g. `javascript:`) | §16.6.7 |
+| `ClassName` | Scoped CSS class name string produced by a `css` fence; implements `Renderable` | §16.7.1 |
+| `StyleSheet` | Collection of `ClassName` values produced by a `css` fence; provides `toCSS()` | §16.7.1 |
+| `EffectHandle` | Handle returned by `effect(fn)` for disposing a reactive effect | §19.1 |
+| `Signal[T]` | Reactive signal — readable/writable cell that tracks dependents | §19.1 |
+| `ComponentRegistry` | Mapping from tag names to component functions used by `ui` and `html` fences | §19.6 |
+| `MountHandle` | Handle returned by `mount()` for unmounting a component tree | §19.3 |
+| `ActorContext` | Implicit context inside `Actor.spawn` handler for replying to `ask` calls | §17.6 |
+| `Type` | Reified type value produced by `typeof expr`; carries `name`, `params()`, and reflection methods | §4.7, §21.11 |
+| `StackFrame` | One frame in an exception's `stackTrace`; carries `file`, `line`, `column`, `function` | §26.1 |
+| `PanicSource` | Discriminant enum identifying the source of a freestanding panic | §24.6 |
+| `NativeHandle` | Opaque built-in C-pointer type at the FFI boundary; non-`Sendable` by default | §18.4 |
+| `DebugFrame` | One frame in the debug trace ring buffer; carries file, line, callable, exec-mode, and locals | §20.3 |
+| `TraceEvent` | Entry recorded by the tracing subsystem; carries `kind`, `portal`, `callable`, `file`, `line` | §20.3 |
+| `FreestandingDebugFrame` | Fixed-size freestanding trace frame (no heap); carries source-location offsets only | §24.25.2 |
+
+### UI Built-in Types
+
+The following opaque types are produced exclusively by the `ui` subsystem and are available on all targets.
+
+| Type | Description | Section |
+|---|---|---|
+| `View` | Opaque description of UI content; produced by `ui` and `html` fences and component functions | §19.4 |
+| `MountTarget` | Opaque platform rendering root; obtained from `runtime.ui.rootMount()`, selector strings, `Element`, or `Window` | §19.3 |
+
+### Freestanding and Native Built-in Types
+
+The following types are available in `@mode(native)` and `@mode(freestanding)` unless otherwise noted.
+
+| Type | Description | Mode | Section |
+|---|---|---|---|
+| `MaybeUninit[T]` | Wrapper for memory not yet initialized | Native, Freestanding | §24.17 |
+| `Volatile[T]` | MMIO wrapper enforcing volatile load/store semantics | Freestanding | §24.9 |
+| `InterruptFrame` | CPU exception frame layout (architecture-specific `@repr(C)` struct) | Freestanding | §24.13 |
+| `PartialInit[T]` | Tracks incremental field initialization of a `@repr(C)` struct at compile time | Native, Freestanding | §24.17a |
+| `DmaBuffer[T]` | Exclusive DMA-safe memory buffer with CPU/DMA access arbitration | Freestanding | §24.20 |
+| `DmaTransfer` | Active DMA transfer token — holds exclusive borrow of the associated `DmaBuffer[T]` | Freestanding | §24.20 |
+| `InterruptGuard` | RAII scope guard that disables interrupts on entry and re-enables on drop | Freestanding | §24.24 |
+| `PinnedRef[T]` | ARC-pinned lifetime anchor preventing GC collection while a native library holds a raw pointer | Native, Freestanding | §18.4 |
+| `OwnedHandle` | Owned `NativeHandle` wrapper with destructor registration | Native, Freestanding | §18.4 |
+| `BorrowedHandle` | Borrowed `NativeHandle` wrapper with lifetime tracking | Native, Freestanding | §18.4 |
+| `Mutex[T]` | OS-thread mutex wrapping `T`; always `Sendable` | Native | §17.8.2 |
+| `RwLock[T]` | OS-thread reader/writer lock wrapping `T`; always `Sendable` | Native | §17.8.2 |
+| `Atomic[T]` | Atomic cell for sequentially-consistent load/store/RMW on primitives | Native, Freestanding | §17.8.2 |
+| `Thread` | OS thread handle — spawn, join, detach | Native | §17.8.3 |
+| `ThreadHandle[T]` | Typed join handle returned by `Thread.spawnWith` | Native | §17.8.3 |
+| `ThreadPool` | Work-submission pool bridging async tasks to OS threads | Native | §17.8.4 |
+| `ThreadLocal[T]` | Per-OS-thread storage, initialized lazily | Native | §17.9.7 |
+| `TaskLocal[T]` | Per-async-task storage that follows the task across resumptions | Scripted, Compiled, Native | §17.9.8 |
+| `ScriptWorker[M]` | Isolated worker Wasm instance with typed `Sendable` message channel | Scripted, Compiled, Native | §17.10.2 |
+| `WorkerChannel[T]` | Worker-side message channel, valid only inside `workerMain` | Scripted, Compiled, Native | §17.10.3 |
+| `CancellationToken` | Cooperative cancellation signal for `TaskGroup.withCancellation` | All | §17.3 |
+| `Task[T]` | Async task handle returned by `async func` invocations | Scripted, Compiled, Native | §17.1 |
+| `Actor[M]` | Supervised message-processing actor handle | Scripted, Compiled, Native | §17.6 |
 

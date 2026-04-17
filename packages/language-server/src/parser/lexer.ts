@@ -10,6 +10,7 @@ export enum TokenKind {
   MultilineStringLiteral = 'MultilineStringLiteral',
   BytesLiteral = 'BytesLiteral',
   RawStringLiteral = 'RawStringLiteral',
+  InterpolatedStringLiteral = 'InterpolatedStringLiteral',
   TemplateFenceOpen = 'TemplateFenceOpen',
   TemplateFenceClose = 'TemplateFenceClose',
 
@@ -94,6 +95,7 @@ export enum TokenKind {
   Trait = 'trait',
   Volatile = 'volatile',
   Where = 'where',
+  Excl = 'excl',
 
   // Field qualifiers
   Weak = 'weak',
@@ -261,6 +263,7 @@ const KEYWORDS: Record<string, TokenKind> = {
   'trait': TokenKind.Trait,
   'volatile': TokenKind.Volatile,
   'where': TokenKind.Where,
+  'excl': TokenKind.Excl,
   'and': TokenKind.And,
   'or': TokenKind.Or,
   'weak': TokenKind.Weak,
@@ -350,6 +353,11 @@ export class Lexer {
     // Raw string literal: r"..." or r'...'
     if (ch === 'r' && (next === '"' || next === "'")) {
       return this.readRawString(next);
+    }
+
+    // Interpolated string literal: i"..." or i'...'
+    if (ch === 'i' && (next === '"' || next === "'")) {
+      return this.readInterpolatedString(next);
     }
 
     // Strings
@@ -560,6 +568,34 @@ export class Lexer {
       this.column++;
     }
     return this.makeToken(TokenKind.RawStringLiteral, this.source.slice(start, this.pos), start);
+  }
+
+  private readInterpolatedString(quote: string): Token {
+    const start = this.pos;
+    this.pos++; // skip 'i'
+    this.column++;
+    this.pos++; // skip opening quote
+    this.column++;
+    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
+      if (this.source[this.pos] === '\\') {
+        this.pos++;
+        this.column++;
+      }
+      if (this.pos < this.source.length) {
+        if (this.source[this.pos] === '\n') {
+          this.line++;
+          this.column = 0;
+        } else {
+          this.column++;
+        }
+        this.pos++;
+      }
+    }
+    if (this.pos < this.source.length) {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken(TokenKind.InterpolatedStringLiteral, this.source.slice(start, this.pos), start);
   }
 
   private readMultilineString(quote: string): Token {

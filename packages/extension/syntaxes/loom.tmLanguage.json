@@ -13,6 +13,7 @@
     { "include": "#multiline-string-single" },
     { "include": "#bytes-literal" },
     { "include": "#raw-string" },
+    { "include": "#interpolated-strings" },
     { "include": "#strings" },
     { "include": "#numbers" },
     { "include": "#keywords" },
@@ -156,7 +157,7 @@
         },
         {
           "name": "storage.modifier.loom",
-          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime)\\b"
+          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime|excl)\\b"
         }
       ]
     },
@@ -280,6 +281,39 @@
       ]
     },
 
+    "interpolated-strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.interpolated.loom",
+          "begin": "\\b(i)(\")",
+          "end": "\"",
+          "beginCaptures": {
+            "1": { "name": "storage.type.string.interpolated.loom" },
+            "2": { "name": "punctuation.definition.string.begin.loom" }
+          },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "patterns": [
+            { "include": "#string-interpolation" },
+            { "include": "#string-escape" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.interpolated.loom",
+          "begin": "\\b(i)(')",
+          "end": "'",
+          "beginCaptures": {
+            "1": { "name": "storage.type.string.interpolated.loom" },
+            "2": { "name": "punctuation.definition.string.begin.loom" }
+          },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "patterns": [
+            { "include": "#string-interpolation" },
+            { "include": "#string-escape" }
+          ]
+        }
+      ]
+    },
+
     "strings": {
       "patterns": [
         {
@@ -289,7 +323,6 @@
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
           "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
           "patterns": [
-            { "include": "#string-interpolation" },
             { "include": "#string-escape" }
           ]
         },
@@ -300,7 +333,6 @@
           "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
           "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
           "patterns": [
-            { "include": "#string-interpolation" },
             { "include": "#string-escape" }
           ]
         }

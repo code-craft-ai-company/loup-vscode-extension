@@ -1,9 +1,9 @@
-# Loom Language Reference v1.10
+# Loom Language Reference v1.12
 
 **Status:** Release
-**Version:** 1.10.0
-**Date:** 2026-04-09
-**Supersedes:** 1.9.0
+**Version:** 1.12.0
+**Date:** 2026-04-11
+**Supersedes:** 1.11.0
 **Scope:** Core language — syntax, semantics, type system, concurrency, FFI,
   template fences, reactive UI, compiled mode, native compilation, macros,
   failure policy, formal grammar, and tooling.
@@ -94,6 +94,7 @@
   - [§10.1 Auto-Generated Constructors](#101-auto-generated-constructors)
   - [§10.2 Immutability and Mutability](#102-immutability-and-mutability)
   - [§10.3 Value Semantics](#103-value-semantics)
+  - [§10.3.1 Pure Value Type Invariant](#1031-pure-value-type-invariant)
   - [§10.4 Relationship to `Any`](#104-relationship-to-any)
   - [§10.5 Methods](#105-methods)
   - [§10.6 Generic Structs](#106-generic-structs)
@@ -160,7 +161,7 @@
   - [§18.2 `@jsexport`](#182-jsexport)
   - [§18.3 Typed JS Facades (`lang.interop.js`)](#183-typed-js-facades-langinteropjs)
   - [§18.4 Native Interop (`extern native`)](#184-native-interop-extern-native)
-  - [§18.5 FFI Thread Safety (`@threadSafe`, `ThreadSafeHandle`)](#185-ffi-thread-safety)
+  - [§18.5 FFI Thread Safety (`@unsafe("threadSafe: ...")`, `ThreadSafeHandle`)](#185-ffi-thread-safety)
 - [§19 Reactive UI (`ui`)](#19-reactive-ui)
   - [§19.1 Signals](#191-signals)
   - [§19.2 Components and `ComponentRegistry`](#192-components-and-componentregistry)
@@ -218,10 +219,12 @@
   - [§23.3 Linker](#233-linker)
   - [§23.4 ARC Memory Management](#234-arc-memory-management)
     - [§23.4.1 ARC Elision via `borrow` and `noescape fn`](#2341-arc-elision-via-borrow-and-noescape-fn)
-    - [§23.4.2 Lifetime Tracking and Region Inference](#2342-lifetime-tracking-and-region-inference)
+    - [§23.4.1.1 `excl borrow` on Structs](#23411-excl-borrow-on-structs)
+  - [§23.4.2 Lifetime Tracking and Region Inference](#2342-lifetime-tracking-and-region-inference)
     - [§23.4.3 Lifetime-Verified `unowned[~name]` Fields](#2343-lifetime-verified-unownedname-fields)
     - [§23.4.4 Inferred Struct Lifetimes](#2344-inferred-struct-lifetimes)
     - [§23.4.5 `@noalias` — Disjoint Buffer Annotation](#2345-noalias--disjoint-buffer-annotation)
+  - [§23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary](#2346-unsafe--programmer-asserted-safety-boundary)
   - [§23.5 ARC and the Interpreted/Compiled Boundary](#235-arc-and-the-interpretedcompiled-boundary)
   - [§23.6 ABI Stability](#236-abi-stability)
   - [§23.7 C Header Interop](#237-c-header-interop)
@@ -569,6 +572,7 @@ self       Self       override   final      sealed     volatile
 
 - `group` — contextual in `await group { ... }`
 - `once` — contextual in debug activation requests
+- `excl` — contextual immediately before `borrow` in parameter declarations (`excl borrow param: StructType`); see §23.4.1.1
 
 **Dunder identifiers.** Identifiers beginning and ending with double underscores (`__name__`, `__file__`, `__execmode__`) are reserved for language-defined module introspection variables. User code SHALL NOT declare bindings with dunder names.
 
@@ -661,13 +665,35 @@ A `float32` literal may lose precision relative to the source value — the comp
 
 #### String Literals
 
-String literals are delimited by double quotes (`"`) or single quotes (`'`). All strings are UTF-8 encoded sequences of Unicode scalar values.
+Loom supports three standard forms of string literals: **normal strings**, **interpolated strings**, and **raw strings**. All strings are UTF-8 encoded sequences of Unicode scalar values.
+
+**Normal Strings**
+Normal strings are delimited by double quotes (`"`) or single quotes (`'`). They process escape sequences but **do not** evaluate inline expressions (`{$...$}`).
 
 ```
 "hello, world"
 'single-quoted string'
 "line one\nline two"
 ```
+
+**Interpolated Strings**
+Interpolated strings process escape sequences and evaluate inline expressions. They are prefixed with `i`:
+
+```
+let name = "Alice";
+i"hello, {$ name $}"
+i'single-quoted with {$ 42 $}'
+```
+
+**Raw Strings**
+Raw strings process neither escape sequences nor inline expressions. They are prefixed with `r`:
+
+```
+r"no \n escape here"
+r'C:\Users\name\file.txt'
+r"backslashes are literal\"
+```
+*Note:* In raw strings, a backslash before the closing quote acts as an escape for the quote itself—preventing string termination—while retaining both the backslash and the quote in the string content. As a result, a raw string cannot end with an odd number of backslashes.
 
 **Escape sequences:**
 
@@ -682,15 +708,6 @@ String literals are delimited by double quotes (`"`) or single quotes (`'`). All
 | `\0` | Null character |
 | `\uXXXX` | Unicode code point (4 hex digits) |
 | `\u{XXXXXX}` | Unicode code point (1–6 hex digits) |
-
-**Raw strings** disable escape processing. They are prefixed with `r`:
-
-```
-r"no \n escape here"
-r'C:\Users\name\file.txt'
-```
-
-Raw strings may not contain the delimiter character (use the other quote style or a multiline string).
 
 **String concatenation** uses the `+` operator:
 
@@ -727,7 +744,7 @@ let bad1: char = c"";    // compile-time error: empty char literal
 let bad2: char = c"ab";  // compile-time error: multiple scalar values
 ```
 
-A `char` value is not implicitly coercible to `string`. Use `c.toString()` or string interpolation `"{$ c $}"` to convert.
+A `char` value is not implicitly coercible to `string`. Use `c.toString()` or string interpolation `i"{$ c $}"` to convert.
 
 #### Boolean Literals
 
@@ -995,7 +1012,7 @@ let pi:    decimal = decimal("3.14159265358979323846264338327950288");
 let c: char = c"A";
 let n: int    = c.toInt();         // 65  — explicit
 let s: string = c.toString();      // "A" — explicit
-let s2: string = "{$ c $}";        // "A" — interpolation auto-converts
+let s2: string = i"{$ c $}";        // "A" — interpolation auto-converts
 
 let c2: char  = char.of(65)?;      // Option[char]: Some(c"A")
 let c3: char  = "hello"[0];        // char: c"h"
@@ -3374,7 +3391,7 @@ pub func oldMethod(): void { ... }
 | `@compiled` | File (first line) | Marks a file as compiled mode (see §22) |
 | `@jsexport` | `func`, `async func` | Marks a function as callable from JavaScript (see §18.2) |
 | `@concurrent` | `async func` | Asserts function is safe from any executor thread; enforces Sendable captures (§17.9.5) |
-| `@threadSafe` | `extern native func` | Declares FFI function safe for concurrent multi-thread calls (§18.5.1) |
+| `@unsafe(reason)` | `extern native func`, `class`, `func` | Programmer-asserted safety claim, bypassing compiler verification; see §23.4.6 |
 | `@vectorize` | `for` loop | Hints compiler to auto-vectorize the loop body (§21.16) |
 | `@vectorize(width=N)` | `for` loop | Same with suggested SIMD lane count (§21.16) |
 | `@overflowWrapping` | `func` | Opt-in wrapping arithmetic for all fixed-width integers in the function (§4.1.1) |
@@ -3653,6 +3670,71 @@ Structs have value semantics:
 - Structs are hashable if all their fields are hashable.
 - The runtime may use copy-on-write or other optimizations as long as observable semantics match.
 
+### §10.3.1 Pure Value Type Invariant
+
+*(This section is normative. Applies to all targets and all execution modes.)*
+
+A struct field may not have a class type. The field's declared type must be one of:
+
+- A primitive type (`int`, `float`, `bool`, `char`, `string`, `bytes`, `bigint`, `decimal`, or any fixed-width numeric type)
+- A built-in collection type (`list[T]`, `dict[K, V]`, `set[T]`, `tuple[...]`) where all type arguments also satisfy this rule recursively
+- Another struct, provided that struct also satisfies this rule
+- An enum, provided all variant payloads satisfy this rule
+- A function type (`fn(...)`, `noescape fn(...)`)
+- `Option[T]` or `Result[T, E]` where `T` and `E` satisfy this rule
+- A `borrow[~name]` reference (`@compiled --target native` only)
+
+Declaring a struct field whose resolved type is a class is a compile-time error (`E_STRUCT_CLASS_FIELD`).
+
+```loom
+class Connection : Any { ... }
+
+// COMPILE ERROR — class reference in struct field
+struct Request {
+  var path: string        // OK — primitive
+  var conn: Connection    // E_STRUCT_CLASS_FIELD
+}
+
+// OK — all fields are value types
+struct Request {
+  var path: string
+  var headers: dict[string, string]
+  var body: bytes
+}
+```
+
+**Generic structs.** For a generic struct with an unconstrained type parameter `T`, the compiler checks §10.3.1 at each instantiation site against the resolved concrete type. If the resolved type is a class, `E_STRUCT_CLASS_FIELD` is emitted at the instantiation site.
+
+To enforce the constraint at the definition site and produce a clearer error at call sites, annotate the type parameter with the `ValueType` constraint:
+
+```loom
+// Unconstrained — error surfaces at instantiation site
+struct Box[T] {
+  var value: T
+}
+let b = Box[Connection](value=conn)      // E_STRUCT_CLASS_FIELD
+
+// Constrained — error at definition if violated; clearer message at call sites
+struct Box[T: ValueType] {
+  var value: T
+}
+let b = Box[Connection](value=conn)      // E_VALUETYPE_CONSTRAINT: Connection does not satisfy ValueType
+```
+
+**`ValueType` constraint.** `ValueType` is a compiler-intrinsic type constraint. It is satisfied automatically by any type that passes §10.3.1 — primitives, structs, enums, built-in collections with `ValueType` type arguments, and function types. It is never satisfied by a class type. `ValueType` cannot be implemented or extended by user code; it is not an interface.
+
+**Rationale.** Permitting class-typed fields would introduce shared heap aliasing through struct copy semantics — two copies of the same struct would reference the same heap object, violating the independence that value semantics implies. Keeping structs free of class references ensures that copies are always fully independent, that `excl borrow` on structs is always deeply exclusive, and that the struct/class boundary is unambiguous across all targets and execution modes.
+
+**When you need a reference-typed container holding other reference-typed objects**, use a class. The `structures.*` module provides class-based mutable container types for this purpose.
+
+**Error codes.**
+
+| Code | Meaning |
+|---|---|
+| `E_STRUCT_CLASS_FIELD` | Struct field's resolved type is a class — at definition for concrete fields, at instantiation for generic fields |
+| `E_VALUETYPE_CONSTRAINT` | Type argument does not satisfy the `ValueType` constraint |
+
+
 ### §10.4 Relationship to `Any`
 
 Structs do NOT inherit from `Any` and are NOT classes:
@@ -3748,10 +3830,10 @@ Structs are the preferred type for `@compiled` mode data records — they map di
 
 | Type | Fields | Semantics | Inheritance | Use Case |
 |---|---|---|---|---|
-| `struct` | Named | Value | None | Plain data records |
+| `struct` | Named | Value (pure — no class fields, §10.3.1) | None | Plain data records |
 | `class` | Named | Reference | Single + interfaces | Objects with identity, polymorphism |
 | `tuple` | Positional | Value | None | Ad-hoc groupings |
-| `enum` | Named variants | Value | None | Sum types / tagged unions |
+| `enum` | Named variants | Value (payloads must satisfy §10.3.1) | None | Sum types / tagged unions |
 
 
 ### §10.11 Lifetime-Parameterized Structs
@@ -5489,13 +5571,20 @@ interface Sendable {}
 - `Mutex[T]`, `RwLock[T]`, and `Atomic[T]` (see §17.8.2), regardless of `T`.
 - Closures whose captured values are all `Sendable` are themselves `Sendable`.
 
-**Explicit `Sendable`.** Classes must explicitly declare `implements Sendable`. The compiler does not infer `Sendable` for classes. A class declaring `Sendable` asserts that its author guarantees thread-safe access. The compiler does not verify this assertion — the author is responsible for correctness (typically by holding all mutable state in `Mutex[T]` or `RwLock[T]` fields).
+**Explicit `Sendable` with structural verification.** Classes must explicitly declare `implements Sendable`. The compiler does not infer `Sendable` for classes. When a class declares `implements Sendable`, the compiler performs **structural `Sendable` verification**: every `var` field must be of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]`. These are the only types that provide synchronized mutable access safe for concurrent use. `let` fields are exempt — immutable fields are inherently safe to share across threads regardless of type.
+
+A `var` field of any other type — including `Sendable` types such as `int` or `string` — on a class declaring `implements Sendable` is a compile-time error (`E_SENDABLE_UNPROTECTED_VAR`). Even `Sendable` value types are unsafe as unprotected `var` fields because two threads could simultaneously read-modify-write the field, producing a data race.
 
 ```loom
 @compiled
 
-class EventCounter : Any implements Sendable {
-  // All mutable state is protected by a mutex — safe to share across threads.
+// COMPILE ERROR — unprotected var field
+class UnsafeCounter : Any implements Sendable {
+  var count: int = 0    // E_SENDABLE_UNPROTECTED_VAR
+}
+
+// OK — all mutable state behind Mutex
+class SafeCounter : Any implements Sendable {
   let count: Mutex[int] = Mutex.new(0);
 
   pub func increment(): void {
@@ -5507,6 +5596,24 @@ class EventCounter : Any implements Sendable {
   }
 }
 ```
+
+To opt out of structural verification when the compiler cannot see the synchronization mechanism — for example, when safety is ensured by an external lock or protocol — annotate the class with `@unsafe("sendable: <reason>")` (see §23.4.6). The `@unsafe` annotation is the explicit, auditable record of the programmer's assertion.
+
+```loom
+@compiled
+
+// OK — programmer asserts external synchronization via @unsafe
+@unsafe("sendable: access is serialized by the event loop; no concurrent mutation occurs")
+class LegacyState : Any implements Sendable {
+  var value: int = 0
+}
+```
+
+**Error code.**
+
+| Code | Meaning |
+|---|---|
+| `E_SENDABLE_UNPROTECTED_VAR` | Class declares `implements Sendable` but has a `var` field not of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]` |
 
 **Non-`Sendable` types.** Types not implementing `Sendable` may not cross thread boundaries. Attempting to capture a non-`Sendable` value in a `Thread.spawn` closure is a compile-time error.
 
@@ -6274,7 +6381,7 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 - `extern native` is only valid on `cli` and `service` targets.
 - Passing a Loom `string` to a native function expecting a C string provides a null-terminated UTF-8 copy for the duration of the call.
 - Memory management of native resources is the caller's responsibility; use `defer` for cleanup.
-- All `extern native` function parameters that receive `borrow` or `borrow[~label]` values are implicitly `noescape`. The compiler verifies that no `borrow[~label]` value escapes the native call. A native function that requires the pointer to outlive the call must be annotated `@escapingBorrow`; every call site must carry `@unsafeEscapingBorrow` to acknowledge that the caller asserts the borrowed value outlives the native call.
+- All `extern native` function parameters that receive `borrow` or `borrow[~label]` values are implicitly `noescape`. The compiler verifies that no `borrow[~label]` value escapes the native call. A native function that requires the pointer to outlive the call must be annotated `@unsafe("escapingBorrow: <reason>")` at the declaration site; every call site must also carry `@unsafe("escapingBorrow: <reason>")` to acknowledge that the caller asserts the borrowed value outlives the native call. See §23.4.6.
 
 ---
 
@@ -6282,28 +6389,31 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 
 ---
 
-### §18.5 FFI Thread Safety (`@threadSafe`, `ThreadSafeHandle`)
+### §18.5 FFI Thread Safety (`@unsafe("threadSafe: ...")`, `ThreadSafeHandle`)
 
 *(This section is normative. Applies to `@compiled` files targeting `--target native`.)*
 
-Native libraries accessed via `extern native` vary widely in their thread-safety properties. The FFI layer provides two constructs for expressing and enforcing thread safety of native handles: the `@threadSafe` annotation and the `ThreadSafeHandle` wrapper type.
+Native libraries accessed via `extern native` vary widely in their thread-safety properties. The FFI layer provides two constructs for expressing and enforcing thread safety of native handles: the `@unsafe("threadSafe: ...")` annotation (§23.4.6) and the `ThreadSafeHandle` wrapper type.
 
-#### §18.5.1 `@threadSafe` Annotation
+#### §18.5.1 `@unsafe("threadSafe: ...")` Annotation
 
 ```loom
 // Declares that the external function is safe to call concurrently from multiple threads.
-// This is a programmer assertion — the compiler does not verify it.
-@threadSafe
+// This is a programmer assertion — use @unsafe to make the assertion auditable.
+@unsafe("threadSafe: libpq pq_exec is documented as thread-safe when using separate connections")
 extern native "libpq" func pq_exec(conn: NativeHandle, query: string): NativeHandle;
 ```
 
-`@threadSafe` on an `extern native` declaration:
+`@unsafe("threadSafe: <reason>")` on an `extern native` declaration:
 
 - Marks the function as safe to call from any OS thread.
 - Allows the function to be called from `Thread.spawn` closures and `spawnBlocking` bodies without triggering a non-`Sendable` capture error on the handle argument.
-- Is a **programmer assertion** — the compiler trusts the declaration. If the underlying library is not actually thread-safe, data races and undefined behaviour are the programmer's responsibility.
+- Is a **programmer assertion** via the unified `@unsafe` surface (§23.4.6) — the compiler trusts the declaration. If the underlying library is not actually thread-safe, data races and undefined behaviour are the programmer's responsibility.
+- The required reason string documents the basis for the thread-safety claim, making the assertion greppable and auditable.
 
-Without `@threadSafe`, an `extern native` function is assumed non-thread-safe. Its `NativeHandle` arguments are non-`Sendable` by default and may not cross thread boundaries.
+Without `@unsafe("threadSafe: ...")`, an `extern native` function is assumed non-thread-safe. Its `NativeHandle` arguments are non-`Sendable` by default and may not cross thread boundaries.
+
+The retired `@threadSafe` annotation is no longer accepted. All thread-safety assertions on `extern native` declarations must use `@unsafe("threadSafe: <reason>")`.
 
 #### §18.5.2 `ThreadSafeHandle`
 
@@ -6332,7 +6442,7 @@ from native.ffi import (ThreadSafeHandle);
 
 extern native "libpq" func pq_connect(connstr: string): NativeHandle;
 
-@threadSafe
+@unsafe("threadSafe: libpq pq_exec is documented thread-safe with separate connection handles")
 extern native "libpq" func pq_exec(conn: NativeHandle, query: string): NativeHandle;
 
 async func runQuery(handle: ThreadSafeHandle, query: string): Task[NativeHandle] {
@@ -7223,6 +7333,7 @@ The following constructs are prohibited in `@compiled` files:
 - `box` keyword expression — explicit widening at `Option[Any]` boundary positions.
 - `as` and `as?` cast operators — narrowing at `Option[Any]` boundary positions.
 - `borrow` parameter modifier — ARC retain/release elision for provably non-escaping values; `--target native` only.
+- `excl borrow` parameter modifier — exclusive borrow on struct-typed parameters; deeply exclusive by construction (§10.3.1); `--target native` only (§23.4.1.1).
 - `borrow[~name]` parameter — lifetime-tracked non-owning reference; `--target native` only (§7.1, §23.4.2).
 - `borrow` struct field qualifier — non-owning struct field; `--target native` only.
 - `lifetime ~name` generic parameter — declares a named region for lifetime tracking; `--target native` only (§10.11, §11.4, §12.1, §23.4.2).
@@ -7392,6 +7503,76 @@ Two constructs guide the compiler to elide ARC operations on specific hot paths:
 **`noescape fn` closure parameters.** The compiler may pass a `noescape fn` closure as a raw function pointer and captured-environment pointer pair, without ARC-retaining the closure object. For closures whose captures are all stack-resident values (no heap-allocated `var` bindings, no class instances captured by reference), the compiler may represent the entire closure on the stack with zero heap allocation.
 
 The combined pattern produces zero ARC activity on hot iteration paths. For lifetime tracking of `borrow[~name]` references that flow beyond the call frame, see §23.4.2.
+### §23.4.1.1 `excl borrow` on Structs
+
+*(This section is normative. Applies to `@compiled --target native`.)*
+
+`excl borrow` is an exclusive borrow modifier for struct-typed parameters. It extends `borrow` with a compile-time exclusivity guarantee: the compiler verifies that no other `borrow` or `excl borrow` of the same binding is active simultaneously at the call site.
+
+**Syntax.**
+
+```loom
+func fill(excl borrow buf: Buffer): void {
+  buf.data = bytes.alloc(1024);
+  buf.pos = 0;
+}
+```
+
+`excl borrow` appears immediately before the parameter name, after the optional `borrow` keyword position. The two-token sequence `excl borrow` is the full modifier; `excl` alone is not a keyword.
+
+**Why the exclusivity guarantee is deep.** Because §10.3.1 prohibits class-typed fields in structs, every field of a struct is a value type — a pure, independent copy. There is no aliased heap state reachable through a struct's fields. An exclusive borrow of a struct is therefore a genuinely complete exclusivity guarantee with no caveats, unlike a hypothetical exclusive borrow of a class instance which could have hidden ARC aliases.
+
+**Compiler verification.** At each call site, the compiler verifies that the argument binding has no simultaneous active `borrow` or `excl borrow`. If the same binding is borrowed — either shared or exclusively — at the point of a `excl borrow` call, `E_EXCL_BORROW_ALIAS` is emitted.
+
+```loom
+@compiled
+
+struct Cursor {
+  var pos: int;
+  var source: string;
+}
+
+func advance(excl borrow cursor: Cursor): void {
+  cursor.pos += 1;
+}
+
+func peek(borrow cursor: Cursor): string {
+  return cursor.source[cursor.pos : cursor.pos + 1];
+}
+
+func process(): void {
+  var c = Cursor(pos=0, source="hello");
+
+  advance(excl borrow c);         // OK — no other borrow active
+  peek(borrow c);                // OK — advance has returned
+
+  // COMPILE ERROR: simultaneous borrows
+  let p = peek(borrow c);
+  advance(excl borrow c);         // E_EXCL_BORROW_ALIAS: c is already borrowed by peek
+}
+```
+
+**What is permitted inside a `excl borrow` body.** The parameter may be read, have its fields mutated, be passed to `borrow` or `excl borrow` parameters, and be used as a `borrow[~name]` source. It may not be returned as an owned value and may not be stored in a class field.
+
+**`excl borrow` and ARC elision.** `excl borrow` inherits all ARC elision properties of `borrow`: no `retain()` on entry, no `release()` on exit. The exclusivity guarantee is a static analysis property only; it has zero runtime cost.
+
+**Restrictions.**
+
+- `excl borrow` is valid only on struct-typed parameters. Using it on a class type, primitive, enum, or `Any` is `E_EXCL_BORROW_NOT_STRUCT`.
+- `excl borrow` is prohibited in `async func` signatures — async functions may suspend after the caller's frame has advanced (`E_EXCL_BORROW_ASYNC`).
+- `excl borrow` bindings may not be captured by `Thread.spawn`, `Thread.spawnWith`, or `ThreadPool.run` closures (`E_EXCL_BORROW_THREAD_CAPTURE`).
+- `excl borrow` is valid only in `@compiled --target native`. Using it in scripted mode or Wasm-targeted compiled mode is a compile-time error.
+
+**Error codes.**
+
+| Code | Meaning |
+|---|---|
+| `E_EXCL_BORROW_ALIAS` | A `excl borrow` argument binding has a simultaneous active `borrow` or `excl borrow` at the call site |
+| `E_EXCL_BORROW_NOT_STRUCT` | `excl borrow` applied to a non-struct type |
+| `E_EXCL_BORROW_ASYNC` | `excl borrow` parameter declared in an `async func` signature |
+| `E_EXCL_BORROW_THREAD_CAPTURE` | `excl borrow` binding captured by a thread-spawning closure |
+
+
 
 ```loom
 @compiled
@@ -7446,6 +7627,7 @@ Lifetime tracking is a compile-time mechanism for verifying the safety of non-ow
 | `E_UNOWNED_NO_LIFETIME` | `unowned` field on a class has no lifetime annotation — must use `unowned[~name]` |
 | `E_UNOWNED_CLASS_NO_PARAM` | Class has an `unowned[~name]` field but does not declare `[lifetime ~name]` as a class parameter |
 | `E_UNOWNED_LIFETIME_MISMATCH` | Value assigned to `unowned[~name]` field does not originate from a scope that contains `~name` |
+| `E_SENDABLE_UNPROTECTED_VAR` | Class declares `implements Sendable` but has a `var` field not of type `Mutex[T]`, `RwLock[T]`, or `Atomic[T]` (§17.8.1) |
 
 **Relationship to ARC.** ARC and lifetime tracking address separate questions:
 
@@ -7454,7 +7636,7 @@ Lifetime tracking is a compile-time mechanism for verifying the safety of non-ow
 | How long does a heap object live? | ARC retain/release | Runtime |
 | Does a non-owning reference outlive its source stack frame? | Lifetime tracking (`borrow[~name]`) | Compile time |
 | Does an `unowned[~name]` field referent outlive the holder? | Region containment (rule 7) | Compile time |
-| Can a class instance be shared across threads safely? | `Sendable` marker | Compile time |
+| Can a class instance be shared across threads safely? | `Sendable` + structural verification (§17.8.1) | Compile time |
 
 These three mechanisms are independent. A function may use all three simultaneously: an ARC-managed class parameter, a `borrow` parameter (ARC elided), and a `borrow[~src]` parameter (ARC elided, lifetime tracked) without any interaction between the systems.
 
@@ -7621,6 +7803,84 @@ func vectorAdd(
 - Multiple `@noalias` parameters in the same function signature assert pairwise disjointness: all pairs `(p_i, p_j)` where `i ≠ j` are asserted non-overlapping.
 
 **ABI effect.** On native targets, `@noalias borrow T` parameters are emitted with the `noalias` LLVM IR attribute (equivalent to C's `__restrict__`). This propagates the aliasing information through the optimisation pipeline.
+
+### §23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary
+
+*(This section is normative. Applies to `@compiled --target native` unless otherwise noted.)*
+
+`@unsafe(reason: string)` is the single, unified annotation for all programmer-asserted safety claims in Loom. It consolidates what were previously scattered, ad-hoc annotations into one auditable surface. Every use of `@unsafe` is a greppable record of a specific safety property that the programmer asserts and the compiler cannot verify.
+
+**The required `reason` string** documents what is being asserted. It is not optional — `@unsafe` without a reason string is a compile-time error. The reason string is preserved in the binary's debug metadata and is accessible via `core.reflect`.
+
+**Valid targets.**
+
+| Target | What `@unsafe` asserts |
+|---|---|
+| `extern native func` declaration | The function has programmer-asserted safety properties — thread safety, escaping borrow lifetime, or both |
+| `class` declaration | The class's `implements Sendable` claim is valid despite having `var` fields that do not pass structural verification (§17.8.1) |
+| `func` declaration | The function body calls `@unsafe`-annotated APIs; marks the function as an auditable unsafe boundary |
+
+**Thread-safety assertion on `extern native`.** Replaces the retired `@threadSafe` annotation:
+
+```loom
+@unsafe("threadSafe: sqlite3 is documented thread-safe in serialized mode")
+extern native "libsqlite3" func sqlite3_exec(
+  db: NativeHandle,
+  sql: string,
+  callback: NativeHandle,
+  arg: NativeHandle,
+  errmsg: NativeHandle,
+): int;
+```
+
+**Escaping borrow assertion on `extern native`.** Replaces the retired `@escapingBorrow` / `@unsafeEscapingBorrow` annotations:
+
+```loom
+// Declaration site — asserts the pointer may outlive the call
+@unsafe("escapingBorrow: libfoo_register stores the pointer; caller must ensure buf outlives the registration")
+extern native "libfoo" func libfoo_register(buf: NativeHandle): void;
+
+// Call site — acknowledges the escape
+@unsafe("escapingBorrow: buf is a module-level static; it outlives all registrations")
+libfoo_register(borrow buf);
+```
+
+Both the declaration site and every call site must carry `@unsafe` when a borrow is asserted to escape the native call.
+
+**`Sendable` opt-out for classes.** When structural `Sendable` verification (§17.8.1) cannot be satisfied — for example, when thread safety is ensured by an external protocol invisible to the compiler — annotate the class:
+
+```loom
+@unsafe("sendable: mutations are confined to the initialization phase; fully immutable after construction")
+class ImmutableAfterInit : Any implements Sendable {
+  var data: list[int] = []   // written only during init, never thereafter
+
+  pub func build(items: list[int]): void {
+    data = items;   // only called before sharing
+  }
+}
+```
+
+**Auditing `@unsafe` usage.** All `@unsafe` annotations in a codebase can be found with a single grep:
+
+```
+grep -rn "@unsafe" src/
+```
+
+This is the primary safety audit tool. The reason strings provide context for each assertion. New `@unsafe` annotations in a code review are immediately visible.
+
+**`@unsafe` does not suppress other errors.** `@unsafe` bypasses only the specific verification it is designed to opt out of. It does not suppress unrelated compile-time errors. A `@unsafe` class with a `borrow[~name]` field still violates `E_SENDABLE_LIFETIME`. A `@unsafe` `extern native` function still requires correct parameter types.
+
+**Retired annotations.** The following annotations no longer exist and are compile-time errors if used:
+
+| Retired annotation | Replacement |
+|---|---|
+| `@threadSafe` | `@unsafe("threadSafe: <reason>")` |
+| `@escapingBorrow` | `@unsafe("escapingBorrow: <reason>")` on declaration |
+| `@unsafeEscapingBorrow` | `@unsafe("escapingBorrow: <reason>")` at call site |
+
+**Relationship to `@noalias`.** `@noalias` (§23.4.5) is a separate, narrowly-scoped performance assertion about buffer disjointness. It is not subsumed by `@unsafe` — `@noalias` remains its own annotation. The distinction: `@unsafe` asserts a safety property (correctness could be compromised if wrong); `@noalias` asserts a performance property (results could be incorrect if wrong, but only in undefined-behaviour-inducing misuse).
+
+
 
 
 ### §23.5 ARC and the Interpreted/Compiled Boundary
@@ -8224,13 +8484,16 @@ FloatSuffix    ::= "f32" | "f64" | "d"   (* d = decimal *)
 Exponent       ::= ( "e" | "E" ) [ "+" | "-" ] DIGIT { DIGIT }
 
 (* String literals *)
-StringLiteral  ::= DoubleString | SingleString | RawDoubleString | RawSingleString
-DoubleString   ::= '"' { StringChar | EscapeSeq | InlineExpr } '"'
-SingleString   ::= "'" { StringChar | EscapeSeq | InlineExpr } "'"
+StringLiteral  ::= DoubleString | SingleString | InterpDoubleString | InterpSingleString | RawDoubleString | RawSingleString
+DoubleString   ::= '"' { StringChar | EscapeSeq } '"'
+SingleString   ::= "'" { StringChar | EscapeSeq } "'"
+InterpDoubleString ::= "i" '"' { InterpStringChar | EscapeSeq | InlineExpr } '"'
+InterpSingleString ::= "i" "'" { InterpStringChar | EscapeSeq | InlineExpr } "'"
 RawDoubleString ::= "r" '"' { ANY_CHAR - '"' } '"'
 RawSingleString ::= "r" "'" { ANY_CHAR - "'" } "'"
 
-StringChar     ::= ANY_CHAR - ( '"' | "'" | "\\" | "{$" )
+StringChar     ::= ANY_CHAR - ( '"' | "'" | "\\" )
+InterpStringChar ::= ANY_CHAR - ( '"' | "'" | "\\" | "{$" )
 BytesChar      ::= ANY_CHAR - ( '"' | "'" | "\\" )
                    (* any byte value that is not a quote delimiter or backslash;
                       hex-byte escapes \xHH are handled via EscapeSeq *)

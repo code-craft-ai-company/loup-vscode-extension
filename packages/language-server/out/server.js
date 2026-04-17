@@ -9188,6 +9188,21 @@ var KEYWORDS = {
   "get": "get" /* Get */,
   "set": "set" /* Set */,
   "box": "box" /* Box */,
+  "self": "self" /* Self */,
+  "bnot": "bnot" /* Bnot */,
+  "final": "final" /* Final */,
+  "lifetime": "lifetime" /* Lifetime */,
+  "module": "module" /* Module */,
+  "override": "override" /* Override */,
+  "package": "package" /* Package */,
+  "sealed": "sealed" /* Sealed */,
+  "super": "super" /* Super */,
+  "trait": "trait" /* Trait */,
+  "volatile": "volatile" /* Volatile */,
+  "where": "where" /* Where */,
+  "excl": "excl" /* Excl */,
+  "and": "&&" /* And */,
+  "or": "||" /* Or */,
   "weak": "weak" /* Weak */,
   "unowned": "unowned" /* Unowned */,
   "borrow": "borrow" /* Borrow */,
@@ -9255,6 +9270,9 @@ var Lexer = class {
     }
     if (ch === "r" && (next === '"' || next === "'")) {
       return this.readRawString(next);
+    }
+    if (ch === "i" && (next === '"' || next === "'")) {
+      return this.readInterpolatedString(next);
     }
     if (ch === '"')
       return this.readString('"');
@@ -9473,6 +9491,33 @@ var Lexer = class {
       this.column++;
     }
     return this.makeToken("RawStringLiteral" /* RawStringLiteral */, this.source.slice(start, this.pos), start);
+  }
+  readInterpolatedString(quote) {
+    const start = this.pos;
+    this.pos++;
+    this.column++;
+    this.pos++;
+    this.column++;
+    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
+      if (this.source[this.pos] === "\\") {
+        this.pos++;
+        this.column++;
+      }
+      if (this.pos < this.source.length) {
+        if (this.source[this.pos] === "\n") {
+          this.line++;
+          this.column = 0;
+        } else {
+          this.column++;
+        }
+        this.pos++;
+      }
+    }
+    if (this.pos < this.source.length) {
+      this.pos++;
+      this.column++;
+    }
+    return this.makeToken("InterpolatedStringLiteral" /* InterpolatedStringLiteral */, this.source.slice(start, this.pos), start);
   }
   readMultilineString(quote) {
     const start = this.pos;
@@ -9791,11 +9836,23 @@ var Parser = class {
   parseAnnotatedDeclaration() {
     const start = this.current();
     this.expect("@" /* At */);
-    const annotation = this.expect("Identifier" /* Identifier */).text;
+    const annotation = this.advance().text;
+    let args;
+    if (this.check("(" /* LeftParen */)) {
+      this.advance();
+      args = [];
+      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+        args.push(this.parseExpression());
+        if (this.check("," /* Comma */))
+          this.advance();
+      }
+      this.expect(")" /* RightParen */);
+    }
     const declaration = this.parseStatement();
     return {
       kind: "AnnotatedDecl",
       annotation,
+      args,
       declaration,
       range: this.rangeFrom(start)
     };
@@ -10418,12 +10475,29 @@ var Parser = class {
         }
       } else {
         const fStart = this.current();
+        let isPublic = false;
+        let isVar = false;
+        if (this.check("pub" /* Pub */)) {
+          isPublic = true;
+          this.advance();
+        }
+        if (this.check("var" /* Var */)) {
+          isVar = true;
+          this.advance();
+        } else if (this.check("let" /* Let */)) {
+          isVar = false;
+          this.advance();
+        }
         let qualifier;
         if (this.check("weak" /* Weak */)) {
           qualifier = "weak";
           this.advance();
         } else if (this.check("unowned" /* Unowned */)) {
           qualifier = "unowned";
+          this.advance();
+        } else if (this.check("excl" /* Excl */) && this.peekKind(1) === "borrow" /* Borrow */) {
+          qualifier = "excl borrow";
+          this.advance();
           this.advance();
         } else if (this.check("borrow" /* Borrow */)) {
           qualifier = "borrow";
@@ -10438,7 +10512,7 @@ var Parser = class {
           defaultValue = this.parseExpression();
         }
         this.expect(";" /* Semicolon */);
-        fields.push({ kind: "StructField", name: fName, type: fType, defaultValue, qualifier, range: this.rangeFrom(fStart) });
+        fields.push({ kind: "StructField", name: fName, type: fType, defaultValue, qualifier, isPublic, isVar, range: this.rangeFrom(fStart) });
       }
     }
     this.expect("}" /* RightBrace */);
@@ -10718,7 +10792,7 @@ var Parser = class {
     return left;
   }
   parseUnary() {
-    if (this.check("!" /* Bang */) || this.check("-" /* Minus */) || this.check("~" /* Tilde */) || this.check("not" /* Not */)) {
+    if (this.check("!" /* Bang */) || this.check("-" /* Minus */) || this.check("~" /* Tilde */) || this.check("not" /* Not */) || this.check("bnot" /* Bnot */) || this.check("typeof" /* Typeof */)) {
       const start = this.current();
       const op = this.advance().text;
       const operand = this.parseUnary();
@@ -10870,6 +10944,9 @@ var Parser = class {
         return { kind: "FloatLiteral", value: token.text, range: this.tokenRange(token) };
       case "StringLiteral" /* StringLiteral */:
         this.advance();
+        return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
+      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
+        this.advance();
         return { kind: "StringLiteral", value: token.text, hasInterpolation: token.text.includes("{$"), range: this.tokenRange(token) };
       case "MultilineStringLiteral" /* MultilineStringLiteral */:
         this.advance();
@@ -10903,6 +10980,7 @@ var Parser = class {
         this.advance();
         return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
       case "TypeIdentifier" /* TypeIdentifier */:
+      case "self" /* Self */:
         this.advance();
         return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
       case "await" /* Await */: {
@@ -11277,6 +11355,10 @@ var Parser = class {
     } else if (this.check("unowned" /* Unowned */)) {
       qualifier = "unowned";
       this.advance();
+    } else if (this.check("excl" /* Excl */) && this.peekKind(1) === "borrow" /* Borrow */) {
+      qualifier = "excl borrow";
+      this.advance();
+      this.advance();
     } else if (this.check("borrow" /* Borrow */)) {
       qualifier = "borrow";
       this.advance();
@@ -11300,7 +11382,14 @@ var Parser = class {
     this.advance();
     const params = [];
     while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
-      params.push(this.advance().text);
+      const pStart = this.current();
+      const name = this.advance().text;
+      let constraint;
+      if (this.check(":" /* Colon */)) {
+        this.advance();
+        constraint = this.parseTypeExpr();
+      }
+      params.push({ kind: "TypeParam", name, constraint, range: this.rangeFrom(pStart) });
       if (this.check("," /* Comma */))
         this.advance();
     }

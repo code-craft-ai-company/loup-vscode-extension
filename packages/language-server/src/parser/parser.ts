@@ -121,11 +121,22 @@ export class Parser {
   private parseAnnotatedDeclaration(): AST.AnnotatedDecl {
     const start = this.current();
     this.expect(TokenKind.At);
-    const annotation = this.expect(TokenKind.Identifier).text;
+    const annotation = this.advance().text;
+    let args: AST.Expression[] | undefined;
+    if (this.check(TokenKind.LeftParen)) {
+      this.advance();
+      args = [];
+      while (!this.check(TokenKind.RightParen) && !this.isAtEnd()) {
+        args.push(this.parseExpression());
+        if (this.check(TokenKind.Comma)) this.advance();
+      }
+      this.expect(TokenKind.RightParen);
+    }
     const declaration = this.parseStatement()!;
     return {
       kind: 'AnnotatedDecl',
       annotation,
+      args,
       declaration,
       range: this.rangeFrom(start),
     };
@@ -775,11 +786,18 @@ export class Parser {
           methods.push(stmt as AST.FunDecl | AST.AsyncFunDecl);
         }
       } else {
-        // Parse field: [qualifier] name: Type [= default];
+        // Parse field: [pub] [var|let] [qualifier] name: Type [= default];
         const fStart = this.current();
-        let qualifier: 'weak' | 'unowned' | 'borrow' | undefined;
+        let isPublic = false;
+        let isVar = false;
+        if (this.check(TokenKind.Pub)) { isPublic = true; this.advance(); }
+        if (this.check(TokenKind.Var)) { isVar = true; this.advance(); }
+        else if (this.check(TokenKind.Let)) { isVar = false; this.advance(); }
+
+        let qualifier: 'weak' | 'unowned' | 'borrow' | 'excl borrow' | undefined;
         if (this.check(TokenKind.Weak)) { qualifier = 'weak'; this.advance(); }
         else if (this.check(TokenKind.Unowned)) { qualifier = 'unowned'; this.advance(); }
+        else if (this.check(TokenKind.Excl) && this.peekKind(1) === TokenKind.Borrow) { qualifier = 'excl borrow'; this.advance(); this.advance(); }
         else if (this.check(TokenKind.Borrow)) { qualifier = 'borrow'; this.advance(); }
         const fName = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
         this.expect(TokenKind.Colon);
@@ -790,7 +808,7 @@ export class Parser {
           defaultValue = this.parseExpression();
         }
         this.expect(TokenKind.Semicolon);
-        fields.push({ kind: 'StructField', name: fName, type: fType, defaultValue, qualifier, range: this.rangeFrom(fStart) });
+        fields.push({ kind: 'StructField', name: fName, type: fType, defaultValue, qualifier, isPublic, isVar, range: this.rangeFrom(fStart) });
       }
     }
     this.expect(TokenKind.RightBrace);
@@ -1261,6 +1279,10 @@ export class Parser {
 
       case TokenKind.StringLiteral:
         this.advance();
+        return { kind: 'StringLiteral', value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
+
+      case TokenKind.InterpolatedStringLiteral:
+        this.advance();
         return { kind: 'StringLiteral', value: token.text, hasInterpolation: token.text.includes('{$'), range: this.tokenRange(token) };
 
       case TokenKind.MultilineStringLiteral:
@@ -1703,9 +1725,10 @@ export class Parser {
 
   private parseParam(): AST.Parameter {
     const start = this.current();
-    let qualifier: 'weak' | 'unowned' | 'borrow' | undefined;
+    let qualifier: 'weak' | 'unowned' | 'borrow' | 'excl borrow' | undefined;
     if (this.check(TokenKind.Weak)) { qualifier = 'weak'; this.advance(); }
     else if (this.check(TokenKind.Unowned)) { qualifier = 'unowned'; this.advance(); }
+    else if (this.check(TokenKind.Excl) && this.peekKind(1) === TokenKind.Borrow) { qualifier = 'excl borrow'; this.advance(); this.advance(); }
     else if (this.check(TokenKind.Borrow)) { qualifier = 'borrow'; this.advance(); }
     const name = this.expect(TokenKind.Identifier, TokenKind.TypeIdentifier).text;
     let type: AST.TypeExpr | undefined;
@@ -1721,12 +1744,19 @@ export class Parser {
     return { kind: 'Parameter', name, type, defaultValue, range: this.rangeFrom(start) };
   }
 
-  private parseOptionalTypeParams(): string[] | undefined {
+  private parseOptionalTypeParams(): AST.TypeParam[] | undefined {
     if (!this.check(TokenKind.LeftBracket)) return undefined;
     this.advance();
-    const params: string[] = [];
+    const params: AST.TypeParam[] = [];
     while (!this.check(TokenKind.RightBracket) && !this.isAtEnd()) {
-      params.push(this.advance().text);
+      const pStart = this.current();
+      const name = this.advance().text;
+      let constraint: AST.TypeExpr | undefined;
+      if (this.check(TokenKind.Colon)) {
+        this.advance();
+        constraint = this.parseTypeExpr();
+      }
+      params.push({ kind: 'TypeParam', name, constraint, range: this.rangeFrom(pStart) });
       if (this.check(TokenKind.Comma)) this.advance();
     }
     this.expect(TokenKind.RightBracket);

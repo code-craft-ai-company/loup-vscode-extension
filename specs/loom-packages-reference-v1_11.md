@@ -1,8 +1,9 @@
-# Loom Packages Reference v1.10
+# Loom Packages Reference v1.11
 
 **Status:** Release
-**Version:** 1.10.0
-**Date:** 2026-04-09
+**Version:** 1.11.0
+**Date:** 2026-04-20
+**Supersedes:** 1.10.0
 **Scope:** Packages that require `loom install`, depend on external hardware
   backends compiled separately, or are maintained on a cadence independent of
   the core language runtime: `loom.tensor`, `loom.autodiff`, `loom.tpu`,
@@ -10,15 +11,31 @@
   `native.gpu`, `native.tpu`, `native.hal`; package registry specification;
   hardware management tooling; hardware backend lifecycle.
 
+**Changes from v1.10:**
+
+- **§13.5b (new).** Shared-class ABI versioning rules for packages exporting
+  `shared class` declarations. Establishes the package-manifest ABI-version
+  field, the cross-mode ABI compatibility matrix, and installation-time
+  verification of `shared class` ABI compatibility.
+- **§21.28 `loom.tensor` note.** `Tensor` values now expose `asSharedArray()`
+  and `fromSharedArray()` zero-copy converters for interop with
+  `SharedArray[T]` (Language Reference §17b.3) when the backend is CPU.
+- **Appendix C.** New v1.18 stdlib types (`SharedArena`, `SharedRef[T]`,
+  `SharedMutex[T]`, `SharedRwLock[T]`, `SharedQueue[T]`, `Atomic[T]`,
+  `SharedBarrier`, `SharedSemaphore`, `SharedCondVar`, `SharedStack[T]`)
+  are listed for cross-reference. These live in the stdlib, not in
+  packages — the appendix notes them with their stdlib section references.
+
 **Related documents:**
-- [Loom Language Reference v1.10](loom-language-reference-v1_10.md)
-- [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
+- [Loom Language Reference v1.18](loom-language-reference-v1_18.md)
+- [Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md)
 
 ---
 
 ## Table of Contents
 
 - [§13.5 Package Registry](#135-package-registry)
+- [§13.5b Shared-Class ABI Versioning for Packages](#135b-shared-class-abi-versioning-for-packages)
 - [§13.8 Core Package Set (`loom.*`)](#138-core-package-set)
 - [§21.28 `loom.tensor` — High-Level Tensor Operations](#2128-loomtensor--high-level-tensor-operations)
 - [§21.29 `native.webgpu` — WebGPU API Facade](#2129-nativewebgpu--webgpu-api-facade)
@@ -124,6 +141,150 @@ key_id  = "abc123..."   # hex fingerprint of the registry's Ed25519 public key
 
 **Local packages and `[dev-overrides]`.** Packages installed via `loom link` or `[dev-overrides]` are **not** signature-verified — they are local filesystem sources under the developer's direct control. The toolchain emits an advisory note when such packages are loaded.
 
+
+---
+
+### §13.5b Shared-Class ABI Versioning for Packages
+
+*(This section is normative. Applies to any package — first-party `loom.*`
+or third-party — that exports `shared class` declarations in its public API.
+Language Reference §17b.7 specifies the cross-mode ABI contract itself;
+this section specifies how packages declare compliance and how the installer
+verifies compatibility.)*
+
+**Disambiguation: shared-class ABI vs. serialization wire format.** The
+shared-class ABI (§17b.7, this section's subject) is an **in-process memory
+layout contract** — it governs how `shared class` instances are laid out
+in shared-arena memory so that multiple execution contexts (JIT-compiled
+Wasm, AOT-compiled native) can read and write the same objects without
+marshalling. This is orthogonal to the **serialization wire format**
+(Language Reference §32) which governs how values are converted to and
+from a format-agnostic `Value` representation for transport across process,
+host, or language boundaries.
+
+A `shared class` MAY implement `Serializable` and `Deserializable` — when
+it does, its wire form goes through the normal `Value` intermediate
+representation (§32.12), NOT through the shared-class ABI layout. A
+package's `shared_abi_version` field (below) pins its in-process memory
+layout; a type's `@serializationId` URI (Language Reference §32.5) pins
+its wire-format identity. These are independent concerns — a package may
+change its serialization URI without changing its shared-class ABI
+(breaking wire compatibility but preserving in-process interop) or vice
+versa.
+
+**Motivation.** The Language Reference normatively fixes the memory layout,
+header format, refcount protocol, and vtable conventions of every `shared
+class` (§17b.7). Because two compilers — the JIT (Wasm GC+EH) and the AOT
+(native) pipelines — must produce bit-identical representations of the same
+class, and because packages can be installed and consumed across major
+versions of the Loom toolchain, every package that exports a `shared class`
+declares which ABI revision it was built against. The installer refuses to
+load a package whose ABI revision is incompatible with the current runtime
+toolchain.
+
+**Manifest declaration.** A package manifest (`.lmpkg`) that exports one or
+more `shared class` declarations in its public API SHALL declare a
+`shared_abi_version` field in the `[package]` section:
+
+```toml
+[package]
+name = "loom.graph-store"
+version = "1.2.0"
+shared_abi_version = 1
+```
+
+The `shared_abi_version` value matches the ABI version from the arena header
+(§17b.5): v1.18 defines ABI version 1. Future Loom major revisions may
+introduce ABI version 2; packages carry over unmodified if they do not
+declare `shared_abi_version`, but are required to declare it if they export
+any `shared class`.
+
+**Installation check.** At `loom install` time, for each package declaring
+a `shared_abi_version`:
+
+1. The installer reads the declared ABI version.
+2. The installer consults the current toolchain's list of supported ABI
+   versions (a compile-time constant in the installer binary).
+3. If the declared ABI version is not in the supported list, installation
+   aborts with `E_SHARED_ABI_INCOMPATIBLE` and a remediation message:
+   *"Package X was built against shared-class ABI version N; this toolchain
+   supports versions {M, M+1, ...}. Upgrade or downgrade the toolchain, or
+   contact the package author for an ABI-compatible release."*
+4. If the declared ABI version is supported but is not the toolchain's
+   preferred (newest) version, installation emits an advisory note recording
+   that the package is being loaded at a legacy ABI version.
+
+**Determining the ABI version of a package.** The `loom publish` command
+invokes the compiler in an ABI-fingerprinting mode that:
+
+1. Enumerates all `shared class` declarations in the package's public API.
+2. Computes each class's layout, header, and vtable fingerprint per §17b.7.
+3. Cross-checks these against the toolchain's current ABI version.
+4. Writes the resulting `shared_abi_version` to the published manifest.
+
+Publishing fails (`E_SHARED_ABI_FINGERPRINT_MISMATCH`) if the fingerprinter
+detects a `shared class` whose layout does not match the toolchain's ABI
+version — this guards against a toolchain bug producing silently
+incompatible packages.
+
+**Package public-API surface.** A `shared class` declaration is "in the
+public API" if it is declared `pub` (visible outside the module) OR if it
+appears in the signature of any `pub` function, method, field, or type
+alias in the package. Private `shared class` declarations used only
+internally do not affect the package's `shared_abi_version`.
+
+**Cross-package interop.** Two packages installed in the same project that
+both declare `shared_abi_version = N` are ABI-compatible — their `shared
+class` instances can be freely interchanged via `SharedRef[T]`. Packages
+declaring different ABI versions produce `E_SHARED_ABI_CROSS_PACKAGE` if
+their `shared class` types flow between each other; the project must be
+rebuilt against a single ABI version.
+
+**Stability guarantees.**
+
+- Within a single ABI version, `shared class` layouts defined in a package
+  are stable across package versions. A package at v1.2.0 declaring `class
+  Vertex { x: float64; y: float64; z: float64; }` has the same layout in
+  v1.2.1, v1.3.0, etc., because the field list is unchanged.
+- Changing a `shared class`'s field list, field order, or field types in a
+  public API is a **breaking change** requiring a major package version
+  bump. The version-negotiation rules of the package registry (§13.5)
+  prevent inadvertent downgrades.
+- Adding a `shared class` to a public API is a minor version change.
+- Removing a `shared class` from a public API is a major version change.
+
+**Hardware-backend packages.** Hardware-backend packages (`native.gpu`,
+`native.tpu`, `native.hal`, third-party `loom.backend.*`) may export
+`shared class` types for cross-mode buffer and device-handle interop. These
+packages are subject to the same ABI-version rules as general packages,
+with one addition: the hardware-backend ABI version is augmented by the
+hardware-driver version from `hardware.lock` (§21.32.6), such that a
+`shared class GpuBuffer` declared in `loom.backend.cuda` has a composite
+compatibility key of `(shared_abi_version, cuda_driver_version)`.
+
+**`loom.lock` recording.** The resolved `shared_abi_version` of each
+installed package is recorded in `loom.lock` for auditability:
+
+```
+[[package]]
+name = "loom.graph-store"
+version = "1.2.0"
+shared_abi_version = 1
+checksum = "sha256:..."
+```
+
+Subsequent `loom install --locked` runs verify that the lockfile's recorded
+ABI version matches the installed package's declared version — detecting
+manifest tampering between lockfile generation and install.
+
+**Error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_SHARED_ABI_INCOMPATIBLE` | Package declares ABI version not supported by toolchain |
+| `E_SHARED_ABI_FINGERPRINT_MISMATCH` | Publishing detected a `shared class` whose layout doesn't match declared ABI version |
+| `E_SHARED_ABI_CROSS_PACKAGE` | Two packages with different ABI versions attempt to exchange `shared class` values |
+| `E_SHARED_ABI_LOCK_MISMATCH` | `loom install --locked` detected lockfile ABI version doesn't match manifest |
 
 ---
 
@@ -2163,3 +2324,35 @@ Types defined in packages that require `loom install`.
 | `AdamOptimizer` | `loom.autodiff` | §21.31 |
 | `SgdOptimizer` | `loom.autodiff` | §21.31 |
 | `CustomOp` | `loom.autodiff` | §21.31 |
+
+### v1.18 Standard-Library Types (Cross-Reference)
+
+The following types live in the standard library (no `loom install` required)
+but are listed here for cross-reference convenience since packages frequently
+export types using them. Full specifications are in the
+[Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md).
+
+| Type | Namespace | Stdlib Reference |
+|---|---|---|
+| `Shareable` | `core` | §21.1.1 |
+| `SharedBuffer[T]` | `core` | §21.1.2 |
+| `SharedArray[T]` | `core` | §21.1.3 |
+| `SharedArena` | `core` | §21.1.4 |
+| `SharedRef[T]` | `core` | §21.1.5 |
+| `WeakRef[T]` (shared extension) | `core` | §21.1.6 |
+| `Ordering` | `core.atomic` | §21.2.1 |
+| `Atomic[T]` | `core.atomic` | §21.2.3 |
+| `Integer` (trait) | `core` | §21.2.4 |
+| `SharedMutex[T]` / `MutexGuard[T]` | `sync.shared` | §21.3.1 |
+| `SharedRwLock[T]` / `RwReadGuard[T]` / `RwWriteGuard[T]` | `sync.shared` | §21.3.2 |
+| `SharedCondVar` | `sync.shared` | §21.3.3 |
+| `SharedSemaphore` | `sync.shared` | §21.3.4 |
+| `SharedBarrier` / `BarrierResult` | `sync.shared` | §21.3.5 |
+| `SharedQueue[T]` | `sync.shared` | §21.3.6 |
+| `SharedStack[T]` | `sync.shared` | §21.3.7 |
+
+Packages that export `SharedRef[T]` for a `T: shared class` they declare
+must carry a `shared_abi_version` manifest field per §13.5b.
+
+
+

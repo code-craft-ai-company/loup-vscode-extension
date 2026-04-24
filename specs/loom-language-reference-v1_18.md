@@ -1,16 +1,58 @@
-# Loom Language Reference v1.16
+# Loom Language Reference v1.18
 
 **Status:** Release
-**Version:** 1.16.0
-**Date:** 2026-04-14
-**Supersedes:** 1.14.0
-**Scope:** Core language — syntax, semantics, type system, concurrency, FFI,
-  template fences, reactive UI, compiled mode, native compilation, freestanding mode,
-  macros, failure policy, formal grammar, and tooling.
+**Version:** 1.18.0
+**Date:** 2026-04-20
+**Supersedes:** 1.17.0
+**Scope:** Core language — syntax, semantics, type system, concurrency (including
+  shared-memory concurrency), FFI, template fences, reactive UI, compiled mode,
+  native compilation, freestanding mode, macros, failure policy, formal grammar,
+  and tooling.
+
+**Changes from v1.17:**
+
+- **Unified memory model (§8.1.1).** A class may be declared `local class` (the
+  default — thread-local ARC) or `shared class` (atomic ARC in a shared arena,
+  cross-thread and cross-mode capable). The bare `class` keyword is a shorthand
+  for `local class`. The ARC contract is uniform across all execution modes;
+  scripted and web runtimes are permitted to back `local class` with Wasm GC
+  as an implementation optimization provided the ARC-equivalent contract holds.
+- **Shared-memory concurrency (§17b).** New chapter specifying the `Shareable`
+  trait, `SharedBuffer[T]` / `SharedArray[T]`, the `core.atomic` namespace,
+  `SharedRef[T]`, the cross-mode `shared class` ABI, shared-arena allocation,
+  and shared synchronization primitives (`SharedMutex`, `SharedRwLock`,
+  `SharedQueue`, `SharedBarrier`, `SharedSemaphore`).
+- **`ScriptWorker` extensions (§17.10.2).** `ScriptWorker.share(arena)` passes
+  a shared-arena handle to a worker; `SharedRef[T]` values may cross the worker
+  boundary without serialization.
+- **Cross-mode ABI (§17b.7).** `shared class` declarations have a normatively
+  specified layout and vtable contract that both the JIT (Wasm GC+EH) and AOT
+  (native) pipelines honor bit-for-bit, enabling zero-copy interop between
+  `host.scripted` and `host.native` code operating on the same shared arena.
+- **ARC features generalized.** `weak` references and retain/release elision
+  via `borrow` on `local class` and `shared class` instances are now available
+  in **all** modes with an ARC memory model (`web.scripted`, `web.compiled`,
+  `host.scripted`, `host.dual`, `host.native`); previously restricted to
+  `host.dual` and `host.native`. `@mode(freestanding)` remains an exception
+  (`E_FREESTANDING_WEAK`). The §8 `weak` field qualifier specification has
+  been updated to reflect this generalization. The `arc let` / `arc var`
+  keywords remain advisory-only pinning hints and retain their prior
+  availability.
+- **Serialization foundation (§32).** Normative contracts for trait-based
+  value serialization, laying the groundwork for future RPC libraries,
+  wire-format packages, and persistence layers. Introduces the `Serializable`
+  and `Deserializable` traits, the format-agnostic `Value` intermediate
+  representation, type-identity URIs, polymorphic dispatch rules,
+  field-level annotations (`@serialField`, `@sensitive`, `@alias`,
+  `@skipIfDefault`, `@polymorphic`, `@tagged`), type-evolution compatibility
+  rules, a normative Exception serialization contract with `RemoteException`
+  fallback for unknown exception types, the format-driver protocol that
+  wire-format packages implement, and an explicit security model preventing
+  deserialization-as-code-execution.
 
 **Related documents:**
-- [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
-- [Loom Packages Reference v1.10](loom-packages-reference-v1_10.md)
+- [Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md)
+- [Loom Packages Reference v1.11](loom-packages-reference-v1_11.md)
 
 ---
 
@@ -18,7 +60,7 @@
 
 - [§1 Design Goals (non-normative)](#1-design-goals)
 - [§2 Execution Model](#2-execution-model)
-  - [§2.1 Scripted Mode (JIT)](#21-scripted-mode-jit)
+  - [§2.1 Script-Mode Runtime (JIT)](#21-script-mode-runtime-jit)
   - [§2.2 Module Introspection Dunders](#22-module-introspection-dunders)
   - [§2.3 Origination Introspection Dunders](#23-origination-introspection-dunders)
   - [§2.4 Execution Modes](#24-execution-modes)
@@ -78,6 +120,7 @@
   - [§7.6 Decorators](#76-decorators)
   - [§7.7 Property Getters and Setters](#77-property-getters-and-setters)
 - [§8 Classes and Objects](#8-classes-and-objects)
+  - [§8.1.1 Memory Strategy Modifiers (`local class`, `shared class`)](#811-memory-strategy-modifiers)
   - [§8.1 Class Declarations](#81-class-declarations)
   - [§8.2 Visibility](#82-visibility)
   - [§8.3 Inheritance](#83-inheritance)
@@ -123,7 +166,7 @@
   - [§13.3 Package Manifest (`.lmpkg`)](#133-package-manifest-lmpkg)
   - [§13.4 Module Initialization](#134-module-initialization)
   - [§13.5 Package Registry](#135-package-registry)
-  - [§13.6 Reserved Namespace](#136-reserved-namespace)
+  - [§13.6 Reserved Namespaces](#136-reserved-namespaces)
   - [§13.7 Module Fallback Pairs](#137-module-fallback-pairs)
   - [§13.8 Core Package Set](#138-core-package-set)
   - [§13.9 `LOOMPATH` — Development Package Search Path](#139-loompath--development-package-search-path)
@@ -141,7 +184,7 @@
   - [§16.5 Failure Policy (Templates)](#165-failure-policy-templates)
   - [§16.6 HTML Context Rendering](#166-html-context-rendering)
   - [§16.7 CSS Context Fences](#167-css-context-fences)
-  - [§16.8 GPU/Compute Fence Descriptors (`wgsl`, `metal`, `glsl`)](#168-gpucompute-fence-descriptors)
+  - [§16.8 GPU/Compute Fence Descriptors](#168-gpucompute-fence-descriptors)
 - [§17 Concurrency](#17-concurrency)
   - [§17.1 `async`/`await`](#171-asyncawait)
   - [§17.2 `await group`](#172-await-group)
@@ -167,6 +210,18 @@
     - [§17.10.3 `WorkerChannel[T]` — Typed Message Channel](#17103-workerchannel--typed-message-channel)
     - [§17.10.4 Serialization Contract](#17104-serialization-contract)
     - [§17.10.5 Worker Scope Restrictions](#17105-worker-scope-restrictions)
+- [§17b Shared-Memory Concurrency](#17b-shared-memory-concurrency)
+  - [§17b.1 Overview and Mode Availability](#17b1-overview-and-mode-availability)
+  - [§17b.2 `Shareable` Marker Trait](#17b2-shareable-marker-trait)
+  - [§17b.3 `SharedBuffer[T]` and `SharedArray[T]`](#17b3-sharedbuffert-and-sharedarrayt)
+  - [§17b.4 `core.atomic` — Atomic Operations](#17b4-coreatomic--atomic-operations)
+  - [§17b.5 `SharedArena` and Allocation](#17b5-sharedarena-and-allocation)
+  - [§17b.6 `SharedRef[T]` and `shared class`](#17b6-sharedreft-and-shared-class)
+  - [§17b.7 Cross-Mode ABI Contract](#17b7-cross-mode-abi-contract)
+  - [§17b.8 Shared Synchronization Primitives](#17b8-shared-synchronization-primitives)
+  - [§17b.9 Ownership Verbs and Shared Types](#17b9-ownership-verbs-and-shared-types)
+  - [§17b.10 Worker Integration](#17b10-worker-integration)
+  - [§17b.11 Error Codes](#17b11-error-codes)
 - [§18 FFI and Host Interop](#18-ffi-and-host-interop)
   - [§18.1 JavaScript Interop (`extern js`)](#181-javascript-interop-extern-js)
   - [§18.2 `@jsexport`](#182-jsexport)
@@ -190,7 +245,7 @@
   - [§20.2 Script Prelude](#202-script-prelude)
   - [§20.3 Dynamic Tracing and Time-Travel Debugging](#203-dynamic-tracing-and-time-travel-debugging)
 - [§21 Standard Library](#21-standard-library)
-- [§22 Compiled Mode](#22-compiled-mode)
+- [§22 Web Compiled Mode](#22-web-compiled-mode)
   - [§22.1 Compiled Mode Declaration](#221-compiled-mode-declaration)
   - [§22.2 Restrictions](#222-restrictions)
   - [§22.3 Execution Semantics](#223-execution-semantics)
@@ -201,19 +256,19 @@
   - [§23.4 ARC Memory Management](#234-arc-memory-management)
     - [§23.4.1 ARC Elision via `borrow` and `noescape fn`](#2341-arc-elision-via-borrow-and-noescape-fn)
     - [§23.4.1.1 `excl borrow` on Structs](#23411-excl-borrow-on-structs)
-  - [§23.4.2 Lifetime Tracking and Region Inference](#2342-lifetime-tracking-and-region-inference)
+    - [§23.4.2 Lifetime Tracking and Region Inference](#2342-lifetime-tracking-and-region-inference)
     - [§23.4.3 Lifetime-Verified `unowned[~name]` Fields](#2343-lifetime-verified-unownedname-fields)
     - [§23.4.4 Inferred Struct Lifetimes](#2344-inferred-struct-lifetimes)
     - [§23.4.5 Buffer Disjointness Contracts](#2345-buffer-disjointness-contracts)
-  - [§23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary](#2346-unsafe--programmer-asserted-safety-boundary)
-  - [§23.4.7 `unique` Ownership](#2347-unique-ownership)
-  - [§23.4.8 `arc let`, `unique class`, and Integer Safety Error Codes](#2348-arc-let-unique-class-and-integer-safety-error-codes)
-  - [§23.4.9 Ownership Transfer Verbs (`reads`, `edits`, `takes`, `shares`)](#2349-ownership-transfer-verbs)
-  - [§23.4.10 `requires` Clauses and `distinct()`](#23410-requires-clauses-and-distinct)
-  - [§23.4.11 `modifier` — Method Mutation Contract](#23411-modifier--method-mutation-contract)
-  - [§23.4.12 `safe` Contexts and `safe func` Propagation](#23412-safe-contexts-and-safe-func-propagation)
-  - [§23.4.13 `synchronized` Class — Runtime-Locked Mutation](#23413-synchronized-class--runtime-locked-mutation)
-  - [§23.4.14 `unsafe {}` Within `synchronized` Classes — Lock-Release Regions](#23414-unsafe--within-synchronized-classes--lock-release-regions)
+    - [§23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary](#2346-unsafe--programmer-asserted-safety-boundary)
+    - [§23.4.7 `unique` Ownership](#2347-unique-ownership)
+    - [§23.4.8 `arc let`, `unique class`, and Integer Safety Error Codes](#2348-arc-let-unique-class-and-integer-safety-error-codes)
+    - [§23.4.9 Ownership Transfer Verbs](#2349-ownership-transfer-verbs)
+    - [§23.4.10 `requires` Clauses and `distinct()`](#23410-requires-clauses-and-distinct)
+    - [§23.4.11 `modifier` — Method Mutation Contract](#23411-modifier--method-mutation-contract)
+    - [§23.4.12 `safe` Contexts and `safe func` Propagation](#23412-safe-contexts-and-safe-func-propagation)
+    - [§23.4.13 `synchronized` Class — Runtime-Locked Mutation](#23413-synchronized-class--runtime-locked-mutation)
+    - [§23.4.14 `unsafe {}` Within `synchronized` Classes — Lock-Release Regions](#23414-unsafe--within-synchronized-classes--lock-release-regions)
   - [§23.5 ARC and the Scripted/Native Mode Boundary](#235-arc-and-the-scriptednative-mode-boundary)
   - [§23.6 ABI Stability](#236-abi-stability)
   - [§23.7 C Header Interop](#237-c-header-interop)
@@ -228,7 +283,7 @@
   - [§24.6 `@panic_handler` and Panic Policy](#246-panic_handler-and-panic-policy)
   - [§24.7 `asm { }` — Inline Assembly](#247-asm----inline-assembly)
   - [§24.8 `@volatile` — MMIO Semantics](#248-volatile--mmio-semantics)
-  - [§24.9 `Volatile[T]` — MMIO Type Wrapper](#249-volatilt--mmio-type-wrapper)
+  - [§24.9 `Volatile[T]` — MMIO Type Wrapper](#249-volatile--mmio-type-wrapper)
   - [§24.10 `@repr` — Struct Layout Control](#2410-repr--struct-layout-control)
   - [§24.11 `@align` — Alignment Annotations](#2411-align--alignment-annotations)
   - [§24.12 `@section` — ELF/Mach-O Section Placement](#2412-section--elfmacho-section-placement)
@@ -283,6 +338,7 @@
   - [§27.14 Syntactic Grammar — v1.14 Additions](#2714-syntactic-grammar--v114-additions)
   - [§27.15 Syntactic Grammar — v1.15 Additions](#2715-syntactic-grammar--v115-additions)
   - [§27.16 Syntactic Grammar — v1.16 Additions](#2716-syntactic-grammar--v116-additions)
+  - [§27.17 Syntactic Grammar — v1.17 Additions](#2717-syntactic-grammar--v117-additions)
 - [§28 Tooling (non-normative)](#28-tooling)
   - [§28.1 Command-Line Interface](#281-command-line-interface)
   - [§28.2 Shebang Support](#282-shebang-support)
@@ -298,6 +354,20 @@
 - [§29 Progressive Disclosure (non-normative)](#29-progressive-disclosure)
 - [§30 Future Directions (non-normative)](#30-future-directions)
 - [§31 Hardware Backend Lifecycle (non-normative)](#31-hardware-backend-lifecycle)
+- [§32 Serialization Foundation](#32-serialization-foundation)
+  - [§32.1 Overview and Design Principles](#321-overview-and-design-principles)
+  - [§32.2 The `Value` Intermediate Representation](#322-the-value-intermediate-representation)
+  - [§32.3 `Serializable` and `Deserializable` Traits](#323-serializable-and-deserializable-traits)
+  - [§32.4 Auto-Derivation Rules](#324-auto-derivation-rules)
+  - [§32.5 Type Identity and URIs](#325-type-identity-and-uris)
+  - [§32.6 Polymorphic Serialization](#326-polymorphic-serialization)
+  - [§32.7 Field-Level Annotations](#327-field-level-annotations)
+  - [§32.8 Evolution and Compatibility Rules](#328-evolution-and-compatibility-rules)
+  - [§32.9 Exception Serialization](#329-exception-serialization)
+  - [§32.10 Format Driver Protocol](#3210-format-driver-protocol)
+  - [§32.11 Security Model](#3211-security-model)
+  - [§32.12 Interaction with `Sendable`, `Shareable`, and `shared class`](#3212-interaction-with-sendable-shareable-and-shared-class)
+  - [§32.13 Error Codes](#3213-error-codes)
 - [Appendix A: Keyword Index](#appendix-a-keyword-index)
 - [Appendix B: Operator Index](#appendix-b-operator-index)
 - [Appendix C: Built-in Type Index](#appendix-c-built-in-type-index)
@@ -340,13 +410,30 @@ Loom is a statically-typed, cooperatively-scheduled programming language designe
 
 *(This section is normative.)*
 
-Loom defines four execution modes — `@mode(scripted)`, `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)` — described fully in §2.4 and §2.6. This section specifies scripted mode, the default when no `@mode` directive is present. The other three modes are specified in §22 (compiled), §23 (native), and §24 (freestanding).
+Loom defines six execution modes — `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, `@mode(host.native)`, and `@mode(freestanding)` — described fully in §2.4 and §2.6. The modes organize along two orthogonal axes:
 
-### §2.1 Scripted Mode (JIT)
+- **Deployment environment** — `web.*` targets the browser sandbox, `host.*` targets an operating system process, `freestanding` targets bare metal with no runtime.
+- **Compilation strategy** — `.scripted` denotes JIT compilation at load time, `.compiled` and `.native` denote AOT compilation at build time, `.dual` denotes source that is deliverable either as JIT-compiled script or AOT-compiled native binary.
 
-Loom's scripted mode uses a cooperative, single-threaded runtime with first-class `async`/`await`.
+The six modes are not a strict subset hierarchy — each combines an environment and a strategy with specific capability implications. The modes are specified fully in §22 (web modes), §23 (host modes), and §24 (freestanding).
 
-**Runtime model.** The runtime SHALL execute Loom code cooperatively on a single thread by default, suspending only at explicit `await` expressions. All asynchronous work is represented as `Task[T]` values scheduled on the host event loop. Evaluation is deterministic between suspension points; only external I/O completion order may affect when suspended tasks resume. On `--target native`, the executor may be reconfigured to a work-stealing multi-threaded model via `runtime.configure` (§17.9.1) to enable parallelism across CPU cores. In scripted mode and Wasm targets, `spawnBlocking` (§17.10.1) offloads CPU-bound synchronous work to a host-managed thread pool, and `ScriptWorker` (§17.10.2) provides isolated parallel Wasm instances with `Sendable`-typed message channels.
+**Design principles.**
+
+1. **One language, delivery choice.** Features depend on the deployment environment, not on the compilation strategy. A file written for `host.scripted` can generally be compiled by the `host.native` AOT pipeline without modification. Delivery (JIT vs AOT) is a build decision, not a language decision.
+
+2. **Statically-checkable capability surfaces.** The `@mode` declaration at the top of a file statically determines which runtime capabilities, standard-library modules, and language features are available. The linter, compiler, completion menus, and error messages use the mode as authoritative. A file declaring `@mode(web.scripted)` cannot reach for `runtime.proc.runAsync` even if the underlying JIT runtime would permit it.
+
+3. **Import transparency.** An imported module's `@mode` does not leak through its public interface. Code in `host.scripted` may import a `host.native` module without knowing which delivery pipeline produced it; the runtime bridges the boundary (§23.5).
+
+4. **Script-first portability.** Any module written in `web.scripted` or `host.scripted` that avoids build-time-only features can be compiled AOT (to `web.compiled` or `host.native` respectively) without source changes. This lets libraries ship as source and run without the native compiler toolchain installed.
+
+### §2.1 Script-Mode Runtime (JIT)
+
+*(This subsection specifies the JIT runtime used by `@mode(web.scripted)` and `@mode(host.scripted)`. The AOT pipelines are specified in §22 and §23.)*
+
+Script-mode execution uses a cooperative, single-threaded runtime with first-class `async`/`await`.
+
+**Runtime model.** The runtime SHALL execute Loom code cooperatively on a single thread by default, suspending only at explicit `await` expressions. All asynchronous work is represented as `Task[T]` values scheduled on the host event loop. Evaluation is deterministic between suspension points; only external I/O completion order may affect when suspended tasks resume. On `host.native` targets, the executor may be reconfigured to a work-stealing multi-threaded model via `runtime.configure` (§17.9.1) to enable parallelism across CPU cores. In script-mode runtimes and on all Wasm targets, `spawnBlocking` (§17.10.1) offloads CPU-bound synchronous work to a host-managed thread pool, and `ScriptWorker` (§17.10.2) provides isolated parallel Wasm instances with `Sendable`-typed message channels.
 
 **JIT compilation pipeline.** The `loom run` command uses a JIT compilation pipeline rather than ahead-of-time batch compilation:
 
@@ -354,9 +441,9 @@ Loom's scripted mode uses a cooperative, single-threaded runtime with first-clas
 2. **Parse and JIT compile to Wasm** — If no cache entry exists, the source file is parsed into an AST and each top-level statement (or function body) is compiled to WebAssembly (GC+EH) incrementally.
 3. **Execute** — Compiled Wasm is executed immediately.
 
-This pipeline ensures that execution begins immediately and each statement is individually addressable by a debugger. There is no separate build step for scripted mode. For packages installed via `loom install`, step 1 will nearly always be a cache hit, reducing scripted-mode startup latency to near-zero for imported modules.
+This pipeline ensures that execution begins immediately and each statement is individually addressable by a debugger. There is no separate build step for script modes. For packages installed via `loom install`, step 1 will nearly always be a cache hit, reducing script-mode startup latency to near-zero for imported modules.
 
-**Statement-level execution.** The runtime SHALL treat every source-level statement as a discrete execution step. This is analogous to Python's line-by-line execution model. When a module is loaded, its top-level statements execute sequentially in source order. The JIT pipeline is the default execution mode for `loom run` and REPL sessions.
+**Statement-level execution.** In `@mode(host.scripted)`, the runtime SHALL treat every source-level statement as a discrete execution step. When a module is loaded, its top-level statements execute sequentially in source order. The JIT pipeline is the default execution mode for `loom run` and REPL sessions. Sequential top-level execution is specific to `host.scripted` — other modes use architectural entry points (web bootstrap, `main()`, `@entry`) described in §2.4.
 
 **Source maps and debugging.** The runtime SHALL maintain a source map from every emitted Wasm instruction back to its originating Loom source line and column, enabling line-level breakpoints on any statement including imports and type definitions. JIT-compiled Wasm retains full debug metadata (source maps, local variable names, scope boundaries) by default.
 
@@ -368,7 +455,7 @@ This pipeline ensures that execution begins immediately and each statement is in
 
 `loom serve` SHALL serve `*.wasm.map` files with `Content-Type: application/json` and the response header `Access-Control-Allow-Origin: *` so Chrome DevTools can fetch source maps across the local origin boundary. Production deployments are responsible for configuring equivalent headers on their static file servers; Loom does not enforce this at build time but the tooling documentation SHALL note the requirement.
 
-**Bytecode target.** The primary bytecode target is WebAssembly with GC and Exception Handling proposals. The specification defines:
+**Bytecode target.** The primary bytecode target for all Wasm-delivered modes (`web.scripted`, `web.compiled`, `host.scripted`, and the JIT side of `host.dual`) is WebAssembly with GC and Exception Handling proposals. The specification defines:
 
 - The mapping from Loom types to Wasm GC types (structs, arrays, `i31ref`, `funcref`, etc.)
 - How Loom exceptions map to Wasm EH tags
@@ -376,9 +463,9 @@ This pipeline ensures that execution begins immediately and each statement is in
 - The Wasm module interface (imports/exports) that the Loom runtime host must provide
 - The source map format that maps Wasm instruction offsets to Loom source locations (file, line, column)
 
-**AOT compilation.** The `loom build` command uses an ahead-of-time (AOT) compilation mode that produces optimized Wasm modules for deployment. Debug info inclusion is controlled by a `--debug` flag. AOT-compiled Wasm strips debug metadata unless `--debug` is specified.
+**AOT compilation.** The `loom build` command uses an ahead-of-time (AOT) compilation mode that produces optimized Wasm modules (for `web.compiled`) or native binaries (for `host.native`, `host.dual`, `freestanding`) for deployment. Debug info inclusion is controlled by a `--debug` flag. AOT-compiled artifacts strip debug metadata unless `--debug` is specified.
 
-**Statement-level execution semantics.** The following rules define precisely what "executing" each kind of top-level statement means:
+**Statement-level execution semantics.** The following rules define precisely what "executing" each kind of top-level statement means in `@mode(host.scripted)`:
 
 - **Import statement:** (a) Resolve the module path. (b) If the module is not already loaded, JIT-compile the target module's source, set its `__name__` to its fully-qualified module name and `__file__` to its source path, then execute its top-level statements in order. (c) Cache the module's bindings. (d) Bind the imported names into the current scope. If the module was already loaded, step (b) is skipped and cached bindings are reused. A module is initialized at most once.
 - **`class` declaration:** (a) Evaluate any superclass/interface references. (b) Register the class type in the runtime type registry with its fields, methods, and metadata. (c) Make the class name available in the current scope.
@@ -421,7 +508,7 @@ The source map format is defined in relation to existing standards: DWARF for Wa
 
 **Failure model.** Failures are hard by default; see §26 for the complete failure policy.
 
-**Wasm call-stack exhaustion (normative).** A Wasm call-stack exhaustion trap encountered during execution of a Loom scripted or compiled program SHALL be caught by the Loom runtime host and rethrown as `StackOverflowError extends RuntimeError` (§26.1) at the point of the deepest active Loom call frame. `StackOverflowError` is catchable by user `try/catch` blocks. The maximum call-stack depth is engine-defined and is not specified by Loom; programs MUST NOT rely on a particular limit. Recursive algorithms with unbounded depth SHOULD use explicit work-list patterns or `gen func` (§7.5) to avoid stack exhaustion.
+**Wasm call-stack exhaustion (normative).** A Wasm call-stack exhaustion trap encountered during execution of a Loom Wasm-delivered program SHALL be caught by the Loom runtime host and rethrown as `StackOverflowError extends RuntimeError` (§26.1) at the point of the deepest active Loom call frame. `StackOverflowError` is catchable by user `try/catch` blocks. The maximum call-stack depth is engine-defined and is not specified by Loom; programs MUST NOT rely on a particular limit. Recursive algorithms with unbounded depth SHOULD use explicit work-list patterns or `gen func` (§7.5) to avoid stack exhaustion.
 
 ### §2.2 Module Introspection Dunders
 
@@ -431,13 +518,14 @@ Every Loom module has three implicit read-only bindings available at module scop
 |---|---|---|
 | `__name__` | `string` | The module's identity name |
 | `__file__` | `string` | The absolute filesystem path of the source file |
-| `__execmode__` | `string` | `"interpreted"`, `"compiled"`, `"native"`, or `"freestanding"` |
+| `__execmode__` | `string` | The mode string: `"web.scripted"`, `"web.compiled"`, `"host.scripted"`, `"host.dual"`, `"host.native"`, or `"freestanding"` |
 
 **`__name__` rules:**
 
-- When a file is executed directly via `loom run`, `__name__` is `"__main__"`.
-- When a file is loaded as an import, `__name__` is the module's fully-qualified dotted name (e.g., `"mypackage.utils"`).
-- In compiled-mode files, `__name__` is never `"__main__"` — compiled files cannot be entry points.
+- In `@mode(host.scripted)`, when a file is executed directly via `loom run`, `__name__` is `"__main__"`. When loaded as an import, `__name__` is the module's fully-qualified dotted name (e.g., `"mypackage.utils"`).
+- In `@mode(host.dual)` and `@mode(host.native)`, `__name__` is always the module's fully-qualified dotted name. Entry is via the `main()` function, not via file identity.
+- In `@mode(web.scripted)` and `@mode(web.compiled)`, `__name__` is always the module's fully-qualified dotted name. Web modules are loaded by the browser bootstrap (§28.6); there is no "run this file directly" disposition, so `"__main__"` is never a meaningful value.
+- In `@mode(freestanding)`, `__name__` is always the module's fully-qualified dotted name. Entry is via the `@entry` annotation (§24.5).
 - In the REPL, `__name__` is `"__main__"`.
 
 **`__file__` rules:**
@@ -447,24 +535,26 @@ Every Loom module has three implicit read-only bindings available at module scop
 
 **`__execmode__` rules:**
 
-- `@mode(scripted)` (or no mode directive): `"interpreted"`
-- `@mode(compiled)` (Wasm AOT): `"compiled"`
-- `@mode(native)` (native binary): `"native"`
-- `@mode(freestanding)` (bare-metal binary): `"freestanding"`
-- In the REPL: `"interpreted"`
+- `@mode(web.scripted)` (or no mode directive with `--target browser`): `"web.scripted"`
+- `@mode(web.compiled)`: `"web.compiled"`
+- `@mode(host.scripted)` (or no mode directive with a host target): `"host.scripted"`
+- `@mode(host.dual)`: `"host.dual"` — regardless of whether the current execution path is the JIT or AOT side
+- `@mode(host.native)`: `"host.native"`
+- `@mode(freestanding)`: `"freestanding"`
+- In the REPL: `"host.scripted"`
 
-In `@mode(native)` and `@mode(freestanding)` files, `__execmode__` is a compile-time string constant baked into the binary. It does not require the Loom runtime to evaluate. `core.reflect` is not needed to read `__execmode__` — it is always a compile-time constant in all compiled modes.
+In all AOT-compiled modes (`web.compiled`, `host.native`, `freestanding`, and the AOT side of `host.dual`), `__execmode__` is a compile-time string constant baked into the binary. It does not require the Loom runtime to evaluate. `core.reflect` is not needed to read `__execmode__` — it is always a compile-time constant in all AOT modes. In `host.dual`, the value is fixed at source-declaration time and does not vary between JIT and AOT delivery paths; user code wishing to detect the current delivery pipeline SHOULD use `runtime.delivery` (§20.1) instead.
 
 **Read-only semantics.** The compiler SHALL treat `__name__`, `__file__`, and `__execmode__` as read-only implicit `let` bindings. Attempting to reassign any of them is a compile-time error (`E_LET_REASSIGN`).
 
-**Compiled-mode constants.** In any AOT-compiled file (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`), `__name__`, `__file__`, and `__execmode__` are compile-time string constants baked into the binary — they do not require the runtime to evaluate. `__name__` is the module's dotted name (never `"__main__"`), `__file__` is the source path at compile time, and `__execmode__` is the mode string for that file (`"compiled"`, `"native"`, or `"freestanding"`).
+**AOT-mode constants.** In any AOT-compiled file, `__name__`, `__file__`, and `__execmode__` are compile-time string constants baked into the binary — they do not require the runtime to evaluate. `__name__` is the module's dotted name, `__file__` is the source path at compile time, and `__execmode__` is the mode string for that file.
 
 **Dunder reservation.** Identifiers beginning and ending with double underscores (`__*__`) follow the Python dunder naming convention and are reserved for language-defined module introspection variables. User code SHALL NOT declare variables with dunder names. The language-reserved dunders are: `__name__`, `__file__`, `__execmode__`, and `__module__` (the declaration-level property on named types and functions, §2.3). Additional language-level introspection variables follow the same `__dunder__` pattern.
 
 **Main guard pattern.** The idiomatic way to write code that runs only when a file is executed directly:
 
 ```
-// utils.loom — a dual-purpose module
+// utils.loom — a dual-purpose module (host.scripted)
 pub func greet(name: string): string {
   return i"Hello, {$ name $}!";
 }
@@ -476,9 +566,13 @@ if (__name__ == "__main__") {
 }
 ```
 
-This pattern allows a module to be both importable (exporting functions and types) and directly executable.
+This pattern is available only in `@mode(host.scripted)`. It is a compile-time error in all other modes:
 
-**Async execution example.** The following demonstrates the cooperative async model with `Task[T]`:
+- **In `web.scripted` and `web.compiled`** — web modules are loaded by the browser bootstrap and have no direct-execution disposition. The guard would be statically dead. (`E_MAIN_GUARD_NOT_APPLICABLE`)
+- **In `host.dual` and `host.native`** — entry is via a declared `main()` function (§2.4.4, §2.4.5); top-level control flow is prohibited, which the compiler enforces separately. (`E_TOPLEVEL_CONTROL_AOT`)
+- **In `freestanding`** — entry is via `@entry` (§24.5); top-level control flow is prohibited. (`E_TOPLEVEL_CONTROL_AOT`)
+
+**Async execution example.**
 
 ```
 async func fetchData(url: string): Task[string] {
@@ -487,11 +581,9 @@ async func fetchData(url: string): Task[string] {
 }
 
 async func main() {
-  // Tasks start immediately when called
   let task1 = fetchData("https://api.example.com/users");
   let task2 = fetchData("https://api.example.com/posts");
 
-  // Await suspends until each task completes
   let users = await task1;
   let posts = await task2;
 
@@ -499,9 +591,12 @@ async func main() {
   print(i"Posts: {$ posts $}");
 }
 
+// In host.scripted:
 if (__name__ == "__main__") {
   await main();
 }
+
+// In host.dual / host.native: main() is called by the runtime; no guard needed.
 ```
 
 ### §2.3 Origination Introspection Dunders
@@ -515,19 +610,19 @@ Classes have declaration-level dunders that are accessible as properties on name
 
 **`__module__` on named declarations.** Every named class, struct, enum, interface, and function declaration carries an implicit `__module__` property that returns a `Module` value representing the module where the declaration was made. This is accessible via dot syntax on any named type or function value:
 ```loom
-Encoder.__module__.__execmode__    // "interpreted", "compiled", "native", or "freestanding"
+Encoder.__module__.__execmode__    // e.g., "host.scripted", "host.native", "web.compiled"
 decode.__module__.__name__         // "mylib.codec"
 Shape.__module__.__file__          // "/path/to/shapes.loom"
 ```
 
-`__module__` is not a module-scope dunder — it is a property on type and function values. It is available in all four modes. In any AOT-compiled mode (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`), `.__module__` returns compile-time-baked metadata requiring no runtime evaluation.
+`__module__` is not a module-scope dunder — it is a property on type and function values. It is available in all six modes. In any AOT-compiled mode (`web.compiled`, `host.native`, `freestanding`, and the AOT side of `host.dual`), `.__module__` returns compile-time-baked metadata requiring no runtime evaluation.
 
 **`Module` built-in type.** `Module` is a built-in class with read-only properties mirroring the module-scope dunders:
 ```loom
 class Module : Any {
   pub let __name__: string;      // fully-qualified module name
   pub let __file__: string;      // source file path at compile time
-  pub let __execmode__: string;  // "interpreted" | "compiled" | "native" | "freestanding"
+  pub let __execmode__: string;  // one of the six mode strings
 
   // Runtime module reflection — available when the Module value is the result of
   // runtime.compile() or obtained via __module__ on a dynamically-loaded type.
@@ -540,12 +635,12 @@ class Module : Any {
 
 `Module` values are not constructable by user code — they are produced only by the runtime in response to `.__module__` access. Two `.__module__` accesses on declarations from the same module return the same `Module` instance (referential equality).
 
-**`prefer compiled` and `__execmode__`.** When a module is loaded via `prefer compiled` resolution (§13.1, §13.7), its `__execmode__` reflects which path was taken: `"compiled"` if a compiled artefact was loaded, `"interpreted"` if the scripted fallback was used. This is the canonical way to inspect fallback resolution from user code:
+**`prefer compiled` and `__execmode__`.** When a module is loaded via `prefer compiled` resolution (§13.1, §13.7), its `__execmode__` reflects which path was taken: the AOT mode string if a compiled artifact was loaded, `"host.scripted"` or `"web.scripted"` if the scripted fallback was used. This is the canonical way to inspect fallback resolution from user code:
 ```loom
 from codec import (Encoder) prefer compiled;
 
-if (Encoder.__module__.__execmode__ == "interpreted") {
-  log.warn("codec running in pure scripted mode — performance may be reduced");
+if (Encoder.__module__.__execmode__ == "host.scripted") {
+  log.warn("codec running in pure script mode — performance may be reduced");
 }
 ```
 
@@ -555,47 +650,172 @@ if (Encoder.__module__.__execmode__ == "interpreted") {
 
 *(This section is normative.)*
 
-Loom defines four execution modes. Each mode represents a distinct combination of runtime support, memory management strategy, permitted language features, and target deployment environment. A source file declares its mode with the `@mode` directive (§2.5); the build system, compiler, linter, formatter, and language server treat the declared mode as authoritative for that file.
+Loom defines six execution modes. Each mode represents a specific combination of deployment environment and compilation strategy, determining runtime support, memory management strategy, permitted language features, and target deployment artifact. A source file declares its mode with the `@mode` directive (§2.5); the build system, compiler, linter, formatter, and language server treat the declared mode as authoritative for that file.
 
-The four modes are not a strict subset hierarchy — each trades off different runtime capabilities against different constraints:
+The modes organize as a 2D grid:
 
-- `@mode(compiled)` restricts `@mode(scripted)` to statically-typed, AOT-compilable constructs; the Wasm GC runtime is common to both.
-- `@mode(native)` targets native binaries with ARC memory management and ownership features (`borrow`, `unique`, `lifetime`) absent from the Wasm modes.
-- `@mode(freestanding)` strips the Loom runtime entirely — no ARC, no async executor, no exceptions — for bare-metal and kernel programming.
+| Environment ↓ / Strategy → | JIT (scripted) | AOT (compiled) | Hybrid (dual) |
+|---|---|---|---|
+| **Web** (browser, Wasm GC) | `web.scripted` | `web.compiled` | — |
+| **Host** (OS process) | `host.scripted` | `host.native` | `host.dual` |
+| **Bare metal** (no runtime) | — | `freestanding` | — |
 
-There is no runtime compatibility between modes; each mode produces a distinct binary artifact or runtime environment.
+There is no runtime compatibility between environments; modules compiled for different environments produce distinct binary artifacts. Within an environment, modules freely mix strategies:
 
-### §2.4.1 Scripted Mode
+- A `host.scripted` file may import `host.native` or `host.dual` modules; the runtime bridges the GC/ARC boundary (§23.5). Consumer code does not need to know which delivery strategy produced the imported module — this is the **import transparency** principle in action.
+- A `web.scripted` file may import `web.compiled` modules; both sides run on the shared Wasm GC runtime.
+- A `host.dual` file may import from any host-environment mode (`host.scripted`, `host.native`, or other `host.dual`), carrying the import transparency guarantee through both delivery paths.
 
-The default execution mode. Files without an `@mode` directive are implicitly `@mode(scripted)`.
+A `host.native` binary that uses `runtime.compile` (§20.1) embeds a JIT runtime and can dynamically load `host.scripted` or `host.dual` modules at runtime, further extending the import-transparency principle to runtime module loading.
 
-Features: dynamic typing (full `Any` usage), GC-managed heap via the Wasm GC proposal, `async`/`await` with a cooperative event loop, `core.reflect`, all standard library modules, template fences (HTML, CSS, WGSL, Metal, GLSL), reactive UI. The legacy ownership keyword set (`borrow`, `unique`, `lifetime`, `noescape fn`, `excl borrow`, `arc let`, `unique class`) is **not available** and produces a compile-time error if used (`E_BORROW_NOT_NATIVE` for `borrow`/`lifetime`, `E_UNIQUE_NOT_NATIVE` for `unique`). The v1.15 ownership verb system (`reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}`, `synchronized`) **is available** in scripted mode. See §23.4.9–§23.4.13. The v1.16 `atomic {}` block (§17.7) is available in scripted mode.
+### §2.4.1 `web.scripted` — Browser JIT
 
-### §2.4.2 Compiled Mode
+The web-environment script mode. Loom source is delivered to the browser; `loom-rt.js` JIT-compiles each module to Wasm GC+EH at load time (§2.1, §28.6).
 
-Opt-in via `@mode(compiled)`. Compiled mode restricts the language to a statically-analyzable subset for AOT compilation to WebAssembly (GC+EH target). All type annotations are mandatory. `Any` as a declared type is prohibited (`E_ANY_IN_COMPILED`). Memory is managed by the Wasm GC. The legacy ownership keyword set (`borrow`, `unique`, `excl borrow`, `arc let`, `unique class`, `noescape fn`, `lifetime`) remains unavailable. The v1.15 ownership verb system (`reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}`, `synchronized`) is available in compiled mode. Async, template fences, and UI features are available. Overflow arithmetic methods (`checkedAdd`, `wrappingAdd`, `saturatingAdd`, §24.19) are available in compiled mode. The v1.16 `atomic {}` block (§17.7) is available in compiled mode.
+**Entry point.** Architectural — the browser bootstrap fetches `app.wasm` (compiled from source at load time), runs top-level declarations, wires `data-loom-ev` event handlers, and invokes the registered `mount(...)` call. There is no `main()` function; top-level control flow is permitted for setup but `__name__ == "__main__"` is not meaningful (§2.2).
 
-### §2.4.3 Native Mode
+**Features:**
 
-Opt-in via `@mode(native)`. Native mode compiles to a platform-native binary via LLVM or Cranelift (§23). Memory is managed by Automatic Reference Counting (ARC). All compiled-mode restrictions apply. Additionally, the full ownership and lifetime system becomes available:
+- Dynamic typing (full `Any` usage), `dynamic class`, `core.reflect`, `core.inspect`
+- ARC memory model (`local class` default, `shared class` opt-in; §8.1.1); implementation may use Wasm GC under the hood as an optimization (§8.1.1.1)
+- `async`/`await` with cooperative event loop
+- Template fences (HTML, CSS, WGSL, Metal, GLSL), reactive UI (`ui.web`), Web Components (`@webcomponent`)
+- Compile-time ownership features: `reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}` / `safe func`, `synchronized`, `distinct()`, `borrow`, `excl borrow`, `borrow[~name]`, `lifetime ~name`, `noescape fn`, `unique let`/`var`/`class`, `unowned[~name]`, `MaybeUninit[T]`, `reinterpret[T, U]`, `atomic {}`
+- `weak` references (§8) on any `local class` or `shared class` instance
+- `runtime.compile` — dynamic JIT of additional modules
+- `spawnBlocking`, `ScriptWorker` (§17.10), shared-memory concurrency (§17b)
+- Full standard library except host-capability APIs
 
-- `reads`, `edits`, `takes`, `shares` verbs, `modifier`, `safe {}` / `safe func`, `synchronized` class (§23.4.9–§23.4.13)
-- `borrow`, `excl borrow`, `borrow[~name]`, `lifetime ~name`, `noescape fn`
-- `unique let`, `unique var`, `unique class`, `arc let`, `consume`
-- `unowned[~name]`
-- `MaybeUninit[T]`, `reinterpret[T, U]`, `reinterpretChecked[T, U]` (§24.17, §24.17a, §24.18)
-- `PartialInit[T]` — field-tracked struct initialization (§24.17a)
+**Restrictions.** Host-environment capabilities (`runtime.fs`, `runtime.proc`, `runtime.net` with non-browser semantics, `ThreadLocal[T]`) are not available — calling them is a compile-time error (`E_CAPABILITY_NOT_WEB`) or throws `CapabilityError` at runtime when the call site is dynamically resolved.
+
+Build-time-only features (`asm { }` inline Wasm, static layout control via `@repr`) are unavailable; source must be reprocessed by the JIT pipeline at load time.
+
+### §2.4.2 `web.compiled` — Browser AOT
+
+The web-environment compiled mode. Loom source is AOT-compiled at build time to a `.wasm` module that is fetched and instantiated by the browser bootstrap (§22, §28.6).
+
+**Entry point.** Architectural, identical to `web.scripted` — the browser bootstrap runs top-level declarations, wires event handlers, and invokes the registered `mount(...)` call.
+
+**Features.** A strict superset of `web.scripted` features plus build-time-only constructs:
+
+- All `web.scripted` features (dynamic typing, ownership verbs, template fences, UI, `runtime.compile`, etc.)
+- `asm { }` Wasm inline assembly (with `@unsafe`)
+- Static data layout control applicable to Wasm (`@repr` subset)
+- Full AOT optimization: inlining, LTO, dead-code elimination, tree-shaking
+- Smaller shipped bundle (no JIT pipeline embedded)
+
+**Restrictions.** None beyond those inherited from the web environment (no host capabilities, no ARC-specific features).
+
+**Lint advisory.** Using `Any` as a declared type, `dynamic class`, or `core.inspect` in `web.compiled` produces `W_ANY_IN_AOT_MODE` — the AOT compiler emits tagged-value dispatch code and embeds a static type registry, which carries a runtime cost. This is an advisory, not an error; projects that prefer to enforce static typing can promote the warning with `--warnings-as-errors=W_ANY_IN_AOT_MODE`.
+
+**Relationship to `web.scripted`.** Every `web.scripted` module is a valid `web.compiled` module — the AOT pipeline accepts the same source with no changes required. The converse is not true: a `web.compiled` module using `asm { }` or other build-time-only features cannot be JIT-compiled. This asymmetry is why no `web.dual` mode is needed: `web.scripted` is inherently dual-deliverable, and `web.compiled` flags the one-way cases.
+
+### §2.4.3 `host.scripted` — Host JIT
+
+The host-environment script mode. Files are executed by `loom run` on a host runtime (`node`, `bun`, `deno`, or the standalone `loom` CLI), JIT-compiled to Wasm GC+EH inside the host process (§2.1).
+
+**Entry point.** Sequential top-level execution — when a file is invoked via `loom run foo.loom`, its top-level statements execute in source order, with `__name__ == "__main__"` available as a runtime-executable branch.
+
+**Features.**
+
+- Script-mode runtime: dynamic typing, `dynamic class`, `core.reflect`, `core.inspect`, JIT compilation with incremental re-compilation
+- ARC memory model (`local class` default, `shared class` opt-in; §8.1.1); implementation may use Wasm GC under the hood as an optimization (§8.1.1.1)
+- `async`/`await` with cooperative event loop
+- Template fences (HTML, CSS, WGSL, Metal, GLSL)
+- Reactive UI via `ui.desktop` — native desktop UI backend
+- Compile-time ownership features (universal, §23.4.x): `reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}` / `safe func`, `synchronized`, `distinct()`, `borrow`, `excl borrow`, `borrow[~name]`, `lifetime ~name`, `noescape fn`, `unique let`/`var`/`class`, `unowned[~name]`, `MaybeUninit[T]`, `reinterpret[T, U]`, `atomic {}`
+- `weak` references (§8) on any `local class` or `shared class` instance
+- `runtime.compile` — dynamic JIT of additional modules
+- Sequential top-level execution and `__name__ == "__main__"` guard pattern
+- Full host capability surface: `runtime.fs`, `runtime.proc`, `runtime.net`, file system, process spawning, environment variables
+- `spawnBlocking` backed by the host's OS thread pool (default 512 threads)
+- `ScriptWorker` with host-side isolation (§17.10), shared-memory concurrency (§17b)
+
+**Restrictions.**
+
+- **Web-specific features** — `ui.web`, `@webcomponent`, browser DOM APIs are unavailable.
+- **Build-time-only features** — `asm { }`, static layout control via `@repr`, hardware intrinsics are unavailable.
+
+**Cross-mode imports.** A `host.scripted` module may import `host.native` or `host.dual` modules. The import is transparent at the source level; the runtime inserts the ARC/GC bridge described in §23.5. If the imported native module is unavailable (the native toolchain was not installed, or the binding failed to compile), resolution may fall back to a scripted implementation via `prefer compiled` (§13.7). This realizes the **import transparency** design principle (§2): consumer code does not need to know whether an imported module is script-delivered or AOT-delivered.
+
+### §2.4.4 `host.dual` — Host Hybrid
+
+The host-environment hybrid mode. Files declare `@mode(host.dual)` to signal that the module is deliverable via either the JIT pipeline (like `host.scripted`) or the AOT native compiler (like `host.native`), and that the author intends to use ARC-backed safety features that require runtime support (`weak` references, `arc let`).
+
+**Host.dual semantics.** A single `host.dual` source file behaves identically on both delivery paths. Features that fundamentally cannot round-trip between JIT and AOT are prohibited in `host.dual`. Features that *can* work on both paths — even if the AOT binary must embed a runtime component (a JIT compiler for `runtime.compile`, a minimal Wasm runtime for `ScriptWorker`) — are permitted; the build system handles the embedding automatically. The programmer writes one thing and it works the same way on both paths.
+
+**Entry point.** A declared `main()` function. Top-level control flow is prohibited (`E_TOPLEVEL_CONTROL_AOT`); only declarations and constant initializers are permitted at module scope. The runtime invokes `main()` after module initialization — the JIT pipeline calls `main()` after compiling the module, and the AOT pipeline emits a binary whose entry point calls `main()`.
+
+**Features.**
+
+- All `host.scripted` source-level features (dynamic typing, template fences, ownership verbs, compile-time ownership analysis, full host capability surface, `ui.desktop`)
+- `weak` references — JIT path uses a runtime-maintained weak table over Wasm GC; AOT path uses ARC zeroing side table; programmer sees identical semantics
+- `arc let` / `arc var` — JIT path treats as regular GC-managed bindings; AOT path uses ARC; programmer sees identical observable semantics
+- `runtime.compile` — JIT path uses its native JIT; AOT path embeds a JIT runtime into the produced binary
+- `ScriptWorker` — JIT path uses standard Wasm isolates; AOT path embeds a minimal Wasm runtime capable of spawning isolates
+- `Thread` / `ThreadPool` — JIT path emulates via `spawnBlocking`-backed workers; AOT path uses OS threads
+- `ThreadLocal[T]` — JIT path uses a per-worker map; AOT path uses OS thread-local storage
+- `@lockOrder(n)` on `synchronized` classes
+- `@signalSafe` annotation
+- Zero-overhead `extern native` C FFI (AOT path); JIT path provides a typed FFI bridge
+
+**Restrictions.** Features prohibited in `host.dual` because they fundamentally cannot work on one of the delivery paths:
+
+- **AOT-only / native-only features:** `asm { }` inline assembly, `native.simd`, `Vec[T, N]`, `@vectorize` hint, `native.mem.alloc`, `native.atomic` hardware fences — require direct machine-code emission or hardware SIMD and have no Wasm equivalent. Use `host.native` instead. (`E_NATIVE_ONLY_IN_DUAL`)
+- **Top-level control flow:** `if`, `while`, `for`, `match`, or expression statements at file scope — the AOT pipeline has no sequential top-level execution model. Use `main()` instead. (`E_TOPLEVEL_CONTROL_AOT`)
+- **Non-constant top-level initializers:** permitted only if the initializer is a compile-time constant; otherwise move the assignment into a module-init call invoked from `main()`.
+
+**Delivery choice.** The build system selects the delivery pipeline based on project configuration (`[build]` in `.lmpkg`) and the availability of the native toolchain. A `host.dual` module built with `loom build --native` produces an AOT binary; the same source run via `loom run` uses the JIT pipeline. Source behaves identically on both paths. The current delivery path is observable via `runtime.delivery` (§20.1) — returns `"jit"` or `"aot"` — but user code SHOULD NOT need this; delivery differences are runtime implementation details.
+
+**Binary size implications (AOT path).** Using `runtime.compile` in a `host.dual` module causes the AOT build to embed the JIT runtime (approximately 300 KB uncompressed). Using `ScriptWorker` causes the AOT build to embed a minimal Wasm runtime (approximately 500 KB uncompressed, inclusive of the JIT). Projects that need minimum binary size should use `host.native` for the hot path and isolate any JIT-requiring code into separate `host.dual` modules that can be linked conditionally or omitted in constrained builds.
+
+**Purpose.** `host.dual` is the "write once, ship either way" mode. A dependency published as `host.dual` can be consumed in a `host.scripted` project (JIT'd on the fly) or in a `host.native` project (linked as a native module) without source changes. This supports the **script-first portability** design principle (§2): libraries can use ARC safety features and dynamic capabilities without forcing consumers to install the native compiler toolchain.
+
+### §2.4.5 `host.native` — Host AOT
+
+The host-environment AOT native mode. Compiles to a platform-native binary via LLVM or Cranelift (§23) with ARC memory management, zero-overhead C FFI, and direct machine-code emission. Intended for performance-critical applications, system utilities, and deliverables where binary size and startup time matter.
+
+**Entry point.** A declared `main()` function. Top-level control flow is prohibited (`E_TOPLEVEL_CONTROL_AOT`); only declarations and constant initializers are permitted at module scope.
+
+**Features.** All host-environment features, including those requiring direct machine access that are prohibited in `host.dual`:
+
+- All `host.dual` source-level features (dynamic typing, ownership verbs, compile-time ownership analysis, `weak`, `arc let`, full host capability surface, `Thread` / `ThreadPool` / `ThreadLocal[T]`, etc.)
+- `asm { }` inline assembly (with `@unsafe`)
+- `native.simd`, `Vec[T, N]`, hardware vector intrinsics
+- `native.atomic` — OS-level atomics, memory fences, hardware barriers
+- `native.mem.alloc` / `native.mem.free` — raw memory operations
+- Work-stealing multi-threaded async executor (`runtime.configure`)
 - `PinnedRef[T]`, `OwnedHandle`, `BorrowedHandle` — FFI ownership types (§18.4)
-- `@lockOrder(n)` — lock ordering annotation on `synchronized` classes (§23.4.13)
-- `@signalSafe` — signal handler safety annotation (§26.9)
+- `@vectorize` hints honored by the backend
+- Full LLVM optimization: LTO, PGO, target-specific tuning
+- `runtime.compile` — the AOT binary embeds a JIT runtime so that `host.native` code can evaluate and call into dynamically-loaded script modules. Embedding adds approximately 300 KB and may be suppressed via `[build] embed_jit = false` in `.lmpkg` if `runtime.compile` is not used in the project.
+- `ScriptWorker` — the AOT binary may embed a minimal Wasm runtime for isolate-based parallelism; opt-in via usage or explicit configuration
 
-Template fences, reactive UI, `core.reflect`, and the full standard library are available. The Loom native runtime is linked.
+**Restrictions.** Host-native binaries are platform-specific (one binary per `os × arch` target) and are not deliverable as web modules. Web-environment features (`ui.web`, `@webcomponent`, browser DOM APIs) are unavailable; use `ui.desktop` for native UI.
 
-### §2.4.4 Freestanding Mode
+**Relationship to `host.dual`.** Every `host.dual` source file compiles cleanly as `host.native` (one-way superset in source). The converse is not true: a `host.native` file using `asm { }`, `native.simd`, or `@vectorize` cannot be JIT-delivered as script.
 
-Opt-in via `@mode(freestanding)`. Freestanding mode compiles to a native binary with **no Loom runtime linked** — designed for kernels, bootloaders, embedded firmware, and bare-metal environments. The full ownership and lifetime system from native mode is available. Classes require an `@allocator` registration; without one, class construction is a compile-time error. Async/await, exceptions, template fences, UI, and `core.reflect` are unavailable.
+**When to use which.**
 
-Additional hardware-access features exclusive to freestanding mode: `asm { }` inline assembly, `@volatile`, `Volatile[T]`, `@repr`, `@interrupt`, `@naked`, `@callconv`, `@entry`, `@panic_handler`, `@allocator`, `@deallocator`. v1.16 adds: `@interruptSafe`, `InterruptGuard` (§24.24), `DmaBuffer[T]` and `native.dma` (§24.20), `native.mpu.installStackGuard` (§24.20), `native.atomic.hwFence` with `MemoryOrder` (§24.20), `PartialInit[T]` (§24.17a), `reinterpretChecked[T, U]` (§24.18), and the freestanding debug portal service — `portal` statements, `@debug_control_channel`, `@debug_trace_channel`, and time-travel replay (§24.25, `--debug` builds only). See §24 for the complete freestanding specification.
+- **`host.native`** — binary is the primary deliverable; need direct hardware access (SIMD, inline assembly, target-specific intrinsics); want maximum optimization and minimum runtime footprint.
+- **`host.dual`** — want the module consumable by projects without the native toolchain; publishing a library intended to work in any host project regardless of its chosen compilation strategy; ARC safety features are valuable but peak performance is not paramount.
+- **`host.scripted`** — write-and-run scripting; no ARC safety features needed; fastest iteration cycle.
+
+### §2.4.6 `freestanding` — Bare Metal
+
+The freestanding mode. Compiles to a native binary with **no Loom runtime linked** — designed for kernels, bootloaders, embedded firmware, and bare-metal environments.
+
+**Entry point.** A function annotated with `@entry` (§24.5). There is no `main()`; there is no runtime to call `main()`. The `@entry` function is wired directly to the linker-defined entry symbol.
+
+**Features.**
+
+- Full compile-time ownership and lifetime system (`borrow`, `unique`, `lifetime ~name`, `noescape fn`, `unowned[~name]`, `MaybeUninit[T]`, etc.)
+- `reads`, `edits`, `takes`, `shares`, `modifier`, `safe {}`, `distinct()`
+- `asm { }` inline assembly, `@volatile`, `Volatile[T]`, `@repr`, `@interrupt`, `@naked`, `@callconv`, `@entry`, `@panic_handler`, `@allocator`, `@deallocator`
+- v1.16 hardware-safety additions: `@interruptSafe`, `InterruptGuard` (§24.24), `DmaBuffer[T]` and `native.dma` (§24.20), `native.mpu.installStackGuard` (§24.20), `native.atomic.hwFence` with `MemoryOrder` (§24.20), `PartialInit[T]` (§24.17a), `reinterpretChecked[T, U]` (§24.18)
+- Freestanding debug portal service in `--debug` builds — `portal` statements, `@debug_control_channel`, `@debug_trace_channel`, time-travel replay (§24.25)
+
+**Restrictions.** Classes require an `@allocator` registration; without one, class construction is a compile-time error. Async/await, exceptions, template fences, UI, `core.reflect`, `core.inspect`, `dynamic class`, `weak` references, `arc let`, `Any` as a declared type — all unavailable. See §24 for the complete freestanding specification.
 
 ---
 
@@ -608,44 +828,74 @@ Additional hardware-access features exclusive to freestanding mode: `asm { }` in
 Every Loom source file carries an explicit or implicit mode declaration. The `@mode` directive MUST appear as the first non-comment, non-blank token:
 
 ```loom
-@mode(scripted)      // default; may be omitted
-@mode(compiled)      // compiled to Wasm
-@mode(native)        // compiled to native binary with ARC
-@mode(freestanding)  // bare-metal; no runtime
+@mode(web.scripted)      // browser JIT
+@mode(web.compiled)      // browser AOT
+@mode(host.scripted)     // host JIT (default for host targets)
+@mode(host.dual)         // host hybrid — either JIT or AOT
+@mode(host.native)       // host AOT native binary
+@mode(freestanding)      // bare-metal; no runtime
 ```
+
+**Syntax.** The argument to `@mode` is a dotted identifier path: `family.subfamily` where `family ∈ {web, host}` and `subfamily ∈ {scripted, compiled, dual, native}`, or the bare identifier `freestanding`. The dotted form parses identically to namespace paths (§27.3) — no new lexical rules are required.
 
 **Rules:**
 
 - `@mode` must be the first active token in the file; later placement is `E_MODE_POSITION`.
 - Only one `@mode` per file; duplicates are `E_MODE_DUPLICATE`.
-- Unrecognised mode names produce `E_MODE_UNKNOWN`.
-- Files without an explicit `@mode` are implicitly `@mode(scripted)`.
+- Unrecognized mode names produce `E_MODE_UNKNOWN`.
+- Files without an explicit `@mode` inherit the project-level default (§2.5.2). In the absence of a project default, the implicit mode is `@mode(host.scripted)`.
+
+**Family matching.** Linters and tooling may pattern-match mode families using the dotted form:
+
+- `@mode(web.*)` — all web-environment modes
+- `@mode(host.*)` — all host-environment modes
+- `@mode(*.scripted)` — all JIT-delivered modes
+
+Family-based lint rules apply uniformly within a family (for example, the no-host-capabilities rule fires on all `@mode(web.*)` files regardless of JIT vs AOT).
 
 ### §2.5.2 Mode and Build Target Consistency
 
-| `@mode` | Compatible `--target` |
-|---|---|
-| `@mode(scripted)` | `browser`, `node`, `bun`, `deno` |
-| `@mode(compiled)` | `wasm`, `browser` |
-| `@mode(native)` | `native`, `cli`, `service`, `desktop` |
-| `@mode(freestanding)` | `freestanding` |
-
-**Note on native targets.** The `cli`, `service`, and `desktop` build targets use `@mode(native)` for platform-specific compiled code. Mixed-mode projects where scripted files import native modules use the scripted/native interop boundary (§23.5).
+| `@mode` | Compatible `--target` | Delivery |
+|---|---|---|
+| `@mode(web.scripted)` | `browser` | Source + JIT at load time |
+| `@mode(web.compiled)` | `browser`, `wasm` | AOT-compiled Wasm module |
+| `@mode(host.scripted)` | `node`, `bun`, `deno`, `cli` | Source + JIT at `loom run` |
+| `@mode(host.dual)` | `node`, `bun`, `deno`, `cli`, `service`, `desktop`, `native` | Either JIT or AOT native |
+| `@mode(host.native)` | `native`, `cli`, `service`, `desktop` | AOT native binary |
+| `@mode(freestanding)` | `freestanding` | AOT native binary, no runtime |
 
 A mismatch between file `@mode` and `--target` is `E_MODE_TARGET_MISMATCH`.
 
-**Project-wide mode.** A `.lmpkg` manifest may declare `mode = "freestanding"` (or another mode) in its `[build]` table. All files without an explicit `@mode` inherit the project mode.
+**Note on host targets.** The `cli`, `service`, and `desktop` build targets accept `@mode(host.scripted)`, `@mode(host.dual)`, or `@mode(host.native)`. Mixed-mode projects where script files import native modules use the script/native interop boundary (§23.5) — the boundary is transparent to source code; import transparency is a design principle (§2).
 
-
+**Project-wide mode.** A `.lmpkg` manifest may declare `mode = "web.scripted"` (or another mode string) in its `[build]` table. All files without an explicit `@mode` inherit the project mode. When no project mode is declared, the implicit mode is `host.scripted`.
 
 ### §2.5.3 Tooling Semantics
 
 Tools MUST use the `@mode` declaration to determine:
 
-- **Syntax highlighting profile.** Freestanding enables `asm`, `@interrupt`, `@volatile`, etc. Native enables `borrow`, `unique`, `arc`, `lifetime`. Scripted highlights template fences and `Any`.
-- **Lint rule set.** Per-mode lint rules are enforced. Freestanding adds hardware-safety lints (e.g., `no-float-in-freestanding`).
+- **Syntax highlighting profile.** `freestanding` enables `asm`, `@interrupt`, `@volatile`, etc. `host.native` and `host.dual` enable `weak`, `arc let`, `@signalSafe`. All modes except `freestanding` enable template fences, the ownership verb system, and compile-time ownership keywords (`borrow`, `unique`, `lifetime ~name`, etc.). `host.*` modes enable host-capability APIs; `web.*` modes do not.
+- **Lint rule set.** Per-mode and per-family lint rules are enforced. `freestanding` adds hardware-safety lints (`no-float-in-freestanding`). `web.*` adds no-host-capability lints. AOT modes add `W_ANY_IN_AOT_MODE` advisory.
 - **Completion menus.** Only features available in the file's declared mode appear in completion suggestions.
-- **Error display.** Errors referencing features unavailable in the current mode include the mode name and the mode that would permit the feature.
+- **Error display.** Errors referencing features unavailable in the current mode include the mode name and the mode(s) that would permit the feature.
+
+### §2.5.4 Mode-Related Error Codes
+
+*(This subsection catalogs error codes introduced by the six-mode system. The complete error catalog appears in §26.)*
+
+| Code | Severity | Condition |
+|---|---|---|
+| `E_MODE_POSITION` | error | `@mode` directive appears after other non-comment tokens |
+| `E_MODE_DUPLICATE` | error | Multiple `@mode` directives in a single file |
+| `E_MODE_UNKNOWN` | error | Unrecognized mode name (not one of the six) |
+| `E_MODE_TARGET_MISMATCH` | error | File `@mode` is incompatible with the build `--target` (§2.5.2) |
+| `E_MAIN_GUARD_NOT_APPLICABLE` | error | `__name__ == "__main__"` guard used in a mode other than `host.scripted` — web modes have no direct-execution disposition; AOT modes prohibit top-level control flow |
+| `E_TOPLEVEL_CONTROL_AOT` | error | `if`, `while`, `for`, `match`, or expression statement at file top level in `host.dual`, `host.native`, `web.compiled`, or `freestanding` — these modes have no sequential top-level execution model |
+| `E_CAPABILITY_NOT_WEB` | error | Host-environment API (`runtime.fs`, `runtime.proc`, `runtime.net` host variants, `ThreadLocal[T]`) used in a `@mode(web.*)` file |
+| `E_NATIVE_ONLY_IN_DUAL` | error | Feature that cannot round-trip JIT↔AOT (`asm { }`, `native.simd`, `@vectorize`, raw memory APIs) used in `@mode(host.dual)`; use `host.native` instead |
+| `W_ANY_IN_AOT_MODE` | warning | `Any`, `dynamic class`, or `core.inspect` used in an AOT mode (`web.compiled`, `host.dual`, `host.native`) — generates tagged-dispatch code with runtime cost. Advisory only; promote with `--warnings-as-errors=W_ANY_IN_AOT_MODE` |
+
+Error codes specific to a single mode are cataloged in that mode's specification section: §22 (web modes), §23 (host modes), §24.22 (freestanding).
 
 ---
 
@@ -653,68 +903,107 @@ Tools MUST use the `@mode` declaration to determine:
 
 *(This section is normative with respect to feature availability.)*
 
-| Feature | Scripted | Compiled | Native | Freestanding |
-|---|---|---|---|---|
-| Dynamic typing (`Any`, untyped params) | ✓ | Restricted | Restricted | ✗ |
-| GC-managed heap | ✓ | ✓ (Wasm GC) | ✗ | ✗ |
-| ARC memory management | ✗ | ✗ | ✓ | ✗ (needs `@allocator`) |
-| `arc let` / `arc var` | ✗ | ✗ | ✓ | ✗ |
-| `unique let` / `unique var` | ✗ | ✗ | ✓ | ✓ |
-| `unique class` declaration | ✗ | ✗ | ✓ | ✓ |
-| `borrow` / `excl borrow` | ✗ | ✗ | ✓ | ✓ |
-| `borrow[~name]` / `lifetime ~name` | ✗ | ✗ | ✓ | ✓ |
-| `noescape fn` | ✗ | ✗ | ✓ | ✓ |
-| `unowned[~name]` | ✗ | ✗ | ✓ | ✓ |
-| `from X defer import` (deferred type stubs) | ✓ | ✓ | ✓ | ✗ |
-| `reads` / `edits` / `takes` / `shares` verbs | ✓ | ✓ | ✓ | ✓ |
-| `modifier` method keyword | ✓ | ✓ | ✓ | ✓ (`unique` class only) |
-| `safe {}` / `safe func` | ✓ | ✓ | ✓ | ✓ |
-| `synchronized` class | ✓ | ✓ | ✓ | ✗ |
-| `distinct()` in `requires` clause | ✓ | ✓ | ✓ | ✓ |
-| `weak` references | ✗ | ✗ | ✓ | ✗ |
-| `async` / `await` | ✓ | ✓ | ✓ | ✗ |
-| `throw` / `try` / `catch` | ✓ | ✓ | ✓ | ✗ |
-| Template fences | ✓ | ✓ | ✓ | ✗ |
-| Reactive UI (`ui.*`) | ✓ | ✓ | ✓ | ✗ |
-| `core.reflect` | ✓ | ✓ | ✓ | ✗ |
-| `dynamic class` | ✓ | ✗ | ✗ | ✗ |
-| `asm { }` inline assembly | ✗ | ✗ | ✓ (needs `@unsafe`) | ✓ |
-| `@volatile` / `Volatile[T]` | ✗ | ✗ | ✗ | ✓ |
-| `@interrupt` / `@naked` / `@callconv` | ✗ | ✗ | ✗ | ✓ |
-| `@entry` / `@panic_handler` | ✗ | ✗ | ✗ | ✓ |
-| `@allocator` / `@deallocator` | ✗ | ✗ | ✗ | ✓ |
-| `@repr` / `@align` / `@section` | ✗ | ✗ | ✗ | ✓ |
-| `MaybeUninit[T]` | ✗ | ✗ | ✓ | ✓ |
-| `reinterpret[T, U]` | ✗ | ✗ | ✓ | ✓ |
-| Overflow arithmetic methods | ✓ | ✓ | ✓ | ✓ |
-| `--overflow=trap` flag | ✗ | ✗ | ✓ | ✓ |
-| `Sendable` interface | ✓ | ✓ | ✓ | ✓ |
-| `for`-loop implicit borrow guard | ✗ (runtime warn) | ✓ | ✓ | ✓ |
-| `gen func` (synchronous generators) | ✓ | ✓ | ✓ | ✓ (needs `@allocator`) |
-| `async gen func` (async generators) | ✓ | ✓ | ✓ | ✗ |
-| Macros (`macro` / `pub macro` / `name!(args)`) | ✓ | ✓ | ✓ | ✓ |
-| `atomic {}` block — cooperative atomicity scope | ✓ | ✓ | Use `synchronized`/`Mutex` | Use `InterruptGuard` |
-| `@interruptSafe` annotation | ✗ | ✗ | ✗ | ✓ |
-| `InterruptGuard` — interrupt-masking scope | ✗ | ✗ | ✗ | ✓ |
-| `PinnedRef[T]` — ARC-pinned FFI lifetime anchor | ✗ | ✗ | ✓ | ✗ |
-| `NativeHandle` / `OwnedHandle` / `BorrowedHandle` | ✗ | ✗ | ✓ | ✓ |
-| `NativeHandle?` — nullable FFI return type | ✗ | ✗ | ✓ | ✓ |
-| `@lockOrder(n)` — lock ordering annotation | ✗ | ✗ | ✓ | ✗ |
-| `reinterpretChecked[T, U]` — checked type-punning | ✗ | ✗ | ✓ | ✓ |
-| `PartialInit[T]` — field-tracked initialization | ✗ | ✗ | ✓ | ✓ |
-| `DmaBuffer[T]` — ownership-mapped DMA | ✗ | ✗ | ✗ | ✓ |
-| `native.atomic.hwFence(order)` — hardware barrier | ✗ | ✗ | ✓ | ✓ |
-| `native.mpu` — MPU stack-guard API | ✗ | ✗ | ✗ | ✓ |
-| `native.dma` — DMA ownership API | ✗ | ✗ | ✗ | ✓ |
-| `portal` statements (`--debug` only) | ✓ | ✓ | ✓ | ✓ (`--debug` + channel configured) |
-| Freestanding debug service (`debug.freestanding`, `--debug` only, §24.25) | ✗ | ✗ | ✗ | ✓ |
-| Time-travel replay (freestanding, §24.25.9) | ✗ | ✗ | ✗ | ✓ (`--debug` + `timeTravelEnabled = true`) |
-| `@debug_control_channel` / `@debug_trace_channel` | ✗ | ✗ | ✗ | ✓ |
-| `--stack-size N` build flag | ✗ | ✗ | ✓ | ✓ (via `.lmpkg`) |
-| `@signalSafe` annotation | ✗ | ✗ | ✓ | ✗ |
-| `extern native` — C FFI declarations | ✗ | ✗ | ✓ | ✓ |
-| `portal_ring_size` — time-travel ring buffer | ✗ | ✗ | ✗ | ✓ (`--debug` only, §24.25) |
+Column key: **w.s** = `web.scripted`, **w.c** = `web.compiled`, **h.s** = `host.scripted`, **h.d** = `host.dual`, **h.n** = `host.native`, **fs** = `freestanding`.
 
+| Feature | w.s | w.c | h.s | h.d | h.n | fs |
+|---|---|---|---|---|---|---|
+| Dynamic typing (`Any`, untyped params) | ✓ | ⚠ | ✓ | ⚠ | ⚠ | ✗ |
+| `dynamic class` | ✓ | ⚠ | ✓ | ⚠ | ⚠ | ✗ |
+| `core.inspect` (live type registry) | ✓ | ⚠ | ✓ | ⚠ | ⚠ | ✗ |
+| Runtime memory management | ARC¹ | ARC¹ | ARC¹ | ARC¹ | ARC | manual (`@allocator`) |
+| `local class` (default `class`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `shared class` (cross-thread, cross-mode) | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠² |
+| `SharedRef[T]` / `SharedBuffer[T]` / `SharedArray[T]` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠² |
+| `core.atomic` operations | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (subset) |
+| `SharedMutex[T]` / `SharedRwLock[T]` / `SharedQueue[T]` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠² |
+| `Serializable` / `Deserializable` (§32) | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠³ |
+| `@polymorphic` / `@tagged` / `@sealed` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠³ |
+| `@serialField` / `@alias` / `@skip` / `@sensitive` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠³ |
+| `@serializationId` / `@migrateFrom` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠³ |
+| `core.serialization.Value` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠³ |
+| `RemoteException` / Exception serialization | ✓ | ✓ | ✓ | ✓ | ✓ | ✗⁴ |
+| `arc let` / `arc var` (advisory pinning) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `weak` references¹ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `unique let` / `unique var` / `unique class` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `borrow` / `excl borrow` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `borrow[~name]` / `lifetime ~name` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `noescape fn` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `unowned[~name]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `MaybeUninit[T]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `reinterpret[T, U]` / `reinterpretChecked[T, U]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `PartialInit[T]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `reads` / `edits` / `takes` / `shares` verbs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `modifier` method keyword | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (`unique` class only) |
+| `safe {}` / `safe func` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `synchronized` class | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `distinct()` in `requires` clause | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `atomic {}` block | ✓ | ✓ | ✓ | ✓ | ✗ (use `synchronized`/`Mutex`) | ✗ (use `InterruptGuard`) |
+| `async` / `await` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `throw` / `try` / `catch` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Template fences | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Reactive UI (`ui.*`) | ✓ (`ui.web`) | ✓ (`ui.web`) | ✓ (`ui.desktop`) | ✓ (`ui.desktop`) | ✓ (`ui.desktop`) | ✗ |
+| `@webcomponent` / Web Components | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| `core.reflect` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `runtime.compile` (dynamic JIT) | ✓ | ✓ | ✓ | ✓ | ✓ (embedded JIT) | ✗ |
+| `runtime.fs` / `runtime.proc` / `runtime.net` (host) | ✗ | ✗ | ✓ | ✓ | ✓ | ✗ |
+| `from X defer import` (deferred type stubs) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Sequential top-level execution | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| `__name__ == "__main__"` guard | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| `main()` entry-point convention | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `@entry` annotation | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `asm { }` inline assembly | ✗ | ✓ (Wasm, `@unsafe`) | ✗ | ✗ | ✓ (native, `@unsafe`) | ✓ |
+| `@volatile` / `Volatile[T]` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `@interrupt` / `@naked` / `@callconv` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `@entry` / `@panic_handler` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `@allocator` / `@deallocator` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `@repr` / `@align` / `@section` | ✗ | Wasm subset | ✗ | ✗ | ✗ | ✓ |
+| Overflow arithmetic methods | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `--overflow=trap` flag | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| `Sendable` interface | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `for`-loop implicit borrow guard | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `gen func` (synchronous generators) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (needs `@allocator`) |
+| `async gen func` (async generators) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Macros (`macro` / `pub macro` / `name!(args)`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `@interruptSafe` annotation | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `InterruptGuard` — interrupt-masking scope | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `PinnedRef[T]` — ARC-pinned FFI lifetime anchor | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `NativeHandle` / `OwnedHandle` / `BorrowedHandle` | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ |
+| `@lockOrder(n)` — lock ordering annotation | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `DmaBuffer[T]` — ownership-mapped DMA | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `native.atomic.hwFence(order)` — hardware barrier | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| `native.mpu` — MPU stack-guard API | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `native.dma` — DMA ownership API | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `native.simd` / `Vec[T, N]` / `@vectorize` | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| `native.mem.alloc` / `native.mem.free` | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| `ThreadLocal[T]` | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `Thread` / `ThreadPool` | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `portal` statements | ✓ (`--debug`) | ✓ (`--debug`) | ✓ (`--debug`) | ✓ (`--debug`) | ✓ (`--debug`) | ✓ (`--debug` + channel) |
+| Freestanding debug service (§24.25) | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Time-travel replay (§24.25.9) | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ (`--debug` + enabled) |
+| `@debug_control_channel` / `@debug_trace_channel` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `--stack-size N` build flag | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ (via `.lmpkg`) |
+| `@signalSafe` annotation | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| `extern native` — C FFI declarations | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ |
+| `portal_ring_size` — time-travel ring buffer | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ (`--debug`) |
+| `spawnBlocking` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| `ScriptWorker` / `WorkerChannel[T]` | ✓ | ✓ | ✓ | ✓ | ✓ (embedded Wasm) | ✗ |
+| Work-stealing multi-threaded executor | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
+
+**Legend:**
+
+- ✓ — Feature is available.
+- ✗ — Feature is not available; use is a compile-time error.
+- ⚠ — Feature is available but produces the `W_ANY_IN_AOT_MODE` lint advisory (AOT modes generate tagged-dispatch code with runtime cost).
+
+**Footnotes:**
+
+1. **ARC memory model.** All modes present the ARC-equivalent observable contract described in §8.1.1 for `local class` and `shared class`. Scripted and web modes are permitted to back `local class` with Wasm GC as an implementation optimization; see §8.1.1.1 for the non-normative implementation allowance. `shared class` and `SharedRef[T]` always use atomic reference counting regardless of mode.
+
+2. **Freestanding shared-memory features.** In `@mode(freestanding)`, `shared class` and `SharedRef[T]` are available only when the target provides a `@allocator`-backed arena satisfying the shared-arena header contract (§17b.5). Targets without multi-core coherent memory or without an arena implementation produce `E_SHARED_ALLOCATOR_UNAVAILABLE` at the first `shared` allocation site. Atomic operations are always available but map to target-specific instructions (see §17b.4).
+
+3. **Freestanding serialization features.** In `@mode(freestanding)`, the serialization trait surface is available but depends on an allocator for dynamically-sized `Value` content (`List`, `Map`, `String`, `Bytes`). Targets without a heap-capable `@allocator` may implement a restricted serialization subset limited to fixed-layout primitives and enums; wire-format packages declare their allocator requirements in `.lmpkg`.
+
+4. **No `RemoteException` in freestanding.** Freestanding targets have no `BaseException` hierarchy (exceptions are unavailable per §2.6 row for `throw`/`try`/`catch`); consequently no `RemoteException` is meaningful. Freestanding code that receives serialized exception data through a communication channel must handle exception-typed payloads explicitly at the application layer.
 
 ---
 
@@ -811,35 +1100,31 @@ override   final      sealed     volatile
 - `get` — contextual as a property-getter declaration keyword (`get propName(): T { ... }`, §7.7); valid as an ordinary identifier (e.g., method name `func get(key: K): V`) in all other positions
 - `set` — contextual as a property-setter declaration keyword (`set propName(v: T) { ... }`, §7.7); valid as an ordinary identifier (e.g., method name `func set(value: T): void`) in all other positions
 - `quote` — contextual as the macro body keyword (`macro name(p) { quote { ... } }`, §25, §27.11); valid as an ordinary identifier elsewhere
-- `box` — contextual in prefix expression position (`box expr`); makes widening to `Any` explicit. Valid only in modes where `Any` is permitted (scripted, compiled); `E_BOX_IN_NATIVE` in `@mode(native)` and `@mode(freestanding)`. Valid as an identifier elsewhere.
+- `box` — contextual in prefix expression position (`box expr`); makes widening to `Any` explicit. Permitted in all modes except `@mode(freestanding)`, where it is `E_BOX_IN_FREESTANDING`; in `@mode(web.compiled)`, `@mode(host.dual)`, and `@mode(host.native)` it emits the `W_ANY_IN_AOT_MODE` advisory. Valid as an identifier elsewhere.
 - `group` — contextual in `await group { ... }`
 - `once` — contextual in debug activation requests
 - `distinct` — contextual in `requires distinct(...)` clauses and call-site contract acknowledgments (§23.4.10)
 - `excl` — contextual immediately before `borrow` in parameter declarations (`excl borrow param: StructType`); see §23.4.1.1
-- `compiled`, `native`, `scripted`, `freestanding` — contextual in `@mode(X)` directives and `prefer compiled` import clauses; valid identifiers elsewhere
-- `reinterpret` — contextual in `reinterpret[T, U](expr)` expressions; `@mode(native)` and `@mode(freestanding)` only; requires `@unsafe` (§24.18)
-- `reinterpretChecked` — contextual in `reinterpretChecked[T, U](expr)` expressions; `@mode(native)` and `@mode(freestanding)` only; no `@unsafe` required; returns `Result[U, AlignmentError]` (§24.18)
-- `size_of` — contextual in `size_of[T]()` expressions; `@mode(native)` and `@mode(freestanding)` (§24.4.1)
-- `align_of` — contextual in `align_of[T]()` expressions; `@mode(native)` and `@mode(freestanding)` (§24.4.1)
+- `compiled`, `native`, `scripted`, `dual`, `freestanding` — contextual in `@mode(X)` directives and `prefer compiled` import clauses; valid identifiers elsewhere
+- `reinterpret` — contextual in `reinterpret[T, U](expr)` expressions; available in all modes (§2.6); requires `@unsafe` (§24.18)
+- `reinterpretChecked` — contextual in `reinterpretChecked[T, U](expr)` expressions; available in all modes (§2.6); no `@unsafe` required; returns `Result[U, AlignmentError]` (§24.18)
+- `size_of` — contextual in `size_of[T]()` expressions; `@mode(host.native)` and `@mode(freestanding)` (§24.4.1)
+- `align_of` — contextual in `align_of[T]()` expressions; `@mode(host.native)` and `@mode(freestanding)` (§24.4.1)
+- `from` — although `from` is a hard keyword (used in import statements §13.1 and `throw ... from ...` chaining §6.9), it is additionally permitted as a **method name** in method-declaration headers and in method-call position after `.` (e.g., `static func from(err: E): Self` declarations and `F.from(e)` calls on the `From[E]` interface, §11.2). This carve-out is limited to method-name position only; `from` remains reserved as a field name, variable name, parameter name, type name, or module name.
 
 **Dunder identifiers.** Identifiers beginning and ending with double underscores (`__name__`, `__file__`, `__execmode__`) are reserved for language-defined module introspection variables. User code SHALL NOT declare bindings with dunder names.
 
-| Code | Mode | Condition |
-|---|---|---|
-| `E_BORROW_NOT_NATIVE` | Scripted, Compiled | `borrow`, `borrow[~name]`, or `excl borrow` used in `@mode(scripted)` or `@mode(compiled)` |
-| `E_LIFETIME_NOT_NATIVE` | Scripted, Compiled | `lifetime ~name` generic parameter used in `@mode(scripted)` or `@mode(compiled)` |
+**`borrow`** is a parameter modifier keyword and field qualifier keyword. It is permitted in all execution modes (§2.6). See §23.4.1.
 
-**`borrow`** is a parameter modifier keyword and field qualifier keyword. It is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `borrow` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_BORROW_NOT_NATIVE`).
-
-**`lifetime`** is a lifetime-parameter keyword. It is used only in the `[...]` generic-parameter brackets of functions, structs, enums, and interfaces to declare a named region. `lifetime` is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `lifetime` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_LIFETIME_NOT_NATIVE`).
+**`lifetime`** is a lifetime-parameter keyword. It is used only in the `[...]` generic-parameter brackets of functions, structs, enums, and interfaces to declare a named region. `lifetime` is permitted in all execution modes (§2.6).
 
 **Lifetime labels.** A lifetime label is a lowercase identifier prefixed with the `~` sigil (e.g. `~src`, `~origin`). The `~` sigil is used exclusively for lifetime labels and may not appear in any other context. Lifetime labels are not identifiers — they cannot be used as variable names, type names, or in any position other than `[lifetime ~name]` declarations and `borrow[~name]` references. `~static` is a reserved lifetime label with special semantics (see §7.1, §23.4.2); it may not be declared as a user lifetime parameter.
 
-**`unique`** is a binding and field qualifier keyword. `unique let`/`unique var` declares a single-owner binding for a class instance with no ARC reference counting. `unique var` on a struct field declares a uniquely-owned class field. `unique` is permitted in `@mode(native)` and `@mode(freestanding)` files. Using `unique` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error (`E_UNIQUE_NOT_NATIVE`). See §23.4.7.
+**`unique`** is a binding and field qualifier keyword. `unique let`/`unique var` declares a single-owner binding for a class instance with no ARC reference counting. `unique var` on a struct field declares a uniquely-owned class field. `unique` is permitted in all execution modes (§2.6). See §23.4.7.
 
-**`consume`** is a unary expression keyword. `consume expr` explicitly downgrades a `unique` binding to a regular ARC-managed reference, transferring ownership and consuming the source binding. `consume` is permitted only in `@mode(native)` — it requires an ARC runtime to transfer ownership into. Using `consume` in `@mode(scripted)`, `@mode(compiled)`, or `@mode(freestanding)` is a compile-time error (`E_CONSUME_NON_UNIQUE` for scripted/compiled; `E_CONSUME_NOT_FREESTANDING` for freestanding). Applying `consume` to a non-`unique` binding is `E_CONSUME_NON_UNIQUE`. See §23.4.7.
+**`consume`** is a unary expression keyword. `consume expr` explicitly downgrades a `unique` binding to a regular ARC-managed reference, transferring ownership and consuming the source binding. `consume` requires an ARC runtime to transfer ownership into, so it is permitted only in `@mode(host.native)` and `@mode(host.dual)`. Using `consume` in `@mode(host.scripted)`, `@mode(web.scripted)`, `@mode(web.compiled)`, or `@mode(freestanding)` is a compile-time error (`E_CONSUME_NOT_AVAILABLE`). Applying `consume` to a non-`unique` binding is `E_CONSUME_NON_UNIQUE`. See §23.4.7.
 
-**`noescape`** is a function type modifier keyword. It is permitted in `@mode(native)` and `@mode(freestanding)` as a modifier on `fn` types. Using `noescape` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error.
+**`noescape`** is a function type modifier keyword. It is permitted as a modifier on `fn` types in all execution modes (§2.6).
 
 **`prefer`** is a keyword used in the two-token sequence `prefer compiled`, valid only in import statements (see §13.1). `prefer` is a reserved keyword and SHALL NOT be used as an identifier.
 
@@ -849,15 +1134,15 @@ override   final      sealed     volatile
 
 **`safe`** is a context keyword. `safe {}` introduces a safe context for its lexical scope; `safe func` declares a function that both requires and provides a safe context. Available in all execution modes. See §23.4.12.
 
-**`synchronized`** is a class declaration modifier. `synchronized class` equips each instance with a per-instance mutex that serializes all `modifier` method invocations. Available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. Not available in `@mode(freestanding)` (`E_SYNCHRONIZED_FREESTANDING`). See §23.4.13.
+**`synchronized`** is a class declaration modifier. `synchronized class` equips each instance with a per-instance mutex that serializes all `modifier` method invocations. Available in `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. Not available in `@mode(freestanding)` (`E_SYNCHRONIZED_FREESTANDING`). See §23.4.13.
 
-**`unsafe`** is the lock-release block keyword within `synchronized` modifier methods. `unsafe("reason") { ... }` releases the per-instance lock for the block's duration. Valid only inside a `modifier` method body on a `synchronized` class (`E_UNSAFE_NOT_SYNCHRONIZED` otherwise). Available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. See §23.4.14.
+**`unsafe`** is the lock-release block keyword within `synchronized` modifier methods. `unsafe("reason") { ... }` releases the per-instance lock for the block's duration. Valid only inside a `modifier` method body on a `synchronized` class (`E_UNSAFE_NOT_SYNCHRONIZED` otherwise). Available wherever `synchronized` is available — `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. See §23.4.14.
 
 **`requires`** is a contract clause keyword. A `requires` clause appears after the parameter list of a function or method declaration and before the return type. Available in all execution modes. See §23.4.10.
 
-**`atomic`** is a block keyword. `atomic { ... }` introduces a cooperative atomicity scope that the compiler verifies contains no suspension points (`await`, `for await`, `spawn`). Available only in `@mode(scripted)` and `@mode(compiled)`; usage in other modes is `E_ATOMIC_NOT_WASM`. See §17.7.
+**`atomic`** is a block keyword. `atomic { ... }` introduces a cooperative atomicity scope that the compiler verifies contains no suspension points (`await`, `for await`, `spawn`). Available in `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, and `@mode(host.dual)`; usage in `@mode(host.native)` or `@mode(freestanding)` is `E_ATOMIC_NOT_WASM` (use `synchronized`/`Mutex` or `InterruptGuard` instead). See §17.7.
 
-**`reinterpretChecked`** is a contextual expression keyword. `reinterpretChecked[T, U](expr)` reinterprets the bit pattern of a value of type `T` as type `U`, with a runtime alignment check that returns `Result[U, AlignmentError]` rather than requiring `@unsafe`. Available in `@mode(native)` and `@mode(freestanding)`. See §24.18.
+**`reinterpretChecked`** is a contextual expression keyword. `reinterpretChecked[T, U](expr)` reinterprets the bit pattern of a value of type `T` as type `U`, with a runtime alignment check that returns `Result[U, AlignmentError]` rather than requiring `@unsafe`. Available in all modes (§2.6). See §24.18.
 
 ### §3.5 Identifiers
 
@@ -868,7 +1153,7 @@ Identifier    ::= IdentStart { IdentContinue }
 IdentStart    ::= UNICODE_LETTER | "_"
 IdentContinue ::= UNICODE_LETTER | UNICODE_DIGIT | "_"
 ```
-*(Canonical grammar in §27.6. `UNICODE_LETTER` = any Unicode letter or underscore;
+*(Canonical grammar in §27.1. `UNICODE_LETTER` = any Unicode letter or underscore;
 `UNICODE_DIGIT` = any Unicode decimal digit.)*
 
 Identifiers are case-sensitive. By convention:
@@ -1033,7 +1318,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 | 1 | `()` `[]` `.` `?.` `!{}` `?.[` | Call, index, member access, safe nav, dynamic access, null-safe index | Left |
 | 2 | `typeof` | Type-of operator | Prefix |
 | 3 | `-` (unary) `not` `!` `bnot` | Unary negation, logical not, bitwise not | Prefix |
-| 4 | `box` `consume` | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | Prefix |
+| 4 | `box` `consume` | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(host.native)` or `@mode(host.dual)`) | Prefix |
 | 5 | `**` | Exponentiation | Right |
 | 6 | `*` `/` `//` `%` | Multiplication, division, floor division, modulo | Left |
 | 7 | `+` `-` | Addition, subtraction, string concatenation | Left |
@@ -1124,6 +1409,36 @@ let extended = {**base, "y": 2};  // {"x": 1, "y": 2}
 
 Loom is a statically-typed language with type inference. Every value has a type known at compile time. The type system supports primitives, classes, interfaces, enums, structs, tuples, union types, generics, and function types.
 
+### §4.0 Core Numeric Trait Interfaces (v1.18)
+
+The following marker interfaces live in the `core` namespace and are
+automatically implemented by built-in numeric types. They serve as trait
+bounds for generic numeric code.
+
+```loom
+namespace core;
+
+// Marker trait for fixed-width integer primitives.
+// Implemented by: int8, int16, int32, int64, uint8, uint16, uint32, uint64.
+// Explicitly NOT implemented by `bigint` (no fixed width).
+pub interface Integer {}
+
+// Marker trait for IEEE 754 floating-point primitives.
+// Implemented by: float32, float64.
+pub interface Float {}
+
+// Union marker — implemented by every primitive with fixed-width numeric
+// semantics (all Integer types + all Float types + `decimal` for its
+// fixed-precision variants).
+pub interface Numeric {}
+```
+
+These interfaces have empty bodies — they carry no methods. Their purpose
+is to gate generic code on the type category (e.g., the atomic RMW
+operations in §17b.4 require `T: Integer + Shareable`). They are declared
+in §4 rather than being introduced inline at each use site to avoid the
+appearance of ad-hoc per-operation trait invention.
+
 ### §4.1 Primitive Types
 
 Primitive types use lowercase names and are unboxed, passed-by-value types that do not inherit from `Any`.
@@ -1167,20 +1482,20 @@ Primitive types use lowercase names and are unboxed, passed-by-value types that 
 | `string` | Immutable UTF-8 sequence of Unicode scalar values. `s.length` counts scalar values; `s[i]` returns `char`. See §4.1.5. | Variable |
 | `bytes` | Arbitrary byte sequence (not required to be valid UTF-8). `b[i]` returns `uint8`. | Variable |
 
-`int` is an alias for `int64`. `float` is an alias for `float64`. `uint` is an alias for `uint64` on 64-bit targets and `uint32` on 32-bit targets — it is the platform-native pointer-sized unsigned integer used for raw addresses in `@mode(native)` and `@mode(freestanding)` (`native.mem`, `native.atomic`, `@allocator`, `native.ffi.ptrAdd`). Using `int` and `float` is preferred for general-purpose numeric work; the explicit-width names exist for systems programming, FFI, and numerical computing requiring specific memory layouts.
+`int` is an alias for `int64`. `float` is an alias for `float64`. `uint` is an alias for `uint64` on 64-bit targets and `uint32` on 32-bit targets — it is the platform-native pointer-sized unsigned integer used for raw addresses in `@mode(host.native)` and `@mode(freestanding)` (`native.mem`, `native.atomic`, `@allocator`, `native.ffi.ptrAdd`). Using `int` and `float` is preferred for general-purpose numeric work; the explicit-width names exist for systems programming, FFI, and numerical computing requiring specific memory layouts.
 
 "Passed by value" refers to the language's assignment/call semantics. The runtime may use efficient representations (handles, copy-on-write, etc.) as long as observable semantics match.
 
 #### §4.1.1 Fixed-Width Integer Overflow
 
-In scripted mode and Wasm targets, arithmetic on fixed-width integer types (`int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`) that would overflow the type's range is a `NumericOverflowError` at runtime.
+In scripted modes (`@mode(web.scripted)`, `@mode(host.scripted)`) and Wasm targets (`@mode(web.compiled)`), arithmetic on fixed-width integer types (`int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`) that would overflow the type's range is a `NumericOverflowError` at runtime. `@mode(host.dual)` uses the same checked semantics as scripted modes for fixed-width integers.
 
-In `@mode(native)` and `@mode(freestanding)`, the default is **wrapping arithmetic**: overflow silently wraps at the type boundary (two's complement for signed types, modular for unsigned). This is the C-compatible behavior required for systems programming and SIMD work.
+In `@mode(host.native)` and `@mode(freestanding)`, the default is **wrapping arithmetic**: overflow silently wraps at the type boundary (two's complement for signed types, modular for unsigned). This is the C-compatible behavior required for systems programming and SIMD work.
 
-`int` / `int64` are an exception in `@mode(native)`: they default to **checked arithmetic** (throwing `NumericOverflowError` on overflow), matching scripted-mode semantics. `uint` follows the same rule as other fixed-width unsigned integers — it wraps by default in `@mode(native)` and `@mode(freestanding)`. In `@mode(freestanding)`, exceptions are unavailable, so `int` / `int64` wrap on overflow the same as other fixed-width integers — use `--overflow=trap` to trap instead, or `checkedAdd` / `saturatingAdd` for explicit overflow handling. Use `@overflowWrapping` on a function to opt into wrapping for all fixed-width arithmetic within it. When `--overflow=trap` is also set, `@overflowWrapping` on a function overrides the trap flag for that function's body — the function uses wrapping arithmetic regardless of the project-wide trap setting:
+`int` / `int64` are an exception in `@mode(host.native)`: they default to **checked arithmetic** (throwing `NumericOverflowError` on overflow), matching scripted-mode and `@mode(host.dual)` semantics. `uint` follows the same rule as other fixed-width unsigned integers — it wraps by default in `@mode(host.native)` and `@mode(freestanding)`. In `@mode(freestanding)`, exceptions are unavailable, so `int` / `int64` wrap on overflow the same as other fixed-width integers — use `--overflow=trap` to trap instead, or `checkedAdd` / `saturatingAdd` for explicit overflow handling. Use `@overflowWrapping` on a function to opt into wrapping for all fixed-width arithmetic within it. When `--overflow=trap` is also set, `@overflowWrapping` on a function overrides the trap flag for that function's body — the function uses wrapping arithmetic regardless of the project-wide trap setting:
 
 ```loom
-@mode(native)
+@mode(host.native)
 @overflowWrapping
 func addWrapping(a: int32, b: int32): int32 {
   return a + b;   // wraps silently on overflow
@@ -1191,9 +1506,9 @@ func addWrapping(a: int32, b: int32): int32 {
 
 ```loom
 let a: int32 = 2_147_483_647i32;
-let b: int32 = a.checkedAdd(1);      // Option[int32] — None on overflow
-let c: int32 = a.saturatingAdd(1);   // int32 — clamps to 2_147_483_647
-let d: int32 = a.wrappingAdd(1);     // int32 — wraps to -2_147_483_648
+let b: Option[int32] = int32.checkedAdd(a, 1);  // Option[int32] — None on overflow
+let c: int32 = int32.saturatingAdd(a, 1);       // int32 — clamps to 2_147_483_647
+let d: int32 = int32.wrappingAdd(a, 1);         // int32 — wraps to -2_147_483_648
 ```
 
 `bigint` and `decimal` never overflow — they grow as needed.
@@ -1258,11 +1573,11 @@ let z: bigint = bigint(42);    // construct from int
 
 `bigint` does not mix with fixed-width integers without explicit conversion. `42n + 1` is a type error; write `42n + bigint(1)` or `bigint(42) + 1n`.
 
-**Availability.** `bigint` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. On native targets it is backed by a multi-precision library (GMP-compatible). On Wasm it is emulated in software. `bigint` is **not available** in `@mode(freestanding)` — no multi-precision runtime library is linked (`E_FREESTANDING_RUNTIME`). Use fixed-width integer arithmetic with `checkedAdd`/`wrappingAdd` for overflow control instead.
+**Availability.** `bigint` is available in all modes except `@mode(freestanding)` — specifically `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. On native targets it is backed by a multi-precision library (GMP-compatible). On Wasm it is emulated in software. `bigint` is **not available** in `@mode(freestanding)` — no multi-precision runtime library is linked (`E_FREESTANDING_RUNTIME`). Use fixed-width integer arithmetic with `checkedAdd`/`wrappingAdd` for overflow control instead.
 
 #### §4.1.4 `decimal` — Arbitrary-Precision Decimal
 
-`decimal` is an arbitrary-precision decimal floating-point type. Unlike `float` and `float32`, `decimal` can exactly represent base-10 fractions: `0.1 + 0.2 == 0.3d` is `true`.
+`decimal` is an arbitrary-precision decimal floating-point type. Unlike `float` and `float32`, `decimal` can exactly represent base-10 fractions: `0.1d + 0.2d == 0.3d` is `true`.
 
 Based on the IEEE 754-2019 decimal128 arithmetic model. Suitable for financial calculations, currency, and scientific work requiring exact decimal semantics.
 
@@ -1276,7 +1591,7 @@ let pi:    decimal = decimal("3.14159265358979323846264338327950288");
 
 **Supported operations:** all arithmetic operators, all comparisons. Division is exact (produces a `decimal` result with full precision). `//` is floor division (truncates toward −∞) returning `decimal`. The result is a `decimal` value with zero fractional part, not an `int`.
 
-**Availability.** `decimal` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. `decimal` is **not available** in `@mode(freestanding)` — no decimal runtime library is linked (`E_FREESTANDING_RUNTIME`). Performance is substantially slower than `float` — use `float` for numerical computing and `decimal` where exactness of base-10 fractions is required.
+**Availability.** `decimal` is available in all modes except `@mode(freestanding)` — specifically `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. `decimal` is **not available** in `@mode(freestanding)` — no decimal runtime library is linked (`E_FREESTANDING_RUNTIME`). Performance is substantially slower than `float` — use `float` for numerical computing and `decimal` where exactness of base-10 fractions is required.
 
 
 #### §4.1.5 `char` — Unicode Scalar Value
@@ -1374,7 +1689,7 @@ log(true);         // bool widened to Any implicitly
 let values: list[Any] = [1, "hello", true];   // all widened implicitly
 ```
 
-Implicit widening is available in both scripted and compiled mode. In compiled mode, `Any` as a declared type is still prohibited (§22.2); implicit widening therefore never activates in compiled code except at the specific error-boundary positions where `Option[Any]` is permitted.
+Implicit widening is available in all modes where `Any` is available. In `@mode(web.compiled)`, `@mode(host.dual)`, and `@mode(host.native)`, `Any` is permitted with the `W_ANY_IN_AOT_MODE` advisory (§2.4.2). In `@mode(freestanding)`, `Any` is entirely prohibited, so implicit widening never activates in that mode except at the specific error-boundary positions where `Option[Any]` is permitted.
 
 **`box` keyword — explicit widening.** When the programmer wants to document that a value is deliberately crossing a type boundary, the `box` prefix keyword makes it explicit:
 
@@ -1384,7 +1699,7 @@ let b: Any = box myStruct;       // explicit widening of struct → Any
 let c: Any = box MyEnum.Variant; // explicit widening of enum → Any
 ```
 
-`box expr` and implicit widening produce identical compiled output. `box` carries no additional runtime cost or semantics. `box expr` where `expr` is already `Any`-typed is a compile-time warning. `box` is a contextual keyword — special only in prefix expression position. In `@mode(native)` and `@mode(freestanding)`, `Any` is entirely prohibited, so `box` is a compile-time error in those modes (`E_BOX_IN_NATIVE`).
+`box expr` and implicit widening produce identical compiled output. `box` carries no additional runtime cost or semantics. `box expr` where `expr` is already `Any`-typed is a compile-time warning. `box` is a contextual keyword — special only in prefix expression position. In `@mode(freestanding)`, `Any` is entirely prohibited, so `box` is a compile-time error (`E_BOX_IN_FREESTANDING`); in `@mode(host.native)`, `box` is permitted but emits the `W_ANY_IN_AOT_MODE` advisory.
 
 **`as` — asserting cast (narrowing).** Extracts a value of type `T` from an `Any`-typed expression. Throws `TypeError` if the runtime type does not match:
 
@@ -1401,7 +1716,7 @@ let s = value as? string;         // string? — Some(s) or None
 let n2 = (value as? int) ?? 0;    // int, defaulting to 0
 ```
 
-`as` and `as?` are available in all four modes. In `@mode(scripted)`, both work freely since `Any` is unrestricted. In `@mode(compiled)`, they are valid for concrete type narrowing and at permitted `Option[Any]` boundary positions. In `@mode(native)` and `@mode(freestanding)`, `Any` is entirely prohibited — `as`/`as?` work for concrete narrowing (e.g., `value as int32`) but not for `Any`-typed boundaries.
+`as` and `as?` are available in all six modes. In `@mode(web.scripted)` and `@mode(host.scripted)`, both work freely since `Any` is unrestricted. In `@mode(web.compiled)`, `@mode(host.dual)`, and `@mode(host.native)`, they are valid for concrete type narrowing; uses at `Any` boundaries produce the `W_ANY_IN_AOT_MODE` advisory (§2.4.2). In `@mode(freestanding)`, `Any` is entirely prohibited — `as`/`as?` work for concrete narrowing (e.g., `value as int32`) but not for `Any`-typed boundaries.
 
 `match` over `Any` continues to work and is equivalent to a chain of `as?` checks:
 
@@ -1440,7 +1755,7 @@ fn(string): Task[int]              // function taking string, returning async ta
 async fn(string): int              // shorthand for fn(string): Task[int]
 gen fn(int): Iterable[int]         // generator function type (shorthand for fn(int): Iterable[int])
 async gen fn(string): AsyncIterable[string]  // async generator function type
-noescape fn(int): void             // non-escaping function (@mode(native) and @mode(freestanding) only)
+noescape fn(int): void             // non-escaping function (all modes; see §2.6)
 async noescape fn(string): int     // non-escaping async function
 ```
 
@@ -1448,7 +1763,7 @@ Function types are first-class: they can be stored in variables, passed as argum
 
 **`noescape fn` — non-escaping function type.** The `noescape` modifier on a function type asserts that the function value will only be called within the current call frame and will not be stored, returned, or spawned into a task. This allows the compiler to elide the ARC retain/release on the closure and potentially stack-allocate its captured variables.
 
-`noescape fn` is only valid in `@mode(native)` and `@mode(freestanding)` files (`E_NOESCAPE_NOT_NATIVE`). Using `noescape fn` in `@mode(scripted)` or `@mode(compiled)` (Wasm target) is a compile-time error.
+`noescape fn` is valid in all execution modes (§2.6). In modes with ARC (`@mode(host.native)`, `@mode(host.dual)`) it elides retain/release; in Wasm GC modes it enables escape-analysis-driven stack allocation of captures.
 
 **Subtype rule.** `fn(T): R` is a subtype of `noescape fn(T): R` at call sites. A value of type `fn(T): R` may be passed where `noescape fn(T): R` is expected — the callee's contract is more restrictive, which is safe. The reverse is not true: a `noescape fn` value may not be widened to `fn`.
 
@@ -1465,12 +1780,11 @@ type Mutator[T] = noescape fn(edits T): void;
 type Action = noescape fn(): void;
 ```
 
-These aliases are `@mode(native)` and `@mode(freestanding)` only — a compile-time error in `@mode(scripted)` and `@mode(compiled)` (Wasm target).
+These aliases are valid in all execution modes (§2.6).
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_NOESCAPE_NOT_NATIVE` | Scripted, Compiled | `noescape fn` type used in `@mode(scripted)` or `@mode(compiled)` (Wasm) — only valid in native and freestanding modes |
-| `E_NOESCAPE_ESCAPE` | Native, Freestanding | `noescape fn` value stored in a position that outlives the current call frame (field, module binding, spawn closure) |
+| `E_NOESCAPE_ESCAPE` | All | `noescape fn` value stored in a position that outlives the current call frame (field, module binding, spawn closure) |
 
 **Verb modifiers in function types.** Each parameter position in a `fn(...)` type may carry an optional verb modifier. The verb is part of the type and determines the acknowledgment the caller must provide:
 
@@ -1634,7 +1948,7 @@ type Bad = list[Bad];   // E_TYPE_ALIAS_RECURSIVE: recursive type alias
 |---|---|---|
 | `E_TYPE_ALIAS_RECURSIVE` | All | Type alias definition expands to itself, creating infinite expansion |
 
-**Mode availability.** Type aliases are available in all four execution modes. In `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)`, the aliased type must conform to the respective mode's type restrictions (e.g., `Any` is not available as an alias target in native/freestanding).
+**Mode availability.** Type aliases are available in all six execution modes. The aliased type must conform to the respective mode's type restrictions (e.g., `Any` is not available as an alias target in `@mode(host.native)` or `@mode(freestanding)`; in `@mode(web.compiled)` it produces the `W_ANY_IN_AOT_MODE` advisory per §2.4.2).
 
 ### §4.7 `typeof` and `instanceof` Operators
 
@@ -1999,7 +2313,7 @@ let filtered = {k: v for (k, v) in entries if v > 0};
 **Set comprehensions** produce `set[T]` where `T` is inferred from the expression. Set comprehensions use `{ expr for ... }` (single expression, no colon) to distinguish from dict comprehensions (`{ key: value for ... }`):
 
 ```
-let unique_lengths = {s.len() for s in words};
+let unique_lengths = {s.length for s in words};
 let remainders = {x % 10 for x in numbers};
 ```
 
@@ -2317,7 +2631,7 @@ let all = {*s1, *s2};            // {1, 2, 3, 4, 5}
 - `**expr` in a dict literal requires `expr` to have type `dict[K, V]`.
 - `*expr` in a set literal requires `expr` to have type `set[T]` (or `Iterable[T]`).
 
-**Compiled mode.** Spread operators are permitted in compiled mode provided all types are statically known. `**kwargs` with type `dict[string, Any]` is prohibited in compiled mode since `Any` is not available (see §22.2).
+**Compiled mode.** Spread operators are permitted in compiled mode provided all types are statically known. `**kwargs` with type `dict[string, Any]` in `@mode(web.compiled)` produces the `W_ANY_IN_AOT_MODE` advisory (§2.4.2) but is permitted. In `@mode(host.native)` and `@mode(freestanding)`, where `Any` is prohibited, `**kwargs` must use a concrete value type.
 
 | Code | Mode | Condition |
 |---|---|---|
@@ -2388,22 +2702,22 @@ print(count);   // E_USE_BEFORE_ASSIGN — count may not be assigned when flag i
 | `E_LITERAL_OVERFLOW` | All | Integer or float literal value does not fit in the declared suffix type (e.g., `300i8`) |
 | `E_USE_BEFORE_ASSIGN` | All | A `var` binding is read before it has been assigned on all control-flow paths (definite-assignment analysis) |
 
-**`arc let` and `arc var` declarations** create explicit ARC-managed bindings (`@mode(native)` only):
+**`arc let` and `arc var` declarations** create explicit ARC-managed bindings (`@mode(host.native)` or `@mode(host.dual)`):
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 arc let conn = Connection.open(addr)    // explicit ARC; aliases permitted
 arc var cache = Cache.new()             // mutable ARC binding, reassignable
 ```
 
-`arc let` / `arc var` are semantically identical to plain `let` / `var` for class types in native mode — both produce ARC-managed references. The distinction is intent declaration: the qualifier makes the ARC ownership explicit at the binding site, aiding code review, auditing, and tooling.
+`arc let` / `arc var` are semantically identical to plain `let` / `var` for class types in modes where ARC is the ownership model — both produce ARC-managed references. The distinction is intent declaration: the qualifier makes the ARC ownership explicit at the binding site, aiding code review, auditing, and tooling.
 
 Under `--require-explicit-arc` (build flag, §23.4.8), constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits the lint advisory `implicit-arc-binding`. `arc let` suppresses this advisory.
 
-`arc let` is a compile-time error in scripted, compiled, and freestanding modes (`E_ARC_LET_NOT_NATIVE`). On value types (structs, enums, primitives), `arc let` is always an error (`E_ARC_LET_NOT_CLASS`).
+`arc let` is a compile-time error in `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, and `@mode(freestanding)` (`E_ARC_LET_NOT_NATIVE`). On value types (structs, enums, primitives), `arc let` is always an error (`E_ARC_LET_NOT_CLASS`).
 
-**`arc let` is a local binding qualifier only.** Using `arc let` or `arc var` on a class field or struct field is a compile-time error (`E_ARC_LET_ON_FIELD`). Class fields in `@mode(native)` are always ARC-managed via plain `let`/`var`; the explicit `arc` qualifier is reserved for local binding sites where ownership intent is declared. Struct fields use `unique var` for uniquely-owned class references (§10.3.2); plain `var` for all other types.
+**`arc let` is a local binding qualifier only.** Using `arc let` or `arc var` on a class field or struct field is a compile-time error (`E_ARC_LET_ON_FIELD`). Class fields in `@mode(host.native)` are always ARC-managed via plain `let`/`var`; the explicit `arc` qualifier is reserved for local binding sites where ownership intent is declared. Struct fields use `unique var` for uniquely-owned class references (§10.3.2); plain `var` for all other types.
 
 **Destructuring declarations.** Both `let` and `var` support destructuring patterns for tuples, lists, and dicts. See §6.8 for full destructuring syntax and semantics.
 
@@ -2451,16 +2765,16 @@ for (x in items) {
 
 The binding `x` is `let` (immutable) by default. Use `for (var x in items)` for a mutable binding. See §11.3 for the iteration protocol and desugaring.
 
-**For-loop implicit borrow (`@mode(compiled)`, `@mode(native)`, `@mode(freestanding)`).**
+**For-loop implicit borrow (all modes).**
 
-In compiled, native, and freestanding modes, a `for (x in items)` statement creates an **implicit `reads` borrow** of `items` for the entire duration of the loop body. Any of the following inside the loop body is a compile-time error (`E_BORROW_LOOP_MUTATION`):
+In all modes, a `for (x in items)` statement creates an **implicit `reads` borrow** of `items` for the entire duration of the loop body. Any of the following inside the loop body is a compile-time error (`E_BORROW_LOOP_MUTATION`):
 
 - Assigning to `items`
 - Calling any method requiring `edits: items` (e.g., `append`, `remove`, `clear`)
 - Passing `items` as an `edits` argument
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 var items = [1, 2, 3]
 for (x in items) {
@@ -2472,7 +2786,7 @@ for (x in items) {
 Read-only access inside the loop is permitted:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 var items = [1, 2, 3]
 for (x in items) {
@@ -2513,7 +2827,7 @@ outer: for (let i = 0; i < n; i = i + 1) {
 
 ### §6.5 Defer
 
-`defer` registers cleanup actions that run when the current lexical block ends (via fallthrough, `return`, `break`, `continue`, or exception). Multiple `defer`s execute in LIFO (last-in, first-out) order. `defer` is available in all four execution modes.
+`defer` registers cleanup actions that run when the current lexical block ends (via fallthrough, `return`, `break`, `continue`, or exception). Multiple `defer`s execute in LIFO (last-in, first-out) order. `defer` is available in all six execution modes.
 
 **Call form** (simple statement):
 
@@ -2596,7 +2910,7 @@ If an inner `scope_enter()` fails, already-entered context managers have their `
 |---|---|---|
 | `E_WITH_NOT_SCOPED` | All | `with (x = expr)` where `expr` does not implement `Scoped[T]` or `AsyncScoped[T]` |
 
-**Mode notes.** `Scoped[T]` is available in all four modes; `AsyncScoped[T]` is unavailable in `@mode(freestanding)` (no async). In `@mode(freestanding)`, `scope_exit(error)` is always called with `None` — exceptions cannot occur, so the error-suppression steps (5–7) in the execution semantics never apply. The `error` parameter type `Option[Any]` in `scope_exit` is accepted as a special case in all compiled modes since it only carries exception values at the protocol boundary.
+**Mode notes.** `Scoped[T]` is available in all six modes; `AsyncScoped[T]` is unavailable in `@mode(freestanding)` (no async). In `@mode(freestanding)`, `scope_exit(error)` is always called with `None` — exceptions cannot occur, so the error-suppression steps (5–7) in the execution semantics never apply. The `error` parameter type `Option[Any]` in `scope_exit` is accepted as a special case in all compiled modes since it only carries exception values at the protocol boundary.
 
 ### §6.7 Portal Statement
 
@@ -2653,7 +2967,7 @@ Freestanding portals carry the following restrictions relative to other modes:
 - **No condition expressions.** `portal name(condition) { ... }` syntax is prohibited; conditions always evaluate as unconditionally true when a portal is activated. Using a condition expression is `E_FREESTANDING_PORTAL_CONDITION`.
 - **`TraceLevel.PortalOnly` only.** Full local-variable capture (`TraceLevel.Full`) is unavailable without a GC heap. Trace frames are `FreestandingDebugFrame` values (§24.25.2) — fixed-size structs with source location offsets, no heap allocation.
 - **Static activation table.** Activation is controlled via a BSS-resident atomic byte table indexed by compile-time portal ID, not via the runtime `DebugRuntime` interface. The host activates portals over the control channel protocol (§24.25.6) or via direct JTAG memory write.
-- **Implicit callable portals.** All named `@interruptSafe` and non-`@interruptSafe` functions are instrumented at entry with implicit portals, matching the `@mode(native)` behavior.
+- **Implicit callable portals.** All named `@interruptSafe` and non-`@interruptSafe` functions are instrumented at entry with implicit portals, matching the `@mode(host.native)` behavior.
 - **Time-travel replay.** When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates a static on-target ring buffer (`.debug_ttravel` section) that records the most recent N portal events regardless of host connectivity. The host retrieves the ring at any point via the `READ_REPLAY_BUFFER` control-channel command (§24.25.6); no trace channel is required. See §24.25.9.
 
 ### §6.8 Destructuring
@@ -2824,7 +3138,7 @@ del handle;   // calls handle.finalize() immediately, then unbinds the name
 - After `del`, the binding is considered uninitialized — any subsequent use of the name is a compile-time error (`E_USE_AFTER_DEL`; similar to use-after-move).
 - `del` on an already-finalized object calls `finalize()` again — it is the implementer's responsibility to make `finalize()` idempotent.
 - **`modifier finalize()` and safe contexts.** A class may declare `modifier finalize()` to strengthen the `Finalizable` contract (§11.1 permits this). `del expr` implicitly satisfies the safe context requirement for the `finalize()` invocation: after `del`, the binding is consumed and no new aliases can be created, so exclusivity is provably maintained. No explicit `safe {}` wrapper is needed around `del` statements.
-- **Memory management.** In `@mode(scripted)` and `@mode(compiled)` (GC modes), `del` calls `finalize()` but does not deallocate memory — the GC manages the object's lifetime. In `@mode(native)` (ARC mode), `del` calls `finalize()` and explicitly releases the ARC strong reference; if the reference count reaches zero, the object is deallocated synchronously. In `@mode(freestanding)`, `del` on a `unique` class value calls the `@deallocator` and frees the memory.
+- **Memory management.** In `@mode(host.scripted)` and `@mode(web.compiled)` (GC modes), `del` calls `finalize()` but does not deallocate memory — the GC manages the object's lifetime. In `@mode(host.native)` (ARC mode), `del` calls `finalize()` and explicitly releases the ARC strong reference; if the reference count reaches zero, the object is deallocated synchronously. In `@mode(freestanding)`, `del` on a `unique` class value calls the `@deallocator` and frees the memory.
 - `del` on fields: `del obj.field;` calls `finalize()` on the field value and sets the field to an uninitialized state (the field must be `var`, not `let`).
 - `del` on collection elements is not supported — remove the element from the collection and `del` the value separately.
 
@@ -2837,7 +3151,7 @@ The compiler SHALL emit a warning when a `Finalizable` object goes out of scope 
 
 **Relationship to `Closeable` and `Scoped[T]`.** `Closeable` types that also implement `Finalizable` should call `close()` from `finalize()` as a safety net. `with`/`Scoped[T]` is preferred for scope-aligned lifetimes; `del` is preferred for non-scope-aligned lifetimes; GC finalization is the last resort when neither `with` nor `del` was used.
 
-`del` is available in all four execution modes. Behaviour differs by mode as described above — in GC modes it triggers cleanup only; in ARC and freestanding modes it also deallocates.
+`del` is available in all six execution modes. Behaviour differs by mode as described above — in GC modes it triggers cleanup only; in ARC and freestanding modes it also deallocates.
 
 ### Statement Classification
 
@@ -2850,7 +3164,7 @@ Loom distinguishes **simple statements** and **block statements**:
 
 **Module-level-only statements:** `from ... import` (standard import), `from ... defer import` (deferred type stub import, §13.10), `pub from ... import` (re-export) — valid only as top-level items, not inside function bodies or blocks.
 
-**Block statements:** `if`/`else`, `while`, `for`, `for-in`, `for await`, `do-while`, `try`/`catch`/`finally`, `with`, `defer` (block form), `dynamic ... as`, `portal`, `match`, `await group`, `safe { }` (safe context block, §23.4.12), `unsafe("reason") { }` (lock-release block inside `synchronized` modifier, §23.4.14), function declarations, class declarations, enum declarations, interface declarations, struct declarations, `asm { }` (inline assembly; `@mode(native)` requires `@unsafe("asm: reason")` prefix; §24.7).
+**Block statements:** `if`/`else`, `while`, `for`, `for-in`, `for await`, `do-while`, `try`/`catch`/`finally`, `with`, `defer` (block form), `dynamic ... as`, `portal`, `match`, `await group`, `safe { }` (safe context block, §23.4.12), `unsafe("reason") { }` (lock-release block inside `synchronized` modifier, §23.4.14), function declarations, class declarations, enum declarations, interface declarations, struct declarations, `asm { }` (inline assembly; `@mode(host.native)` requires `@unsafe("asm: reason")` prefix; §24.7).
 
 Note: `do { ... } while (cond);` is a block statement that includes a trailing `;` as part of its construct syntax.
 
@@ -2973,10 +3287,10 @@ let c = a + b;   // Vec2(x=4.0, y=6.0) — desugars to a.op_+(b)
 | `E_OPERATOR_MISSING_FUNC` | All | Class declares `implements OperatorInterface` but the required `operator func` body is absent |
 | `E_OPERATOR_NO_INTERFACE` | All | `operator func Symbol` declared without the corresponding `implements OperatorInterface` declaration |
 
-**`borrow` parameter modifier.** Prefixing a parameter declaration with `borrow` asserts that the caller's binding of that value is guaranteed to outlive the function call. The compiler elides the ARC `retain()` on entry and `release()` on exit for that parameter. `borrow` is valid only in `@mode(native)` and `@mode(freestanding)` files.
+**`borrow` parameter modifier.** Prefixing a parameter declaration with `borrow` asserts that the caller's binding of that value is guaranteed to outlive the function call. The compiler elides the ARC `retain()` on entry and `release()` on exit for that parameter. `borrow` is available in all six modes; the ARC-elision benefit applies in modes that use ARC (`@mode(host.dual)` and `@mode(host.native)`), while the frame-escape constraint is enforced uniformly.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // Without borrow — ARC retains config on call, releases on return
 func processConfig(config: Config): Result[void, AppError] {
@@ -2996,7 +3310,7 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 - A `borrow` parameter value may NOT escape the call frame by: assignment into a class field, assignment into an existing mutable struct field, assignment to a module-level binding, return as an owned value, passing to an escaping `fn` parameter, or use as a `spawn` argument. (Note: declaring a struct field *of* `borrow` type in the struct definition is valid — see `borrow` on struct fields below. The restriction is on runtime assignment from a `borrow` parameter, not on struct field declarations.)
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func processConfig(borrow config: Config): Result[void, AppError] {
   let name = config.name;         // OK — read
@@ -3010,7 +3324,7 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 **`borrow` and `noescape fn` together.** The combination produces zero ARC activity on hot iteration paths:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
   for (item in items) {
@@ -3030,7 +3344,7 @@ func filter[T](borrow items: list[T], pred: noescape fn(borrow T): bool): list[T
 **`borrow` on struct fields.** A struct field declared with `borrow` holds a non-owning reference. The struct cannot outlive the source data:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct TokenStream {
   borrow source: string;
@@ -3055,7 +3369,7 @@ func tokenise(borrow input: string): list[string] {
 }
 ```
 
-`borrow` on a struct field is valid only in `@mode(native)` and `@mode(freestanding)` files. `borrow` and `weak`/`unowned` are mutually exclusive on a single field.
+`borrow` on a struct field is available in all six modes. `borrow` and `weak`/`unowned` are mutually exclusive on a single field.
 
 **`borrow[~name]` — Tracked Lifetime References**
 
@@ -3074,7 +3388,7 @@ When a non-owning reference must flow beyond the call frame — as a return valu
 **`lifetime ~name` — declaring a region.** Lifetime parameters are declared in the `[...]` generic brackets of a function or type using the `lifetime` keyword. The `lifetime` keyword introduces the label into scope for the function signature and body:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // Declare a single lifetime region ~src
 func firstWord[lifetime ~src](borrow[~src] text: string): borrow[~src] string {
@@ -3097,7 +3411,7 @@ func merge[lifetime ~a, lifetime ~b, T](
 **`~static` — the forever lifetime.** `~static` is a reserved lifetime label that requires no declaration. A `borrow[~static] T` is valid for the entire program execution. Module-level `let` bindings, string literals, and compile-time constants carry implicit `~static` lifetime. Via covariance (§23.4.2), `borrow[~static]` satisfies any `borrow[~name]` requirement:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 let SEPARATOR: string = " | ";   // implicit ~static lifetime
 
@@ -3114,7 +3428,7 @@ wrap(borrow userInput, borrow SEPARATOR);  // ~static satisfies ~src by covarian
 **`async func` restriction.** A function declared `async` may not have `borrow[~label]` parameters. The async runtime suspends the function at `await` points; the caller's stack frame may no longer be valid when the function resumes. Plain `borrow` (unlabeled) inside an `async` function body is permitted provided the compiler verifies it does not cross any `await` point. Violation is `E_BORROW_ASYNC`.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // COMPILE-TIME ERROR — E_BORROW_ASYNC
 async func process[lifetime ~src](borrow[~src] template: string): Task[string] {
@@ -3152,7 +3466,7 @@ async func process(template: string): Task[string] {
 **`E_BORROW_ESCAPE` — Borrow of local escaping scope.** When a plain `borrow` of a stack-local variable would escape the current call frame — via a return statement, a function-typed argument, or a struct field — the compiler emits `E_BORROW_ESCAPE`:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func dangle(): borrow int {
     let x = 42
@@ -3177,12 +3491,12 @@ func firstOf[lifetime ~src](borrow[~src] items: list[int]): borrow[~src] int {
 }
 ```
 
-`E_BORROW_ESCAPE` applies in `@mode(native)` and `@mode(freestanding)`.
+`E_BORROW_ESCAPE` applies in `@mode(host.native)` and `@mode(freestanding)`.
 
 **Reborrowing.** A `borrow[~a]` value may be passed to a `borrow[~b]` parameter when `~b` does not appear in the callee's return type, output fields, or any out-parameter position. The compiler creates an implicit sub-region of `~a` and unifies it with `~b` for the duration of the call. No annotation is needed at call sites:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func validate[lifetime ~v](borrow[~v] text: string): bool { ... }
 // ~v does not appear in the return type — reborrowing applies
@@ -3195,7 +3509,7 @@ func pipeline[lifetime ~src](borrow[~src] input: string): borrow[~src] string {
 
 **Lifetime labels and generic containers.** `Option[borrow[~src] T]`, `list[borrow[~src] T]`, and `Result[borrow[~src] T, E]` are valid. The container transitively carries the `~src` lifetime and cannot outlive the source region. The compiler tracks this without requiring a new lifetime parameter on `Option`, `list`, or `Result` themselves.
 
-`borrow[~name]` is valid only in `@mode(native)` and `@mode(freestanding)` files. Using `borrow[~name]` in scripted mode or Wasm targets is a compile-time error (`E_BORROW_NOT_NATIVE`).
+`borrow[~name]` is valid in all execution modes (§2.6). In modes with ARC (`@mode(host.native)`, `@mode(host.dual)`) the borrow also elides retain/release on the referenced value; in Wasm GC modes it lowers to GC-tracked non-owning references with stack-frame escape analysis.
 
 ### §7.2 Lambdas
 
@@ -3311,9 +3625,9 @@ func add(a: int, b: int): int { return a + b; }
 let add5 = func(b: int) => add(5, b);   // manual partial application
 ```
 
-**Closures in compiled mode.** Closures in compiled-mode files follow the same capture rules with the restriction that captured `var` bindings must have statically-known types (no `Any`). The compiler may optimize non-escaping closures to avoid heap allocation of captured variables.
+**Closures in compiled mode.** Closures in compiled-mode files follow the same capture rules. Captured `var` bindings typed as `Any` in `@mode(web.compiled)` produce the `W_ANY_IN_AOT_MODE` advisory (§2.4.2) but are permitted; `Any` remains prohibited in `@mode(host.native)` and `@mode(freestanding)`. The compiler may optimize non-escaping closures to avoid heap allocation of captured variables.
 
-**ARC capture lists (`@mode(native)` only).** In `@mode(native)`, closures that create ARC retain cycles must break them with weak or unowned capture list entries:
+**ARC capture lists (`@mode(host.native)` or `@mode(host.dual)`).** In ARC-managed modes, closures that create ARC retain cycles must break them with weak or unowned capture list entries:
 
 ```
 // Without capture list: handle captures itself via the closure — retain cycle
@@ -3337,7 +3651,7 @@ let handler = callback(func() [unowned self] { self.onFire(); });
 let handler = callback(func() [weak self] { self?.onFire(); });
 ```
 
-Capture lists are valid only in `@mode(native)` files. ARC retain cycles cannot occur in `@mode(freestanding)` (no ARC runtime is present) or in `@mode(scripted)`/`@mode(compiled)` (GC manages memory). Using a capture list outside `@mode(native)` is a compile-time error.
+Capture lists are valid in `@mode(host.dual)` and `@mode(host.native)` files, where ARC manages object lifetimes. ARC retain cycles cannot occur in `@mode(freestanding)` (no ARC runtime is present) or in `@mode(host.scripted)`/`@mode(web.scripted)`/`@mode(web.compiled)` (GC manages memory). Using a capture list outside `@mode(host.dual)` or `@mode(host.native)` is a compile-time error.
 
 The compiler SHALL emit `E_ARC_CYCLE` as a **compile-time error** for any statically-detectable case where:
 - An `unowned` capture is used in a closure whose static lifetime may exceed the lifetime of the captured object within the same lexical scope, or
@@ -3349,10 +3663,10 @@ For cases where the relationship cannot be statically determined, the compiler e
 |---|---|
 | `E_ARC_CYCLE` | Statically-detectable ARC retain cycle in a closure without a corresponding capture list entry breaking the cycle |
 
-**`noescape fn` closures.** When a closure is passed to a `noescape fn` parameter, the compiler verifies the closure body does not attempt to escape any `borrow` or `reads` values it receives (both are non-owning borrows with zero ARC overhead in `@mode(native)`). The compiler may stack-allocate the closure's captured variables if they are all stack-resident, eliminating heap allocation entirely.
+**`noescape fn` closures.** When a closure is passed to a `noescape fn` parameter, the compiler verifies the closure body does not attempt to escape any `borrow` or `reads` values it receives (both are non-owning borrows with zero ARC overhead in `@mode(host.native)`). The compiler may stack-allocate the closure's captured variables if they are all stack-resident, eliminating heap allocation entirely.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func withLock(lock: Mutex, body: noescape fn(): void): void {
   lock.acquire();
@@ -3365,7 +3679,7 @@ withLock(myMutex, func() {
 });
 ```
 
-A closure that captures `borrow` or `reads` values (non-owning borrows in `@mode(native)`) may only be passed to `noescape fn` parameters — passing it to a plain `fn` parameter is a compile-time error, because the `fn` parameter may store the closure, causing the borrowed value to escape its frame (`E_BORROW_ESCAPE`).
+A closure that captures `borrow` or `reads` values (non-owning borrows) may only be passed to `noescape fn` parameters — passing it to a plain `fn` parameter is a compile-time error, because the `fn` parameter may store the closure, causing the borrowed value to escape its frame (`E_BORROW_ESCAPE`).
 
 ### §7.4 Rest Parameters and Keyword-Only Parameters
 
@@ -3434,7 +3748,7 @@ func request(method: string, url: string, *headers: list[string], timeout: int =
 - `**kwargs` must have type `dict[string, T]` for some `T`; the individual keyword argument values must be assignable to `T`.
 - Spread in calls: `*expr` requires `expr` to be `list[T]` where `T` matches the expected parameter types; `**expr` requires `expr` to be `dict[string, T]`.
 
-**compiled mode restrictions.** `**kwargs` with type `dict[string, Any]` is prohibited in compiled-mode files (since `Any` is prohibited in compiled mode). `*args` with a concrete element type (e.g., `*args: list[int]`) is permitted in compiled mode.
+**compiled mode restrictions.** `**kwargs` with type `dict[string, Any]` in `@mode(web.compiled)` produces the `W_ANY_IN_AOT_MODE` advisory (§2.4.2) but is permitted. In `@mode(host.native)` and `@mode(freestanding)`, where `Any` is prohibited, `**kwargs` must use a concrete value type. `*args` with a concrete element type (e.g., `*args: list[int]`) is permitted in all modes.
 
 ### §7.5 Generators and `yield`
 
@@ -3478,7 +3792,7 @@ for await (page in fetchPages(urls)) {
 
 **`safe gen func`.** The `safe` modifier may also prefix `gen func` and `async gen func`. A `safe gen func` requires and provides a safe context throughout the generator's execution — each `edits:` call and `modifier` call inside the body is independently verified. `requires` clauses with `distinct()` are also supported on generator function declarations.
 
-**Mode availability.** `gen func` (synchronous generators) is available in all modes including `@mode(native)` and `@mode(freestanding)`. In `@mode(freestanding)`, iterator state is heap-allocated via the registered `@allocator`; without one, constructing an iterator is a compile-time error (same as any class construction). `async gen func` is unavailable in `@mode(freestanding)` — `async` is stripped (`E_FREESTANDING_ASYNC`).
+**Mode availability.** `gen func` (synchronous generators) is available in all modes including `@mode(host.native)` and `@mode(freestanding)`. In `@mode(freestanding)`, iterator state is heap-allocated via the registered `@allocator`; without one, constructing an iterator is a compile-time error (same as any class construction). `async gen func` is unavailable in `@mode(freestanding)` — `async` is stripped (`E_FREESTANDING_ASYNC`).
 
 **Generator lifecycle:**
 
@@ -3660,6 +3974,101 @@ class Name[T] : SuperClass implements Interface1, Interface2 {
 }
 ```
 
+### §8.1.1 Memory Strategy Modifiers
+
+*(This subsection is normative.)*
+
+A class declaration may optionally carry a **memory strategy modifier** — `local` or `shared` — that selects how instances are allocated, reference-counted, and synchronized. The bare `class` keyword is a shorthand for `local class`:
+
+```
+class Point3D { ... }          // equivalent to `local class Point3D { ... }`
+local class Point3D { ... }    // explicit form
+shared class Vertex { ... }    // shared-arena, atomic refcount, cross-thread
+```
+
+The two modifiers represent two different points on the ARC tradeoff curve:
+
+| Modifier | Allocation | Refcount | Thread safety | Cross-mode ABI |
+|---|---|---|---|---|
+| `local class` (default) | Local heap | Non-atomic | Thread-confined by convention | Not guaranteed |
+| `shared class` | Shared arena (§17b.5) | Atomic | Safe for cross-thread access under ownership verbs | Guaranteed stable (§17b.7) |
+
+**Uniform ARC contract.** Regardless of implementation backing, instances of `local class` and `shared class` present the following **ARC-equivalent observable contract** in all modes:
+
+- **Lifetime by reference count.** An instance is reachable for as long as at least one strong reference to it exists. The instance's `finalize()` method (if declared) runs at the point when the last strong reference is released, within a bounded delay.
+- **Deterministic destruction.** Memory is reclaimed promptly after the final reference is released. The runtime SHALL NOT accumulate unreclaimed instances indefinitely in the presence of reachability chains that would free them under ARC semantics.
+- **Cycles are the user's responsibility.** Cyclic reference graphs must be broken with `weak` references (§8). Programs MUST NOT rely on automatic cycle collection; the specification makes no guarantee that cyclic garbage will be reclaimed.
+- **Identity is preserved.** Two strong references to the same instance compare equal via `===` and observe each other's mutations.
+
+These four rules are the contract users program against. The contract is identical across `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, `@mode(host.native)`, and (for `local class` only) `@mode(freestanding)`.
+
+#### §8.1.1.1 Implementation Allowance (Non-Normative)
+
+*(This subsubsection is non-normative.)*
+
+An implementation MAY back `local class` allocation with a tracing garbage collector — for example, the Wasm GC heap in `web.scripted`, `web.compiled`, `host.scripted`, and the JIT side of `host.dual` — provided that the four rules of the ARC-equivalent contract above are preserved as observable behavior. In practice this means:
+
+- A tracer-backed implementation must ensure `finalize()` runs at reachability-to-zero (not at the next major-GC cycle after an arbitrary delay).
+- A tracer-backed implementation must reclaim memory promptly enough that programs running within a bounded working-set do not accumulate reachable-only-via-cycle objects indefinitely. The runtime MAY include a best-effort cycle collector to satisfy this requirement, but the language specification does not require one and programs must not assume it exists.
+- A tracer-backed implementation must preserve identity semantics, including `===` and hash stability, across any compaction or movement the tracer performs.
+
+The typical implementation strategy on Wasm GC hosts is to allocate each `local class` instance as a Wasm GC struct whose first word is a Loom-managed refcount; retain/release operate on the refcount and the struct becomes unreachable to the Wasm GC exactly when the refcount drops to zero. This gives the Wasm GC runtime a prompt hint to reclaim the memory while preserving ARC semantics at the language level.
+
+`shared class` has no such implementation freedom: its memory layout, header format, and refcount protocol are normatively specified in §17b.5–§17b.7 to enable cross-mode interop.
+
+#### §8.1.1.2 Syntax and Placement
+
+The memory strategy modifier, when present, appears immediately before the `class` keyword:
+
+```
+<visibility>? <strategy>? (abstract | dynamic | unique)? class Name ...
+```
+
+where `<strategy>` is `local` or `shared`. The modifier combines with other class-declaration modifiers (`abstract`, `dynamic`, `unique`) subject to the following rules:
+
+- `unique class` and `shared class` are mutually exclusive (`E_UNIQUE_SHARED`). A `unique class` forbids aliasing; `shared class` presupposes it.
+- `dynamic class` combines with `local` only — `shared dynamic class` is `E_SHARED_DYNAMIC` because shared classes have a statically committed layout (§17b.7).
+- `abstract` combines with either strategy.
+
+#### §8.1.1.3 Field Type Constraints
+
+A `shared class` may declare fields only of types that implement `Shareable` (§17b.2). Attempting to declare a field of a non-`Shareable` type in a `shared class` is a compile-time error (`E_SHARED_FIELD_NOT_SHAREABLE`).
+
+A `local class` may declare fields of any type, including `SharedRef[T]` — a `local class` instance may hold references to `shared class` instances. The reverse — a `shared class` holding a reference to a `local class` instance — is forbidden because `local class` does not implement `Shareable`.
+
+#### §8.1.1.4 Finalizers
+
+Either strategy may declare a finalizer by implementing the `Finalizable` interface (§8.9) or by declaring a `finalize()` method directly. Declaring `func finalize(): void` on a class implicitly implements `Finalizable` and is the idiomatic form; the explicit `implements Finalizable` declaration is optional but permitted for documentation.
+
+```
+shared class FileHandle {
+  let fd: int;
+
+  new(path: string) { this.fd = openFile(path); }
+
+  func finalize(): void {
+    closeFile(this.fd);
+  }
+}
+```
+
+Finalizer rules:
+
+- `finalize()` is invoked exactly once, at the point when the instance's last strong reference is released.
+- A finalizer MUST NOT store `this` in any location reachable from a strong root. Attempting to do so is a runtime `ResurrectionError` and the program SHALL abort.
+- A finalizer MUST NOT block indefinitely. Implementations MAY enforce a timeout, after which the program is aborted with `FinalizerTimeoutError`.
+- A finalizer MAY throw. An exception raised in a finalizer propagates to the caller that triggered the final release. Implementations SHALL NOT swallow finalizer exceptions silently.
+- The `finalizer-live-access` lint (§8.9) applies identically to `local class` and `shared class` finalizers: accessing a field whose declared type implements `Finalizable` directly (without a `weak` read) produces an advisory warning.
+
+#### §8.1.1.5 Mode Availability Summary
+
+| Strategy | w.s | w.c | h.s | h.d | h.n | fs |
+|---|---|---|---|---|---|---|
+| `local class` (default) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `shared class` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠ (arena required) |
+
+Both strategies are available in `@mode(host.dual)` without restriction — dual-mode classes may use either modifier and will behave identically on both the JIT and AOT pipelines.
+
 ### §8.2 Visibility
 
 Loom uses two visibility levels:
@@ -3834,27 +4243,29 @@ Instance fields without a default value must be initialized in the constructor (
 
 **External writes to `pub var` fields and safe contexts.** A direct write to a `pub var` field on a plain ARC class instance from outside the class — such as `user.email = "new@example.com"` — requires a safe context, identically to calling a `modifier` method on that instance (§23.4.11). On `unique` receivers, direct field writes are unconditionally safe. On `synchronized` class instances, external field writes acquire the per-instance lock automatically.
 
-**`weak` field qualifier.** A `weak` field holds a non-owning reference. Under ARC (native target), `weak` fields do not increment the retain count; when the referent is deallocated the field automatically becomes `None` via zeroing through the ARC side table. Under GC runtimes (scripted, Wasm), `weak` fields map to GC weak references; the GC may collect the referent even if this field holds a reference, and subsequent reads yield `None`.
+**`weak` field qualifier.** A `weak` field holds a non-owning reference to a `local class` or `shared class` instance. Under the ARC memory model (§8.1.1), `weak` fields do not increment the strong refcount; when the referent is deallocated (strong count reaches zero), the `weak` field automatically reads as `None`. The implementation maintains a weak-reference side table that records live weak references to each instance so they can be atomically zeroed at destruction time.
 
 `weak` fields are always typed `T?` (i.e., `Option[T]`). Assigning a non-optional value to a `weak` field is permitted and automatically wraps it in `Some`. Reading a `weak` field always yields `Option[T]`.
 
 ```
 class Node : Any {
   pub let value: int;
-  pub weak var parent: Node?;   // weak — does not prevent collection/deallocation
+  pub weak var parent: Node?;   // weak — does not prevent deallocation
   pub var children: list[Node]; // strong reference
   new(value: int) { this.value = value; this.parent = None; }
 }
 ```
 
-`weak` references are valid in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. `weak` is **not available** in `@mode(freestanding)` — the ARC zeroing side-table required for `weak` semantics is absent (`E_FREESTANDING_ARC`).
+**Mode availability (updated in v1.18).** `weak` references are available in all modes that have an ARC memory model: `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In modes where the runtime backs `local class` with a tracing collector (per §8.1.1.1), the runtime maintains the required weak-reference side table as part of its ARC-equivalent contract. `weak` is **not available** in `@mode(freestanding)` — the target does not provide the side-table infrastructure required (`E_FREESTANDING_WEAK`).
+
+**`weak` references to `shared class` instances.** A `weak` field referencing a `shared class` instance compiles to a `SharedWeakRef[T]` (see Loom Standard Library Reference §21.1.6) and is backed by the arena's weak-reference side table (§17b.5 header offset 32). Weak-upgrade uses the compare-exchange protocol specified in §17b.7 under "Refcount protocol". Cross-thread weak-upgrade is atomic — a `weak` read that observes a live instance is guaranteed to see that instance remain live for the duration of the read.
 
 **`unowned[~name]` field qualifier.** An `unowned[~name]` field holds a non-owning reference whose safety is **compile-time proven** via the existing region system (§23.4.2). The class must declare `[lifetime ~name]` as a class-level lifetime parameter. The referent must originate from a scope that the compiler can statically verify contains (outlives) the `~name` region.
 
 `unowned[~name]` fields do not increment `strong_count` and are not tracked by the ARC zeroing side table. Because safety is proven at compile time, **no runtime null-trap is inserted** — access is zero-cost, equivalent to a raw pointer load.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // The class carries [lifetime ~owner] anchoring all unowned fields.
 class TreeNode[lifetime ~owner] : Any {
@@ -3883,12 +4294,12 @@ class TreeNode[lifetime ~owner] : Any {
 
 **What the proof covers.** The region model proves strictly hierarchical (nested) lifetime relationships: a parent scope containing the referent outlives a child scope containing the holder. This covers the common cases — trees, scene graphs, parent-child UI hierarchies, and similar structures — where the lifetime ordering is statically evident from scope nesting. For nodes at equal or unordered lifetimes, `weak` remains the correct choice; such references cannot be proven safe without a runtime side table.
 
-**Scope restriction.** `unowned[~name]` fields are valid only in `@mode(native)` and `@mode(freestanding)` files. Using `unowned[~name]` in scripted mode or Wasm-targeted compiled mode is a compile-time error.
+**Scope.** `unowned[~name]` fields are available in all six modes (see §2.6 and §23.4). The region model is enforced identically across modes; the absence of a runtime side table is what distinguishes `unowned[~name]` from `weak`, and that absence is meaningful on every target.
 
 **`weak` vs `unowned[~name]`.** `weak` is always safe on all targets and requires no lifetime annotation. Use `unowned[~name]` only when: (a) the lifetime relationship is strictly hierarchical and provable from scope nesting, and (b) the absence of a runtime side-table lookup is measurable and meaningful for the workload.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // Correct: parent is created in scope ~tree, which outlives all nodes.
 func buildTree[lifetime ~tree](): TreeNode[~tree] {
@@ -3983,7 +4394,7 @@ pub func oldMethod(): void { ... }
 | `@vectorize(width=N)` | `for` loop | Same with suggested SIMD lane count (§21.16) |
 | `@overflowWrapping` | `func` | Opt-in wrapping arithmetic for all fixed-width integers in the function (§4.1.1) |
 | `@deprecated(msg)` | `func`, `class`, `interface`, `enum`, `struct`, method | Marks a symbol as intended for removal in a future version. Any use of a `@deprecated` symbol at a call site or reference site emits a compile-time warning that includes `msg`. The symbol remains usable. |
-| `@mode(m)` | File (first line) | Declares the execution mode: `@mode(scripted)` (default), `@mode(compiled)`, `@mode(native)`, or `@mode(freestanding)` — must be the first active token (§2.5) |
+| `@mode(m)` | File (first line) | Declares the execution mode: `@mode(host.scripted)` (default), `@mode(web.compiled)`, `@mode(host.native)`, or `@mode(freestanding)` — must be the first active token (§2.5) |
 | `@entry` | `func` | Freestanding: bare binary entry point (§24.5) |
 | `@panic_handler` | `func` | Freestanding: called on panic when `--panic=custom` (§24.6) |
 | `@interrupt(...)` | `func` | Freestanding: interrupt service routine (§24.13) |
@@ -4072,12 +4483,12 @@ Type parameter constraints use the syntax `T: InterfaceName`.
 
 ### §8.11 `unique class` Declaration
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to all six modes per §2.6; semantics around ARC elision are most consequential in `@mode(host.dual)` and `@mode(host.native)`.)*
 
 `unique class` declares a class whose instances are **always uniquely owned** — ARC is never applied and aliases are structurally prohibited. It is the class-level analogue of `unique let`/`unique var`: instead of marking a binding as unique, it marks the entire type as ownership-locked.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 unique class FileHandle : Any {
     pub var fd:   int;
@@ -4163,7 +4574,7 @@ fh.close()   // E_USE_AFTER_MOVE
 **Type parameters.** `unique class` supports type parameters normally:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 unique class Pool[T] : Any {
     pub var items: list[T] = [];
@@ -4232,7 +4643,7 @@ enum Tree[T] {
 **Enum lifetime parameters.** An enum may declare lifetime parameters to allow `borrow[~name]` variant payloads. The syntax follows the same `[lifetime ~name]` convention used for structs (§10.11) and interfaces (§11.4):
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 enum Token[lifetime ~src] {
   Word(borrow[~src] string),
@@ -4251,7 +4662,7 @@ match tok {
 }
 ```
 
-A lifetime-parameterized enum is implicitly non-`Sendable` (§17.8.1). Lifetime parameters on enums are valid only in `@mode(native)` and `@mode(freestanding)` files.
+A lifetime-parameterized enum is implicitly non-`Sendable` (§17.8.1). Lifetime parameters on enums are valid in all six modes.
 
 ### §9.2 Enum/`Any` Boundary
 
@@ -4419,8 +4830,8 @@ A struct field may not have a class type. The field's declared type must be one 
 - An enum, provided all variant payloads satisfy this rule
 - A function type (`fn(...)`, `noescape fn(...)`)
 - `Option[T]` or `Result[T, E]` where `T` and `E` satisfy this rule
-- A `borrow[~name]` reference (`@mode(native)` and `@mode(freestanding)` only)
-- A `unique T` reference where `T` is a class type (`@mode(native)` and `@mode(freestanding)` only) — permitted because `unique` carries no ARC retain/release and no aliasing; the compiler proves single ownership at all times (§23.4.7)
+- A `borrow[~name]` reference (available in all modes, §2.6)
+- A `unique T` reference where `T` is a class type (available in all modes, §2.6) — permitted because `unique` carries no ARC retain/release and no aliasing; the compiler proves single ownership at all times (§23.4.7)
 
 Declaring a struct field whose resolved type is a plain ARC class reference is a compile-time error (`E_STRUCT_CLASS_FIELD`). A `unique T` field is explicitly not a plain ARC reference and does not trigger this error.
 
@@ -4474,14 +4885,14 @@ let b = Box[Connection](value=conn)      // E_VALUETYPE_CONSTRAINT: Connection d
 
 ### §10.3.2 Move Semantics for Structs with `unique` Fields
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 A struct containing one or more `unique`-qualified fields is a **move-only struct**. Move-only structs have different assignment semantics from ordinary structs.
 
 **Ordinary structs** (no `unique` fields) retain copy semantics — assignment produces an independent copy, and the source binding remains valid:
 
 ```loom
-@mode(compiled)
+@mode(web.compiled)
 
 struct Point { x: float; y: float; }
 
@@ -4493,7 +4904,7 @@ use(a)           // OK — a is still valid
 **Move-only structs** (one or more `unique` fields) transfer ownership on assignment — the source binding is consumed and may not be used again:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct Request {
   var path: string;
@@ -4663,12 +5074,12 @@ Structs are the preferred type for compiled mode data records — they map direc
 
 ### §10.11 Lifetime-Parameterized Structs
 
-*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
+*(This section is normative. Available in all six modes; see §2.6.)*
 
 A struct may declare one or more lifetime parameters to allow `borrow[~name]` fields whose source region is tracked across function boundaries. Lifetime parameters are declared in the struct's `[...]` generic brackets using the `lifetime` keyword:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct Slice[lifetime ~src] {
   borrow[~src] data: string;   // non-owning — tied to ~src region
@@ -4685,7 +5096,7 @@ struct Parser[lifetime ~src, T] {
 **Rules for lifetime-parameterized structs:**
 
 - `[lifetime ~name]` declares a named region into scope for the struct's fields, methods, and type references.
-- Only `@mode(native)` and `@mode(freestanding)` structs may declare lifetime parameters. Using `[lifetime ~name]` in scripted mode or Wasm targets is a compile-time error.
+- `[lifetime ~name]` declarations are available in all six modes (see §2.6 and §23.4). The region model is enforced identically across modes — region containment and borrow-escape checks are compile-time properties that do not depend on the runtime memory model.
 - A struct may declare multiple lifetime parameters and freely mix them with type parameters: `struct Foo[lifetime ~a, lifetime ~b, T]`.
 - A struct that declares a `[lifetime ~name]` parameter or that contains any `borrow[~name]` field is implicitly non-`Sendable`. Explicitly writing `implements Sendable` on such a struct is a compile-time error (`E_SENDABLE_LIFETIME`). See §17.8.1.
 - A lifetime-parameterized struct may not be stored in a class field. Class instances are heap-allocated and may outlive any stack frame; storing a borrow-field struct in a class instance would allow the borrow to escape its source region.
@@ -4693,7 +5104,7 @@ struct Parser[lifetime ~src, T] {
 **Methods on lifetime-parameterized structs.** Methods have implicit access to the struct's declared lifetime parameters. The compiler infers that a `borrow` return type on a method borrows from `self`'s lifetime — no explicit annotation is required for the common case:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct Slice[lifetime ~src] {
   borrow[~src] data: string;
@@ -4719,7 +5130,7 @@ struct Slice[lifetime ~src] {
 **Constructing a lifetime-parameterized struct.** The auto-generated constructor (§10.1) accepts `borrow[~name]` values for borrow fields. The compiler ties the resulting struct's lifetime to the provided source region:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
   var stream = Slice(data=input, start=0, end=input.len());
@@ -4739,7 +5150,7 @@ func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
 **Type aliases with lifetime parameters.** Type aliases may carry lifetime parameters using the same `[lifetime ~name]` syntax:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 type StrSlice[lifetime ~src]     = Slice[~src];
 type ParseState[lifetime ~src, T] = Parser[~src, T];
@@ -4764,9 +5175,7 @@ interface Greetable {
 }
 ```
 
-Interfaces define contracts that classes and structs explicitly implement:
-
-```
+```loom
 interface Serializable {
   func serialize(): bytes;
   static func deserialize(data: bytes): Self;
@@ -4832,10 +5241,10 @@ interface Finalizable       { func finalize(): void; }
 // Web Component lifecycle — implemented by @webcomponent classes (§19.10).
 // All methods have default no-op implementations; override only what is needed.
 interface WebComponentLifecycle {
-  func connected(): void;        // element inserted into a document
-  func disconnected(): void;     // element removed from a document
-  func adopted(): void;          // element moved to a new document
-  func attributeChanged(name: string, oldValue: string?, newValue: string?): void;
+  func connected(): void { }        // element inserted into a document
+  func disconnected(): void { }     // element removed from a document
+  func adopted(): void { }          // element moved to a new document
+  func attributeChanged(name: string, oldValue: string?, newValue: string?): void { }
 }
 
 // Map interfaces — implemented by dict[K,V] and structures.* types
@@ -5069,12 +5478,12 @@ for (n in countdown(5)) {
 
 ### §11.4 Lifetime-Parameterized Interfaces
 
-*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
+*(This section is normative. Available in all six modes; see §2.6.)*
 
 An interface may declare lifetime parameters to express contracts involving `borrow[~name]` return values or method parameters:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 interface Sliceable[lifetime ~src] {
   func slice(start: int, end: int): borrow[~src] string;
@@ -5089,7 +5498,7 @@ interface Source[lifetime ~src, T] {
 **Implementing a lifetime-parameterized interface.** The implementing type must declare a matching lifetime parameter by position. The names of the parameters need not match:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct BorrowedSlice[lifetime ~buf] implements Sliceable[~buf] {
   borrow[~buf] data: string;
@@ -5104,7 +5513,7 @@ struct BorrowedSlice[lifetime ~buf] implements Sliceable[~buf] {
 **Rules:**
 
 - A class may not implement a lifetime-parameterized interface. Class instances are heap-allocated and may outlive any stack frame; they cannot safely provide borrow-returning method contracts.
-- Lifetime-parameterized interfaces are valid only in `@mode(native)` and `@mode(freestanding)` files.
+- Lifetime-parameterized interfaces are valid in all six modes.
 - The lifetime parameter positions on the implementing type must be compatible by covariance with the declared interface positions.
 
 ---
@@ -5135,6 +5544,29 @@ func max[T: Comparable[T]](a: T, b: T): T {
 
 Multiple constraints use `+`: `T: Comparable[T] + Hashable`.
 
+**Class-kind bounds (v1.18).** In addition to trait bounds, a generic
+parameter may carry a **class-kind bound** that constrains which class
+memory strategy (§8.1.1) the type must declare:
+
+```
+func handleShared[T: shared class](ref: SharedRef[T]): void { ... }
+func handleLocal[T: local class](value: T): void { ... }
+func handleAny[T: class](value: Any): void { ... }   // either strategy
+```
+
+Class-kind bounds compose with trait bounds via `+`:
+
+```
+func saveShared[T: shared class + Serializable](ref: SharedRef[T]): bytes {
+  return serialize[T, JsonFormat](ref.get());
+}
+```
+
+A class-kind bound is satisfied if `T` is declared with the matching memory
+strategy (including the default implicit `local`). Violating the bound is
+`E_CLASS_KIND_MISMATCH`. Class-kind bounds are resolved at compile time
+from the type's declaration; they incur no runtime overhead.
+
 **Reification.** Generics are reified at runtime. `core.reflect.typeOf` on a `Box[int]` returns a `Type` whose `params()` includes the `Type` for `int`.
 
 **Variance:**
@@ -5162,7 +5594,7 @@ See §4.8 for additional type system details.
 
 ### §12.1 Lifetime Parameters in Generics
 
-*(This section is normative. Requires `@mode(native)` or `@mode(freestanding)`.)*
+*(This section is normative. Available in all six modes; see §2.6.)*
 
 Lifetime parameters extend the generic parameter system. They are declared alongside type parameters in `[...]` brackets and follow all generic scoping rules with two distinctions:
 
@@ -5174,7 +5606,7 @@ Lifetime parameters and type parameters may be freely mixed in any order: `[life
 **Mixed generic brackets:**
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func transform[lifetime ~src, T, R](
   borrow[~src] input: T,
@@ -5228,7 +5660,7 @@ from core.text import (Url, encode);
 
 ### §13.1 Import Syntax
 
-**All import forms are module-level only** — they may not appear inside function bodies, class bodies, or any nested scope. See §6.11.
+**All import forms are module-level only** — they may not appear inside function bodies, class bodies, or any nested scope. See §6 "Statement Classification".
 
 **Standard imports:**
 
@@ -5253,7 +5685,7 @@ from . {
   sub.moduleb import (Bar);
 }
 
-from ..|.. {
+from .. {
   packagea.modulea import (Alpha);
   packagea.moduleb import (Beta as B);
 }
@@ -5273,10 +5705,10 @@ from codec import (Encoder, decode) prefer compiled;
 
 When the runtime encounters `prefer compiled` on an import, it attempts to load a compiled artefact before falling back to the scripted source. See §13.7 for full resolution semantics.
 
-`prefer compiled` is valid in `@mode(scripted)` only:
+`prefer compiled` is valid in scripted modes — `@mode(web.scripted)`, `@mode(host.scripted)`, and `@mode(host.dual)`:
 
-- In `@mode(compiled)`: compile-time lint warning (`prefer-compiled-redundant`) — compiled modules are already resolved statically; the clause has no runtime effect.
-- In `@mode(native)` or `@mode(freestanding)`: compile-time error (`E_PREFER_COMPILED_NOT_SCRIPTED`) — dynamic module loading is unavailable; all imports are resolved statically at link time.
+- In `@mode(web.compiled)`: compile-time lint warning (`prefer-compiled-redundant`) — compiled modules are already resolved statically; the clause has no runtime effect.
+- In `@mode(host.native)` or `@mode(freestanding)`: compile-time error (`E_PREFER_COMPILED_NOT_SCRIPTED`) — dynamic module loading is unavailable; all imports are resolved statically at link time.
 
 `prefer compiled` may appear on individual imports within a grouped import block:
 
@@ -5330,7 +5762,7 @@ pub from .components {
 - Only `pub` symbols from the source module can be re-exported; re-exporting a non-`pub` symbol is a compile-time error (`E_REEXPORT_NOT_PUB`).
 - Re-exports do not execute the source module twice — cached bindings are reused.
 - Wildcard re-exports (`pub from .module import *`) are prohibited.
-- Re-exports are available in all four execution modes.
+- Re-exports are available in all six execution modes.
 
 For any symbol re-exported via `pub from .internal import (Foo)`, importing `Foo` from the barrel module yields the same binding as importing `Foo` directly from the internal module.
 
@@ -5446,7 +5878,7 @@ The module dunders (`__name__`, `__file__`, `__execmode__`) are set before any t
 
 ### §13.5 Package Registry
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
+*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
 
 The Loom package registry is a signed, content-addressed registry of Loom
 packages.  Packages are identified by name and version and authenticated with
@@ -5467,7 +5899,7 @@ The following root namespaces are reserved for the standard library. User packag
 | `sync` | OS-thread concurrency primitives | `cli`, `service`, `desktop`, `native` |
 | `web` | Browser-specific APIs | `browser` only |
 | `ui` | Cross-platform reactive UI | All targets |
-| `native` | Native-compiled-only numerical, memory, GPU, and WebGPU primitives | `@mode(native)` and `@mode(freestanding)` only (WebGPU also `browser`) |
+| `native` | Native-compiled-only numerical, memory, GPU, and WebGPU primitives | `@mode(host.native)` and `@mode(freestanding)` only (WebGPU also `browser`) |
 | `lang` | Language interop, macro support, template runtime | All targets |
 | `debug` | Debugging, tracing, profiling, MCP agent tooling | All targets (when enabled) |
 | `structures` | Data structures beyond primitive collections | All targets |
@@ -5534,22 +5966,23 @@ from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
 
 // codec_native.loom (compiled artefact source)
-@mode(compiled)
+@mode(web.compiled)
 from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
 ```
 
 #### §13.7.4 `__execmode__` Under Fallback Resolution
 
-After resolution, the loaded module's `__execmode__` (accessible via `TypeName.__module__.__execmode__`) reflects which path was taken:
+After resolution, the loaded module's `__execmode__` (accessible via `TypeName.__module__.__execmode__`) reflects which path was taken. The value is whichever of the six mode strings from §2.2 applies to the loaded artifact:
 
-- `"compiled"` — a compiled artefact was instantiated successfully.
-- `"interpreted"` — the scripted fallback was loaded.
+- The AOT mode string (`"web.compiled"`, `"host.native"`, or the AOT side of `"host.dual"`) — a compiled artefact was instantiated successfully.
+- `"host.scripted"` or `"web.scripted"` — the scripted fallback was loaded.
 
 ```loom
 from codec import (Encoder) prefer compiled;
 
-let supportsStreaming = Encoder.__module__.__execmode__ == "compiled";
+let compiledVariants = ["web.compiled", "host.native", "host.dual"];
+let supportsStreaming = compiledVariants.contains(Encoder.__module__.__execmode__);
 ```
 
 #### §13.7.5 Shipping Fallback Pairs
@@ -5584,7 +6017,7 @@ Thrown when both the compiled artifact and the scripted source fail to load. `ca
 
 ### §13.8 Core Package Set
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
+*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
 
 Five first-party packages ship under the `loom.` namespace and are available
 via `loom install`:
@@ -5593,7 +6026,7 @@ via `loom install`:
 |---|---|
 | `loom.ai` | Multi-provider AI client (`Client`, `StructuredOutput[T]`, streaming) |
 | `loom.db` | Database access (query builder, connection pool, migrations) |
-| `testing` | Testing framework (`describe`, `it`, `expect`) |
+| `loom.testing` | Testing framework (`describe`, `it`, `expect`) |
 | `loom.bench` | Micro-benchmark harness |
 | `loom.format` | Document formatting utilities |
 
@@ -5644,7 +6077,7 @@ set LOOMPATH=C:\dev\loom-http;C:\dev\my-utils
 A **standard circular import** exists when the module dependency graph contains a
 cycle reachable through `from X import (...)` statements. The compiler detects such
 cycles during the dependency resolution phase and emits `E_CIRCULAR_IMPORT` naming
-both modules. This applies in all four execution modes.
+both modules. This applies in all six execution modes.
 
 Good architecture avoids cycles. Common remedies: extract shared types into a third
 module that both depend on; merge tightly-coupled modules; or use `defer import`
@@ -5686,7 +6119,7 @@ import` statement — deferred imports always use the module's default resolutio
 | Interface method signature | ✓ | `func transform(t: Transform): Self;` |
 | Type parameter constraint | ✓ | `func h[T: Comparable[Point]]()` |
 | `instanceof` / `is` type check | ✓ | `x instanceof Point` |
-| Union type member | ✓ | `Point | None` |
+| Union type member | ✓ | `Point \| None` |
 | Generic type argument | ✓ | `list[Point]` |
 
 **What is NOT permitted with a stub (before resolution):**
@@ -5724,12 +6157,12 @@ class Node : Any {
 from nodes defer import (Node)
 
 class Edge : Any {
-  pub let from: Node;              // ✓ — field type annotation, stub ok
-  pub let to:   Node;              // ✓ — field type annotation, stub ok
+  pub let src: Node;               // ✓ — field type annotation, stub ok
+  pub let to:  Node;               // ✓ — field type annotation, stub ok
 
-  new(from: Node, to: Node) {      // ✓ — parameter type, stub ok
-    this.from = from;
-    this.to   = to;
+  new(src: Node, to: Node) {       // ✓ — parameter type, stub ok
+    this.src = src;
+    this.to  = to;
   }
 }
 ```
@@ -5754,10 +6187,11 @@ declarations: `list[Point]` as a field type is valid before resolution. Instanti
 (`list[Point].new()` at top level) follows the same rule as construction — not
 permitted before resolution.
 
-**Mode availability.** `defer import` is available in `@mode(scripted)`, `@mode(compiled)`,
-and `@mode(native)`. It is NOT available in `@mode(freestanding)` — freestanding modules
-are statically linked with no runtime module loader, so deferred resolution has no
-mechanism (`E_DEFERRED_NOT_FREESTANDING`).
+**Mode availability.** `defer import` is available in all modes except `@mode(freestanding)` —
+specifically `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`,
+`@mode(host.dual)`, and `@mode(host.native)`. It is NOT available in `@mode(freestanding)` —
+freestanding modules are statically linked with no runtime module loader, so deferred
+resolution has no mechanism (`E_DEFERRED_NOT_FREESTANDING`).
 
 #### §13.10.3 Error Codes
 
@@ -6229,7 +6663,7 @@ When `renderToString` renders a component tree containing `html` fences, the con
 The `css` language descriptor in a template fence produces a **`StyleSheet`** value — a typed, scoped bundle of CSS rules. Class names are automatically mangled to a hash-scoped form, preventing collisions between components.
 
 ```loom
-let styles = ``(css)
+let styles = ```(css)
   .container {
     display: flex;
     flex-direction: column;
@@ -6246,7 +6680,7 @@ let styles = ``(css)
   .button:hover {
     opacity: 0.85;
   }
-``;
+```;
 
 // styles.container → ClassName("container-a3f9b2")
 // styles.button    → ClassName("button-a3f9b2")
@@ -6295,13 +6729,13 @@ CSS property values may embed Loom expressions with `{$ expr $}`:
 let spacing: int = 16;
 let brand: string = "#0066cc";
 
-let styles = ``(css)
+let styles = ```(css)
   .card {
     padding: {$ spacing $}px;
     border-color: {$ brand $};
     border-width: {$ spacing / 4 $}px;
   }
-``;
+```;
 ```
 
 Dynamic values are interpolated at the time the fence expression is evaluated. The resulting `StyleSheet` is immutable — it captures the values at evaluation time. For styles that must react to signal changes, re-evaluate the fence expression inside an `effect` or computed value (§19.1).
@@ -6313,22 +6747,22 @@ Dynamic values are interpolated at the time the fence expression is evaluated. T
 **In `html` fences.** Use `styles.toCSS()` to inject a `<style>` block, or reference class names directly:
 
 ```loom
-let page = ``(html)
+let page = ```(html)
   <style>{$ styles.toCSS() | raw $}</style>
   <div class="{$ styles.container $}">
     <button class="{$ styles.button $}">Click</button>
   </div>
-``;
+```;
 ```
 
 **In `ui` fences.** The `class` attribute accepts `ClassName` directly:
 
 ```loom
-let view = ``(ui)
+let view = ```(ui)
   <Column class={styles.container}>
     <Button class={styles.button}>Click</Button>
   </Column>
-``;
+```;
 ```
 
 **Server-side rendering.** When rendering to string via `ui.web.renderToString`, all `ClassName` values referenced in the component tree are collected and their CSS is included in the generated `<style>` block automatically.
@@ -6338,7 +6772,7 @@ let view = ``(ui)
 Media queries and pseudo-selectors are supported within `css` fences. Only top-level class selectors (`.ruleName { ... }`) produce `ClassName` properties on the returned `StyleSheet`. Other rule types (media queries, keyframes, `@font-face`) are compiled into the CSS output but are not directly addressable:
 
 ```loom
-let styles = ``(css)
+let styles = ```(css)
   .hero {
     font-size: 32px;
   }
@@ -6353,14 +6787,14 @@ let styles = ``(css)
     from { opacity: 0; }
     to   { opacity: 1; }
   }
-``;
+```;
 
 // styles.hero is a ClassName — the @media and @keyframes are in toCSS() output
 ```
 
 #### §16.7.5 Availability
 
-`css` fences are available in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. They are **not available** in `@mode(freestanding)` — there is no UI runtime (`E_FREESTANDING_FENCE`).
+`css` fences are available in `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. They are **not available** in `@mode(freestanding)` — there is no UI runtime (`E_FREESTANDING_FENCE`).
 
 | Target | Behavior |
 |---|---|
@@ -6375,9 +6809,9 @@ let styles = ``(css)
 
 ### §16.8 GPU/Compute Fence Descriptors
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` and `browser` targets where WebGPU is available.)*
+*(This section is normative. Applies to `@mode(host.native)`, `@mode(host.dual)`, and `@mode(web.compiled)`/`@mode(web.scripted)` targets where WebGPU is available.)*
 
-Three additional language descriptors extend the template fence system (§16.1) for GPU kernel authoring. These fences produce `GpuKernel` values (§21.30) rather than `Template` strings. The fence body is a shader program in the target shading language; `{$ expr $}` interpolations inject Loom compile-time constant expressions as shader constants.
+Three additional language descriptors extend the template fence system (§16.1) for GPU kernel authoring. These fences produce `GpuKernel` values (defined in `native.gpu`; see the stdlib reference) rather than `Template` strings. The fence body is a shader program in the target shading language; `{$ expr $}` interpolations inject Loom compile-time constant expressions as shader constants.
 
 #### §16.8.1 `wgsl` — WebGPU Shading Language
 
@@ -6470,7 +6904,7 @@ GPU compute fences follow the same multi-backtick nesting rules as all other fen
 
 ## §17 Concurrency
 
-*(This section is normative.)*
+*(This section is normative. This chapter covers async/await, structured concurrency, actors, OS-thread parallelism, the multi-threaded async executor, and script-mode parallelism. Shared-memory concurrency — the `Shareable` trait, `SharedBuffer[T]`, `SharedRef[T]`, `shared class`, atomics, and shared synchronization primitives — is specified separately in §17b.)*
 
 ### §17.1 `async`/`await`
 
@@ -6698,7 +7132,7 @@ Actors and supervision trees are built on top of `await group` and `TaskGroup` p
 
 ### §17.7 `atomic {}` — Cooperative Atomicity Scope
 
-*(This section is normative. Applies to `@mode(scripted)` and `@mode(compiled)`.)*
+*(This section is normative. Applies to `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, and `@mode(host.dual)` per §2.6.)*
 
 An `atomic {}` block guarantees that no suspension point occurs within its lexical scope. It is the primary mechanism for closing TOCTOU (time-of-check/time-of-use) races in cooperative async code: all statements between the opening and closing brace execute without interleaving from other tasks.
 
@@ -6725,7 +7159,7 @@ atomic {
 return result
 ```
 
-**`atomic {}` is not a mutex.** It does not prevent interleaving in multi-threaded native mode — for that, use `synchronized` (§23.4.13) or `Mutex[T]` (§17.8.2). In scripted/compiled mode, `atomic {}` is sufficient because there is only one OS thread.
+**`atomic {}` is not a mutex.** It does not prevent interleaving across OS threads — for that, use `synchronized` (§23.4.13) or `Mutex[T]` (§17.8.2). `atomic {}` requires a cooperatively-scheduled environment: it prevents interleaving only by statically forbidding suspension points (`await`, `for await`, `spawn`, calls to `async func` not proven suspension-free) inside the block. In `@mode(host.dual)`, which may host OS threads, the compiler enforces the same no-suspension rule — OS threads are orthogonal to `atomic {}`, which only coordinates cooperative scheduling within a single logical task.
 
 **Permitted and prohibited inside `atomic {}`:**
 
@@ -6743,10 +7177,10 @@ return result
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_ATOMIC_AWAIT` | Scripted, Compiled | Suspension point inside `atomic {}` block |
-| `E_ATOMIC_NOT_WASM` | Native, Freestanding | `atomic {}` used outside scripted/compiled mode; use `synchronized` or `InterruptGuard` |
+| `E_ATOMIC_AWAIT` | web.scripted, web.compiled, host.scripted, host.dual | Suspension point inside `atomic {}` block |
+| `E_ATOMIC_NOT_WASM` | host.native, freestanding | `atomic {}` used in `@mode(host.native)` or `@mode(freestanding)`; use `synchronized` or `InterruptGuard` |
 
-**Task queue exhaustion (normative).** Spawning tasks in an unbounded loop without awaiting results can exhaust available memory. The runtime enforces a configurable maximum pending-task queue depth via `runtime.configure` (§20.1). When the queue is full, further `spawn` operations throw `TaskQueueFullError` (§26.1). The default limit is implementation-defined but MUST be documented. Use `TaskGroup.collectBounded` (§17.3) as the preferred pattern for high-throughput task production.
+**Task queue exhaustion (normative).** Spawning tasks in an unbounded loop without awaiting results can exhaust available memory. The runtime enforces a configurable maximum pending-task queue depth via `runtime.configure` (§20.1). When the queue is full, further `spawn` operations throw `TaskQueueFullError` (§26.1). The default limit is `0` (unlimited); set a positive `maxTaskQueueDepth` in `RuntimeConfig` to bound the queue. Use `TaskGroup.collectBounded` (§17.3) as the preferred pattern for high-throughput task production.
 
 ---
 
@@ -6763,7 +7197,7 @@ On GC runtimes (scripted/Wasm), `weak` references behave consistently — the GC
 
 ### §17.8 OS Thread Parallelism (`--target native`)
 
-*(This section is normative. It applies only to `@mode(native)` and `@mode(freestanding)` files. All constructs in this section are compile-time errors in scripted mode or compiled-mode files targeting Wasm.)*
+*(This section is normative. It applies only to `@mode(host.dual)` and `@mode(host.native)` files. All constructs in this section are compile-time errors in scripted mode, in `@mode(web.compiled)` files targeting Wasm, or in `@mode(freestanding)` files.)*
 
 Loom's cooperative async runtime runs on a single OS thread by default. For CPU-bound workloads on `--target native`, true parallelism is available via OS threads using the primitives in this section. For parallelizing async work itself across cores, see §17.9 (Multi-Threaded Async Executor). OS thread primitives are a lower-level interface intended for compute-heavy work and synchronous blocking operations.
 
@@ -6791,7 +7225,7 @@ interface Sendable {}
 A `var` field of any other type — including `Sendable` types such as `int` or `string` — on a class declaring `implements Sendable` is a compile-time error (`E_SENDABLE_UNPROTECTED_VAR`). Even `Sendable` value types are unsafe as unprotected `var` fields because two threads could simultaneously read-modify-write the field, producing a data race.
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 // COMPILE ERROR — unprotected var field
 class UnsafeCounter : Any implements Sendable {
@@ -6815,7 +7249,7 @@ class SafeCounter : Any implements Sendable {
 To opt out of structural verification when the compiler cannot see the synchronization mechanism — for example, when safety is ensured by an external lock or protocol — annotate the class with `@unsafe("sendable: <reason>")` (see §23.4.6). The `@unsafe` annotation is the explicit, auditable record of the programmer's assertion.
 
 ```loom
-@mode(compiled)
+@mode(web.compiled)
 
 // OK — programmer asserts external synchronization via @unsafe
 @unsafe("sendable: access is serialized by the event loop; no concurrent mutation occurs")
@@ -6894,7 +7328,7 @@ All operations on `Atomic[T]` use sequentially-consistent memory ordering. Weake
 
 `Mutex[T]` and `RwLock[T]` implement `Sendable` unconditionally. Their internal lock is a native OS mutex/rwlock. Re-entrant locking (acquiring the same lock from within a `withLock`/`withRead`/`withWrite` callback) is a `LifetimeError` trap in debug builds and undefined behaviour in release builds.
 
-`Mutex[T]` and `RwLock[T]` are in the `sync.thread` module and require `@mode(native)` — they depend on OS thread primitives unavailable in `@mode(freestanding)`. `Atomic[T]` is available in both `@mode(native)` and `@mode(freestanding)`; for bare-metal multi-core synchronisation use `Atomic[T]` directly or the `native.atomic` functions (§24.20). Using `Mutex[T]` or `RwLock[T]` in `@mode(freestanding)` is `E_FREESTANDING_RUNTIME`.
+`Mutex[T]` and `RwLock[T]` are in the `sync.thread` module and require `@mode(host.dual)` or `@mode(host.native)` — they depend on OS thread primitives unavailable in `@mode(freestanding)` and in the web/scripted modes. `Atomic[T]` is available in both `@mode(host.native)` and `@mode(freestanding)`; for bare-metal multi-core synchronisation use `Atomic[T]` directly or the `native.atomic` functions (§24.20). Using `Mutex[T]` or `RwLock[T]` in `@mode(freestanding)` is `E_FREESTANDING_RUNTIME`.
 
 #### §17.8.3 `Thread` and `ThreadHandle`
 
@@ -6935,7 +7369,7 @@ class ThreadHandle[T: Sendable] : Any {
 **Example — parallel chunk processing:**
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 from sync.thread import (Thread, Mutex);
 
@@ -6981,7 +7415,7 @@ class ThreadPool : Any implements Sendable {
 **`borrow[~label]` capture restriction.** Closures passed to `ThreadPool.run` may not capture any `borrow[~label]` binding (`E_BORROW_THREAD_CAPTURE`). The pool work item runs on a separate OS thread and may outlive the calling frame, invalidating any lifetime-labeled borrow. Plain `borrow` captures are separately prevented by the existing `Sendable` requirement on the closure's captured types.
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 from sync.thread import (ThreadPool);
 
@@ -7003,10 +7437,10 @@ async func renderAllFrames(frames: list[Frame]): Task[list[bytes]] {
 | `core.inspect` inside thread bodies | Live runtime registry is not thread-safe — compile-time error |
 | `dynamic class` instances crossing thread boundaries | Dynamic fields are not thread-safe — non-`Sendable` by default |
 | `Thread`, `ThreadPool`, `Mutex`, `RwLock` in scripted mode, compiled-mode Wasm targets, or `@mode(freestanding)` | OS threads unavailable — compile-time error (`E_FREESTANDING_RUNTIME` in freestanding) |
-| `Atomic[T]` in scripted mode or compiled-mode Wasm targets | Available in `@mode(native)` and `@mode(freestanding)` (see §17.8.2); compile-time error elsewhere |
+| `Atomic[T]` in scripted mode or compiled-mode Wasm targets | Available in `@mode(host.native)` and `@mode(freestanding)` (see §17.8.2); compile-time error elsewhere |
 | `spawnBlocking` in scripted mode or Wasm targets | Available — backed by host thread pool; see §17.10.1 |
-| `native.simd` and `Vec[T, N]` outside `@mode(native)` or `@mode(freestanding)` | SIMD intrinsics require native code generation |
-| `@vectorize` in `@mode(scripted)` | Auto-vectorization hint ignored — JIT does not honour compile-time SIMD hints; compile-time lint advisory |
+| `native.simd` and `Vec[T, N]` outside `@mode(host.native)` or `@mode(freestanding)` | SIMD intrinsics require native code generation |
+| `@vectorize` in `@mode(host.scripted)` | Auto-vectorization hint ignored — JIT does not honour compile-time SIMD hints; compile-time lint advisory |
 
 **Data race freedom guarantee.** Any program that passes all compile-time `Sendable` checks is free of data races on objects visible to `core.reflect`. The guarantee does not extend to `extern native` objects accessed from multiple threads — native thread safety is the FFI caller's responsibility.
 
@@ -7016,7 +7450,7 @@ async func renderAllFrames(frames: list[Frame]): Task[list[bytes]] {
 
 ### §17.9 Multi-Threaded Async Executor
 
-*(This section is normative. Executor configuration (`RuntimeConfig`, `ExecutorConfig`, work-stealing executor, `@concurrent`, actor isolation, `ThreadLocal[T]`) applies to `@mode(native)` only — freestanding mode has no async executor. `spawnBlocking` is available in scripted, compiled, and native modes (not freestanding) — see §17.10.1. `TaskLocal[T]` is available in scripted, compiled, and native modes. `TaskLocal[T]` is not available in `@mode(freestanding)` — there is no async task scheduler to bind task-local storage to.)*
+*(This section is normative. Executor configuration (`RuntimeConfig`, `ExecutorConfig`, work-stealing executor, `@concurrent`, actor isolation, `ThreadLocal[T]`) applies to `@mode(host.dual)` and `@mode(host.native)` — the only modes with OS threads (§2.6). `spawnBlocking` is available in all non-freestanding modes — see §17.10.1. `TaskLocal[T]` is available in all non-freestanding modes. `TaskLocal[T]` is not available in `@mode(freestanding)` — there is no async task scheduler to bind task-local storage to.)*
 
 The default Loom async executor is a cooperative, single-threaded event loop. For programs that require true parallel execution of async tasks across CPU cores, the executor may be reconfigured to a **work-stealing multi-threaded model** via the `RuntimeConfig` API.
 
@@ -7055,7 +7489,7 @@ func configure(config: RuntimeConfig): void;
 **Example — opting into multi-threaded execution:**
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 from runtime import (RuntimeConfig, ExecutorConfig);
 
@@ -7106,7 +7540,7 @@ class BlockingTimeoutError : Exception {
 
 **Blocking pool sizing.** The pool is sized by `RuntimeConfig.blockingPoolSize` (default 512). Threads are created on demand and reused. If all threads are occupied and the pool is at capacity, `spawnBlocking` enqueues the work and the calling task suspends until a thread is available.
 
-**Availability.** `spawnBlocking` is available in `@mode(scripted)`, `@mode(compiled)` (Wasm), and `@mode(native)`. It is **not available** in `@mode(freestanding)` — there is no async event loop to suspend. See §17.10.1 for scripted-mode and Wasm-specific semantics. In all available modes it offloads synchronous work off the async event loop and is the recommended path for any operation that could block for more than ~1 ms.
+**Availability.** `spawnBlocking` is available in `@mode(web.scripted)`, `@mode(web.compiled)` (Wasm), `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. It is **not available** in `@mode(freestanding)` — there is no async event loop to suspend. See §17.10.1 for scripted-mode and Wasm-specific semantics. In all available modes it offloads synchronous work off the async event loop and is the recommended path for any operation that could block for more than ~1 ms.
 
 **`ThreadPool` vs `spawnBlocking`.** `ThreadPool` (§17.8.4) is a manually-managed pool with explicit lifecycle, suitable when the program controls pool sizing and shutdown timing. `spawnBlocking` uses the runtime-managed blocking pool and is the recommended default for ad-hoc blocking work.
 
@@ -7115,7 +7549,7 @@ class BlockingTimeoutError : Exception {
 **Example:**
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 from sync.thread import (spawnBlocking);
 
@@ -7143,7 +7577,7 @@ The executor mode determines whether `Sendable` constraints apply to async task 
 **Rule 2 — Multi-threaded executor.** In `MultiThreaded` executor mode, async task closures SHALL only capture values whose types implement `Sendable`. A non-`Sendable` capture at a `spawn` or `async func` call site is a compile-time error naming the offending captured variables.
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 // In MultiThreaded executor mode:
 let sharedCache: Cache = Cache.new();   // Cache does not implement Sendable
@@ -7154,7 +7588,7 @@ async func fetch(): Task[void] {
 }
 ```
 
-**Rule 3 — Binary-level enforcement.** The executor mode is a property of the binary, determined by the `runtime.configure()` call in the entry point. The compiler enforces Rule 2 for all async captures in `@mode(native)` files when the program is configured for `MultiThreaded` execution. `@mode(freestanding)` has no async executor and Rule 3 does not apply.
+**Rule 3 — Binary-level enforcement.** The executor mode is a property of the binary, determined by the `runtime.configure()` call in the entry point. The compiler enforces Rule 2 for all async captures in `@mode(host.native)` files when the program is configured for `MultiThreaded` execution. `@mode(freestanding)` has no async executor and Rule 3 does not apply.
 
 **Rule 4 — `@concurrent` forces Sendable regardless of mode.** Functions annotated `@concurrent` (§17.9.5) are always subject to `Sendable` capture constraints, regardless of the active executor mode.
 
@@ -7166,7 +7600,7 @@ async func fetch(): Task[void] {
 - The function body does not directly read or write any module-level `var` bindings (module-level mutable state is not thread-safe without explicit synchronization).
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 @concurrent
 async func fetchAll(urls: list[Url]): Task[list[Response]] {
@@ -7187,7 +7621,7 @@ The `Actor[M]` model (§17.6) is inherently safe in multi-threaded executor cont
 **Rule: Message types must be `Sendable` in multi-threaded mode.** Messages sent via `Actor[M].send(msg)` or `Actor[M].ask(msg)` cross thread boundaries (from the sender's worker to the actor's handler). When `ExecutorConfig.MultiThreaded` is active, `M` must implement `Sendable`. This is enforced at the call sites of `send` and `ask` — compile-time error if `M` is not `Sendable`.
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 // Internal state does not need to be Sendable — stays inside the actor
 class LocalState : Any {
@@ -7211,8 +7645,8 @@ In `SingleThreaded` executor mode, `M` has no `Sendable` constraint. The restric
 ```loom
 namespace sync.thread;
 
-// Available only in @mode(native); compile-time error in @mode(scripted),
-// @mode(compiled), and @mode(freestanding).
+// Available in @mode(host.dual) and @mode(host.native); compile-time error in
+// @mode(web.scripted), @mode(web.compiled), @mode(host.scripted), and @mode(freestanding).
 class ThreadLocal[T] : Any {
   // Creates a new ThreadLocal. `init` is called once per OS thread on first access.
   pub static func new(init: fn(): T): ThreadLocal[T];
@@ -7269,7 +7703,7 @@ class TaskLocal[T] : Any {
 **Example — request-scoped tracing ID:**
 
 ```loom
-@mode(compiled)
+@mode(web.compiled)
 
 from runtime import (TaskLocal);
 
@@ -7295,14 +7729,15 @@ async func handleRequest(id: string): Task[void] {
 
 ### §17.10 Script-Mode Parallelism
 
-*(This section is normative. All constructs in this section are available in scripted mode and on all Wasm targets. `ScriptWorker` and `WorkerChannel[T]` are additionally available in `@mode(compiled)` Wasm targets. They are not available in `@mode(native)` and `@mode(freestanding)` files, where §17.8 and §17.9 primitives apply instead.)*
+*(This section is normative. All constructs in this section are available in scripted mode and on all Wasm targets. `ScriptWorker` and `WorkerChannel[T]` are additionally available in `@mode(web.compiled)` Wasm targets and in `@mode(host.native)` via an embedded Wasm runtime (see §2.6). They are not available in `@mode(freestanding)`, which has no async or thread primitives; use `native.atomic` and `InterruptGuard` (§24.20, §24.24) instead.)*
 
-Loom's scripted runtime executes cooperatively on a single thread by default (§2.1). Two mechanisms provide parallelism within the scripted and Wasm execution environments without requiring a shared GC heap across threads:
+Loom's scripted runtime executes cooperatively on a single thread by default (§2.1). Three mechanisms provide parallelism within the scripted and Wasm execution environments:
 
 - **`spawnBlocking`** (§17.10.1) — offloads synchronous CPU-bound closures to a host-managed blocking thread pool.
 - **`ScriptWorker`** (§17.10.2) — spawns an isolated Wasm instance with its own heap, communicating via `Sendable`-typed message channels.
+- **Shared-memory concurrency** (§17b) — `SharedBuffer[T]`, `SharedRef[T]`, `shared class`, atomics, and shared synchronization primitives enable zero-copy cross-thread data access on top of the Wasm threads proposal's shared linear memory and `atomic.*` opcodes.
 
-These two primitives are deliberately complementary: `spawnBlocking` is for short synchronous compute tasks that return a single value; `ScriptWorker` is for long-running or stateful parallel workloads that require bidirectional communication.
+These three mechanisms are complementary: `spawnBlocking` is for short synchronous compute tasks that return a single value; `ScriptWorker` is for long-running or stateful parallel workloads that require bidirectional communication; the §17b shared-memory model is for data that must be concurrently read/written by multiple workers without copy overhead.
 
 #### §17.10.1 `spawnBlocking` in Scripted Mode
 
@@ -7363,9 +7798,6 @@ class ScriptWorker[M: Sendable] : Any {
 
   pub let isTerminated: bool;
 }
-
-class ValueError       : Exception {}  // value is semantically invalid for the operation (e.g. slice step=0)
-class GpuCompileError  : Exception { pub let shaderLog: string; }  // GPU shader/kernel compilation failed
 
 class WorkerTerminatedError : Exception {}
 class WorkerPanicError : Exception {
@@ -7489,8 +7921,850 @@ A `ScriptWorker` module executes in a restricted scope:
 | `debug.mcp`, `debug.capture` | ✅ | Debug portals are forwarded to the host debug server. |
 | `runtime.configure` | ❌ | Worker executor configuration is not supported; always `SingleThreaded`. |
 | Module-level `var` state | ✅ | Each worker has its own independent module state. |
+| Shared arenas (§17b) | ✅ | A worker may attach to arenas shared via `ScriptWorker.share(arena)`. |
 
 
+
+---
+
+## §17b Shared-Memory Concurrency
+
+*(This section is normative.)*
+
+This section specifies Loom's shared-memory concurrency model: mechanisms by
+which multiple execution contexts — worker Wasm instances, native OS threads,
+and a mixture of both — operate on the same underlying memory without copying.
+The model complements the message-passing primitives of §17.10 and the native
+OS-thread primitives of §17.8–§17.9; it is not a replacement for either.
+
+### §17b.1 Overview and Mode Availability
+
+Shared-memory concurrency in Loom rests on five layered primitives:
+
+1. **The `Shareable` marker trait** (§17b.2) — identifies types whose values may be simultaneously accessed by multiple execution contexts.
+2. **`SharedBuffer[T]` and `SharedArray[T]`** (§17b.3) — flat, typed views over shared linear memory for POD data (numeric arrays, byte buffers, fixed-size structs).
+3. **`core.atomic` operations** (§17b.4) — atomic load, store, read-modify-write, and compare-exchange primitives mapping directly to Wasm `atomic.*` opcodes on Wasm targets and to platform atomic instructions on native targets.
+4. **`SharedRef[T]` and `shared class`** (§17b.5–§17b.6) — atomic reference-counted handles to objects allocated in a shared arena. `shared class` has a normatively specified layout and vtable enabling cross-mode interop (§17b.7).
+5. **Shared synchronization primitives** (§17b.8) — `SharedMutex[T]`, `SharedRwLock[T]`, `SharedCondVar`, `SharedSemaphore`, `SharedBarrier`, and `SharedQueue[T]`, built on atomics and the Wasm threads proposal's `memory.atomic.wait` / `memory.atomic.notify` primitives (or platform equivalents).
+
+**Mode availability.** The shared-memory model is available in all execution
+modes except where noted. The concrete availability matrix is:
+
+| Construct | w.s | w.c | h.s | h.d | h.n | fs |
+|---|---|---|---|---|---|---|
+| `Shareable` trait and auto-derivation | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `SharedBuffer[T]` / `SharedArray[T]` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠¹ |
+| `core.atomic` (full surface) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (subset²) |
+| `SharedArena`, `SharedRef[T]`, `shared class` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠¹ |
+| `SharedMutex[T]`, `SharedRwLock[T]`, `SharedCondVar` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠¹ |
+| `SharedQueue[T]`, `SharedSemaphore`, `SharedBarrier` | ✓ | ✓ | ✓ | ✓ | ✓ | ⚠¹ |
+
+1. **Freestanding.** Shared-memory constructs requiring arena allocation are
+   available only when the target provides a `@allocator`-backed arena
+   satisfying the arena header contract (§17b.5) AND the target platform
+   provides multi-core coherent memory with atomic operations. Single-core
+   freestanding targets (most microcontrollers) receive `E_SHARED_ALLOCATOR_UNAVAILABLE`
+   at the first `shared` allocation.
+
+2. **Atomic subset.** On freestanding targets, only atomic operations supported
+   by the target instruction set are available. ARMv7-M and older do not
+   support 64-bit atomics and reject `atomicLoad[int64]` / `atomicStore[int64]`
+   with `E_ATOMIC_WIDTH_UNSUPPORTED`. `compareExchange` is available whenever
+   the target supports LL/SC or CAS instructions.
+
+**Runtime substrate.** On Wasm targets (`w.s`, `w.c`, `h.s`, and the JIT side
+of `h.d`), the shared-memory model builds on the **Wasm threads proposal**:
+shared linear memory declared with the `shared` memory attribute, `atomic.*`
+instructions, and `memory.atomic.wait` / `memory.atomic.notify`. On native
+targets (`h.n`, AOT side of `h.d`, freestanding where supported), the model
+builds on platform atomics (C11 `<stdatomic.h>` semantics on POSIX; Interlocked
+intrinsics on Windows) and futex-like waiting primitives (`futex` on Linux,
+`ulock_wait` on macOS, `WaitOnAddress` on Windows).
+
+**Runtime host requirements (Wasm).** A Wasm runtime host hosting Loom MUST:
+
+- Provide a shared linear memory (one instance per `SharedArena`) with a minimum initial size of 64 KiB and a maximum size of at least 4 GiB.
+- Expose `memory.atomic.wait32`, `memory.atomic.wait64`, and `memory.atomic.notify` imports, or use the native Wasm instructions if available.
+- Permit posting the shared memory handle to worker instances via `postMessage` with transfer (browser) or structured clone with transfer (Node, Bun, Deno, Wasmtime).
+
+These are the Wasm threads proposal's standard requirements. Loom does not
+extend them.
+
+**Relationship to `host.dual`.** A `host.dual` module may freely declare and
+use `shared class`, `SharedRef[T]`, `SharedBuffer[T]`, and all synchronization
+primitives in this section. The cross-mode ABI contract (§17b.7) guarantees
+that a `shared class` compiled via the JIT pipeline and the AOT native pipeline
+produces byte-identical memory layouts, enabling a scripted caller and a native
+callee to operate on the same arena-allocated object without marshalling.
+
+### §17b.2 `Shareable` Marker Trait
+
+`Shareable` is a marker interface indicating that a type is safe for simultaneous
+access by multiple execution contexts:
+
+```
+namespace core;
+
+pub interface Shareable extends Sendable {}
+```
+
+`Shareable` is a strict subset of `Sendable` (§17.8.1): every `Shareable` type
+is also `Sendable`, but not every `Sendable` type is `Shareable`. `Sendable`
+permits transfer across a thread boundary by value copy; `Shareable` permits
+simultaneous reference from multiple threads to the same memory.
+
+**Implicit `Shareable` implementations.** The following types are implicitly
+`Shareable` without an explicit `implements Shareable` declaration:
+
+- All primitive types whose in-memory representation is a fixed-width value: `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`, `float32`, `float64`, `bool`, `char`.
+- All `struct` types whose fields are all `Shareable`, provided the struct does not declare a `[lifetime ~name]` parameter and contains no `borrow[~name]` fields.
+- All `enum` types whose variant payloads are all `Shareable`, with the same lifetime restrictions as structs.
+- `SharedRef[T]` for any `T` that is a `shared class`.
+- `SharedBuffer[T]` and `SharedArray[T]` for any `T` that is `Shareable`.
+- Fixed-size arrays `T[N]` where `T` is `Shareable`.
+- `Atomic[T]` (§17b.4) for primitive `T`.
+
+**Non-`Shareable` types.** The following types are not `Shareable` and cannot
+be fields of a `shared class` or elements of `SharedArray[T]`:
+
+- `string` (internally GC-managed with a mutable representation in some backends).
+- `list[T]`, `dict[K,V]`, `set[T]` — the built-in growable collections.
+- `local class` instances and references to them.
+- Closures (`fn(...): T` with captured environment) that capture non-`Shareable` values.
+- `Task[T]` (async task handles are scheduler-bound).
+- `WorkerChannel[T]` (bound to `workerMain` scope per §17.10.3).
+
+To share a string across threads, copy it into a `SharedArray[char]` or wrap
+it in a `shared class StringHandle { chars: SharedArray[char]; }`. To share a
+growable collection, use the shared collection types in §17b.8 (`SharedQueue[T]`,
+`SharedStack[T]`).
+
+**Explicit opt-in.** A class may explicitly declare `implements Shareable` only
+if it is a `shared class` — a `local class` cannot implement `Shareable`. The
+compiler enforces this at the class declaration:
+
+```
+shared class LockFreeCounter implements Shareable {   // OK — shared class can
+  let count: Atomic[int64];
+  new() { this.count = Atomic[int64].new(0); }
+  func increment(): int64 { return this.count.fetchAdd(1); }
+}
+
+local class FooLocal implements Shareable {   // E_SHAREABLE_LOCAL_CLASS
+  ...
+}
+```
+
+A `shared class` with all-`Shareable` fields implicitly implements `Shareable`;
+the explicit declaration is optional but permitted for documentation.
+
+### §17b.3 `SharedBuffer[T]` and `SharedArray[T]`
+
+`SharedBuffer[T]` and `SharedArray[T]` provide flat, typed views over shared
+linear memory for plain-old-data.
+
+```
+namespace core;
+
+// A raw shared memory region of `byteLength` bytes, divisible into typed
+// views. The underlying bytes are allocated in a SharedArrayBuffer (Wasm)
+// or mmap'd shared region (native). The buffer is reference-counted; the
+// backing memory is freed when all SharedBuffer handles and all views into
+// it are dropped.
+pub shared class SharedBuffer[T: Shareable] {
+  pub static func create(elementCount: int): SharedBuffer[T];
+  pub static func fromRaw(bytes: bytes): SharedBuffer[T];   // copies input
+
+  pub let length: int;                 // element count
+  pub let byteLength: int;             // length * sizeof(T)
+
+  pub func get(index: int): T;         // atomic on index boundaries when T is primitive
+  pub func set(index: int, value: T): void;
+
+  pub func slice(start: int, end: int): SharedArray[T];   // non-owning view
+  pub func asArray(): SharedArray[T];                     // full-range view
+
+  // Bulk transfer. Copies memory atomically word-by-word; does not provide
+  // cross-element atomicity (use a SharedMutex for that).
+  pub func copyTo(dst: SharedBuffer[T], srcStart: int, dstStart: int, count: int): void;
+  pub func fill(value: T, start: int = 0, end: int? = None): void;
+}
+
+// A non-owning typed view over a SharedBuffer. Multiple SharedArray views may
+// exist over the same underlying SharedBuffer. Views carry their own bounds
+// but share the backing memory.
+pub shared class SharedArray[T: Shareable] {
+  pub let length: int;
+
+  pub func get(index: int): T;
+  pub func set(index: int, value: T): void;
+
+  pub func slice(start: int, end: int): SharedArray[T];
+
+  // Parallel iteration helper — splits the range across workers.
+  // body runs on the current execution context; workers must be spawned
+  // separately to actually parallelize.
+  pub func forEach(body: fn(i: int, v: T): void): void;
+}
+```
+
+**Access semantics (non-atomic).** The `get` and `set` methods on
+`SharedBuffer[T]` and `SharedArray[T]` perform **non-atomic** loads and stores
+when `T` is a primitive wider than the target's natural atomic width. For
+race-free access to a specific element across threads, use the methods in
+§17b.4 (`atomicLoad`, `atomicStore`, etc.) which take a `SharedArray[T]` and
+an index as arguments.
+
+**Bounds checking.** All indexed accesses are bounds-checked. Out-of-range
+access throws `IndexError` at runtime. The compiler MAY elide bounds checks
+when the index is statically provable to be in range.
+
+**Endianness.** Multi-byte primitives in `SharedBuffer[T]` are stored in
+**native endianness** of the target platform. Programs that need
+byte-exchangeable representations across platforms must serialize through
+`data.bytes` explicitly.
+
+**Layout.** `SharedBuffer[T]` for primitive `T` uses the natural alignment
+of `T` (aligned on `sizeof(T)` boundaries). For `struct` `T`, the layout
+follows the `@repr(C)` rules — field order, natural alignment, and trailing
+padding as specified by the target C ABI.
+
+### §17b.4 `core.atomic` — Atomic Operations
+
+The `core.atomic` namespace provides atomic operations on `SharedArray[T]`
+indices and on `Atomic[T]` cell wrappers.
+
+```
+namespace core.atomic;
+
+// Memory ordering parameter — semantics match C11 and Wasm.
+pub enum Ordering {
+  Relaxed;         // no ordering constraint
+  Acquire;         // no prior ops can be reordered after
+  Release;         // no subsequent ops can be reordered before
+  AcqRel;          // Acquire + Release (RMW ops only)
+  SeqCst;          // sequential consistency (default for all ops unless specified)
+}
+
+// Atomic load. T must be one of: int8, int16, int32, int64, uint8, uint16,
+// uint32, uint64, float32, float64, bool.
+pub func atomicLoad[T: Shareable](arr: borrow SharedArray[T], index: int,
+                                    ord: Ordering = SeqCst): T;
+
+pub func atomicStore[T: Shareable](arr: borrow SharedArray[T], index: int,
+                                     value: T, ord: Ordering = SeqCst): void;
+
+// Read-modify-write operations. Return the old value.
+pub func fetchAdd[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                           delta: T, ord: Ordering = SeqCst): T;
+pub func fetchSub[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                           delta: T, ord: Ordering = SeqCst): T;
+pub func fetchAnd[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                           mask: T, ord: Ordering = SeqCst): T;
+pub func fetchOr[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                          mask: T, ord: Ordering = SeqCst): T;
+pub func fetchXor[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                           mask: T, ord: Ordering = SeqCst): T;
+pub func exchange[T: Shareable](arr: borrow SharedArray[T], index: int,
+                                 newValue: T, ord: Ordering = SeqCst): T;
+
+// Compare-and-swap. Succeeds if current value == expected; stores `desired`
+// on success. Returns (success, actualValue).
+pub func compareExchange[T: Shareable](arr: borrow SharedArray[T], index: int,
+                                        expected: T, desired: T,
+                                        successOrd: Ordering = SeqCst,
+                                        failureOrd: Ordering = Acquire):
+                                        (bool, T);
+
+// Wait/notify — block until the value at `index` differs from `expected`.
+// `timeoutMs` of None means wait indefinitely; 0 means poll without blocking.
+// Returns: Ok if woken by notify, Timeout if timed out, NotEqual if value
+// already differed.
+pub enum WaitResult { Ok; Timeout; NotEqual; }
+
+pub func wait[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                       expected: T, timeoutMs: int? = None): WaitResult;
+
+// Wake up to `count` waiters blocked on (arr, index). Returns the number
+// actually woken. `count = -1` wakes all.
+pub func notify[T: Integer + Shareable](arr: borrow SharedArray[T], index: int,
+                                         count: int = 1): int;
+
+// Memory fences — order prior/subsequent operations without data operation.
+pub func fence(ord: Ordering): void;
+
+// Atomic cell — a single-element shared atomic of type T. Implemented as
+// an inline value type (struct-like) so it can be embedded directly as a
+// field of a shared class without an extra level of indirection.
+pub struct Atomic[T: Shareable] implements Shareable, Sendable {
+  pub static func new(initial: T): Atomic[T];
+
+  pub func load(ord: Ordering = SeqCst): T;
+  pub func store(value: T, ord: Ordering = SeqCst): void;
+  pub func fetchAdd(delta: T, ord: Ordering = SeqCst): T where T: Integer;
+  pub func fetchSub(delta: T, ord: Ordering = SeqCst): T where T: Integer;
+  pub func exchange(newValue: T, ord: Ordering = SeqCst): T;
+  pub func compareExchange(expected: T, desired: T,
+                            successOrd: Ordering = SeqCst,
+                            failureOrd: Ordering = Acquire): (bool, T);
+}
+```
+
+`Atomic[T]` is a value type — when declared as a field of a `shared class`,
+it is laid out inline (consuming `sizeof(T) + alignment padding` bytes in
+the enclosing object). This is a deliberate departure from the default
+where `shared class` fields are accessed via `SharedRef[T]`; `Atomic[T]`
+is specifically designed for inline embedding because its atomic access
+requires the data to live at a stable address within the enclosing object's
+layout.
+
+**Wasm mapping.** On Wasm targets, these operations lower directly to the
+Wasm threads proposal's `atomic.*` opcodes:
+
+| Loom function | Wasm opcode |
+|---|---|
+| `atomicLoad[int32]` | `i32.atomic.load` |
+| `atomicStore[int32]` | `i32.atomic.store` |
+| `fetchAdd[int32]` | `i32.atomic.rmw.add` |
+| `compareExchange[int32]` | `i32.atomic.rmw.cmpxchg` |
+| `wait[int32]` | `memory.atomic.wait32` |
+| `notify[int32]` | `memory.atomic.notify` |
+| `fence(SeqCst)` | `atomic.fence` |
+
+64-bit atomics use the `i64.atomic.*` variants. Float atomics are implemented
+by bit-casting to the integer of matching width.
+
+**Native mapping.** On native targets, these operations lower to the target's
+native atomic instructions (LOCK-prefixed on x86-64, LDXR/STXR on ARM64) or
+the C11 atomic intrinsics equivalent to `atomic_load_explicit` etc. The
+`wait`/`notify` operations use `futex` on Linux, `__ulock_wait`/`__ulock_wake`
+on macOS, and `WaitOnAddress`/`WakeByAddressSingle` on Windows.
+
+**Memory-ordering defaults.** The default `Ordering` is `SeqCst`, matching
+C11, C++, and Wasm. `SeqCst` is conservative but correct for all programs.
+Performance-sensitive code should profile before relaxing.
+
+### §17b.5 `SharedArena` and Allocation
+
+`SharedArena` is the memory region in which `shared class` instances,
+`SharedBuffer[T]` backing stores, and synchronization-primitive state live.
+Arenas are the unit of cross-context memory sharing: two execution contexts
+(workers, native threads, native modules in the same process) share data by
+attaching to the same arena.
+
+```
+namespace core;
+
+// A handle to a shared memory region. Reference-counted itself — the arena
+// is freed when the last SharedArena handle AND all objects allocated within
+// it are dropped.
+pub shared class SharedArena {
+  // Create a new shared arena.
+  // - `capacityBytes` — initial size (rounded up to the Wasm page boundary of 64 KiB).
+  // - `maxBytes` — maximum size the arena may grow to; None means "same as capacity".
+  // The arena grows automatically up to maxBytes when allocation pressure requires.
+  pub static func create(capacityBytes: int, maxBytes: int? = None): SharedArena;
+
+  pub let capacityBytes: int;
+  pub let usedBytes: int;
+  pub let maxBytes: int;   // matches capacityBytes if non-growable
+
+  // Bytes allocated and not yet freed. Changes as shared classes are allocated
+  // and released within this arena.
+  pub func liveBytes(): int;
+
+  // Force compaction of the arena's free list. Does not move live objects;
+  // only coalesces free regions. Optional — the allocator runs this opportunistically.
+  pub func compact(): void;
+}
+```
+
+**Arena header.** Every shared arena begins with a fixed-layout header that
+both JIT-compiled and AOT-compiled code parse identically:
+
+```
+Offset  Size  Field                    Description
+---------------------------------------------------------------------------
+ 0      4     magic                    0x4C4F4F4D ("LOOM" in ASCII)
+ 4      4     abiVersion               see §17b.7
+ 8      8     capacityBytes            total arena size
+16      8     usedBytes                high-water mark of allocator
+24      8     freeListRoot             offset of free-list head
+32      8     weakTableRoot            offset of weak-reference side table
+40      8     metadataRoot             offset of type-info registry
+48      8     refcount                 arena's own refcount
+56      8     flags                    bit 0 = growable; bit 1 = read-only
+64      ...   (allocator-managed)
+```
+
+All fields in the header are stored in little-endian byte order regardless
+of target endianness, to enable cross-platform arena portability (e.g., an
+arena written by an x86-64 native process consumed by an ARM64 Wasm runtime
+via a serialized dump).
+
+**Bootstrap.** `SharedArena` is itself a `shared class` whose instances
+live in shared memory. This creates an apparent bootstrap problem: an arena
+must exist before any `shared class` (including `SharedArena` itself) can
+be allocated. The runtime resolves this by maintaining a **primordial arena**
+per execution context — a fixed-size shared memory region allocated by the
+runtime host during context initialization (browser bootstrap, `loom run`
+startup, native thread creation, etc.). The primordial arena is reserved
+for `SharedArena` instances themselves and a small set of runtime-internal
+bookkeeping objects; it is never exposed to user code as a target for
+`shared T(...)` allocations. User-created `SharedArena` instances live in
+the primordial arena; user `shared class` instances live in user-created
+arenas. The primordial arena's size is implementation-defined (SHOULD be
+at least 1 MiB) and is never growable.
+
+**Allocator.** The arena allocator is a segregated-free-list allocator with
+size classes matching the sizes of declared `shared class` types plus a
+fallback for larger allocations. The specific implementation is not
+normative, provided:
+
+- Allocation is thread-safe under concurrent access.
+- Free-list updates are ordered such that no allocation returns memory currently in use.
+- The allocator maintains the arena's `usedBytes` and `liveBytes` counters accurately within a bounded delay.
+
+**Growth.** If an arena is created with `maxBytes > capacityBytes`, the
+allocator MAY grow the arena up to `maxBytes` when allocation pressure
+requires. Growth on a Wasm-hosted shared memory uses `memory.grow` on the
+shared memory instance. Growth on a native-hosted arena uses `mremap` (Linux)
+or equivalent platform API. Growth SHALL be coordinated across all attached
+contexts via an arena-internal rwlock on the header.
+
+**Attachment from workers and native modules.** A `SharedArena` handle can be
+transferred to a `ScriptWorker` (§17.10.2) via `ScriptWorker.share(arena)`,
+after which the worker's attached arena is the same memory region. Similarly,
+a native thread spawned via `Thread.spawn` (§17.8) inherits the spawning
+thread's attached arenas. Detachment is automatic when the context exits.
+
+**Module-level initialization.** The main execution context's default shared
+arena is created lazily on first `shared` allocation, including allocations
+performed during module-level top-level statement execution (§2.4.3 for
+`host.scripted`; equivalent architectural-entry setup for other modes). A
+module that declares a top-level binding initialized with `shared T(...)`
+triggers default-arena creation at that point. Once any shared allocation has
+occurred in a context, `runtime.configureDefaultSharedArena(...)` produces
+`DefaultArenaAlreadyInitializedError`. Programs that need a custom default
+arena configuration MUST call `configureDefaultSharedArena` before any
+top-level shared allocation; the recommended practice is to place the
+configuration call in a dedicated `init.loom` module imported before any
+module that allocates shared objects.
+
+**Error codes:**
+
+| Code | Condition |
+|---|---|
+| `E_SHARED_ALLOCATOR_UNAVAILABLE` | Shared allocation attempted on a target without arena support (typically freestanding single-core) |
+| `E_SHARED_ARENA_OOM` | Arena grew to `maxBytes` and cannot satisfy the allocation |
+| `E_SHARED_ARENA_CORRUPTED` | Arena header magic/version mismatch at attach time |
+
+### §17b.6 `SharedRef[T]` and `shared class`
+
+`SharedRef[T]` is the ref-counted handle to a `shared class` instance. It is
+Loom's analogue to Rust's `Arc<T>` with a stable cross-mode ABI.
+
+**On the `T` parameter.** `SharedRef[T]` accepts a type parameter `T` that
+MUST be a `shared class` type. The bound `T: shared class` is a v1.18
+**class-kind bound** — a new form of generic bound (§12) that constrains
+`T` to a specific class memory strategy. Class-kind bounds are distinct
+from trait bounds: they restrict which *declarations* of `T` are allowed
+(which is decidable at compile time from the type's declaration form),
+not which *interfaces* `T` implements. Other class-kind bounds are
+`T: local class` and `T: class` (matches either). Class-kind bounds may
+be combined with trait bounds via `+`: `T: shared class + Serializable`.
+
+```
+namespace core;
+
+// Value type, not itself a shared class — see §21.1.5 rationale.
+pub struct SharedRef[T: shared class] implements Shareable, Sendable {
+  // Clone — increments the atomic refcount and returns a new handle
+  // to the same instance. Runs in O(1).
+  pub func clone(): SharedRef[T];
+
+  // Downgrade to a weak reference. `SharedWeakRef[T]` is the shared-arena
+  // weak reference type; see §8 (weak field qualifier) and the Loom
+  // Standard Library Reference §21.1.6 for the full contract.
+  pub func downgrade(): SharedWeakRef[T];
+
+  // Strong reference count (observational only; inherently racy — use for
+  // diagnostics, not logic).
+  pub func strongCount(): int;
+
+  // Weak reference count (observational only).
+  pub func weakCount(): int;
+
+  // Pointer equality — true iff both handles refer to the same instance.
+  pub func same(other: borrow SharedRef[T]): bool;
+}
+```
+
+**Allocation syntax.** A `shared class` instance is allocated by calling the
+class's constructor with the `shared` keyword prefix, optionally naming an
+arena:
+
+```
+// Allocate in the default arena for the current context.
+let v: SharedRef[Vertex] = shared Vertex(1.0, 2.0, 3.0);
+
+// Allocate in a specific arena.
+let myArena = SharedArena.create(16.MiB);
+let v2: SharedRef[Vertex] = shared(myArena) Vertex(4.0, 5.0, 6.0);
+```
+
+The `shared` prefix is a compile-time marker, not a runtime expression.
+`shared Vertex(...)` evaluates to a `SharedRef[Vertex]`, not to a bare
+`Vertex`. There is no way to obtain a non-refcounted reference to a `shared
+class` instance except via `borrow` (§17b.9).
+
+**Default arena.** Each execution context has a **default shared arena**
+that receives allocations made without an explicit arena argument. The
+default arena is created lazily on first use with implementation-defined
+default capacity (SHOULD be at least 16 MiB, growable). Contexts may replace
+their default arena via `runtime.setDefaultSharedArena(arena)`.
+
+**Retain/release semantics.** Every strong-reference duplication (via
+`clone`, via parameter passing that doesn't use `borrow`, via storage in a
+field) increments the atomic refcount. Every drop decrements. When the
+refcount hits zero:
+
+1. The instance's `finalize()` method is invoked (if declared).
+2. All strong references held in fields of the instance are released, which may cascade.
+3. Any `WeakRef[T]` handles pointing at the instance are atomically zeroed.
+4. The memory is returned to the arena's free list.
+
+These steps happen synchronously on the thread that released the last
+reference, matching the ARC-equivalent contract of §8.1.1.
+
+**Cross-thread access.** Multiple threads may simultaneously hold
+`SharedRef[T]` handles to the same instance. Simultaneous read access is
+always safe. Simultaneous mutation of a field without synchronization is a
+data race and produces undefined behavior unless the field type is an
+`Atomic[T]` or unless access is gated by a `SharedMutex`/`SharedRwLock`.
+Loom's borrow checker enforces this statically via the ownership verbs
+(§17b.9).
+
+**Cycle handling.** `SharedRef[T]` does not automatically collect cycles.
+Users must break cycles with `WeakRef[T]`. The specification explicitly does
+not mandate a cycle collector for shared objects; implementations SHOULD
+document whether they provide one as a diagnostic aid.
+
+### §17b.7 Cross-Mode ABI Contract
+
+*(This subsection is normative.)*
+
+The cross-mode ABI is the set of layout and protocol rules that both the
+JIT (Wasm GC+EH) and AOT (native) compilers honor when compiling `shared
+class` declarations. Conformance to this contract enables byte-identical
+representation of `shared class` instances across modes, which in turn
+enables zero-copy interop between `host.scripted` and `host.native` code
+attached to the same arena.
+
+**Object layout.** A `shared class` instance has the following layout:
+
+```
+Offset  Size  Field                Description
+---------------------------------------------------------------------------
+ 0      8     refcount             atomic strong-reference count (u64)
+ 8      8     weakcount            atomic weak-reference count (u64)
+16      8     typeDescriptor       offset into arena's metadata registry
+24      8     vtablePtr            offset into arena's vtable region
+32      ...   (fields)             fields in declaration order, C-ABI-aligned
+```
+
+All header fields are stored in little-endian. The 32-byte header is fixed
+for all `shared class` instances regardless of the class. The `typeDescriptor`
+and `vtablePtr` fields are arena-relative offsets, not absolute pointers, so
+an arena can be relocated in a process's address space (e.g., via `mremap`
+growth) without invalidating object references.
+
+**Field layout.** Fields follow the header in **declaration order**, laid
+out per the target platform's C ABI:
+
+- Natural alignment (a field of type `T` starts at an offset that is a
+  multiple of `alignof(T)`).
+- Trailing padding to bring the total size to a multiple of the class's
+  maximum field alignment.
+- No reordering. Unlike some managed runtimes, Loom does not reorder fields
+  for packing; programmers may rely on declared order.
+
+For fields of `shared class` type (via `SharedRef[T]`), the stored value is
+an arena-relative offset to the referenced instance plus a 1-bit discriminant
+in the high bit indicating whether the reference is null.
+
+**Refcount protocol.**
+
+- *Retain* — atomic `fetchAdd(1, Relaxed)` on the `refcount` word. Relaxed
+  ordering is sufficient because the caller already has a valid reference.
+- *Release* — atomic `fetchSub(1, AcqRel)` on the `refcount` word. If the
+  returned prior value was 1, the releasing thread enters the destruction
+  path. AcqRel ordering synchronizes the destruction with prior mutations
+  from other threads.
+- *Weak retain* — atomic `fetchAdd(1, Relaxed)` on the `weakcount` word.
+- *Weak release* — atomic `fetchSub(1, AcqRel)`. If both `refcount` and
+  `weakcount` reach zero, the instance's memory is returned to the arena.
+- *Upgrade* — `compareExchange` loop on `refcount`: succeed if old value > 0,
+  incrementing it by 1; fail if old value == 0 (the instance has been
+  destroyed). Ordering: AcqRel on success, Acquire on failure.
+
+**Vtable.** Each `shared class` has a vtable stored in the arena's vtable
+region. The vtable is an array of function pointers, one per virtual method
+in declaration order, followed by the entries for inherited virtual methods
+in superclass-first order. The first entry is always the `finalize()`
+function pointer (null if not declared).
+
+On Wasm targets, "function pointer" means a `funcref` (Wasm table index).
+On native targets, it means a native function pointer. The JIT and AOT
+compilers each populate the vtable with the appropriate pointer type when
+the arena is attached; a given arena contains vtable entries for the mode
+that produced the instance, plus fallback entries for cross-mode calls.
+
+**Cross-mode vtable coordination.** When an arena is first attached by a
+given mode, the runtime walks the arena's type metadata registry and
+populates per-mode vtable entries for each `shared class`:
+
+- JIT attach: populates a "jit\_funcref" slot per vtable entry with Wasm
+  `funcref` values.
+- AOT attach: populates a "aot\_ptr" slot per vtable entry with native
+  function pointers.
+
+Each `shared class` has one vtable per attached mode; all slots point to
+implementations of the same Loom method with identical observable behavior.
+When a method is invoked on a `SharedRef[T]`, the call site selects the
+slot matching the caller's mode.
+
+**ABI versioning.** The 32-bit `abiVersion` field in the arena header
+identifies the shared-class ABI version. v1.18 defines `abiVersion = 1`.
+Attempting to attach to an arena with `abiVersion` not supported by the
+attaching toolchain produces `E_SHARED_ARENA_VERSION_MISMATCH`.
+
+**What the ABI does NOT guarantee.**
+
+- Methods' internal control flow and performance characteristics may differ
+  between modes. Only the observable behavior (arguments, return values,
+  field mutations, side effects) must match.
+- Arena memory is not intended to be persistent across process lifetimes —
+  the contract applies to live arenas shared between attached contexts
+  within a single process. Serialization to disk is a separate concern
+  handled by `data.bytes` / `data.json` (not via raw arena copy).
+
+### §17b.8 Shared Synchronization Primitives
+
+The following primitives build on `core.atomic` and the wait/notify operations
+of §17b.4. All are `shared class` types allocated in a specific arena.
+
+```
+namespace sync.shared;
+
+// Mutex guarding a single shared value. Methods use ownership verbs —
+// lock() returns a guard granting exclusive (edits) access.
+pub shared class SharedMutex[T: Shareable] {
+  pub static func new(initial: T, arena: SharedArena? = None): SharedRef[SharedMutex[T]];
+
+  // Acquire exclusive access. Blocks until lock is acquired.
+  pub async func lock(): MutexGuard[T];
+
+  // Non-blocking attempt. Returns None if the lock is held.
+  pub func tryLock(): Option[MutexGuard[T]];
+}
+
+// Guard value returned by lock(). Exclusive access to the protected T is
+// modeled via `edits` (§17b.9). Dropping the guard releases the lock.
+pub shared class MutexGuard[T: Shareable] {
+  // Access the protected value for reading.
+  pub func reads(body: fn(reads T): void): void;
+
+  // Access the protected value for mutation.
+  pub func edits(body: fn(edits T): void): void;
+}
+
+// Reader-writer lock. Many readers or one writer, not both.
+pub shared class SharedRwLock[T: Shareable] {
+  pub static func new(initial: T, arena: SharedArena? = None): SharedRef[SharedRwLock[T]];
+
+  pub async func readLock(): RwReadGuard[T];
+  pub async func writeLock(): RwWriteGuard[T];
+
+  pub func tryReadLock(): Option[RwReadGuard[T]];
+  pub func tryWriteLock(): Option[RwWriteGuard[T]];
+}
+
+// Condition variable — for waiting on a predicate over the protected state.
+pub shared class SharedCondVar {
+  pub static func new(arena: SharedArena? = None): SharedRef[SharedCondVar];
+
+  pub async func wait[T: Shareable](guard: MutexGuard[T]): void;
+  pub func notifyOne(): void;
+  pub func notifyAll(): void;
+}
+
+// Counting semaphore.
+pub shared class SharedSemaphore {
+  pub static func new(count: int, arena: SharedArena? = None): SharedRef[SharedSemaphore];
+
+  pub async func acquire(): void;
+  pub func release(count: int = 1): void;
+  pub func tryAcquire(): bool;
+}
+
+// Barrier — n threads each call wait(); they all proceed together.
+pub shared class SharedBarrier {
+  pub static func new(parties: int, arena: SharedArena? = None): SharedRef[SharedBarrier];
+
+  pub async func wait(): void;
+}
+
+// Multi-producer, multi-consumer channel. Lock-free internally.
+pub shared class SharedQueue[T: Shareable] {
+  pub static func new(capacity: int, arena: SharedArena? = None): SharedRef[SharedQueue[T]];
+
+  pub async func send(value: T): void;          // blocks if full
+  pub async func receive(): T;                  // blocks if empty
+  pub func trySend(value: T): bool;
+  pub func tryReceive(): Option[T];
+  pub func close(): void;                       // wakes all waiters; future sends fail
+
+  pub let length: int;                          // observational
+  pub let capacity: int;
+}
+
+pub class QueueClosedError : Exception {}
+```
+
+**Lock ordering.** When a program acquires multiple shared locks, the
+`@lockOrder(n)` annotation (§23.4.x) applies to `SharedMutex` and
+`SharedRwLock` identically to native locks. Cross-mode lock ordering is
+enforced by the compiler on both the JIT and AOT sides.
+
+**Poison policy.** If a thread panics while holding a `SharedMutex` or
+`SharedRwLock`, the lock is **poisoned** — subsequent acquisitions throw
+`PoisonedLockError` unless the caller explicitly uses `lockRecover()` to
+acquire the lock with awareness that the protected state may be inconsistent.
+This matches Rust's `std::sync::Mutex` poisoning.
+
+**Wait semantics.** `async func lock()`, `async func readLock()`, etc.,
+integrate with the async executor: if the lock is contended, the current
+task is parked on the lock's internal wait queue and another task may run.
+On Wasm, parking uses `memory.atomic.wait32`. On native, it uses the
+platform's futex equivalent. The scheduler is responsible for re-polling
+the task when the lock becomes available.
+
+### §17b.9 Ownership Verbs and Shared Types
+
+The existing ownership verbs (§23.4.x) apply to `SharedRef[T]` and `shared
+class` with the following refinements:
+
+| Verb | Meaning on `SharedRef[T]` / shared class |
+|---|---|
+| `reads` | Shared-read access. Multiple threads may hold `reads` simultaneously. Atomic refcount unchanged (elided). Compiler emits acquire fences where needed for cross-thread visibility. |
+| `edits` | Exclusive access. Requires the caller to prove exclusivity — typically by holding a `MutexGuard` or an `excl borrow`. At most one thread may hold `edits` at a time. |
+| `takes` | Consumes the handle. If this is the last reference, triggers destruction. Crossing a thread boundary is permitted (unlike `local class`). |
+| `shares` | Grants a cloned strong reference for the duration of the scope. Atomic `fetchAdd(1)` on entry, `fetchSub(1)` on exit. |
+| `borrow` | Lifetime-bounded non-refcounted reference. Zero atomic ops inside the borrow scope. Primary optimization path for hot loops over shared data. |
+| `excl borrow` | Exclusive `borrow`. Requires proof of exclusivity. Equivalent to a single-threaded mutable borrow. |
+
+**Refcount elision via `borrow`.** The common pattern for hot-loop
+performance is to retain once at the outer scope and pass `borrow` references
+throughout the loop:
+
+```
+async func processGraph(g: shared Graph): void {
+  let guard = await g.nodes.readLock();
+  guard.reads(func(reads nodes: SharedArray[SharedRef[Node]]) {
+    for i in 0..<nodes.length {
+      let node = nodes.get(i);       // one retain at index
+      processNode(borrow node);       // zero refcount traffic inside loop
+    }                                 // release at end-of-scope
+  });
+}
+```
+
+**Cross-thread capture.** A closure passed to `Thread.spawn`,
+`spawnBlocking`, `ScriptWorker.send`, or `TaskGroup.collect` may capture
+`SharedRef[T]` freely — the capture triggers an atomic `fetchAdd` and the
+captured handle is a fully independent owner. By contrast, `borrow T` in
+the captured closure is `E_BORROW_THREAD_CAPTURE` (existing rule), as the
+borrow's lifetime cannot be proven to outlive the spawned context.
+
+**`Sendable` vs. `Shareable`.** A value that is only `Sendable` (not
+`Shareable`) may be sent across a thread boundary by value copy (e.g., via
+`ScriptWorker.send`). A value that is `Shareable` may additionally be
+shared by reference — multiple threads hold live references to the same
+underlying memory. `SharedRef[T]` is `Shareable` because its clone is a
+reference-sharing operation; `string` is `Sendable` but not `Shareable`
+because copying is the only cross-thread mode.
+
+### §17b.10 Worker Integration
+
+`ScriptWorker` (§17.10.2) is extended with arena-sharing methods:
+
+```
+namespace concurrent;
+
+// Extension to ScriptWorker[M] — methods in this section appear on the
+// same class defined in §17.10.2.
+class ScriptWorker[M: Sendable] {
+  // Share an arena with this worker. The worker's default shared arena is
+  // augmented with this arena; the worker may allocate in it and reference
+  // existing objects within it. May be called multiple times to share
+  // additional arenas.
+  pub func share(arena: SharedRef[SharedArena]): void;
+
+  // Send a SharedRef to the worker without serialization. The worker must
+  // have access to the referenced object's arena (via share() or by creating
+  // the arena itself).
+  pub func sendRef[T: shared class](ref: SharedRef[T]): void;
+
+  // Receive a SharedRef sent by the worker via channel.replyRef().
+  pub async func receiveRef[T: shared class](): Option[SharedRef[T]];
+}
+
+class WorkerChannel[T: Sendable] {
+  // Worker-side counterpart to host's sendRef/receiveRef.
+  pub async func receiveRef[S: shared class](): Option[SharedRef[S]];
+  pub func replyRef[S: shared class](ref: SharedRef[S]): void;
+}
+```
+
+**Zero-copy semantics.** `sendRef` / `receiveRef` do not serialize.
+Internally they transfer the arena-relative offset of the referenced
+instance, increment the atomic refcount, and deliver the offset to the
+receiver. The receiver constructs a `SharedRef[T]` pointing to the same
+instance. This is the primary mechanism for cross-worker data sharing
+with zero marshalling cost.
+
+**Arena compatibility check.** At the moment of `sendRef`, the runtime
+verifies that the worker has the referenced arena attached. If not,
+`sendRef` throws `WorkerArenaNotAttachedError` at the caller site. The
+programmer must call `worker.share(arena)` before sending refs into objects
+in that arena.
+
+### §17b.11 Error Codes
+
+| Code | Condition |
+|---|---|
+| `E_SHARED_FIELD_NOT_SHAREABLE` | Field declared in a `shared class` has a non-`Shareable` type |
+| `E_UNIQUE_SHARED` | Class declares both `unique` and `shared` modifiers |
+| `E_SHARED_DYNAMIC` | Class declares both `dynamic` and `shared` modifiers |
+| `E_SHAREABLE_LOCAL_CLASS` | `local class` explicitly declares `implements Shareable` |
+| `E_SHARED_ALLOCATOR_UNAVAILABLE` | Shared allocation attempted on a target without arena support |
+| `E_SHARED_ARENA_OOM` | Arena grew to `maxBytes` and cannot satisfy allocation |
+| `E_SHARED_ARENA_CORRUPTED` | Arena header magic/version mismatch at attach time |
+| `E_SHARED_ARENA_VERSION_MISMATCH` | Arena ABI version not supported by attaching toolchain |
+| `E_ATOMIC_WIDTH_UNSUPPORTED` | Atomic operation requested at a width unsupported by target (e.g., 64-bit on ARMv7-M) |
+| `E_BORROW_THREAD_CAPTURE` | `borrow T` captured in a cross-thread closure (existing; now applies to shared refs too) |
+| `E_CLASS_KIND_MISMATCH` | Generic type argument violates a class-kind bound (e.g., `T: shared class` receives a `local class`) |
+| `E_GUARD_RELEASED` | Use of a `SharedMutexGuard` / `SharedRwReadGuard` / `SharedRwWriteGuard` after `release()` (statically-detectable cases) |
+
+| Runtime error | Condition |
+|---|---|
+| `WorkerArenaNotAttachedError` | `sendRef` target worker lacks the referenced arena |
+| `PoisonedLockError` | Acquired a `SharedMutex` / `SharedRwLock` poisoned by a prior panic |
+| `QueueClosedError` | Send/receive on a closed `SharedQueue` |
+| `ResurrectionError` | Finalizer stored `this` in a reachable location |
+| `FinalizerTimeoutError` | Finalizer exceeded implementation-defined time limit |
+| `ReleasedGuardError` | Use of a released guard (dynamically-detected cases) |
 
 ---
 
@@ -7514,7 +8788,7 @@ extern js val window: Any;
 - `extern js func` and `extern js val` are simple declarations (trailing `;`).
 - Declared Loom types are trusted and not verified at compile time; type mismatches produce runtime errors.
 - `extern js func` returning a JS Promise is declared with return type `Task[T]`; the runtime wraps the Promise automatically.
-- `extern js` declarations are only valid on `browser`, `node`, `bun`, and `deno` targets (i.e. targets where a JavaScript runtime is present). Using `extern js` in `@mode(native)` or `@mode(freestanding)` files is a compile-time error (`E_EXTERN_JS_NOT_NATIVE`, defined in §24.22).
+- `extern js` declarations are only valid on `browser`, `node`, `bun`, and `deno` targets (i.e. targets where a JavaScript runtime is present). Using `extern js` in `@mode(host.native)` or `@mode(freestanding)` files is a compile-time error (`E_EXTERN_JS_NOT_NATIVE`, defined in §24.22).
 
 **SharedArrayBuffer aliasing (normative).** Any `extern js` declaration that accepts or returns a typed array (e.g., `Uint8Array`, `Float32Array`) backed by a `SharedArrayBuffer` MUST carry `@unsafe("sharedMemory: <reason>")` at the declaration site. The reason string SHALL document which Loom tasks or workers share the buffer and the synchronization protocol used. Without this annotation, the compiler treats the buffer as exclusively owned by the Loom side. Concurrent access by JS code to memory also accessed by Loom constitutes a data race outside Loom's ownership model.
 
@@ -7559,7 +8833,7 @@ async func fetchSummary(userId: string): Task[string] {
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_JSEXPORT_AWAIT` | Scripted, Compiled | `await` expression inside a non-`async` `@jsexport` function body |
+| `E_JSEXPORT_AWAIT` | web.scripted, web.compiled | `await` expression inside a non-`async` `@jsexport` function body |
 | `E_JSEXPORT_NOT_BROWSER` | All | `@jsexport` used on a target other than `browser` or `service` |
 
 ### §18.3 Typed JS Facades (`lang.interop.js`)
@@ -7622,7 +8896,7 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 
 - `extern native "libname"` specifies the shared library by name (without platform-specific prefix/extension; the runtime resolves `libname.so`, `libname.dylib`, `libname.dll`).
 - `NativeHandle` is an opaque built-in type for C pointers — cannot be inspected, dereferenced, or constructed in Loom code. Its definition is compiler-internal: `@repr(C) struct NativeHandle { /* opaque */ }`. Values of type `NativeHandle` are only obtained from `extern native` function return values or by calling `OwnedHandle.inner()` / `BorrowedHandle.inner()`. `NativeHandle` is implicitly non-`Sendable`; cross-thread use requires `@unsafe("threadSafe: ...")` (§18.5).
-- `extern native` is valid in `@mode(native)` (all native targets: `native`, `cli`, `service`, `desktop`) and `@mode(freestanding)`. It is not available in `@mode(scripted)` or `@mode(compiled)` Wasm targets — there is no native ABI at the Wasm GC boundary (`E_EXTERN_JS_NOT_NATIVE` does not apply here; using `extern native` in a Wasm target is `E_EXTERN_NATIVE_WASM`).
+- `extern native` is valid in `@mode(host.native)` (all native targets: `native`, `cli`, `service`, `desktop`) and `@mode(freestanding)`. It is not available in `@mode(host.scripted)` or `@mode(web.compiled)` Wasm targets — there is no native ABI at the Wasm GC boundary (`E_EXTERN_JS_NOT_NATIVE` does not apply here; using `extern native` in a Wasm target is `E_EXTERN_NATIVE_WASM`).
 - Passing a Loom `string` to a native function expecting a C string provides a null-terminated UTF-8 copy for the duration of the call.
 - Memory management of native resources is the caller's responsibility; use `defer` for cleanup.
 - All `extern native` function parameters that receive `borrow` or `borrow[~label]` values are implicitly `noescape`. The compiler verifies that no `borrow[~label]` value escapes the native call. A native function that requires the pointer to outlive the call must be annotated `@unsafe("escapingBorrow: <reason>")` at the declaration site; every call site must also carry `@unsafe("escapingBorrow: <reason>")` to acknowledge that the caller asserts the borrowed value outlives the native call. See §23.4.6.
@@ -7631,10 +8905,10 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_EXTERN_NATIVE_WASM` | Scripted, Compiled | `extern native` declaration in a file targeting Wasm — no native ABI at the Wasm GC boundary |
-| `E_EXTERN_STRUCT_NOT_REPR_C` | Native, Freestanding | Struct parameter or return type in `extern native` signature is not annotated `@repr(C)` |
+| `E_EXTERN_NATIVE_WASM` | web.scripted, web.compiled, host.scripted | `extern native` declaration in a file targeting Wasm — no native ABI at the Wasm GC boundary |
+| `E_EXTERN_STRUCT_NOT_REPR_C` | host.dual, host.native, freestanding | Struct parameter or return type in `extern native` signature is not annotated `@repr(C)` |
 
-**`@repr(C)` requirement for struct parameters.** Any Loom `struct` type passed to or returned from an `extern native` function MUST be annotated `@repr(C)`. Without `@repr(C)`, the compiler cannot guarantee that the Loom struct layout matches the C ABI layout expected by the native function, which would produce silent data corruption. A struct without `@repr(C)` used in an `extern native` signature is `E_EXTERN_STRUCT_NOT_REPR_C`. This requirement applies in all compiled modes (`@mode(compiled)` Wasm targets are exempt since C structs are not valid Wasm types; the requirement applies to `@mode(native)` and `@mode(freestanding)`).
+**`@repr(C)` requirement for struct parameters.** Any Loom `struct` type passed to or returned from an `extern native` function MUST be annotated `@repr(C)`. Without `@repr(C)`, the compiler cannot guarantee that the Loom struct layout matches the C ABI layout expected by the native function, which would produce silent data corruption. A struct without `@repr(C)` used in an `extern native` signature is `E_EXTERN_STRUCT_NOT_REPR_C`. This requirement applies in all compiled modes (`@mode(web.compiled)` Wasm targets are exempt since C structs are not valid Wasm types; the requirement applies to `@mode(host.native)` and `@mode(freestanding)`).
 
 **Nullable return types — `NativeHandle?` (normative).** An `extern native` function declaration whose return type is `NativeHandle?` (optional `NativeHandle`) maps a null pointer return to `None` automatically. A non-optional `NativeHandle` return maps null to a runtime `NullHandleError` (§26.1). The compiler enforces the distinction at the declaration site:
 
@@ -7701,7 +8975,7 @@ A C library function that allocates (e.g., `sqlite3_open`) should be declared to
 
 #### §18.4.1 `native.ffi.ptrAdd` — Raw Pointer Arithmetic
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 `native.ffi.ptrAdd` performs raw address arithmetic on `uint`-typed pointer values. It is the single supported mechanism for offsetting raw addresses at the FFI boundary and requires `@unsafe` at each call site because offset validity cannot be checked statically:
 
@@ -7716,11 +8990,11 @@ func ptrAdd(base: uint, offset: uint64): uint
 
 `ptrAdd` does not dereference, allocate, or validate. It is pointer-width integer arithmetic surfaced as a named function so that call sites are greppable for audit. Callers MUST carry `@unsafe("ptr: <reason>")` at the acknowledgment position (§23.4.6).
 
-`size_of[T]()` and `align_of[T]()` — the typical companions for computing element offsets — are specified in §24.4.1 and are available in both `@mode(native)` and `@mode(freestanding)`.
+`size_of[T]()` and `align_of[T]()` — the typical companions for computing element offsets — are specified in §24.4.1 and are available in both `@mode(host.native)` and `@mode(freestanding)`.
 
 ### §18.5 FFI Thread Safety (`@unsafe("threadSafe: ...")`, `ThreadSafeHandle`)
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 Native libraries accessed via `extern native` vary widely in their thread-safety properties. The FFI layer provides two constructs for expressing and enforcing thread safety of native handles: the `@unsafe("threadSafe: ...")` annotation (§23.4.6) and the `ThreadSafeHandle` wrapper type.
 
@@ -7765,7 +9039,7 @@ class ThreadSafeHandle : Any implements Sendable {
 **Example — sharing a thread-safe connection pool across async tasks:**
 
 ```loom
-@mode(compiled)
+@mode(host.native)
 
 from native.ffi import (ThreadSafeHandle);
 
@@ -7837,7 +9111,7 @@ count.set(1);   // effect runs; doubled is now 2
 Components are functions returning `View`. `signal` must be imported from the `ui` module; the `components` fence descriptor requires a `ComponentRegistry` value to be in scope:
 
 ```loom
-@mode(scripted)
+@mode(host.scripted)
 
 from ui import (signal, ComponentRegistry);
 import ui.primitives;   // Row, Column, Text, Button, Image, Slot
@@ -8250,7 +9524,7 @@ struct ScreenInfo {
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_INLINE_JS_EVENT_HANDLER` | Scripted, Compiled | Event handler attribute value is a literal JavaScript string (e.g. `onclick="count++"`) rather than a Loom closure |
+| `E_INLINE_JS_EVENT_HANDLER` | web.scripted, web.compiled | Event handler attribute value is a literal JavaScript string (e.g. `onclick="count++"`) rather than a Loom closure |
 
 ### §19.9 Cross-Platform Example
 
@@ -8317,7 +9591,7 @@ class CounterElement implements WebComponentLifecycle {
     // called when element is removed from the document
   }
 
-  func attributeChanged(name: string, old: string?, next: string?): void {
+  func attributeChanged(name: string, oldValue: string?, newValue: string?): void {
     // @attribute fields are updated automatically before this fires
   }
 
@@ -8341,20 +9615,20 @@ class CounterElement implements WebComponentLifecycle {
 - The class must declare a `func render(): View` method. The absence of `render()` is a compile-time error.
 - The `@webcomponent` annotation is only valid on `browser` target. Using it on other targets is a compile-time error.
 - Duplicate tag name registrations within a compilation unit are a compile-time error.
-- `@webcomponent` is only valid in `@mode(scripted)` files on the `browser` target. A `@webcomponent` class in `@mode(compiled)`, `@mode(native)`, or `@mode(freestanding)` files is a compile-time error (`E_WEBCOMPONENT_NOT_SCRIPTED`).
+- `@webcomponent` is only valid in `@mode(web.scripted)` and `@mode(web.compiled)` files (per §2.6). A `@webcomponent` class in `@mode(host.scripted)`, `@mode(host.dual)`, `@mode(host.native)`, or `@mode(freestanding)` files is a compile-time error (`E_WEBCOMPONENT_NOT_WEB`).
 
 **`@webcomponent` error codes:**
 
 | Code | Condition |
 |---|---|
-| `E_WEBCOMPONENT_NOT_SCRIPTED` | `@webcomponent` class declared outside `@mode(scripted)` on `browser` target |
+| `E_WEBCOMPONENT_NOT_WEB` | `@webcomponent` class declared outside `@mode(web.scripted)` or `@mode(web.compiled)` |
 
 #### §19.10.3 `@attribute` Rules
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_ATTRIBUTE_NO_BACKING_FIELD` | Scripted, Compiled | `@attribute` on a `get`-only property with no backing stored field |
-| `E_ATTRIBUTE_NOT_WEBCOMPONENT` | Scripted, Compiled | `@attribute` used on a class that is not annotated `@webcomponent` |
+| `E_ATTRIBUTE_NO_BACKING_FIELD` | web.scripted, web.compiled | `@attribute` on a `get`-only property with no backing stored field |
+| `E_ATTRIBUTE_NOT_WEBCOMPONENT` | web.scripted, web.compiled | `@attribute` used on a class that is not annotated `@webcomponent` |
 
 
 
@@ -8366,7 +9640,7 @@ class CounterElement implements WebComponentLifecycle {
 
 The compiler generates:
 1. A static `observedAttributes` array from the names of all `@attribute` members. The attribute name is derived from the member name: camelCase names are lowercased verbatim (no kebab-case conversion). If a different attribute name is required, pass it explicitly: `@attribute("my-label") var myLabel: string = ""`.
-2. An `attributeChangedCallback` dispatcher that updates the corresponding field or calls the `set` accessor, then calls `attributeChanged(name, old, next)` on the class.
+2. An `attributeChangedCallback` dispatcher that updates the corresponding field or calls the `set` accessor, then calls `attributeChanged(name, oldValue, newValue)` on the class.
 
 #### §19.10.4 Shadow DOM and Slots
 
@@ -8384,9 +9658,9 @@ Every `@webcomponent` class renders into an open shadow root created automatical
 
 ```loom
 func render(): View {
-  let styles = ``(css)
+  let styles = ```(css)
     .button { background: navy; color: white; padding: 8px 16px; }
-  ``;  // attached to shadow root, not document head
+  ```;  // attached to shadow root, not document head
 
   return ```(ui)
     <Button class={styles.button} onclick={$ handleClick $}>
@@ -8426,7 +9700,7 @@ The Loom runtime registers all `@webcomponent` classes via `customElements.defin
 
 ### §20.1 `runtime` Object
 
-A root-level identifier `runtime` is available in scope in `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. In `@mode(freestanding)`, the Loom runtime is not linked and `runtime` is **not available** — using it is a compile-time error (`E_FREESTANDING_RUNTIME`). Bare-metal entry points interact with hardware directly using `@entry`, `asm { }`, and the `native.mem` / `native.atomic` modules (§24).
+A root-level identifier `runtime` is available in scope in all non-freestanding modes: `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In `@mode(freestanding)`, the Loom runtime is not linked and `runtime` is **not available** — using it is a compile-time error (`E_FREESTANDING_RUNTIME`). Bare-metal entry points interact with hardware directly using `@entry`, `asm { }`, and the `native.mem` / `native.atomic` modules (§24).
 
 ```
 interface Runtime {
@@ -8493,7 +9767,7 @@ let names = mod.exports();                    // ["greet", "add"]
 
 The compiled module inherits the caller's capability set. Imports within the compiled source are resolved against the same module graph as the caller.
 
-`runtime.compile` requires the `eval` capability. It is available on `cli`, `service`, `desktop`, and `native` targets. On `browser` targets, it throws `CapabilityError`. In `@mode(compiled)`, it is a compile-time error — compiled Wasm modules cannot JIT-compile new modules at runtime. In `@mode(freestanding)`, the entire `runtime` object is unavailable (`E_FREESTANDING_RUNTIME`).
+`runtime.compile` requires the `eval` capability. It is available on `cli`, `service`, `desktop`, and `native` targets. On `browser` targets, it throws `CapabilityError`. In `@mode(web.compiled)`, it is a compile-time error — compiled Wasm modules cannot JIT-compile new modules at runtime. In `@mode(freestanding)`, the entire `runtime` object is unavailable (`E_FREESTANDING_RUNTIME`).
 
 The optional `CompileOptions` parameter controls the module name (used in stack traces and `__module__` dunder) and whether type-checking is performed.
 
@@ -8601,7 +9875,7 @@ class DebugFrame {
   pub let line: int;           // -1 if source map unavailable
   pub let column: int;         // -1 if source map unavailable
   pub let callable: string;    // always present from static metadata or core.reflect
-  pub let execMode: string;    // "scripted" | "compiled" | "native" | "freestanding"
+  pub let execMode: string;    // one of the six __execmode__ strings (§2.2): "web.scripted", "web.compiled", "host.scripted", "host.dual", "host.native", "freestanding"
   pub let traceLevel: TraceLevel;
   pub func locals(): dict[string, Any];  // populated only when traceLevel == Full
 }
@@ -8625,7 +9899,7 @@ The runtime uses the metadata table to populate `TraceEvent.callable` for compil
 **Boundary crossing semantics.** When execution crosses from scripted (GC) code into a native (ARC) function call:
 
 1. A `Call` trace event fires. `callable` is populated from the compiled module's metadata table.
-2. The frame's `execMode` is set to `"compiled"`.
+2. The frame's `execMode` is set to the AOT mode string (`"host.native"`, `"web.compiled"`, or the AOT side of `"host.dual"`).
 3. `traceLevel` is set based on the compiled module's build mode: `Full` if built with `--debug`; `PortalOnly` if built in release mode with explicit portal blocks; `Opaque` if built in release mode with no portal blocks.
 4. Trace events continue appending to the shared ring buffer.
 
@@ -8633,7 +9907,7 @@ When returning from compiled to interpreted code, a `Return` event fires (callab
 
 **Opaque frames.** When an interpreted caller calls an opaque compiled function, the ring buffer receives a synthetic boundary `Call` event followed by a synthetic `Return` event after completion. The interior is invisible to the time-travel recorder — equivalent to stepping over a native C library in a conventional debugger.
 
-**Reflection integration.** `TraceEvent.callable` is populated via `core.reflect.callableName` (§21.11), which is available in all modes including `@mode(compiled)`. This eliminates the dependency on `core.inspect` for trace event population.
+**Reflection integration.** `TraceEvent.callable` is populated via `core.reflect.callableName` (§21.11), which is available in all modes including `@mode(web.compiled)`. This eliminates the dependency on `core.inspect` for trace event population.
 
 
 
@@ -8641,26 +9915,26 @@ When returning from compiled to interpreted code, a `Return` event fires (callab
 
 ## §21 Standard Library
 
-*(Full specification in the [Loom Standard Library Reference](loom-stdlib-reference-v1_10.md).)*
+*(Full specification in the [Loom Standard Library Reference](loom-stdlib-reference-v1_18.md).)*
 
-The standard library provides `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, and `ui.*` modules available on all targets without a separate `loom install` step. GPU/accelerator packages (`loom.tensor`, `native.gpu`, `native.hal`, etc.) are documented in the [Loom Packages Reference](loom-packages-reference-v1_10.md).
+The standard library provides `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, and `ui.*` modules available on all targets without a separate `loom install` step. GPU/accelerator packages (`loom.tensor`, `native.gpu`, `native.hal`, etc.) are documented in the [Loom Packages Reference](loom-packages-reference-v1_11.md).
 
 Numbered subsections §21.1–§21.27 are defined in the stdlib reference document. Cross-references in this specification of the form §21.N refer to those sections.
 
 ---
 
-## §22 Compiled Mode
+## §22 Web Compiled Mode
 
-*(This section is normative.)*
+*(This section is normative for `@mode(web.compiled)` — it is the detailed specification; §2.4.2 is the summary.)*
 
-Compiled mode enables ahead-of-time (AOT) compilation of Loom source files. The primary AOT target is WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). Compiled mode may also target native binaries via LLVM or Cranelift (§23). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §28.1).
+Web compiled mode enables ahead-of-time (AOT) compilation of Loom source files to WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §28.1). Native binary targets (executables, shared libraries, freestanding images) are specified separately in §23 under `@mode(host.native)` and `@mode(freestanding)`; they are distinct modes with distinct restrictions and do not share this section's rules.
 
 ### §22.1 Compiled Mode Declaration
 
-The `@mode(compiled)` directive marks a file for ahead-of-time compilation with restricted semantics:
+The `@mode(web.compiled)` directive marks a file for ahead-of-time compilation with restricted semantics:
 
 ```
-@mode(compiled)
+@mode(web.compiled)
 
 struct Point {
   x: float;
@@ -8676,69 +9950,56 @@ func distance(a: Point, b: Point): float {
 
 **Placement rules:**
 
-- `@mode(compiled)` must appear as the first non-comment, non-blank line in the file.
-- `@mode(compiled)` is a file-level directive, not a function or block annotation.
+- `@mode(web.compiled)` must appear as the first non-comment, non-blank line in the file.
+- `@mode(web.compiled)` is a file-level directive, not a function or block annotation.
 - A file is either entirely compiled or entirely scripted.
 
 
 
 ### §22.2 Restrictions
 
-The following constructs are prohibited in compiled-mode files:
+`Any`, `dynamic class`, and `core.inspect` are available in `@mode(web.compiled)` but emit the `W_ANY_IN_AOT_MODE` advisory because the AOT compiler must emit tagged-dispatch code with runtime cost (§2.4.2). They are not prohibited — projects that prefer to enforce static typing can promote the warning with `--warnings-as-errors=W_ANY_IN_AOT_MODE`.
+
+The following constructs are prohibited in `@mode(web.compiled)` files (consult §2.6 for the authoritative per-mode feature matrix):
 
 | Prohibited Construct | Reason |
 |---|---|
-| `Any` as a declared type (`E_ANY_IN_COMPILED`) | No dynamic dispatch |
-| `dynamic class` (`E_DYNAMIC_IN_COMPILED`) | No dynamic fields |
-| `core.inspect` usage (`E_INSPECT_IN_COMPILED`) | Requires live runtime registry (use `core.reflect` for structural queries) |
-| Top-level control flow (`if`, `while`, `for`, `match`, expression statements) (`E_TOPLEVEL_CONTROL_COMPILED`) | No sequential top-level execution |
+| Top-level control flow (`if`, `while`, `for`, `match`, expression statements) (`E_TOPLEVEL_CONTROL_AOT`) | No sequential top-level execution |
 | Non-constant top-level initializers | All top-level data must be statically determinable |
-| `unowned[~name]` outside `@mode(native)` or `@mode(freestanding)` | Compile-time-proven lifetime requires static ownership analysis; not available under GC |
 | Bare `unowned` on a class field (without `[~name]` annotation) | Compile-time error `E_UNOWNED_NO_LIFETIME` — all `unowned` class fields must use `unowned[~name]` (§23.4.3) |
-| `[weak ...]` capture lists outside `@mode(native)` | Requires ARC zeroing side table — not available in GC or freestanding contexts |
-| `Thread.spawn`, `ThreadPool`, `Mutex`, `RwLock`, `Atomic` outside `@mode(native)` | OS threads unavailable on Wasm and freestanding targets |
+| `arc let` / `arc var` | Requires an ARC runtime — not present under Wasm GC (`E_ARC_LET_NOT_NATIVE`) |
+| `[weak ...]` capture lists / `weak` references | Requires ARC zeroing side table — not available under Wasm GC |
+| `consume` expression | Requires an ARC runtime to downgrade into (`E_CONSUME_NOT_AVAILABLE`) |
+| `Thread.spawn`, `ThreadPool`, `Mutex`, `RwLock`, `Atomic` | OS threads unavailable on Wasm targets |
 | Non-`Sendable` captures in `Thread.spawn` closures | Data race prevention (§17.8) |
 | Non-`Sendable` captures in async task closures with `MultiThreaded` executor | Data race prevention (§17.9.4) |
 | `runtime.configure` called after first `await` | `RuntimeConfigError` — executor is already started |
-| `ThreadLocal[T]` on Wasm or scripted targets | OS threads unavailable — compile-time error |
+| `ThreadLocal[T]` | OS threads unavailable under Wasm — compile-time error |
 | Explicit augmented assignment `operator func` on structs | Value-type semantics incompatible with in-place mutation |
-| `borrow` keyword outside `@mode(native)` and `@mode(freestanding)` | Requires static ownership analysis; not available under GC. Note: the `reads` and `edits` verbs (§23.4.9) replace `borrow` and `excl borrow` and are available in all modes including compiled and scripted. |
-| `unique` outside `@mode(native)` and `@mode(freestanding)` | ARC-free single-owner semantics require static ownership tracking; meaningless under GC (`E_UNIQUE_NOT_NATIVE`) |
-| `noescape fn` outside `@mode(native)` and `@mode(freestanding)` | Non-escaping closure contract requires static ownership analysis and escape verification |
 
-**Additionally permitted in compiled mode:**
+The ownership keywords `borrow`, `borrow[~name]`, `excl borrow`, `lifetime ~name`, `unique`, `noescape fn`, and `unowned[~name]` ARE available in `@mode(web.compiled)` — see §2.6 and §23.4. They lower to Wasm GC operations rather than ARC retain/release.
+
+**Additionally permitted in `@mode(web.compiled)`:**
 
 - `core.reflect` — structural introspection from static metadata (§21.11).
 - `portal` blocks — registered with shared activation registry at module load.
-- `weak` field qualifier — maps to ARC zeroing weak pointer (native) or GC weak reference (Wasm).
-- `box` keyword expression — explicit widening at `Option[Any]` boundary positions (compiled mode only; `Any` is prohibited in `@mode(native)` and `@mode(freestanding)`, making `box` unavailable there).
-- `as` and `as?` cast operators — narrowing at `Option[Any]` boundary positions.
-- `borrow` parameter modifier — non-owning reference with stack-frame escape analysis; `@mode(native)` and `@mode(freestanding)` only. In native mode, also elides ARC retain/release.
-- `excl borrow` parameter modifier — exclusive borrow on struct-typed and `unique`-typed parameters; `@mode(native)` and `@mode(freestanding)` only (§23.4.1.1).
-- `unique` binding and field qualifier — single-owner class reference with no ARC; move-only semantics; `@mode(native)` and `@mode(freestanding)` only (§23.4.7).
-- `consume` expression — explicit downgrade from `unique T` to ARC-managed `T`; one-way ownership transfer; `@mode(native)` only — ARC must be present (§23.4.7).
-- `borrow[~name]` parameter — lifetime-tracked non-owning reference; `@mode(native)` and `@mode(freestanding)` only (§7.1, §23.4.2).
-- `borrow` struct field qualifier — non-owning struct field; `@mode(native)` and `@mode(freestanding)` only.
-- `lifetime ~name` generic parameter — declares a named region for lifetime tracking; `@mode(native)` and `@mode(freestanding)` only (§10.11, §11.4, §12.1, §23.4.2).
-- `noescape fn(T): R` function type — non-escaping closure contract; allows stack allocation of captured variables; `@mode(native)` and `@mode(freestanding)` only.
+- `box` keyword expression — explicit widening to `Any` (permitted with the `W_ANY_IN_AOT_MODE` advisory; not available in `@mode(freestanding)`, where `Any` is prohibited).
+- `as` and `as?` cast operators — narrowing from `Any`. Uses on `Any` produce the `W_ANY_IN_AOT_MODE` advisory.
 
-The `if (__name__ == "__main__")` guard pattern is prohibited in compiled-mode files — not because `__name__` is unavailable, but because top-level branching is prohibited (see above). `__name__` and `__file__` remain available as compile-time string constants for use inside function bodies (e.g., logging, error messages).
+The `if (__name__ == "__main__")` guard pattern is prohibited in `@mode(web.compiled)` files — not because `__name__` is unavailable, but because top-level branching is prohibited (see above). `__name__` and `__file__` remain available as compile-time string constants for use inside function bodies (e.g., logging, error messages).
 
 | Code | Condition |
 |---|---|
-| `E_ANY_IN_COMPILED` | `Any` used as a declared parameter, return, or field type in `@mode(compiled)` |
-| `E_DYNAMIC_IN_COMPILED` | `dynamic class` declared in `@mode(compiled)` |
-| `E_INSPECT_IN_COMPILED` | `core.inspect` called in `@mode(compiled)` — use `core.reflect` instead |
-| `E_TOPLEVEL_CONTROL_COMPILED` | `if`, `while`, `for`, `match`, or expression statement at file top level in `@mode(compiled)` |
-| `E_BOX_IN_NATIVE` | `box expr` used in `@mode(native)` or `@mode(freestanding)` where `Any` is prohibited |
+| `E_TOPLEVEL_CONTROL_AOT` | `if`, `while`, `for`, `match`, or expression statement at file top level in `@mode(web.compiled)` (see §2.4.2 for the unified code covering all AOT modes) |
+| `E_BOX_IN_FREESTANDING` | `box expr` used in `@mode(freestanding)` where `Any` is prohibited |
 
-Only declarations are permitted at file top level in compiled-mode files: `class`, `enum`, `struct`, `interface`, `func`, `let`, `var`, `type`, and `import`.
+Only declarations are permitted at file top level in `@mode(web.compiled)` files: `class`, `enum`, `struct`, `interface`, `func`, `let`, `var`, `type`, and `import`.
 
-**Permitted in compiled mode:**
+**Permitted in `@mode(web.compiled)`:**
 
 - Ownership transfer verbs: `reads`, `edits`, `takes`, `shares` — call-site ownership contracts available in all modes (§23.4.9)
 - `modifier` method keyword, `safe {}` blocks, `safe func` — mutation contracts and safe contexts available in all modes (§23.4.11–§23.4.12)
-- `synchronized` class — runtime-locked mutation; available in compiled mode (§23.4.13)
+- `synchronized` class — runtime-locked mutation (§23.4.13)
 - `requires` clauses with `distinct()` — parameter contracts available in all modes (§23.4.10)
 - Structs, classes (non-dynamic), enums, interfaces
 - Functions (sync, async, gen, async gen)
@@ -8751,25 +10012,24 @@ Only declarations are permitted at file top level in compiled-mode files: `class
 - Comprehensions, slicing, ternary expressions
 - Destructuring, property getters/setters, decorators (metadata-only)
 - Generators (compile to state machines)
-- `extern native` declarations with zero-overhead FFI — native function calls compile to direct call instructions with no marshalling layer
 - `Option[Any]` at error boundaries (`Scoped[T].scope_exit`, exception `cause`)
 
-The compiler SHALL emit a compile-time error for any prohibited construct in a compiled-mode file.
+The compiler SHALL emit a compile-time error for any prohibited construct in a `@mode(web.compiled)` file.
 
-**Import rules.** compiled-mode files may import other compiled-mode files. Importing a scripted-mode file from a compiled-mode file is a compile-time error. Conversely, scripted-mode files may import compiled-mode files — the JIT runtime loads the compiled module's exports as pre-compiled native or Wasm code. `@mode(freestanding)` modules may not be imported by any other mode — see §24.2 for complete cross-mode import rules.
+**Import rules.** `@mode(web.compiled)` files may import other `@mode(web.compiled)` files. Importing a scripted-mode file from a `@mode(web.compiled)` file is a compile-time error. Conversely, scripted-mode files may import `@mode(web.compiled)` files — the JIT runtime loads the compiled module's exports as pre-compiled native or Wasm code. `@mode(freestanding)` modules may not be imported by any other mode — see §24.2 for complete cross-mode import rules.
 
-The restriction is subtractive, not a different language: compiled-mode files use the same Loom syntax, type system, and semantics as scripted files for all permitted features.
+The restriction is subtractive, not a different language: `@mode(web.compiled)` files use the same Loom syntax, type system, and semantics as scripted files for all permitted features.
 
-**v1.16 features available in compiled mode:** `atomic {}` blocks (§17.7), `reinterpretChecked[T, U]` (§24.18). The `atomic {}` block is permitted because compiled mode targets the same Wasm cooperative-scheduler environment as scripted mode.
+**v1.16 features available in `@mode(web.compiled)`:** `atomic {}` blocks (§17.7), `reinterpretChecked[T, U]` (§24.18). The `atomic {}` block is permitted because `@mode(web.compiled)` targets the same Wasm cooperative-scheduler environment as scripted Wasm modes.
 
 ### §22.3 Execution Semantics
 
-Compiled mode files have different execution semantics from scripted mode:
+`@mode(web.compiled)` files have different execution semantics from scripted modes:
 
-- **No sequential top-level execution.** Top-level code in compiled-mode files consists only of declarations (types, functions, constants). There is no statement-by-statement execution. Only function bodies execute at call time.
+- **No sequential top-level execution.** Top-level code in `@mode(web.compiled)` files consists only of declarations (types, functions, constants). There is no statement-by-statement execution. Only function bodies execute at call time.
 - **Static data.** All top-level `let`/`var` bindings must have compile-time-constant initializers (literals, const arithmetic, enum variant constructors). These are compiled as static data, initialized before `main` or module load.
-- **Compile-time type resolution.** All type declarations in compiled-mode files are resolved entirely at compile time. There is no runtime type registry for compiled types. `core.reflect.typeOf` on a compiled-mode type returns a `Type` value with static metadata baked in at compile time.
-- **Module introspection dunders.** `__name__` is set to the module's fully-qualified dotted name and `__file__` is set to the source file path, both as compile-time string constants baked into the binary. `__name__` is never `"__main__"` in compiled mode. `__execmode__` is `"compiled"`.
+- **Compile-time type resolution.** All type declarations in `@mode(web.compiled)` files are resolved entirely at compile time. There is no runtime type registry for compiled types. `core.reflect.typeOf` on a `@mode(web.compiled)` type returns a `Type` value with static metadata baked in at compile time.
+- **Module introspection dunders.** `__name__` is set to the module's fully-qualified dotted name and `__file__` is set to the source file path, both as compile-time string constants baked into the binary. `__name__` is never `"__main__"` in `web.compiled`. `__execmode__` is `"web.compiled"`.
 
 **Exports.** Compiled modules may export functions, classes, enums, interfaces, structs, and constants. The export mechanism uses the same `pub` visibility rules as scripted mode.
 
@@ -8825,7 +10085,7 @@ loom build --target native --lib static     # static library (.a/.lib)
 
 The native compilation pipeline:
 
-1. Parse and type-check all `@mode(compiled)` source files.
+1. Parse and type-check all `@mode(host.native)` source files (and, for AOT builds of dual-deliverable modules, `@mode(host.dual)`).
 2. Lower to MIR (mid-level intermediate representation).
 3. Emit LLVM IR or Cranelift IR (selected by `--backend llvm|cranelift`; default: `llvm`).
 4. Optimise (LLVM: `O0`–`O3` via `--opt`; Cranelift: speed-focused).
@@ -8895,7 +10155,7 @@ Use `unowned[~name]` (§23.4.3) for class fields whose lifetime relationship can
 
 ### §23.4.1 ARC Elision via `borrow` and `noescape fn`
 
-*(This section is normative. Applies to `@mode(native)`. In `@mode(freestanding)`, `borrow` and `noescape fn` serve their memory-safety and stack-allocation roles without ARC retain/release elision, since no ARC runtime is present. See §24.4 for freestanding availability.)*
+*(This section is normative. Applies to `@mode(host.native)`. In `@mode(freestanding)`, `borrow` and `noescape fn` serve their memory-safety and stack-allocation roles without ARC retain/release elision, since no ARC runtime is present. See §24.4 for freestanding availability.)*
 
 Two constructs guide the compiler to elide ARC operations on specific hot paths:
 
@@ -8906,7 +10166,7 @@ Two constructs guide the compiler to elide ARC operations on specific hot paths:
 The combined pattern produces zero ARC activity on hot iteration paths. For lifetime tracking of `borrow[~name]` references that flow beyond the call frame, see §23.4.2.
 ### §23.4.1.1 `excl borrow` on Structs
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to all six modes; see §2.6.)*
 
 `excl borrow` is an exclusive borrow modifier for struct-typed parameters. It extends `borrow` with a compile-time exclusivity guarantee: the compiler verifies that no other `borrow` or `excl borrow` of the same binding is active simultaneously at the call site.
 
@@ -8926,7 +10186,7 @@ func fill(excl borrow buf: Buffer): void {
 **Compiler verification.** At each call site, the compiler verifies that the argument binding has no simultaneous active `borrow` or `excl borrow`. If the same binding is borrowed — either shared or exclusively — at the point of a `excl borrow` call, `E_EXCL_BORROW_ALIAS` is emitted.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct Cursor {
   var pos: int;
@@ -8962,7 +10222,7 @@ func process(): void {
 - `excl borrow` is valid on struct-typed parameters and on `unique`-typed parameters. For `unique` values, exclusivity is trivially guaranteed — the compiler has already proven single ownership, so no simultaneous borrow alias check is required. Using `excl borrow` on a plain ARC class type, primitive, enum, or `Any` is `E_EXCL_BORROW_NOT_STRUCT`.
 - `excl borrow` is prohibited in `async func` signatures — async functions may suspend after the caller's frame has advanced (`E_EXCL_BORROW_ASYNC`).
 - `excl borrow` bindings may not be captured by `Thread.spawn`, `Thread.spawnWith`, or `ThreadPool.run` closures (`E_EXCL_BORROW_THREAD_CAPTURE`).
-- `excl borrow` is valid only in `@mode(native)` and `@mode(freestanding)`. Using it in scripted mode or Wasm-targeted compiled mode is a compile-time error.
+- `excl borrow` is available in all six modes (see §2.6). The exclusivity guarantee is enforced as a compile-time static-analysis property and does not depend on the runtime memory model.
 
 **Error codes.**
 
@@ -8976,7 +10236,7 @@ func process(): void {
 
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
   for (item in items) {
@@ -8992,7 +10252,7 @@ forEach(borrow myList, func(borrow item) {
 
 ### §23.4.2 Lifetime Tracking and Region Inference
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 Lifetime tracking is a compile-time mechanism for verifying the safety of non-owning references (`borrow[~name]`) that flow beyond the call frame. It is entirely orthogonal to ARC: ARC manages the reference-counted heap lifetime of class instances; lifetime tracking manages the stack-frame lifetime of borrowed struct and value data. Neither system interferes with the other — a `borrow[~src] T` still elides ARC retain/release activity on `T` exactly as a plain `borrow T` would.
 
@@ -9044,7 +10304,7 @@ These three mechanisms are independent. A function may use all three simultaneou
 
 ### §23.4.3 Lifetime-Verified `unowned[~name]` Fields
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 `unowned[~name]` is a field qualifier that holds a non-owning, non-retaining reference whose validity is **proven at compile time** via the region system (§23.4.2). It is the only form of `unowned` permitted on class fields. Bare `unowned` on a class field (without a lifetime annotation) is a compile-time error (`E_UNOWNED_NO_LIFETIME`).
 
@@ -9055,7 +10315,7 @@ Because safety is compiler-proven, `unowned[~name]` fields do not insert any run
 A class with `unowned[~name]` fields must declare `[lifetime ~name]` as a class-level lifetime parameter. This anchors the class instance's own lifetime to the `~name` region, which the compiler uses to verify that the class cannot outlive any of its `unowned[~name]` referents.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 class TreeNode[lifetime ~owner] : Any {
   pub let value: int;
@@ -9078,7 +10338,7 @@ class TreeNode[lifetime ~owner] : Any {
 The compiler applies rule 7 of §23.4.2 at every site that writes to an `unowned[~name]` field. The value's declaration scope must statically contain the `~name` region:
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 func buildTree[lifetime ~tree](): TreeNode[~tree] {
   // root is declared in ~tree — it is the ~tree anchor.
@@ -9123,7 +10383,7 @@ A subclass of a `[lifetime ~owner]` class automatically inherits the lifetime pa
 
 ### §23.4.4 Inferred Struct Lifetimes
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 When a struct's fields are all declared with `borrow` or `borrow[~name]` qualifiers, the compiler infers an implicit single lifetime for the struct without requiring explicit `[lifetime ~name]` parameter declarations. This covers the common "temporary view" pattern — a struct that borrows into a larger buffer for the duration of a local computation — without any user-visible lifetime annotation burden.
 
@@ -9137,7 +10397,7 @@ When a struct's fields are all declared with `borrow` or `borrow[~name]` qualifi
 The inferred lifetime is transparent to the programmer: no `[lifetime ~self]` appears in source code, no annotation is required at the constructor call site, and the compiled binary carries no lifetime metadata.
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 // All fields are borrow — lifetime inferred; no annotation needed
 struct PacketView {
@@ -9176,7 +10436,7 @@ See §23.4.10 for the complete specification of `distinct()` contracts.
 
 ### §23.4.6 `@unsafe` — Programmer-Asserted Safety Boundary
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` unless otherwise noted.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)` unless otherwise noted.)*
 
 `@unsafe(reason: string)` is the single, unified annotation for all programmer-asserted safety claims in Loom. It consolidates what were previously scattered, ad-hoc annotations into one auditable surface. Every use of `@unsafe` is a greppable record of a specific safety property that the programmer asserts and the compiler cannot verify.
 
@@ -9190,7 +10450,7 @@ See §23.4.10 for the complete specification of `distinct()` contracts.
 | `class` declaration | The class's `implements Sendable` claim is valid despite having `var` fields that do not pass structural verification (§17.8.1) |
 | `func` declaration | The function body calls `@unsafe`-annotated APIs; marks the function as an auditable unsafe boundary |
 | `distinct()` call-site acknowledgment | The caller asserts that the listed parameters do not alias despite the compiler being unable to statically prove disjointness (§23.4.10); form: `@unsafe("distinct: reason")` in the argument list |
-| `asm {}` block (native mode) | The inline assembly block is programmer-verified safe; required in `@mode(native)` (§24.7); form: `@unsafe("asm: reason")` preceding the `asm {}` block |
+| `asm {}` block (native mode) | The inline assembly block is programmer-verified safe; required in `@mode(host.native)` (§24.7); form: `@unsafe("asm: reason")` preceding the `asm {}` block |
 
 **Thread-safety assertion on `extern native`:**
 
@@ -9246,7 +10506,7 @@ This is the primary safety audit tool. The reason strings provide context for ea
 
 ### §23.4.7 `unique` Ownership
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 `unique` is a compile-time ownership qualifier for class instances. A `unique`-qualified binding or field holds a class instance with **compiler-proven single ownership**: no other binding or field may alias the same instance. There is no `strong_count`, no ARC retain/release, and no side-table tracking. The entire ownership model is static — the compiler enforces exclusivity at all use sites.
 
@@ -9255,7 +10515,7 @@ This is the primary safety audit tool. The reason strings provide context for ea
 #### Syntax — standalone bindings
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 unique let conn = Connection.open(addr)      // immutable unique binding
 unique var buf = Buffer.alloc(1024)          // mutable unique binding
@@ -9267,7 +10527,7 @@ unique var buf = Buffer.alloc(1024)          // mutable unique binding
 #### Syntax — struct fields
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 struct Request {
   var path: string;
@@ -9275,7 +10535,7 @@ struct Request {
 }
 ```
 
-A struct with `unique` fields is move-only (§10.3.2). The `unique` qualifier on a struct field is valid only in `@mode(native)` and `@mode(freestanding)`.
+A struct with `unique` fields is move-only (§10.3.2). The `unique` qualifier on a struct field is valid in all six modes.
 
 #### Move semantics
 
@@ -9369,8 +10629,9 @@ del handle    // finalize() called; memory freed immediately; handle consumed
 
 #### Restrictions
 
-- `unique` is valid only in `@mode(native)` and `@mode(freestanding)` (`E_UNIQUE_NOT_NATIVE`).
-- `unique let` on a struct field is a compile-time error — struct fields must use `unique var` (`E_UNIQUE_FIELD_LET`). `unique` is not valid as a qualifier on class fields: class instances are ARC-managed and aliasable by definition, which is incompatible with the single-owner invariant. Use `unique let` or `unique var` as a local binding qualifier, or a `unique var` struct field, to hold a uniquely-owned class instance.
+- `unique` is valid in all execution modes (§2.6). In Wasm GC modes it lowers to GC references with compile-time-proven single ownership; in ARC modes it is the ARC-free single-owner form.
+- `consume` (the unique-to-ARC downgrade) requires an ARC runtime and is therefore only valid in `@mode(host.native)` and `@mode(host.dual)` — see §23.4.7.
+- `unique let` on a struct field is a compile-time error — struct fields must use `unique var` (`E_UNIQUE_FIELD_LET`). `unique` is not valid as a qualifier on class fields: class instances are ARC-managed (or GC-managed) and aliasable by definition, which is incompatible with the single-owner invariant. Use `unique let` or `unique var` as a local binding qualifier, or a `unique var` struct field, to hold a uniquely-owned class instance.
 - A `unique` binding may not be captured by closures that escape the frame (e.g., assigned to an escaping `fn` binding or passed to `Thread.spawn` without moving via a function parameter — the closure capture must be a move, not a reference).
 - `unique` on a non-class type (struct, primitive, enum) is a compile-time error — value types are already exclusively owned by nature (`E_UNIQUE_NOT_CLASS`).
 
@@ -9378,8 +10639,8 @@ del handle    // finalize() called; memory freed immediately; handle consumed
 
 | Code | Meaning |
 |---|---|
-| `E_UNIQUE_NOT_NATIVE` | `unique` used outside `@mode(native)` and `@mode(freestanding)` |
 | `E_CONSUME_NON_UNIQUE` | `consume` applied to a non-`unique` binding |
+| `E_CONSUME_NOT_AVAILABLE` | `consume` used outside `@mode(host.native)`/`@mode(host.dual)` — no ARC runtime to transfer ownership into |
 | `E_UNIQUE_NOT_CLASS` | `unique` qualifier applied to a non-class type |
 | `E_UNIQUE_FIELD_LET` | `unique let` used on a struct field — struct fields must use `unique var` |
 
@@ -9387,26 +10648,25 @@ del handle    // finalize() called; memory freed immediately; handle consumed
 
 ### §23.4.8 `arc let`, `unique class`, and Integer Safety Error Codes
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)` unless noted.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)` unless noted.)*
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_ARC_LET_NOT_NATIVE` | All | `arc let` / `arc var` used outside `@mode(native)` |
-| `E_ARC_LET_NOT_CLASS` | Native | `arc let` applied to a value type |
-| `E_ARC_LET_ON_FIELD` | Native | `arc let` or `arc var` used as a class or struct field qualifier |
-| `E_CONSUME_NOT_FREESTANDING` | Freestanding | `consume` used in `@mode(freestanding)` — no ARC runtime to transfer ownership into |
-| `E_BORROW_ESCAPE` | Native, Freestanding | Plain `borrow` of a local escapes function scope without lifetime annotation |
-| `E_BORROW_LOOP_MUTATION` | Compiled, Native, Freestanding | Collection mutated inside a `for-in` loop that holds an implicit borrow of it |
+| `E_ARC_LET_NOT_NATIVE` | All | `arc let` / `arc var` used outside `@mode(host.dual)` or `@mode(host.native)` |
+| `E_ARC_LET_NOT_CLASS` | host.dual, host.native | `arc let` applied to a value type |
+| `E_ARC_LET_ON_FIELD` | host.dual, host.native | `arc let` or `arc var` used as a class or struct field qualifier |
+| `E_BORROW_ESCAPE` | host.dual, host.native, freestanding | Plain `borrow` of a local escapes function scope without lifetime annotation |
+| `E_BORROW_LOOP_MUTATION` | All | Collection mutated inside a `for-in` loop that holds an implicit borrow of it |
 | `E_MODE_POSITION` | All | `@mode` directive not the first active token in the file |
 | `E_MODE_DUPLICATE` | All | More than one `@mode` directive in a single file |
 | `E_MODE_UNKNOWN` | All | Unrecognised mode name in `@mode(...)` |
 | `E_MODE_TARGET_MISMATCH` | All | File `@mode` incompatible with the `--target` build flag |
 | `E_BOUNDS_LITERAL` | All | Array/list indexed with a compile-time constant that is out of range |
-| `E_PREFER_COMPILED_NOT_SCRIPTED` | Native, Freestanding | `prefer compiled` import clause used outside `@mode(scripted)` |
+| `E_PREFER_COMPILED_NOT_SCRIPTED` | host.native, freestanding | `prefer compiled` import clause used in `@mode(host.native)` or `@mode(freestanding)` |
 
-**`--require-explicit-arc`** (build flag, `@mode(native)` only). When set, constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits lint advisory `implicit-arc-binding`. Promote to an error with `// loom:error(implicit-arc-binding)`.
+**`--require-explicit-arc`** (build flag, `@mode(host.native)` or `@mode(host.dual)`). When set, constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits lint advisory `implicit-arc-binding`. Promote to an error with `// loom:error(implicit-arc-binding)`.
 
-**`--overflow=trap`** (build flag, `@mode(native)` and `@mode(freestanding)`). When set, plain `+`, `-`, `*`, `/` on fixed-width integer types trap on overflow in all build configurations (debug and release), providing stronger guarantees than Rust's default (release builds silently wrap). The explicit overflow arithmetic methods (§24.19) remain available alongside this flag.
+**`--overflow=trap`** (build flag, `@mode(host.native)` and `@mode(freestanding)`). When set, plain `+`, `-`, `*`, `/` on fixed-width integer types trap on overflow in all build configurations (debug and release), providing stronger guarantees than Rust's default (release builds silently wrap). The explicit overflow arithmetic methods (§24.19) remain available alongside this flag.
 
 
 
@@ -9425,7 +10685,7 @@ The ownership transfer verb system provides a unified, mode-agnostic vocabulary 
 | `takes` | Ownership transfer — caller's binding is consumed at the call site | by-value move |
 | `shares` | ARC retain — both caller and callee hold the value after the call | by-value ARC |
 
-**Availability.** Verbs are available in all execution modes: `@mode(scripted)`, `@mode(compiled)`, `@mode(native)`, and `@mode(freestanding)`. This removes the mode gate that previously restricted `borrow` and `excl borrow` to `@mode(native)` and `@mode(freestanding)`.
+**Availability.** Verbs are available in all execution modes: `@mode(host.scripted)`, `@mode(web.compiled)`, `@mode(host.native)`, and `@mode(freestanding)`. This removes the mode gate that previously restricted `borrow` and `excl borrow` to `@mode(host.native)` and `@mode(freestanding)`.
 
 **Declaration syntax.**
 
@@ -9475,9 +10735,9 @@ f(x)           // ✗  E_VERB_REQUIRED — edits/takes/shares must be acknowledg
 | `takes` | Zero — no ARC decrement | Consumed |
 | `shares` | One ARC retain | **Permanently surrendered** |
 
-**Backward compatibility.** `borrow` and `excl borrow` remain valid in `@mode(native)` and `@mode(freestanding)`.
+**Backward compatibility.** `borrow` and `excl borrow` remain valid in `@mode(host.native)` and `@mode(freestanding)`.
 
-**ARC behavior change for no-verb parameters.** In prior ARC semantics, a plain parameter `func f(x: Buffer)` in `@mode(native)` implicitly ARC-retained `x` on entry and released it on exit. With the implicit `reads` default, `x` is now a zero-overhead borrow — no retain or release is inserted. Code that relied on the retain to extend the lifetime of `x` beyond the call frame must now use `shares` explicitly. The compiler catches this: in `@mode(native)` and `@mode(freestanding)`, attempting to store or return a `reads` parameter beyond the call frame emits `E_BORROW_ESCAPE`, guiding the programmer to use `shares` instead. `E_READS_MUTATION` is a separate error that fires when the function body attempts to write to a `reads` parameter directly — for example, assigning to one of its fields. `reads` is semantically equivalent to `borrow`. `edits` on struct-typed and `unique`-typed parameters is semantically equivalent to `excl borrow`. However, `edits` extends exclusive borrowing to plain ARC class instance parameters — a capability that `excl borrow` does not provide (`excl borrow` on a plain ARC class type is `E_EXCL_BORROW_NOT_STRUCT`, §23.4.1.1). This extension is the primary safety improvement of the verb system over the prior `borrow`/`excl borrow` vocabulary. The reference formatter emits a `prefer-verbs` lint advisory for `borrow` and `excl borrow` usage in new code.
+**ARC behavior change for no-verb parameters.** In prior ARC semantics, a plain parameter `func f(x: Buffer)` in `@mode(host.native)` implicitly ARC-retained `x` on entry and released it on exit. With the implicit `reads` default, `x` is now a zero-overhead borrow — no retain or release is inserted. Code that relied on the retain to extend the lifetime of `x` beyond the call frame must now use `shares` explicitly. The compiler catches this: in `@mode(host.native)` and `@mode(freestanding)`, attempting to store or return a `reads` parameter beyond the call frame emits `E_BORROW_ESCAPE`, guiding the programmer to use `shares` instead. `E_READS_MUTATION` is a separate error that fires when the function body attempts to write to a `reads` parameter directly — for example, assigning to one of its fields. `reads` is semantically equivalent to `borrow`. `edits` on struct-typed and `unique`-typed parameters is semantically equivalent to `excl borrow`. However, `edits` extends exclusive borrowing to plain ARC class instance parameters — a capability that `excl borrow` does not provide (`excl borrow` on a plain ARC class type is `E_EXCL_BORROW_NOT_STRUCT`, §23.4.1.1). This extension is the primary safety improvement of the verb system over the prior `borrow`/`excl borrow` vocabulary. The reference formatter emits a `prefer-verbs` lint advisory for `borrow` and `excl borrow` usage in new code.
 
 **`edits` in `async func` signatures.** `edits` on a struct-typed parameter is semantically equivalent to `excl borrow` and inherits the `E_EXCL_BORROW_ASYNC` restriction (§23.4.1.1): it may not appear in `async func` signatures because the caller's stack frame may no longer be valid when the function resumes after suspension. `edits` on a class-typed parameter does not inherit this restriction — ARC keeps the object alive across suspension points, and exclusivity is verified per-call rather than as a persistent live borrow.
 
@@ -9696,7 +10956,7 @@ safe async func loadAndProcess(edits buf: Buffer): void {
 
 When a function body calls a `modifier` on a plain ARC receiver outside a `safe {}` block, the compiler emits `E_SAFE_CONTEXT_REQUIRED` at that call site. The function does not become implicitly `safe func`. The programmer must explicitly choose: wrap the call in `safe {}`, or declare the function `safe func`. This keeps propagation visible and intentional, consistent with the explicit meaning design goal (§1).
 
-**Availability.** `safe {}` and `safe func` are available in all execution modes. This removes the mode gate that previously restricted ownership enforcement to `@mode(native)` and `@mode(freestanding)`.
+**Availability.** `safe {}` and `safe func` are available in all execution modes. This removes the mode gate that previously restricted ownership enforcement to `@mode(host.native)` and `@mode(freestanding)`.
 
 **Error codes.**
 
@@ -9710,7 +10970,7 @@ When a function body calls a `modifier` on a plain ARC receiver outside a `safe 
 
 ### §23.4.13 `synchronized` Class — Runtime-Locked Mutation
 
-*(This section is normative. Applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`.)*
+*(This section is normative. Applies to `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`.)*
 
 A `synchronized` class serializes all `modifier` method invocations through a per-instance mutex, providing mutation safety in contexts where compile-time proof is impossible: across `await` suspension points, across OS thread boundaries, and from event callbacks.
 
@@ -9801,22 +11061,22 @@ Classes without `@lockOrder` may not call `modifier` methods on other `synchroni
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_LOCK_ORDER_VIOLATION` | Scripted, Compiled, Native | A `modifier` calls a `modifier` on a `synchronized` object whose `@lockOrder` is ≤ the current class's `@lockOrder` |
-| `E_LOCK_ORDER_MISSING` | Scripted, Compiled, Native | A `modifier` calls a `modifier` on a `synchronized` object when neither class has `@lockOrder` |
+| `E_LOCK_ORDER_VIOLATION` | All non-freestanding | A `modifier` calls a `modifier` on a `synchronized` object whose `@lockOrder` is ≤ the current class's `@lockOrder` |
+| `E_LOCK_ORDER_MISSING` | All non-freestanding | A `modifier` calls a `modifier` on a `synchronized` object when neither class has `@lockOrder` |
 | `E_LOCK_ORDER_NOT_SYNCHRONIZED` | All | `@lockOrder` applied to a non-`synchronized` class |
 
 **Error codes.**
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_SYNCHRONIZED_REENTRANT` | Scripted, Compiled, Native | A `modifier` on a `synchronized` instance calls another `modifier` on the same `self` |
+| `E_SYNCHRONIZED_REENTRANT` | All non-freestanding | A `modifier` on a `synchronized` instance calls another `modifier` on the same `self` |
 | `E_SYNCHRONIZED_FREESTANDING` | Freestanding | `synchronized` class declared in `@mode(freestanding)` — no mutex primitive is provided |
 
 ---
 
 ### §23.4.14 `unsafe {}` Within `synchronized` Classes — Lock-Release Regions
 
-*(This section is normative. Applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`.)*
+*(This section is normative. Applies to `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`.)*
 
 Inside a `modifier` method on a `synchronized` class, an `unsafe {}` block explicitly releases the per-instance lock for its lexical scope, allowing expensive work to proceed without holding the lock.
 
@@ -9886,8 +11146,8 @@ These three mechanisms are independent and address separate concerns. `unsafe {}
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_SELF_ACCESS_UNSAFE` | Scripted, Compiled, Native | `self` field or method accessed inside `unsafe {}` in a `synchronized` modifier |
-| `E_UNSAFE_NESTED` | Scripted, Compiled, Native | Nested `unsafe {}` blocks inside a `synchronized` modifier |
+| `E_SELF_ACCESS_UNSAFE` | All non-freestanding | `self` field or method accessed inside `unsafe {}` in a `synchronized` modifier |
+| `E_UNSAFE_NESTED` | All non-freestanding | Nested `unsafe {}` blocks inside a `synchronized` modifier |
 | `E_UNSAFE_NO_REASON` | All | `unsafe {}` block used without a reason string |
 | `E_UNSAFE_NOT_SYNCHRONIZED` | All | `unsafe {}` block used outside a `synchronized` modifier |
 
@@ -9919,7 +11179,7 @@ For cases that are not statically detectable — for example, reference graphs c
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_CROSS_BOUNDARY_CYCLE` | Native | Statically-detectable ARC→GC→ARC reference cycle without `weak` on the ARC side |
+| `E_CROSS_BOUNDARY_CYCLE` | host.dual, host.native | Statically-detectable ARC→GC→ARC reference cycle without `weak` on the ARC side |
 
 ### §23.6 ABI Stability
 
@@ -10032,7 +11292,7 @@ loom import-headers --lib sqlite3 /usr/include/sqlite3.h -o sqlite3.loom
 // sqlite3.loom — generated by loom import-headers
 // DO NOT EDIT
 
-@mode(compiled)
+@mode(host.native)
 
 extern native "libsqlite3" func sqlite3_open(filename: string, ppDb: NativeHandle): int;
 extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
@@ -10102,10 +11362,10 @@ loom import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loom
 
 ### §23.9 Requirements
 
-- Native compilation requires `@mode(native)` for all source files.
+- Native compilation requires `@mode(host.native)` for all source files.
 - `extern js` and `@jsexport` are prohibited — no JavaScript runtime is present in a native binary (`E_EXTERN_JS_NOT_NATIVE`).
 - Structs passed to `extern native` functions must be annotated `@repr(C)` (`E_EXTERN_STRUCT_NOT_REPR_C`).
-- All types must be statically known. `Any` as a declared type, `dynamic class`, and `core.inspect` are prohibited.
+- All types should be statically known. `Any` as a declared type, `dynamic class`, and `core.inspect` are permitted but produce the `W_ANY_IN_AOT_MODE` advisory (§2.4.2, §2.6); projects that prefer to enforce static typing can promote it with `--warnings-as-errors=W_ANY_IN_AOT_MODE`.
 - ARC is mandatory; there is no GC option for `--target native`.
 
 **Stack overflow in native mode (normative).** The `--stack-size N` build flag (bytes, must be a multiple of the platform page size) sets the OS thread stack size for the main thread and all `Thread.spawn` threads. The Loom native runtime SHALL install a stack guard page (one platform page below the stack bottom) on all platforms that support `mprotect`/`VirtualProtect`. An access to the guard page produces a signal (SIGBUS/SIGSEGV on POSIX, structured exception on Windows) that the runtime maps to `StackOverflowError` and delivers to the current thread's exception handler. On platforms that do not support guard pages, a `--stack-size` overflow produces undefined behavior; the runtime documentation MUST note this for each target triple. The `deep-async-stack` lint advisory fires when an `async func` declares local variables whose total stack footprint exceeds 64 KB — async coroutine frames are heap-allocated but can still be unexpectedly large.
@@ -10125,7 +11385,7 @@ Freestanding mode (`@mode(freestanding)`) compiles Loom source to a native binar
 
 **Design goals:**
 
-1. **Zero-cost memory safety** — the full ownership system: `reads`/`edits`/`takes`/`shares` verbs, `modifier`, `safe {}`, and `distinct()` contracts (v1.15, all modes); `unique`/`borrow`/`excl borrow`/`lifetime ~name` (native/freestanding). No ARC overhead or runtime support required. v1.16 adds `@interruptSafe`, `InterruptGuard`, `DmaBuffer[T]`, `PartialInit[T]`, `native.mpu`, and `native.atomic.hwFence` to close hardware-specific safety gaps (§24.20, §24.24).
+1. **Zero-cost memory safety** — the full ownership system: `reads`/`edits`/`takes`/`shares` verbs, `modifier`, `safe {}`, and `distinct()` contracts (v1.15, all modes); `unique`/`borrow`/`excl borrow`/`lifetime ~name` (all modes per §2.6). No ARC overhead or runtime support required. v1.16 adds `@interruptSafe`, `InterruptGuard`, `DmaBuffer[T]`, `PartialInit[T]`, `native.mpu`, and `native.atomic.hwFence` to close hardware-specific safety gaps (§24.20, §24.24).
 2. **Direct hardware access** — inline assembly, volatile MMIO, interrupt handlers, and raw linker section control.
 3. **Auditable unsafe surface** — every unsafe operation requires `@unsafe` or a purpose-specific annotation; the surface is greppable and minimal.
 4. **Rust-equivalent or stronger guarantees** — the memory-safety properties in `@mode(freestanding)` match or exceed those provided by Rust's `no_std` environment (see §23.4 and release notes for the formal comparison).
@@ -10156,11 +11416,11 @@ Every source file in a freestanding compilation unit MUST declare `@mode(freesta
 
 `@mode(freestanding)` files may NOT import:
 
-- `@mode(native)` modules — native modules require the ARC runtime, which is not available in freestanding mode (`E_FREESTANDING_IMPORT_NATIVE`).
-- `@mode(compiled)` or `@mode(scripted)` modules — these require the Wasm GC runtime or the JIT runtime (`E_FREESTANDING_IMPORT_MANAGED`).
+- `@mode(host.native)` modules — native modules require the ARC runtime, which is not available in freestanding mode (`E_FREESTANDING_IMPORT_NATIVE`).
+- `@mode(web.compiled)` or `@mode(host.scripted)` modules — these require the Wasm GC runtime or the JIT runtime (`E_FREESTANDING_IMPORT_MANAGED`).
 - Any standard library module not in the permitted subset (§24.20) (`E_FREESTANDING_MODULE`).
 
-Conversely, `@mode(native)` files may NOT import `@mode(freestanding)` modules — freestanding modules lack an ARC runtime and expose raw pointer APIs that are incompatible with ARC memory management (`E_NATIVE_IMPORT_FREESTANDING`).
+Conversely, `@mode(host.native)` files may NOT import `@mode(freestanding)` modules — freestanding modules lack an ARC runtime and expose raw pointer APIs that are incompatible with ARC memory management (`E_NATIVE_IMPORT_FREESTANDING`).
 
 ### §24.3 Stripped Features
 
@@ -10204,7 +11464,7 @@ Plus the hardware-access features described in §24.5–§24.24 and the freestan
 
 ### §24.4.1 `size_of[T]()` and `align_of[T]()` — Compile-Time Layout Queries
 
-*(This section is normative. Applies to `@mode(freestanding)` and `@mode(native)`.)*
+*(This section is normative. Applies to `@mode(freestanding)` and `@mode(host.native)`.)*
 
 `size_of[T]()` and `align_of[T]()` are compile-time built-in generic expressions that return the size and minimum alignment of type `T` in bytes, respectively. Both are evaluated entirely at compile time and produce a `uint64` constant; they have zero runtime cost and cannot be used on unsized types.
 
@@ -10220,7 +11480,7 @@ let ptr = size_of[uint]()           // uint64: 8 (on 64-bit targets)
 **Rules:**
 - `T` must be a type with a statically-known, finite size (`E_SIZE_OF_UNSIZED`). `Any`, open-ended union types, and function types are unsized.
 - `T` must be a primitive, `@repr(C)` struct, enum, or tuple. Using `size_of` on a managed class type is `E_SIZE_OF_CLASS`.
-- Both built-ins are valid in `@mode(native)` and `@mode(freestanding)`.
+- Both built-ins are valid in `@mode(host.native)` and `@mode(freestanding)`.
 - The `~` sigil used in lifetime labels is not permitted in the type argument.
 
 `size_of[T]()` and `align_of[T]()` are available in the `native.ffi` module scope. They are also available as bare expressions in `@mode(freestanding)` without an explicit import.
@@ -10392,7 +11652,7 @@ asm {
 
 Use a preset or `"all"` rather than an incomplete manual list to avoid the silent register-corruption bug class.
 
-**`borrow` values as `asm` input operands.** A `borrow T` parameter or binding may appear as an `asm` input operand. The address of the borrowed value is passed to the constraint as an integer pointer (equivalent to taking the address with `"=m"` or `"r"` constraints). The compiler verifies that the borrow's lifetime is still valid at the `asm` block. Passing a consumed or expired `borrow` as an `asm` input is `E_ASM_EXPIRED_BORROW`. In `@mode(freestanding)`, `asm` blocks do not require `@unsafe`; the compiler emits per-function lint advisory `asm-unchecked` (suppressible with `// loom:allow(asm-unchecked)`). In `@mode(native)`, `asm` blocks require `@unsafe("asm: <reason>")`.
+**`borrow` values as `asm` input operands.** A `borrow T` parameter or binding may appear as an `asm` input operand. The address of the borrowed value is passed to the constraint as an integer pointer (equivalent to taking the address with `"=m"` or `"r"` constraints). The compiler verifies that the borrow's lifetime is still valid at the `asm` block. Passing a consumed or expired `borrow` as an `asm` input is `E_ASM_EXPIRED_BORROW`. In `@mode(freestanding)`, `asm` blocks do not require `@unsafe`; the compiler emits per-function lint advisory `asm-unchecked` (suppressible with `// loom:allow(asm-unchecked)`). In `@mode(host.native)`, `asm` blocks require `@unsafe("asm: <reason>")`.
 
 ### §24.8 `@volatile` — MMIO Semantics
 
@@ -10491,7 +11751,7 @@ struct PageTableEntry {
 | `@repr(packed)` | No padding. Potentially unaligned fields. Loom emits unaligned load/store sequences — defined behavior (not UB). |
 | `@repr(transparent)` | Single-field wrapper; ABI identical to the inner type. |
 
-Valid in `@mode(freestanding)` and `@mode(native)`. Compile-time error in scripted/compiled modes (`E_REPR_NOT_NATIVE`).
+Valid in `@mode(freestanding)` and `@mode(host.native)`. In `@mode(web.compiled)`, a Wasm-compatible subset of `@repr` is supported (see §2.6). Using `@repr` in `@mode(web.scripted)`, `@mode(host.scripted)`, or `@mode(host.dual)` is a compile-time error (`E_REPR_NOT_NATIVE`).
 
 ### §24.11 `@align` — Alignment Annotations
 
@@ -10645,6 +11905,7 @@ Additionally, the compiler emits the `naked-missing-return` lint advisory when a
 ```loom
 @mode(freestanding)
 
+@unsafe("naked: hand-written context-switch prologue/epilogue")
 @naked
 @section(".text.trampoline")
 func contextSwitch(from_sp: uint, to_sp: uint): void {
@@ -10663,6 +11924,7 @@ func contextSwitch(from_sp: uint, to_sp: uint): void {
 ```loom
 @mode(freestanding)
 
+@unsafe("naked: hand-written context-switch prologue/epilogue")
 @naked
 func contextSwitch(from_ctx: uint, to_ctx: uint): void {
     // from_ctx is in rdi, to_ctx is in rsi (sysv64 calling convention)
@@ -10758,11 +12020,11 @@ struct MaybeUninit[T] {
 
 **`assumeInit()` return ownership.** `assumeInit(): T` returns `T` by value. For primitive and `@repr(C)` struct types — the only permitted `T` values — this is a plain value copy. No ownership transfer or ARC retain occurs; the returned value is an independent copy of the bytes in the `MaybeUninit` storage. In `@mode(freestanding)` with an `@allocator` registered, `MaybeUninit[T]` may not be instantiated with a class type `T` (classes require the allocator path, not `MaybeUninit`) — `T` is restricted to primitives and `@repr(C)` structs.
 
-Available in `@mode(native)` and `@mode(freestanding)`. `T` must be a primitive or `@repr(C)` type (`E_MAYBUNINIT_NOT_REPR`).
+Available in `@mode(host.native)` and `@mode(freestanding)`. `T` must be a primitive or `@repr(C)` type (`E_MAYBUNINIT_NOT_REPR`).
 
 ### §24.17a `PartialInit[T]` — Field-Tracked Struct Initialization
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`.)*
 
 `PartialInit[T]` wraps a struct under construction and tracks which fields have been initialized at compile time. Reading an uninitialized field is a compile-time error (`E_PARTIAL_INIT_READ`). Calling `complete()` consumes the partial init and produces a fully initialized `T`, verifying completeness at compile time for structs of statically-known layout.
 
@@ -10810,14 +12072,14 @@ struct PartialInit[T] {
 }
 ```
 
-`T` must be a `@repr(C)` struct type (`E_PARTIAL_INIT_NOT_REPR`). Available in `@mode(native)` and `@mode(freestanding)`.
+`T` must be a `@repr(C)` struct type (`E_PARTIAL_INIT_NOT_REPR`). Available in `@mode(host.native)` and `@mode(freestanding)`.
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_PARTIAL_INIT_READ` | Native, Freestanding | Reading a field of a `PartialInit[T]` that has not yet been set via `.set()` |
-| `E_PARTIAL_INIT_INCOMPLETE` | Native, Freestanding | `complete()` called before all fields are set |
-| `E_PARTIAL_INIT_NOT_REPR` | Native, Freestanding | `PartialInit[T]` with a non-`@repr(C)` struct type |
-| `E_FIELD_REF_INVALID` | Native, Freestanding | `.fieldName` in `PartialInit.set` does not name a field of `T` |
+| `E_PARTIAL_INIT_READ` | host.native, freestanding | Reading a field of a `PartialInit[T]` that has not yet been set via `.set()` |
+| `E_PARTIAL_INIT_INCOMPLETE` | host.native, freestanding | `complete()` called before all fields are set |
+| `E_PARTIAL_INIT_NOT_REPR` | host.native, freestanding | `PartialInit[T]` with a non-`@repr(C)` struct type |
+| `E_FIELD_REF_INVALID` | host.native, freestanding | `.fieldName` in `PartialInit.set` does not name a field of `T` |
 
 ### §24.18 `reinterpret[T, U]` — Type-Safe Memory Reinterpretation
 
@@ -10835,7 +12097,7 @@ let bits: uint32 = reinterpret[float32, uint32](f)
 - `align_of[T]()` must equal `align_of[U]()` (`E_REINTERPRET_ALIGN_MISMATCH`).
 - Both `T` and `U` must be primitives or `@repr(C)` types (`E_REINTERPRET_NOT_REPR`).
 - Always requires `@unsafe` with a reason string (`E_REINTERPRET_NOT_UNSAFE`).
-- Available in `@mode(native)` and `@mode(freestanding)`.
+- Available in all modes (§2.6).
 
 **Alignment warning.** The compiler emits the `reinterpret-align-upcast` lint advisory when `align_of[U]() > align_of[T]()` is statically provable — for example, casting a `uint8` to a `uint64`. Misaligned access via `reinterpret` is the programmer's responsibility; the advisory makes the risk visible at the call site.
 
@@ -10858,7 +12120,7 @@ let bits: uint32 = reinterpret[float32, uint32](f)
 
 ### §24.19 Integer Overflow Arithmetic Methods
 
-All fixed-width integer types (`int8`–`int64`, `uint8`–`uint64`) gain three method families in `@mode(native)` and `@mode(freestanding)`.
+All fixed-width integer types (`int8`–`int64`, `uint8`–`uint64`) gain three method families in all execution modes.
 
 **Checked — returns `Option[T]`:**
 
@@ -10885,7 +12147,7 @@ let result = uint8.saturatingSub(250u8, 10u8) // uint8: 240
 let result = uint8.saturatingMul(250u8, 10u8) // uint8: 255
 ```
 
-The naming convention is `TypeName.family(a, b)`. These methods are available in all execution modes. In `@mode(scripted)` and `@mode(compiled)`, plain `+`, `-`, `*` on fixed-width integers throw `NumericOverflowError` on overflow; the explicit methods let callers express their intent without relying on exceptions. In `@mode(native)` and `@mode(freestanding)`, plain arithmetic wraps by default, making `checkedAdd` and `saturatingAdd` the primary tools for defensive numeric code.
+The naming convention is `TypeName.family(a, b)`. These methods are available in all execution modes. In `@mode(host.scripted)` and `@mode(web.compiled)`, plain `+`, `-`, `*` on fixed-width integers throw `NumericOverflowError` on overflow; the explicit methods let callers express their intent without relying on exceptions. In `@mode(host.native)` and `@mode(freestanding)`, plain arithmetic wraps by default, making `checkedAdd` and `saturatingAdd` the primary tools for defensive numeric code.
 
 **`--overflow=trap` build flag.** When set, plain `+`, `-`, `*`, `/` on fixed-width integers trap on overflow in all build configurations. The explicit method families remain available alongside this flag.
 
@@ -11117,9 +12379,9 @@ portal_filter            = ["*"]  # compile-time glob prune of activation table
 | `E_FREESTANDING_DEBUG_START_RELEASE` | `debug.freestanding.start()` or `debug.freestanding.poll()` called in a release build |
 | `E_FREESTANDING_CLASS_NO_ALLOC` | Class constructed without `@allocator` |
 | `E_FREESTANDING_MODULE` | Prohibited stdlib module imported |
-| `E_FREESTANDING_IMPORT_NATIVE` | `@mode(freestanding)` file imports a `@mode(native)` module |
-| `E_FREESTANDING_IMPORT_MANAGED` | `@mode(freestanding)` file imports a `@mode(compiled)` or `@mode(scripted)` module |
-| `E_NATIVE_IMPORT_FREESTANDING` | `@mode(native)` file imports a `@mode(freestanding)` module |
+| `E_FREESTANDING_IMPORT_NATIVE` | `@mode(freestanding)` file imports a `@mode(host.native)` module |
+| `E_FREESTANDING_IMPORT_MANAGED` | `@mode(freestanding)` file imports a `@mode(web.compiled)` or `@mode(host.scripted)` module |
+| `E_NATIVE_IMPORT_FREESTANDING` | `@mode(host.native)` file imports a `@mode(freestanding)` module |
 | `E_FREESTANDING_FLOAT` | Float type used when `no_float = true` |
 | `E_ENTRY_DUPLICATE` | Multiple `@entry` functions |
 | `E_ENTRY_NONVOID` | `@entry` has non-`void` return type |
@@ -11131,7 +12393,7 @@ portal_filter            = ["*"]  # compile-time glob prune of activation table
 | `E_PANIC_HANDLER_NOT_FREESTANDING` | `@panic_handler` outside `@mode(freestanding)` |
 | `E_PANIC_HANDLER_REENTRANT` | `@panic_handler` calls a function that can panic |
 | `E_ASM_OPERAND_TYPE` | ASM output operand type incompatible with constraint |
-| `E_ASM_NOT_COMPILED` | `asm { }` in scripted or Wasm-compiled mode |
+| `E_ASM_NOT_COMPILED` | `asm { }` in `@mode(web.scripted)`, `@mode(host.scripted)`, or `@mode(host.dual)` — `asm { }` is available only in `@mode(web.compiled)` (Wasm form, `@unsafe`), `@mode(host.native)` (native form, `@unsafe`), and `@mode(freestanding)` |
 | `E_ASM_EXPIRED_BORROW` | `borrow` value used as `asm` input after its lifetime has ended |
 | `E_ATOMIC_UNALIGNED` | `native.atomic` operation on a naturally-unaligned address |
 | `E_VOLATILE_NOT_BORROW` | `@volatile` on a non-`borrow` parameter |
@@ -11141,7 +12403,7 @@ portal_filter            = ["*"]  # compile-time glob prune of activation table
 | `E_REPR_NOT_NATIVE` | `@repr` in scripted or compiled mode |
 | `E_REPR_TRANSPARENT_MULTI_FIELD` | `@repr(transparent)` struct has multiple non-zero-sized fields |
 | `E_EXTERN_STRUCT_NOT_REPR_C` | `extern native` struct without `@repr(C)` |
-| `E_EXTERN_JS_NOT_NATIVE` | `extern js` or `@jsexport` used in `@mode(native)` or `@mode(freestanding)` — no JavaScript runtime present |
+| `E_EXTERN_JS_NOT_NATIVE` | `extern js` or `@jsexport` used in `@mode(host.native)` or `@mode(freestanding)` — no JavaScript runtime present |
 | `E_ALIGN_NOT_POWER_OF_TWO` | `@align(n)` where `n` is not a power of two |
 | `E_ALIGN_TOO_SMALL` | `@align(n)` less than the type's natural ABI alignment |
 | `E_SECTION_INVALID_NAME` | `@section` name contains invalid characters |
@@ -11246,12 +12508,13 @@ func kernelPanic(msg: string, file: string, line: int): void {
 // ── Kernel entry ──────────────────────────────────────────────────────────
 
 func kernelMain(): void {
-    serialWrite("Loom kernel v1.14\n")
+    serialWrite("Loom kernel v1.17\n")
     // Load IDT, enable interrupts ...
     asm { "sti" }
     while (true) { asm { "hlt" } }
 }
 
+@unsafe("naked: kernel entry point, hand-written stack setup before any Loom code runs")
 @entry @naked @section(".text.boot")
 func _start(): void {
     asm {
@@ -11381,7 +12644,7 @@ native.atomic.writeInterruptFlags(flags)
 When `loom build --debug --target freestanding` is invoked and at least one debug channel or ring buffer is configured via `.lmpkg`, the compiler synthesizes a freestanding debug service that provides:
 
 - A static **activation table** in BSS: one `atomic uint8` per portal, indexed by compile-time portal ID. All entries are zero-initialized. Portal sites perform a single aligned atomic byte load; a zero value is the fast path (inert). Inactive-portal cost: one aligned atomic load per portal site, no branch.
-- A read-only **portal name table** in the `.debug_portals` linker section: maps portal IDs to fully-qualified name strings, source file paths, and line numbers. Baked at link time. Analogous to the static metadata table in `@mode(native)`.
+- A read-only **portal name table** in the `.debug_portals` linker section: maps portal IDs to fully-qualified name strings, source file paths, and line numbers. Baked at link time. Analogous to the static metadata table in `@mode(host.native)`.
 - A compiler-emitted **`FreestandingDebugFrame`** value constructed at each active portal site and passed to the trace channel or written to the ring buffer.
 - An optional **time-travel ring** (`.debug_ttravel` section) — a compiler-synthesized static circular array of `FreestandingDebugFrame` values for post-hoc replay (§24.25.9). This is not a user-instantiable type; it is allocated and managed entirely by the compiler when `timeTravelEnabled = true`.
 - An optional **dual-channel debug service** started by calling `debug.freestanding.start()`.
@@ -11570,7 +12833,7 @@ loom debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
 
 `--trace-swo` (or `--trace-uart`, `--trace-tcp`) specifies a separate transport for the trace channel when control and trace are physically distinct. When only one transport is specified, it carries both channels multiplexed by opcode prefix. After attaching, the host reads the portal name table via `QUERY_PORTALS` and presents the standard portal activation interface.
 
-Time-travel replay is available via `READ_REPLAY_BUFFER` over the control channel when `timeTravelEnabled = true`. The host renders the captured event ring as a portal-level trace timeline with `TraceLevel.PortalOnly` semantics — the same visualization produced by time-travel capture in `@mode(native)`. Unlike native mode, the ring buffer resides on-target rather than in host memory, making replay available even after a target reset when using a non-volatile ring placement.
+Time-travel replay is available via `READ_REPLAY_BUFFER` over the control channel when `timeTravelEnabled = true`. The host renders the captured event ring as a portal-level trace timeline with `TraceLevel.PortalOnly` semantics — the same visualization produced by time-travel capture in `@mode(host.native)`. Unlike native mode, the ring buffer resides on-target rather than in host memory, making replay available even after a target reset when using a non-volatile ring placement.
 
 #### §24.25.9 Time-Travel Replay for Freestanding
 
@@ -11582,7 +12845,7 @@ When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates 
 
 **Read path.** The host requests ring contents via the `READ_REPLAY_BUFFER` control command (§24.25.6), receiving up to `max_frames` `FreestandingDebugFrame` records in `REPLAY_BUFFER_CHUNK` response messages. The ring state is not disturbed by a read — the target continues appending; the host receives a snapshot.
 
-**Replay semantics.** Freestanding time-travel is `TraceLevel.PortalOnly` — the ring contains call/return/portal events with source locations, but no local-variable state. The host `loom debug attach` session renders the captured event sequence as a portal-level trace timeline. This is the same visualization produced by `TraceLevel.PortalOnly` capture in `@mode(native)`, with the distinction that the ring is stored on-target rather than in host memory.
+**Replay semantics.** Freestanding time-travel is `TraceLevel.PortalOnly` — the ring contains call/return/portal events with source locations, but no local-variable state. The host `loom debug attach` session renders the captured event sequence as a portal-level trace timeline. This is the same visualization produced by `TraceLevel.PortalOnly` capture in `@mode(host.native)`, with the distinction that the ring is stored on-target rather than in host memory.
 
 **Zero-overhead when disabled.** When `timeTravelEnabled = false` (the default), no ring is allocated, no write path code is emitted, and BSS is unaffected. The `READ_REPLAY_BUFFER` opcode returns `ERR` with code `0x01` (feature disabled).
 
@@ -11647,7 +12910,7 @@ assert_eq!(compute(), expected);
 - Macros operate on syntactic structure only; they cannot inspect types of their arguments.
 - `quote` bodies may not contain `await` or `yield` at the top level (they may appear inside lambdas within the quote body).
 
-**Mode availability.** Macro declarations (`macro`, `pub macro`) and invocations (`name!(...)`) are compile-time features available in all four execution modes. The macro is expanded before type-checking; the expanded output must conform to the restrictions of the target mode. For example, a macro that expands to `throw SomeError(...)` will produce a compile-time error when expanded in a `@mode(freestanding)` file because exceptions are unavailable there.
+**Mode availability.** Macro declarations (`macro`, `pub macro`) and invocations (`name!(...)`) are compile-time features available in all six execution modes. The macro is expanded before type-checking; the expanded output must conform to the restrictions of the target mode. For example, a macro that expands to `throw SomeError(...)` will produce a compile-time error when expanded in a `@mode(freestanding)` file because exceptions are unavailable there.
 
 **Scope and export.** Macro definitions are scoped to the module where they are declared. Export a macro with `pub macro name(...) { ... }`. Consumers import macro names with the standard import syntax; the `!` invocation suffix is used at the call site.
 
@@ -11663,13 +12926,15 @@ assert_eq!(compute(), expected);
 
 ## §26 Failure Policy
 
-*(This section is normative. This section applies to `@mode(scripted)`, `@mode(compiled)`, and `@mode(native)`. In `@mode(freestanding)`, the exception system is unavailable — `throw`, `try`, and `catch` are compile-time errors (`E_FREESTANDING_EXCEPTIONS`). Freestanding failure handling is specified in §24.6 (`@panic_handler` and `--panic` policy).)*
+*(This section is normative. This section applies to all modes except `@mode(freestanding)` — specifically `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In `@mode(freestanding)`, the exception system is unavailable — `throw`, `try`, and `catch` are compile-time errors (`E_FREESTANDING_EXCEPTIONS`). Freestanding failure handling is specified in §24.6 (`@panic_handler` and `--panic` policy).)*
 
 This section consolidates all failure behaviors across the Loom language.
 
 ### §26.1 Exception Hierarchy
 
 All exception types extend a root `BaseException` class. The catchable subset extends `Exception`, which itself extends `BaseException`. Not all exceptional conditions are errors — `SystemExit` is a deliberate process termination, `KeyboardInterrupt` is an external signal, and `GeneratorExit` is a generator lifecycle event. These extend `BaseException` directly and are not caught by `catch (Exception)`.
+
+**Serialization contract.** All `BaseException` subclasses have a normative serialization contract (§32.9). Every `BaseException` is implicitly `@polymorphic` — when serialized via `Serializable`, its dynamic type is preserved via the type URI mechanism. Receivers that do not recognize the incoming type URI reconstruct the exception as a `RemoteException` carrying the original URI, message, cause chain, and symbolic stack trace. This design guarantees that exceptions crossing process or language boundaries never silently lose their identity, and that deserialization of unknown exception types can never execute arbitrary code.
 
 ```
 class BaseException : Any {
@@ -11679,6 +12944,15 @@ class BaseException : Any {
 }
 
 class Exception : BaseException {}
+
+// RemoteException — see §32.9. Reconstructed from a serialized exception
+// whose type URI is not registered as Deserializable on the receiver.
+// Carries the originating URI, message, cause chain, and symbolic stack
+// trace for diagnostic purposes without exposing a code-execution surface.
+class RemoteException : Exception {
+  pub let originalTypeUri: string;
+  pub let originalFields: dict[string, Any];
+}
 
 class SystemExit : BaseException {
   pub let code: int;
@@ -11790,16 +13064,16 @@ Any
         ├── IoError
         ├── NumericOverflowError
         ├── RuntimeError
+        │   ├── StackOverflowError              (web/host: from Wasm trap; native: from stack guard)
+        │   ├── TaskQueueFullError              (task queue depth limit exceeded, §17.3/§20.1)
+        │   ├── NullHandleError                 (NativeHandle return was null, §18.4)
+        │   ├── AlignmentError                  (reinterpretChecked[T,U] alignment mismatch, §24.18)
+        │   └── AllocError                      (allocator returned None, §24.16)
         ├── AssertionError
         ├── RuntimeConfigError
-        ├── BlockingTimeoutError
+        ├── BlockingTimeoutError                (defined in §17.9.3)
         ├── WsNetworkError
         ├── WsStateError
-        ├── StackOverflowError                  (scripted/compiled: from Wasm trap; native: from stack guard)
-        ├── TaskQueueFullError                  (task queue depth limit exceeded, §17.3/§20.1)
-        ├── NullHandleError                     (NativeHandle return was null, §18.4)
-        ├── AlignmentError                      (reinterpretChecked[T,U] alignment mismatch, §24.18)
-        ├── AllocError                          (allocator returned None, §24.16)
         ├── UrlError                             (disallowed URL scheme or malformed URL, §16.6.4)
         ├── WorkerTerminatedError                 (send/receive on already-terminated ScriptWorker, §17.10.2)
         ├── WorkerPanicError                      (ScriptWorker exited via unhandled exception; carries `message` and `stack`, §17.10.2)
@@ -12027,7 +13301,7 @@ The runtime provides signal handling for graceful shutdown and interrupt process
 
 **Custom signal handlers.** The `io.proc` module provides `onSignal(signal, handler)` to register custom signal handlers, `resetSignal(signal)` to restore defaults, and `awaitSignal(signal)` for async signal-driven workflows. See §21.8 for the full API.
 
-**`@signalSafe` annotation (normative, `@mode(native)` only).** Functions that may be called from OS signal handler context must be annotated `@signalSafe`. The compiler enforces that `@signalSafe` functions do not call any operation that is not signal-safe. The following are NOT signal-safe in Loom and are compile-time errors from a `@signalSafe` context:
+**`@signalSafe` annotation (normative, `@mode(host.native)` or `@mode(host.dual)`).** Functions that may be called from OS signal handler context must be annotated `@signalSafe`. The compiler enforces that `@signalSafe` functions do not call any operation that is not signal-safe. The following are NOT signal-safe in Loom and are compile-time errors from a `@signalSafe` context:
 
 - ARC `retain()` / `release()` — ARC operations are not signal-safe
 - Any heap allocation — `malloc` and ARC `alloc` are not signal-safe
@@ -12044,7 +13318,7 @@ The following ARE signal-safe and are permitted inside `@signalSafe` contexts:
 - Static field reads of `let` (immutable) bindings — signal-safe
 
 ```loom
-@mode(native)
+@mode(host.native)
 
 let signalFlag = Atomic[bool].new(false)
 
@@ -12058,14 +13332,14 @@ func sigtermHandler(): void {
 io.proc.onSignal(SIGTERM, sigtermHandler)
 ```
 
-`@signalSafe` is only valid in `@mode(native)`. Using it in other modes is `E_SIGNAL_SAFE_NOT_NATIVE`. The `signal-unsafe-call` lint fires when a non-`@signalSafe` function is called from a `@signalSafe` context.
+`@signalSafe` is valid in `@mode(host.dual)` and `@mode(host.native)` (see §2.6). Using it in other modes is `E_SIGNAL_SAFE_NOT_NATIVE`. The `signal-unsafe-call` lint fires when a non-`@signalSafe` function is called from a `@signalSafe` context.
 
 **Error codes.**
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_SIGNAL_SAFE_NOT_NATIVE` | Scripted, Compiled, Freestanding | `@signalSafe` annotation used outside `@mode(native)` |
-| `E_SIGNAL_UNSAFE_CALL` | Native | Signal-unsafe operation (ARC retain/release, heap allocation, mutex lock, `core.reflect`) inside a `@signalSafe` context |
+| `E_SIGNAL_SAFE_NOT_NATIVE` | web.scripted, web.compiled, host.scripted, freestanding | `@signalSafe` annotation used outside `@mode(host.dual)` or `@mode(host.native)` |
+| `E_SIGNAL_UNSAFE_CALL` | host.native | Signal-unsafe operation (ARC retain/release, heap allocation, mutex lock, `core.reflect`) inside a `@signalSafe` context |
 
 
 
@@ -12231,7 +13505,9 @@ Program        ::= [ ModeDirective ] [ NamespaceDecl ] { TopLevelItem }
                       NamespaceDecl, if present, immediately follows ModeDirective
                       and precedes all imports and declarations. §13.0 *)
 ModeDirective  ::= "@mode" "(" ModeName ")" NEWLINE
-ModeName       ::= "scripted" | "compiled" | "native" | "freestanding"
+ModeName       ::= "web" "." ( "scripted" | "compiled" )
+                 | "host" "." ( "scripted" | "dual" | "native" )
+                 | "freestanding"
 NamespaceDecl  ::= "namespace" AbsolutePath ";"
                    (* Associates the file with a module namespace path. §13.0 *)
 
@@ -12278,7 +13554,7 @@ ImportStmt     ::= "from" ModulePath "import" "(" ImportList ")" [ "prefer" "com
                  | "from" ModulePath "defer" "import" "(" ImportList ")"
                    (* Deferred import: creates type stubs resolved after initialization.
                       Breaks module dependency cycles. "prefer compiled" not permitted
-                      on defer imports. Available in scripted, compiled, native. §13.10 *)
+                      on defer imports. Available in all modes except @mode(freestanding). §13.10 *)
                    (* Both forms require a trailing ";" provided by TopLevelItem. *)
 GroupedImportStmt ::= "from" ModulePath "{" GroupedImportList "}"
                    (* Block form — no trailing ";"; appears directly in TopLevelItem. *)
@@ -12289,7 +13565,7 @@ GroupedReExportStmt ::= "pub" "from" ModulePath "{" GroupedImportList "}"
                         (* Block form — no trailing ";"; appears directly in TopLevelItem. *)
 
 ModulePath     ::= RelativePath | AbsolutePath
-RelativePath   ::= "." [ "." ] [ "|" ".." ] [ "." Identifier { "." Identifier } ]
+RelativePath   ::= "." { "." } [ Identifier { "." Identifier } ]
 AbsolutePath   ::= Identifier { "." Identifier }
 
 ImportList     ::= ImportItem { "," ImportItem } [ "," ]
@@ -12355,10 +13631,12 @@ BlockStmt      ::= AnnotatedStmt
                  | SafeBlock
                  | SyncUnsafeBlock
                  | AtomicBlock
-                   (* Valid in @mode(scripted) and @mode(compiled) only.
-                      @mode(native)/@mode(freestanding) usage is E_ATOMIC_NOT_WASM. §17.7 *)
+                   (* Valid in @mode(web.scripted), @mode(web.compiled), @mode(host.scripted),
+                      and @mode(host.dual). @mode(host.native)/@mode(freestanding) usage
+                      is E_ATOMIC_NOT_WASM. §17.7 *)
                  | AsmBlock
-                   (* Valid in @mode(native) and @mode(freestanding) only. §24.7 *)
+                   (* Valid in @mode(web.compiled) (Wasm, @unsafe),
+                      @mode(host.native) (native, @unsafe), and @mode(freestanding). §24.7 *)
                  | FuncDecl
                  | AsyncFuncDecl
                  | GenFuncDecl
@@ -12374,7 +13652,6 @@ ForStmt        ::= [ Label ":" ] "for" "(" VarDecl ";" Expr ";" Expr ")" Block
 ForInStmt      ::= [ Label ":" ] "for" "(" [ "let" | "var" ] DestructPattern "in" Expr ")" Block
 ForAwaitStmt   ::= [ Label ":" ] "for" "await" "(" [ "let" | "var" ] DestructPattern "in" Expr ")" Block
                    (* "let"/"var" are optional; default binding is immutable ("let"). §6.4 *)
-                   (* "let"/"var" are optional; default binding is immutable ("let"). §6.4 *)
 DoWhileStmt    ::= [ Label ":" ] "do" Block "while" "(" Expr ")" ";"
 TryStmt        ::= "try" Block { CatchClause } [ FinallyClause ]
 CatchClause    ::= "catch" "(" TypePattern "as" Identifier ")" Block
@@ -12388,13 +13665,14 @@ SafeBlock         ::= "safe" Block
 SyncUnsafeBlock   ::= "unsafe" "(" StringLiteral ")" Block
 AtomicBlock       ::= "atomic" Block
                       (* No await/spawn inside; see §17.7 for full restriction list.
-                         Valid in @mode(scripted) and @mode(compiled) only.
-                         Usage in @mode(native) or @mode(freestanding) is E_ATOMIC_NOT_WASM. *)
+                         Valid in @mode(web.scripted), @mode(web.compiled),
+                         @mode(host.scripted), and @mode(host.dual) per §2.6.
+                         Usage in @mode(host.native) or @mode(freestanding) is E_ATOMIC_NOT_WASM. *)
 AnnotatedStmt     ::= Annotation { Annotation } BlockStmt
                       (* One or more annotations on a block statement.
                          Use case: @vectorize for (...) { } §8.8, §21.16 *)
 AsmBlock          ::= [ "@unsafe" "(" StringLiteral ")" ] "asm" "{" AsmBody "}"
-                      (* In @mode(native), @unsafe annotation is required. In
+                      (* In @mode(host.native), @unsafe annotation is required. In
                          @mode(freestanding), it is optional (omitting emits asm-unchecked
                          lint). Semantics, operand grammar, and constraint strings: §24.7 *)
 AsmBody           ::= StringLiteral { StringLiteral } [ AsmOps ]
@@ -12448,7 +13726,7 @@ UnaryExpr      ::= ( "-" | "not" | "!" | "bnot" | "typeof" ) UnaryExpr
                  | "box" UnaryExpr
                  | "consume" UnaryExpr
                  | PostfixExpr
-(* box is contextual: treated as BoxExpr only when followed by a valid expression start. *)
+(* box is contextual: treated as the box prefix operator only when followed by a valid expression start. *)
 (* as? is the two-token sequence "as" "?"; parser resolves ambiguity with postfix ? by  *)
 (* context: as? must be immediately followed by a type expression.                       *)
 PostfixExpr    ::= PrimaryExpr { PostfixOp }
@@ -12494,14 +13772,14 @@ PrimaryExpr    ::= Identifier
                       Chains to the direct superclass constructor. §8.4 *)
                  | "reinterpret" "[" Type "," Type "]" "(" Expr ")"
                    (* SourceType = declared type of input expr; TargetType = desired interpretation.
-                      Requires @unsafe. @mode(native) and @mode(freestanding) only. §24.18 *)
+                      Requires @unsafe. Available in all modes (§2.6). §24.18 *)
                  | "reinterpretChecked" "[" Type "," Type "]" "(" Expr ")"
                    (* SourceType = declared type of the input expr; TargetType = desired interpretation.
                       Returns Result[TargetType, AlignmentError]; no @unsafe required. §24.18 *)
                  | "size_of" "[" Type "]" "(" ")"
-                   (* Compile-time size in bytes; @mode(native) and @mode(freestanding). §24.4.1 *)
+                   (* Compile-time size in bytes; @mode(host.native) and @mode(freestanding). §24.4.1 *)
                  | "align_of" "[" Type "]" "(" ")"
-                   (* Compile-time alignment in bytes; @mode(native) and @mode(freestanding). §24.4.1 *)
+                   (* Compile-time alignment in bytes; @mode(host.native) and @mode(freestanding). §24.4.1 *)
                  | MacroInvoke
                    (* Macro invocation: name!(args). §27.11. The "!" sigil
                       distinguishes macro calls from regular function calls. *)
@@ -12536,7 +13814,7 @@ ComprehensionClause ::= "for" "(" DestructPattern "in" Expr ")" { ComprehensionF
 ComprehensionFilter ::= "if" "(" Expr ")"
 ComprehensionFor    ::= "for" "(" DestructPattern "in" Expr ")"
 
-(* Lambda expressions — CaptureList is only valid in @mode(native) files; ARC retain cycles cannot occur in other modes *)
+(* Lambda expressions — CaptureList is valid in @mode(host.dual) and @mode(host.native) files; ARC retain cycles cannot occur in other modes *)
 LambdaExpr     ::= "func" "(" [ ParamList ] ")" [ CaptureList ] ( "=>" Expr | Block )
                | "async" "func" "(" [ ParamList ] ")" [ CaptureList ] ( "=>" Expr | Block )
 
@@ -12589,7 +13867,7 @@ Pattern        ::= "_"
                  | Type "(" Identifier ")"
                  | "borrow" [ "[" "~" Identifier "]" ] Identifier
                    (* Binds a borrow[~name] payload from a lifetime-parameterized
-                      enum variant. Valid in @mode(native) and @mode(freestanding).
+                      enum variant. Available in all modes (§2.6).
                       Example: Token.Word(borrow[~src] w) — §9.1, §23.4.2 *)
                  | Literal
 
@@ -12630,15 +13908,15 @@ BaseType       ::= PrimaryType [ "?" ]
 PrimaryType    ::= "int" | "float" | "bool" | "char" | "string" | "bytes" | "void"
                  | "uint"
                    (* pointer-sized unsigned integer; alias for uint64 on 64-bit targets,
-                      uint32 on 32-bit. Used in @mode(native) and @mode(freestanding)
+                      uint32 on 32-bit. Used in @mode(host.native) and @mode(freestanding)
                       for raw addresses and FFI interop. §4.1 *)
                  | Identifier [ TypeArgs ]
                  | "fn" "(" [ FnTypeParamList ] ")" ":" Type
                  | "async" "fn" "(" [ FnTypeParamList ] ")" ":" Type
                  | "borrow" [ "[" "~" Identifier "]" ] Type
-                   (* non-owning reference type; valid in @mode(native) and
-                      @mode(freestanding) only; "borrow[~name] T" ties the
-                      reference to a declared lifetime region (§23.4.2) *)
+                   (* non-owning reference type; available in all modes (§2.6);
+                      "borrow[~name] T" ties the reference to a declared
+                      lifetime region (§23.4.2) *)
                  | "noescape" "fn" "(" [ FnTypeParamList ] ")" ":" Type
                  | "async" "noescape" "fn" "(" [ FnTypeParamList ] ")" ":" Type
                  | "list" "[" Type "]"
@@ -12646,7 +13924,7 @@ PrimaryType    ::= "int" | "float" | "bool" | "char" | "string" | "bytes" | "voi
                  | "set" "[" Type "]"
                  | "tuple" "[" TypeList "]"
                  | "MaybeUninit" "[" Type "]"
-                   (* Uninitialised-memory wrapper; @mode(native) and @mode(freestanding) only. §24.17 *)
+                   (* Uninitialised-memory wrapper; available in all modes (§2.6). §24.17 *)
                  | "(" Type ")"
 
 TypeArgs       ::= "[" TypeList "]"
@@ -12686,7 +13964,7 @@ Param          ::= [ "reads" | "edits" | "takes" | "shares"
                      tuple and list destructuring in parameter position:
                      func f((x, y): tuple[float, float]) — see §6.8.
                      "borrow[~name]" binds the parameter to a named lifetime region.
-                     Valid only in @mode(native) and @mode(freestanding). §23.4.2 *)
+                     Available in all modes (§2.6). §23.4.2 *)
 
 TypeParams     ::= "[" TypeParam { "," TypeParam } "]"
 TypeParam      ::= [ "out" | "in" ] Identifier [ ":" TypeConstraint ]
@@ -12694,7 +13972,7 @@ TypeParam      ::= [ "out" | "in" ] Identifier [ ":" TypeConstraint ]
                     no annotation = inferred by compiler (default invariant) *)
                  | "lifetime" "~" Identifier
                  (* lifetime parameter — declares a named region for borrow tracking.
-                    Valid only in @mode(native) and @mode(freestanding). See §23.4.2. *)
+                    Available in all modes (§2.6). See §23.4.2. *)
 TypeConstraint ::= Type { "+" Type }
 
 ClassDecl      ::= { Annotation } [ "synchronized" ] [ "unique" ] [ "abstract" ] [ "dynamic" ]
@@ -12784,7 +14062,7 @@ StructField    ::= [ "pub" ] [ "unique" "var" | "var" ] Identifier ":" Type [ "=
                  | [ "pub" ] "borrow" [ "[" "~" Identifier "]" ] Identifier ":" Type
                    (* borrow struct fields hold non-owning references; no default values.
                       "borrow[~name]" ties the field to a named lifetime region (§23.4.2).
-                      Valid only in @mode(native) and @mode(freestanding). *)
+                      Available in all modes (§2.6). *)
 
 TypeAliasDecl  ::= [ "pub" ] "type" Identifier [ TypeParams ] "=" Type
 
@@ -12863,19 +14141,19 @@ For any valid Loom source text, parsing it into an AST and then pretty-printing 
 
 ### §27.12 Syntactic Grammar — Additional Productions
 
-*(CastExpr is fully defined in §27.5 as part of the canonical expression hierarchy. BoxExpr is fully defined in §27.5 UnaryExpr. §27.12 contains additional productions not covered in §27.5.)*
+*(CastExpr is fully defined in §27.5 as part of the canonical expression hierarchy. The `box` prefix operator is fully defined in §27.5 UnaryExpr. §27.12 contains additional productions not covered in §27.5.)*
 
 #### Field Qualifier Keywords
 
 *(FieldDecl is fully defined in §27.8. The qualifier forms `weak` and `unowned[~name]` are inlined there.)*
 
-`unowned[~name]` is valid in `@mode(native)` and `@mode(freestanding)` files. Bare `unowned` (without a lifetime annotation) on a class field is `E_UNOWNED_NO_LIFETIME`. The class must carry `[lifetime ~name]` as a class-level lifetime parameter.
+`unowned[~name]` is valid in `@mode(host.native)` and `@mode(freestanding)` files. Bare `unowned` (without a lifetime annotation) on a class field is `E_UNOWNED_NO_LIFETIME`. The class must carry `[lifetime ~name]` as a class-level lifetime parameter.
 
 #### Operator Method Modifier
 
 *(MethodDecl, OperatorMethodDecl, and OperatorSymbol are fully defined in §27.8. Operator methods use the form `[ "modifier" ] "operator" "func" OperatorSymbol ...` as a separate production from regular method declarations.)*
 
-*(CaptureList and CaptureItem are now defined in §27.5 as part of the canonical LambdaExpr production. Capture lists are valid only in `@mode(native)` files; the compiler emits a compile-time error otherwise.)*
+*(CaptureList and CaptureItem are now defined in §27.5 as part of the canonical LambdaExpr production. Capture lists are valid in `@mode(host.dual)` and `@mode(host.native)` files; the compiler emits a compile-time error otherwise.)*
 
 #### `ui` Fence Language Descriptor
 
@@ -12957,7 +14235,7 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 | `()` `[]` `.` `?.` `!{}` `?.[` | 1 | Call, index, member access | §5.1 |
 | `typeof` | 2 | Type-of operator | §4.7 |
 | `-` (unary) `not` `!` `bnot` | 3 | Unary operators | §5.1 |
-| `box` `consume` | 4 | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | §4.3, §23.4.7 |
+| `box` `consume` | 4 | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(host.native)` or `@mode(host.dual)`) | §4.3, §23.4.7 |
 | `**` | 5 | Exponentiation | §5.1 |
 | `*` `/` `//` `%` | 6 | Multiplicative / floor division | §5.1 |
 | `+` `-` | 7 | Additive | §5.1 |
@@ -12986,16 +14264,18 @@ StyleBodyInterpolation  ::= (* PROHIBITED — compile-time error *)
 
 ### §27.14 Syntactic Grammar — v1.14 Additions
 
-*(This section is normative. Applies to `@mode(native)` and `@mode(freestanding)`. Productions new in v1.14.)*
+*(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)`. Productions new in v1.14.)*
 
-**Mode directive:**
+**Mode directive (historical — v1.14 form):**
 
 ```
 mode_directive ::= '@mode' '(' mode_name ')'
-mode_name      ::= 'scripted' | 'compiled' | 'native' | 'freestanding'
+mode_name      ::= 'scripted' | 'compiled' | 'native' | 'freestanding'    (* v1.14 — superseded *)
 ```
 
 Valid only as the first non-comment, non-blank token in a source file.
+
+*Note:* The v1.14 `mode_name` production above is preserved for historical record. The canonical v1.17 grammar uses the dotted form (`web.scripted`, `web.compiled`, `host.scripted`, `host.dual`, `host.native`, `freestanding`) — see the `ModeDirective`/`ModeName` productions in §27.2, which are the authoritative normative grammar.
 
 **`arc let` / `arc var`:**
 
@@ -13075,7 +14355,7 @@ param_modifier  ::= 'reads' | 'edits' | 'takes' | 'shares'
 param_decl      ::= param_modifier? IDENT ':' type
 ```
 
-The first four productions are the v1.15 verb system. The remainder are retained for backward compatibility in `@mode(native)` and `@mode(freestanding)`.
+The first four productions are the v1.15 verb system. The remainder are retained for backward compatibility in `@mode(host.native)` and `@mode(freestanding)`.
 
 **Verb acknowledgment at call sites (§23.4.9):**
 
@@ -13128,12 +14408,31 @@ stmt            ::= ... | safe_block
 **`synchronized` class declaration (§23.4.13):**
 
 ```
-class_decl_mod  ::= ('synchronized')? ('unique')? ('abstract')? ('dynamic')?
+class_decl_mod  ::= ('synchronized')? ('local' | 'shared')? ('unique')? ('abstract')? ('dynamic')?
 class_decl      ::= class_decl_mod 'class' IDENT type_params? (':' type)?
                     ('implements' type_list)? '{' class_body '}'
 ```
 
 `synchronized` is not valid in `@mode(freestanding)`. `synchronized unique`, `synchronized abstract`, and `synchronized dynamic` are mutually exclusive compile-time errors.
+
+**Memory-strategy modifier (v1.18).** The optional `'local' | 'shared'` modifier selects the class's memory strategy (§8.1.1). If omitted, the class defaults to `local`. The modifier is mutually exclusive with the opposing strategy — both `local` and `shared` together is a parse error (`E_PARSE_DUAL_STRATEGY`). `shared unique` is `E_UNIQUE_SHARED`; `shared dynamic` is `E_SHARED_DYNAMIC`. `local` combines with all other modifiers.
+
+**Shared-constructor expression (v1.18).** A `shared class` instance is allocated with the `shared` keyword prefix on the constructor call:
+
+```
+shared_expr     ::= 'shared' ('(' expr ')')? type_name arg_list
+                    (* type_name must name a `shared class` type *)
+                    (* optional ( expr ) argument is a SharedRef[SharedArena] *)
+                    (* without the optional arena, allocation uses the current
+                       context's default arena per §17b.5 *)
+```
+
+Examples:
+
+- `shared Vertex(1.0, 2.0, 3.0)` — allocate in default arena
+- `shared(myArena) Vertex(4.0, 5.0, 6.0)` — allocate in specific arena
+
+The `shared` prefix is a compile-time marker; `shared T(...)` evaluates to `SharedRef[T]`. Applying `shared` to a non-`shared class` type is `E_SHARED_ON_LOCAL`. Omitting the `shared` prefix when calling a `shared class` constructor is `E_SHARED_MISSING_PREFIX`.
 
 The `class_decl_mod` production was introduced in §27.14 to replace the production formerly named `modifier`, avoiding conflict with the `modifier` method declaration keyword.
 
@@ -13157,7 +14456,7 @@ atomic_block    ::= 'atomic' '{' stmt* '}'
 stmt            ::= ... | atomic_block
 ```
 
-`atomic` is a new reserved keyword. Usage in `@mode(native)` or `@mode(freestanding)` is `E_ATOMIC_NOT_WASM`.
+`atomic` is a new reserved keyword. Usage in `@mode(host.native)` or `@mode(freestanding)` is `E_ATOMIC_NOT_WASM`.
 
 **`reinterpretChecked[T, U]` expression (§24.18):**
 
@@ -13223,6 +14522,12 @@ The `PanicSource` enum is a new built-in enum type available in `@mode(freestand
 |---|---|---|
 | `atomic` | §17.7 | Reserved in all modes; only usable in scripted/compiled |
 
+### §27.17 Syntactic Grammar — v1.17 Additions
+
+*(This section is normative. Applies to all modes unless noted.)*
+
+v1.17 adds no new grammar rules beyond the dotted `ModeName` form (§2.5.1). The `ModeDirective` production was updated in §27.2 to accept the new `web.scripted` / `web.compiled` / `host.scripted` / `host.dual` / `host.native` / `freestanding` mode names.
+
 ---
 
 ## §28 Tooling
@@ -13239,8 +14544,8 @@ The `PanicSource` enum is a new built-in enum type available in `@mode(freestand
 loom build --target browser         # Wasm module for browser
 loom build --target cli             # Wasm module for CLI
 loom build --target service         # Wasm module for server
-loom build --target desktop         # Native desktop app (requires @mode(native))
-loom build --target native          # Native binary (requires @mode(native))
+loom build --target desktop         # Native desktop app (requires @mode(host.native) or @mode(host.dual))
+loom build --target native          # Native binary (requires @mode(host.native) or @mode(host.dual))
 loom build --target native --lib shared   # Shared library
 loom build --target native --lib static   # Static library
 loom build --target freestanding --arch x86_64   # Freestanding kernel/bare-metal
@@ -13692,7 +14997,7 @@ The reference toolchain provides language-server diagnostics (LSP) for IDE integ
 
 ### §28.9 Hardware Management Commands
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
+*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
 
 Hardware management commands (`loom hardware detect`, `loom hardware compile`,
 `loom hardware list`) are available when hardware backend packages are
@@ -13738,7 +15043,7 @@ Loom is a single language and semantic model. There are no separate beginner and
 - Dynamic objects (`dynamic class`, `!{}`)
 - Generators and `yield`
 - Decorators
-- `@mode(compiled)`, `@mode(native)`, `@mode(freestanding)` — execution modes (§2.4)
+- `@mode(web.compiled)`, `@mode(host.dual)`, `@mode(host.native)`, `@mode(freestanding)` — execution modes (§2.4)
 - `safe {}` / `safe func` — compile-time shared-XOR-mutable enforcement (§23.4.12)
 - `synchronized` class — runtime-locked mutation for async and multi-threaded contexts (§23.4.13)
 - `requires distinct()` — parameter disjointness contracts (§23.4.10)
@@ -13796,9 +15101,10 @@ The following features are under consideration for future versions of the Loom s
 - **Algebraic effects.** First-class effect handlers as an alternative to exceptions and async.
 
 - **Async work-stealing tuning.** Adaptive work-stealing strategies and executor affinity hints for NUMA-aware scheduling.
+- **Cycle-tolerant class kind details.** (`traced class` entry above.) Design details: an opt-in class modifier that commits to tracing-GC semantics in scripted and web modes — cycles are automatically reclaimed, finalizer timing is non-deterministic, scripted-only deployment. Deferred from v1.18 pending evidence of user demand beyond what manual `weak`-based cycle breaking provides.
 - **User-module incremental compilation cache.** Persistent caching of compiled Wasm artifacts for user-authored modules (not just installed packages) across `loom run` invocations.
 - **`net.ws` browser target.** Native `net.ws` client support on the `browser` target (currently uses `lang.interop.js` bridge).
-- **`ThreadLocal[T]` on Wasm.** Emulated thread-local storage for multi-threaded Wasm (threads proposal) when available.
+- **`ThreadLocal[T]` on Wasm.** Now partially addressed in v1.18 via `SharedRef[T]` and shared-arena allocation; a full `ThreadLocal` emulation remains future work for cases where per-context storage is specifically desired rather than shared storage.
 - **`loom.db` driver ecosystem.** Reference driver implementations for PostgreSQL, SQLite, and MySQL under the `loom.db.*` namespace.
 - **`loom.ai` ecosystem.** Expand provider sub-packages and add `loom.ai.embeddings`, `loom.ai.vision`, and structured agent-loop primitives built on the actor model (§17.6) and portal debug infrastructure (§6.7).
 - **TPU `ptx`-equivalent fence.** A `triton` or `mosaic` fence descriptor for authoring TPU kernels in a higher-level IR without writing raw StableHLO.
@@ -13807,16 +15113,1046 @@ The following features are under consideration for future versions of the Loom s
 - **Int4 / FP8 dtypes.** `DType.Int4`, `DType.Float8E4M3`, `DType.Float8E5M2` for next-generation quantised inference on NVIDIA Hopper, AMD CDNA3, and TPU v5+.
 - **Distributed tensor ops.** `loom.tensor.distributed` — multi-device tensor sharding, all-reduce, and pipeline parallelism primitives.
 - **`loom.backend.tpu.pjrt` auto-discovery.** Automatic detection of third-party PJRT plugins from standard install paths without requiring `PJRT_PLUGIN_PATH`.
+- **Streaming serialization.** Extension of §32.10 `FormatDriver` with full streaming contracts — chunked encoding, progressive validation, partial-value emit, and back-pressure handling. The `StreamingFormat` sub-interface is declared in v1.18 but its contract is thin; a future revision pins down streaming semantics for each format-driver category.
+- **IDL / schema generation.** A `loom schema export --format proto|fbs|openapi|...` command that produces wire-format schema files from `Serializable` types. Enables cross-language interop where the peer ecosystem consumes a schema file (Python/TypeScript/Rust) rather than importing Loom's type graph directly.
+- **Cross-language type-mapping registry.** A normative mapping from Loom types (`int32`, `decimal`, `Instant`, `Option[T]`, `Result[T, E]`, etc.) to equivalent types in Python, TypeScript, Rust, Go, and JVM languages, to aid interop library authors.
+- **RPC library (`loom.rpc`).** A first-party package building on §32 for request/response framing, timeout/retry semantics, bidirectional streaming, service discovery, and automatic exception forwarding via `RemoteException`. Will integrate with `debug.mcp` for agent-accessible RPC inspection.
+- **Content-addressed data store (`loom.content`).** Built on the `deterministic: true` mode of §32.10 `EncodeConfig` — a persistent key-value store keyed by blake3 hash of the canonicalised `Value` representation. Enables cache-like semantics, Merkle-style data structures, and signed-data workflows without per-project encoding conventions.
+- **Partial deserialization / lazy fields.** Annotation (`@lazy`) for fields whose deserialization is deferred until first access. Reduces deserialization cost for large values where most fields are never read.
+- **Cycle-tolerant class kind (`traced class`).** Previously noted: an opt-in class modifier that commits to tracing-GC semantics in scripted and web modes for cyclic data structures.
 
 
 ---
 
 ## §31 Hardware Backend Lifecycle
 
-*(Non-normative. Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_10.md).)*
+*(Non-normative. Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
 
 The hardware backend lifecycle (detection, compilation, registration, staleness
 policy) is described in the Packages Reference §31.
+
+## §32 Serialization Foundation
+
+*(This section is normative. It specifies the foundational contracts that
+wire-format packages (JSON, MessagePack, CBOR, Protobuf, etc.) and RPC
+libraries build upon. This section does NOT specify any particular wire
+format — those are shipped as separate packages. It also does NOT specify
+an RPC protocol — that is left to future work. The goal of this chapter is
+to fix the shape of the serialization surface so that all future
+serialization work in the Loom ecosystem is interoperable.)*
+
+### §32.1 Overview and Design Principles
+
+Loom's serialization foundation rests on six design principles:
+
+1. **Trait-based, not reflection-based.** Types opt into serialization by
+   implementing `Serializable` and/or `Deserializable`. The compiler can
+   auto-derive implementations from type declarations (§32.4) but never
+   serializes a type that has not been marked. This eliminates the entire
+   class of deserialization-as-code-execution vulnerabilities that have
+   plagued reflection-based systems.
+
+2. **Format-agnostic intermediate representation.** Every `Serializable`
+   type knows how to produce a `Value` (§32.2) — a tagged union covering the
+   information categories that every reasonable wire format supports. Each
+   format driver knows how to lower `Value` to its bytes. This decouples
+   type authors from format authors.
+
+3. **Strict composition.** A type is `Serializable` only if all of its
+   serialized fields are `Serializable`. There is no "best effort" or
+   silent field omission. If a class contains a field of a non-serializable
+   type, the class author must either mark the field `@skip`, provide a
+   manual `toValue`/`fromValue` implementation, or wrap the field in a
+   serializable adapter type.
+
+4. **Polymorphism preserves identity.** A value serialized as a subclass
+   of its declared type can be reconstructed as that subclass, provided the
+   receiver has registered the subclass as `Deserializable`. The default
+   is structural (declared-type fields only); polymorphism is opt-in via
+   `@polymorphic` or `@tagged(...)`. `BaseException` and all its subclasses
+   are implicitly `@polymorphic` — this is a language-level guarantee.
+
+5. **Evolution is explicit.** Adding a field with a default, adding an
+   enum variant, and renaming-with-alias are all forward-compatible. Every
+   other change is explicitly breaking, and the type author must bump the
+   type's URI major version (§32.5) to reflect that.
+
+6. **Security by construction.** Deserialization can only construct types
+   registered as `Deserializable`. Unknown type URIs produce controlled
+   errors, never silent fallbacks. Input size and depth are bounded by the
+   format driver. No field initializers or constructors run during
+   deserialization except the explicit deserialization path.
+
+**Scope.** The foundation specifies:
+
+- The `Value` intermediate representation
+- The `Serializable` / `Deserializable` traits
+- Auto-derivation rules for classes, structs, enums
+- Type URI format and the `@serializationId` annotation
+- Polymorphism via `@polymorphic` and `@tagged`
+- Field-level annotations
+- Compatibility rules for type evolution
+- The Exception serialization contract including `RemoteException`
+- The format driver protocol
+- The security model
+
+The foundation does NOT specify:
+
+- Any specific wire format (JSON, MessagePack, etc. — these are packages)
+- Streaming or chunked serialization (future work)
+- Schema languages (IDLs) or cross-language code generation (future work)
+- RPC semantics, versioning, or transports (future work)
+
+### §32.2 The `Value` Intermediate Representation
+
+Every `Serializable` type converts to and from a value of type `core.serialization.Value`:
+
+```loom
+namespace core.serialization;
+
+pub enum TemporalKind {
+  Instant;          // moment in time (UTC)
+  DateTime;         // calendar date + time with offset
+  Date;             // calendar date (no time)
+  Time;             // time of day (no date)
+  Duration;         // elapsed time (signed)
+}
+
+pub enum Value {
+  Null;
+  Bool(bool);
+  Int(int64);
+  UInt(uint64);
+  BigInt(bigint);
+  Float32(float32);
+  Float64(float64);
+  Decimal(decimal);
+  String(string);
+  Bytes(bytes);
+  List(list[Value]);
+  Map(list[(Value, Value)]);              // ordered — preserves insertion order
+  Variant { tag: string; fields: Value }; // enum-with-payload
+  Tagged { typeUri: string?; value: Value }; // optional type identity
+  Temporal { kind: TemporalKind; repr: Value }; // calendar types
+}
+```
+
+**Design notes:**
+
+- **No `Any`.** Serialization of `Any` requires explicit `@polymorphic` with a concrete type registry; there is no wildcard escape.
+- **Distinct `Float32` / `Float64`.** Some formats (Protobuf, CBOR) distinguish these; preserving the distinction avoids precision loss on round-trip.
+- **Distinct `Int` / `UInt` / `BigInt`.** Arbitrary-precision integers are first-class — no "string-encoded integer" kludge is permitted at this layer.
+- **`Decimal` is first-class.** Financial systems require exact decimal semantics; a float-based representation would silently corrupt values.
+- **`Bytes` is first-class.** Binary blobs must not be string-encoded at this layer (formats may base64 them as they see fit).
+- **`Map` preserves order.** JSON objects nominally don't, but every major JSON library does preserve insertion order, and deterministic serialization matters for content-addressed storage, cryptographic signing, and cache keys.
+- **`Variant` separates tag from payload.** This matches the enum memory model and serializes cleanly to tagged wire representations (Protobuf `oneof`, JSON `{"type": "...", "payload": ...}`, etc.).
+- **`Tagged` optionally carries a type URI.** Used by `@polymorphic` types; absent for structurally-serialized types.
+- **`Temporal` is structured.** Date/time types are infamously mishandled in serialization. A structured representation prevents "accidentally a string" bugs and enables format-appropriate encoding (RFC 3339 for JSON, numeric nanoseconds for Protobuf, native `tag 0/1` for CBOR).
+
+**Helper methods:**
+
+```loom
+namespace core.serialization;
+
+class Value {
+  // Type predicates
+  pub func isNull(): bool;
+  pub func isScalar(): bool;    // primitives only (no collections/variants)
+  pub func isCollection(): bool; // List, Map
+  pub func kind(): ValueKind;
+
+  // Safe accessors — return Option, never throw
+  pub func asBool(): Option[bool];
+  pub func asInt64(): Option[int64];
+  pub func asFloat64(): Option[float64];
+  pub func asString(): Option[string];
+  pub func asBytes(): Option[bytes];
+  pub func asList(): Option[list[Value]];
+  pub func asMap(): Option[list[(Value, Value)]];
+
+  // Path navigation for ergonomic access (e.g. for hand-written parsers)
+  pub func get(key: string): Option[Value];   // Map lookup
+  pub func at(index: int): Option[Value];     // List lookup
+  pub func path(path: string): Option[Value]; // "a.b.c" dotted notation
+}
+
+pub enum ValueKind {
+  Null; Bool; Int; UInt; BigInt; Float32; Float64; Decimal;
+  String; Bytes; List; Map; Variant; Tagged; Temporal;
+}
+```
+
+### §32.3 `Serializable` and `Deserializable` Traits
+
+Two trait interfaces form the core contract:
+
+```loom
+namespace core.serialization;
+
+pub interface Serializable {
+  // Convert this value to a Value. MUST be pure (no side effects) and
+  // deterministic (same input produces same output). MUST NOT throw
+  // under normal conditions; any failure indicates a programming error
+  // and the implementation MUST raise SerializationError.
+  func toValue(): Value;
+
+  // The type URI of this instance's dynamic type (§32.5). For non-
+  // polymorphic types, MAY return None; for @polymorphic types MUST
+  // return the correct URI for the instance's dynamic type.
+  func serializationId(): Option[string];
+}
+
+pub interface Deserializable {
+  // Construct an instance of this type from a Value. MUST be pure and
+  // idempotent: fromValue(x.toValue()) SHALL produce a value equivalent
+  // to x for all x of this type.
+  //
+  // Throws DeserializationError on schema mismatch, field mismatch,
+  // or any violation of the type's invariants.
+  static func fromValue(v: Value): Self;
+
+  // The type URI this type deserializes. Used by polymorphic dispatch
+  // (§32.6) to locate the deserializer for a given incoming type URI.
+  static func serializationId(): string;
+}
+```
+
+**Self-type in `Deserializable`.** `Self` refers to the implementing type.
+This is the only place in the Loom type system where `Self` appears as a
+return type of a static method; the compiler emits the appropriate
+dispatch to the concrete implementation.
+
+**Symmetry.** A type MAY implement `Serializable` without `Deserializable`
+(write-only, e.g. log records with constructor-computed fields that
+cannot be round-tripped). A type MAY implement `Deserializable` without
+`Serializable` (read-only, e.g. parsing an external format where
+serialization is handled separately). A type that implements both is
+called **round-trip serializable** and its implementations MUST satisfy
+the idempotence rule above.
+
+**Compile-time strict composition.** If a class declares
+`implements Serializable` and contains a serialized field of a type that is
+not `Serializable`, the compiler emits `E_FIELD_NOT_SERIALIZABLE` pointing
+at the offending field. The type author resolves this by one of:
+
+- Marking the field `@skip` (it will not be serialized; deserialization
+  uses the field's default).
+- Providing a `@serialVia[Adapter]` annotation pointing at a
+  `SerializationAdapter[T]` that converts the field's type to a
+  `Serializable` type.
+- Making the field's type `Serializable`.
+- Writing a manual `toValue()` implementation and using `@manual` on the
+  class declaration to opt out of auto-derivation.
+
+The same rule applies to `Deserializable`. A class cannot silently ship
+with partially-working serialization.
+
+**Serialization adapters.** For fields whose types are not directly
+`Serializable` (e.g., external types from packages the author doesn't own),
+users provide adapters:
+
+```loom
+namespace core.serialization;
+
+pub interface SerializationAdapter[T] {
+  static func toValue(value: T): Value;
+  static func fromValue(v: Value): T;
+}
+
+// Usage:
+class PaymentRecord implements Serializable, Deserializable {
+  let id: string;
+  let amount: decimal;
+  @serialVia[LegacyTimestampAdapter]
+  let createdAt: LegacyTimestamp;  // not Serializable on its own
+}
+
+class LegacyTimestampAdapter implements SerializationAdapter[LegacyTimestamp] {
+  static func toValue(value: LegacyTimestamp): Value {
+    return Value.Int(value.epochMillis);
+  }
+  static func fromValue(v: Value): LegacyTimestamp {
+    match v {
+      Value.Int(ms) => return LegacyTimestamp.fromEpochMillis(ms);
+      _ => throw DeserializationError("expected integer for LegacyTimestamp");
+    }
+  }
+}
+```
+
+Adapters are the clean escape hatch for third-party types and legacy
+integrations, and they preserve strict composition at the type-checker level.
+
+### §32.4 Auto-Derivation Rules
+
+For the common case — classes and structs whose fields are all
+`Serializable` / `Deserializable` — the compiler auto-derives the trait
+implementations when the type declares `implements Serializable`,
+`implements Deserializable`, or both:
+
+```loom
+class User implements Serializable, Deserializable {
+  let id: string;
+  let email: string;
+  let createdAt: Instant;
+  let roles: list[string];
+}
+// No explicit toValue / fromValue required — compiler generates both.
+```
+
+**Derivation output for classes and structs.** The generated `toValue()`
+produces a `Value.Map` whose entries are `(Value.String(fieldName),
+fieldValue.toValue())` in source-declaration order. Fields marked `@skip`
+are excluded. Fields marked `@alias("wireName")` use the alias as their key.
+`@skipIfDefault` fields are omitted when equal to their declared default.
+
+The generated `fromValue()` matches the incoming `Value.Map` entries
+against the type's fields and invokes the field types' `fromValue`
+methods. Unknown keys are handled per §32.8. Missing required keys throw
+`DeserializationError`.
+
+**Derivation output for enums.** Enum variants with no payload serialize
+as `Value.String(variantName)`. Variants with a payload serialize as
+`Value.Variant { tag: variantName, fields: payloadAsValue }`. Enum
+derivation automatically handles both cases and produces the matching
+`fromValue`.
+
+**Derivation output for tuples.** A tuple `(A, B, C)` where A, B, C are
+all `Serializable` serializes as `Value.List([a.toValue(), b.toValue(),
+c.toValue()])`. Deserialization reverses this.
+
+**Derivation output for `Option[T]` and `Result[T, E]`.** `None` serializes
+as `Value.Null`; `Some(v)` serializes as `v.toValue()`. `Ok(v)` serializes
+as `Value.Variant { tag: "Ok"; fields: v.toValue() }`; `Err(e)` as
+`Value.Variant { tag: "Err"; fields: e.toValue() }`.
+
+**Derivation for `shared class`.** A `shared class` whose fields are all
+`Serializable` may opt into auto-derivation via `implements Serializable`
+identically to `local class`. The `toValue()` output is byte-compatible
+with a structurally-equivalent `local class` — serialization is
+memory-strategy-agnostic (see §32.12). `shared class` instances are
+auto-derived as `Shareable` separately from `Serializable`; the two traits
+are orthogonal.
+
+**Inheritance.** When a class inherits from a class that implements
+`Serializable`, the subclass's auto-derived `toValue` includes the
+superclass's serialized fields first (in declaration order), followed by
+the subclass's own fields. For polymorphic dispatch, the subclass's
+`serializationId()` returns the subclass's URI.
+
+**Generic types.** A generic class can be conditionally serializable —
+`Box[T]` implements `Serializable` if and only if `T` does. This mirrors
+the conditional-`Sendable` mechanism (§17.8.1). Declare the conditional
+implementation with a `where` clause:
+
+```loom
+class Box[T] : Any
+  implements Serializable   where T: Serializable,
+  implements Deserializable where T: Deserializable
+{
+  pub let value: T;
+  new(value: T) { this.value = value; }
+}
+```
+
+Under the conditional implementation:
+
+- `Box[int]` is `Serializable` and `Deserializable` (int satisfies both).
+- `Box[User]` is `Serializable`/`Deserializable` iff `User` is.
+- `Box[LocalFileHandle]` is neither, if `LocalFileHandle` is not serializable.
+
+**Conditional-trait declaration syntax.** The `implements` clause on a
+generic type may be constrained by `where` to apply only for certain type
+argument combinations:
+
+```loom
+class Box[T] implements Serializable where T: Serializable,
+                    implements Deserializable where T: Deserializable {
+  pub let value: T;
+  new(value: T) { this.value = value; }
+}
+```
+
+Each `implements` clause may carry its own `where` constraint. A type
+argument that satisfies the constraint participates in that implementation;
+one that does not, does not. This is resolved at compile time when the
+generic is instantiated.
+
+Stdlib generic container types (`list[T]`, `dict[K, V]`, `set[T]`,
+`Option[T]`, `Result[T, E]`, tuples, `SharedRef[T]`, `Atomic[T]`) all have
+pre-declared conditional `Serializable` / `Deserializable` implementations
+of this form — no user declaration is needed to serialize a `list[User]`
+or a `SharedRef[Config]` once `User` / `Config` are themselves serializable.
+
+**Opt-out from auto-derivation.** A class with `@manual` on its declaration
+retains the `implements Serializable` declaration but does not get an
+auto-derived body; the user must provide `toValue`/`fromValue` manually.
+
+### §32.5 Type Identity and URIs
+
+Every polymorphic type has a **type URI** — a globally unique, version-
+scoped name that identifies the type on the wire. The canonical form is:
+
+```
+<package-name>/<module-path>/<type-name>@<major-version>
+```
+
+**Examples:**
+- `loom.http/errors/HttpConnectionError@2`
+- `myapp/models/User@1`
+- `loom.stdlib/core/Option@1`
+
+**Field meanings:**
+
+- `<package-name>` — the package name from `.lmpkg`. For stdlib types,
+  this is `loom.stdlib`. For user-project types with no published package
+  (running locally), this is `_local_` followed by the first 16 lowercase
+  hex characters of SHA-256 applied to the absolute path of the project's
+  `.lmpkg` file — e.g., `_local_3a7b9c2d4e6f1a8b`. This prevents URI
+  collisions when developers share serialized data across machines with
+  independent projects, at the cost of a URI that changes if the project
+  moves on disk. Packages that eventually publish (assign a real package
+  name) become wire-incompatible with their `_local_*` predecessor — this
+  is intentional; users who need wire stability across the publish boundary
+  declare `@serializationId` explicitly from the start.
+- `<module-path>` — dotted path from package root to the declaring module,
+  e.g. `errors` for a module at `src/errors.loom` or `net.http.errors` for
+  nested modules.
+- `<type-name>` — the declared type name.
+- `<major-version>` — a monotonically increasing integer matching the
+  type's major-version number. Starts at 1. Bumped when a breaking change
+  is made to the type (per §32.8).
+
+**Automatic URIs.** The compiler automatically assigns a type URI to
+every `Serializable` type with major-version 1. Users bump the version
+explicitly when making breaking changes (see §32.8).
+
+**Explicit URIs via `@serializationId`.** Users can override a type's URI
+for cross-language interop or for renaming a type without breaking
+wire compatibility:
+
+```loom
+@serializationId("com.example.auth/User@3")
+class User implements Serializable, Deserializable {
+  // ...
+}
+```
+
+The explicit URI must match the canonical format (package/module/name@version)
+and must be unique within the project. The compiler emits
+`E_SERIAL_URI_COLLISION` if two types declare the same URI.
+
+**URI stability rules.**
+
+- The URI MUST NOT change for non-breaking edits (adding an optional field
+  with a default, renaming a field with `@alias`, reordering fields).
+- The URI's major-version MUST be bumped for breaking edits (removing a
+  field, renaming without alias, changing a field's type incompatibly).
+- A type that rolls out with multiple coexisting versions publishes both
+  URIs and deserialization logic for both — typically by declaring the
+  old type `@deprecated` and providing a migration function.
+
+**URI resolution.** When a deserializer receives a `Value.Tagged` with a
+URI, it consults its type registry to find the matching `Deserializable`
+implementation. The registry is populated at compile time from all
+`Deserializable` declarations visible to the compiled module. A URI with
+no registered handler is handled per the polymorphism rules (§32.6) — for
+exceptions, it becomes `RemoteException`; for other polymorphic families,
+it produces `UnknownTypeError`.
+
+### §32.6 Polymorphic Serialization
+
+The default serialization behavior is **structural**: a value's static
+(declared) type determines what gets serialized. A `list[Exception]`
+with `IoError` and `TimeoutError` elements would, under structural rules,
+lose the subclass distinction.
+
+**Polymorphic types** carry their dynamic type identity on the wire. A
+type opts into polymorphism in one of two ways:
+
+**`@polymorphic` annotation.** Placed on a class declaration, marks the
+class and all its subclasses as polymorphic. Serialized instances are
+wrapped in `Value.Tagged` carrying the dynamic type's URI:
+
+```loom
+@polymorphic
+class Shape implements Serializable, Deserializable {
+  let color: string;
+}
+
+class Circle : Shape {
+  let radius: float64;
+}
+
+class Rectangle : Shape {
+  let width: float64;
+  let height: float64;
+}
+```
+
+A `list[Shape]` containing a `Circle` and a `Rectangle` serializes as:
+
+```
+Value.List([
+  Value.Tagged {
+    typeUri: "myapp/shapes/Circle@1",
+    value: Value.Map([("color", "red"), ("radius", 5.0)])
+  },
+  Value.Tagged {
+    typeUri: "myapp/shapes/Rectangle@1",
+    value: Value.Map([("color", "blue"), ("width", 3.0), ("height", 4.0)])
+  }
+])
+```
+
+Deserialization dispatches on the URI to reconstruct the correct subclass.
+
+**`@tagged(discriminator)` annotation.** Places the type tag inside the
+serialized `Value.Map` as a named field rather than wrapping in
+`Value.Tagged`. This matches how many wire formats (Protobuf `oneof`,
+JSON discriminated unions) conventionally represent polymorphism:
+
+```loom
+@tagged("kind")
+class Event implements Serializable, Deserializable {
+  let timestamp: Instant;
+}
+
+class LoginEvent : Event {
+  let userId: string;
+}
+```
+
+A `LoginEvent` under `@tagged("kind")` serializes as:
+
+```
+Value.Map([
+  ("kind", "myapp/events/LoginEvent@1"),
+  ("timestamp", Value.Temporal { ... }),
+  ("userId", "u123")
+])
+```
+
+The `@tagged` form is friendlier for JSON consumers; the `@polymorphic`
+form is more efficient for binary formats with native tagging.
+
+**Implicit polymorphism for `BaseException`.** All `BaseException`
+subclasses are implicitly `@polymorphic`. This is a language-level rule
+that cannot be overridden — exceptions always carry their dynamic type on
+the wire. See §32.9 for details.
+
+**Sealed polymorphism.** Enum types are implicitly polymorphic without
+annotation: their variant tag IS the dynamic type identity. No `@polymorphic`
+is needed.
+
+**Registry bounds for deserialization.** A `@polymorphic` family's
+deserialization registry includes exactly those subclasses registered as
+`Deserializable` at the receiver's compile time. An incoming URI not in
+the registry is `UnknownTypeError` (for user types) or produces
+`RemoteException` (for `BaseException` subclasses).
+
+**Closed polymorphism with `@sealed`.** Users may declare a polymorphic
+hierarchy `@sealed` to indicate that all valid subclasses are known at
+compile time. Deserialization of an unknown URI in a sealed hierarchy is
+a hard error (`DeserializationError`), not an unknown-type fallback.
+Sealed hierarchies are appropriate for internal data models; open
+hierarchies are appropriate for protocols designed for third-party
+extension.
+
+### §32.7 Field-Level Annotations
+
+The following annotations control per-field serialization behavior:
+
+**`@serialField(name: string)`** — Alias for `@alias`; overrides the wire
+name of a field. Useful for matching external schemas or legacy data.
+
+```loom
+class User implements Serializable, Deserializable {
+  @serialField("user_id")
+  let id: string;
+
+  @serialField("email_address")
+  let email: string;
+}
+```
+
+**`@alias(name: string, ...)`** — One or more additional names the
+deserializer accepts for a field. The primary serialized name remains the
+field's declared name (unless `@serialField` also applies). Used during
+schema migrations.
+
+```loom
+class User implements Serializable, Deserializable {
+  @alias("username", "user_name")    // accepts both on read
+  let name: string;                   // writes as "name"
+}
+```
+
+**`@skip`** — The field is not serialized. On deserialization the field
+receives its declared default. A field marked `@skip` with no default
+causes `E_SKIP_NO_DEFAULT` at compile time.
+
+**`@skipIfDefault`** — The field is omitted from serialization when its
+value equals the declared default. Useful for reducing wire size for
+optional-ish fields.
+
+**`@sensitive`** — Marks a field as containing sensitive data (passwords,
+tokens, PII). Format drivers SHOULD redact sensitive fields in debug
+output; compliant drivers MUST provide a mode flag to serialize or omit
+them entirely. The default mode is **include-and-mark**: the field is
+serialized normally, but the format driver attaches out-of-band metadata
+flagging it. Drivers targeting logging or debugging contexts SHOULD
+replace sensitive values with a redacted marker. RPC bodies sent across
+network boundaries SHALL include them unless the caller opts into
+sensitivity-aware serialization.
+
+**`@serialVia[Adapter]`** — Specifies a serialization adapter for the
+field (§32.3). The adapter converts the field's non-serializable type to
+and from a `Value`.
+
+**`@deprecated(reason: string)`** — Marks a field as deprecated. Does not
+affect serialization behavior but emits a lint warning when the field is
+accessed and a note in generated schema documents.
+
+**`@optional`** — On a required-looking field (one without a declared
+default), treats the field as optional for deserialization — missing
+inputs produce an implicit `None` (for `Option[T]` fields) or the type's
+zero value. Should be rare; prefer declaring defaults.
+
+**Annotation interaction.**
+
+- `@skip` and `@skipIfDefault` are mutually exclusive (`E_SKIP_BOTH`).
+- `@alias` and `@serialField` may coexist; `@serialField` sets the primary
+  name and `@alias` adds additional accepted names for reads.
+- `@sensitive` is independent of and composes with all other annotations.
+
+### §32.8 Evolution and Compatibility Rules
+
+The foundation specifies the following changes and their compatibility
+status:
+
+| Change | Compatibility | Versioning |
+|---|---|---|
+| Add a field with a default | Forward- and backward-compatible | No URI bump; `@since` SHOULD be documented |
+| Add a field without a default | Breaking | Major URI bump required |
+| Remove a field | Breaking (old receivers miss it) | Major URI bump required |
+| Rename a field (without alias) | Breaking | Major URI bump required |
+| Rename a field (with `@alias` to old name) | Forward- and backward-compatible | No URI bump |
+| Change a field's type to a compatible type (`int32` → `int64`, `string` → `string?`) | Forward-compatible (old senders work; new receivers OK) | No URI bump if documented |
+| Change a field's type to an incompatible type | Breaking | Major URI bump required |
+| Add an enum variant | Breaking for receivers that don't handle unknown variants | Major URI bump unless enum is `@open` (see below) |
+| Remove an enum variant | Breaking (new receivers can't handle old values) | Major URI bump |
+| Mark a field `@deprecated` | Non-breaking | No URI bump |
+| Mark a field `@skip` | Breaking (previously-serialized data is now lost on round-trip) | Major URI bump |
+| Change a polymorphism annotation (`@polymorphic` ↔ `@tagged`) | Breaking | Major URI bump |
+
+**`@open` enums.** An enum may be marked `@open` to declare that new
+variants may be added in future versions without a URI bump. Receivers
+handling an unknown variant of an `@open` enum produce an
+`UnknownEnumVariant` wrapper value (accessible via `match`); the message
+remains deserializable. Most user enums should NOT be `@open`; protocol
+enums designed for extension SHOULD be.
+
+**Default-fallback behavior.** For fields added with defaults, if an old
+serialized value doesn't contain the field, the deserializer inserts the
+default. If a new serialized value contains a field that the deserializer's
+type doesn't know about, the behavior depends on `@strictSchema`:
+
+- Without `@strictSchema`, unknown fields are silently ignored (the
+  default — permissive).
+- With `@strictSchema`, unknown fields produce
+  `DeserializationError`. Appropriate for cryptographic or financial
+  contexts where extra fields may signal tampering or bugs.
+
+**Migration helpers.** The stdlib provides `core.serialization.migrate`:
+
+```loom
+namespace core.serialization;
+
+pub func migrate[T: Deserializable](
+  oldValue: Value,
+  oldTypeUri: string,
+  fromOld: fn(Value): T,
+): T;
+```
+
+`migrate` is invoked when a type has rolled over its major version and a
+receiver encounters a serialized value with the old URI. The author of
+the new type registers a migration function via `@migrateFrom`:
+
+```loom
+@serializationId("myapp/User@2")
+@migrateFrom("myapp/User@1", migrateUserV1)
+class User implements Serializable, Deserializable {
+  let id: string;
+  let fullName: string;   // was "name" in v1
+}
+
+func migrateUserV1(oldValue: Value): User {
+  let m = oldValue.asMap()!;
+  let id = m.findKey("id").asString()!;
+  let name = m.findKey("name").asString()!;
+  return User(id: id, fullName: name);
+}
+```
+
+Multiple `@migrateFrom` annotations chain: v3 can specify migrations from
+v2 and from v1 separately. The runtime picks the most specific match.
+
+### §32.9 Exception Serialization
+
+*(This subsection is normative.)*
+
+All `BaseException` subclasses have a mandatory serialization contract.
+Exception serialization preserves dynamic type, message, cause chain, and
+symbolic stack trace across any process or language boundary.
+
+**Contract.** Every `BaseException` subclass is implicitly
+`@polymorphic`. The auto-derived `toValue()` produces a `Value.Tagged`
+with:
+
+- `typeUri` — the exception's type URI (per §32.5).
+- `value` — a `Value.Map` containing the following keys in this order:
+  - `"message"` — `Value.String`
+  - `"cause"` — either `Value.Null` or a nested serialized exception (recursively)
+  - `"stackTrace"` — a `Value.List` of serialized `StackFrame` entries
+  - Any additional user-declared fields, serialized per their types
+
+**StackFrame serialization.** `StackFrame` is a struct:
+
+```loom
+namespace core;
+
+pub struct StackFrame implements Serializable, Deserializable {
+  pub let module: string;          // e.g. "myapp.http.client"
+  pub let function: string;         // e.g. "sendRequest"
+  pub let file: Option[string];     // absolute path on originating machine
+  pub let line: Option[int];
+  pub let column: Option[int];
+  pub let functionUri: Option[string];  // stable function identity (if available)
+}
+```
+
+Serialization preserves frames symbolically — no machine-specific data
+(process ID, absolute memory addresses) crosses the boundary. Receivers
+can re-resolve `functionUri` against their own source maps if desired.
+
+**`RemoteException` — the unknown-URI fallback.** When a deserializer
+encounters a `Value.Tagged` whose `typeUri` refers to a `BaseException`
+subclass that is not registered as `Deserializable` on the receiver, it
+produces a `RemoteException` instance:
+
+```loom
+namespace core;
+
+pub class RemoteException : Exception {
+  pub let originalTypeUri: string;
+  pub let originalFields: dict[string, Any];
+  // Inherited: message (from BaseException), cause, stackTrace
+}
+```
+
+`RemoteException` carries:
+
+- `originalTypeUri` — the URI the sender attached.
+- `originalFields` — every serialized field that wasn't reconstructed into
+  a known field on `RemoteException`'s class (as deserialized `Value`
+  converted to `Any`).
+- The standard `message`, `cause`, and `stackTrace` inherited from
+  `BaseException` — which ARE always reconstructed because they are part
+  of the root exception contract.
+
+This design means: **a Loom receiver can always debug a remote exception
+even from a language or package it has never heard of.** The type URI tells
+it what was thrown, the message tells it why, the cause chain shows the
+upstream failure, and the stack trace shows where it came from.
+`RemoteException` can itself be caught in normal `try`/`catch`; callers
+match on `originalTypeUri` if they need to branch on specific remote types.
+
+**Cause chain preservation.** A `BaseException` with a non-null `cause`
+serializes the cause recursively. The cause may itself be a
+`BaseException` (nested exception) or a non-exception value (arbitrary
+`Serializable` caused-by annotation). Deeply-nested cause chains are
+bounded by the format driver's depth limit (§32.11); exceeding the limit
+truncates the chain and appends a synthetic `CauseTruncatedException` at
+the deepest point.
+
+**Receiver rewriting of stack traces.** Receivers MAY rewrite the
+`stackTrace` frames upon receipt to mark them as remotely-sourced, prepend
+frames showing the local call site that received the exception, or
+otherwise aid debugging. This MUST be done in a non-destructive way — the
+original frames MUST remain identifiable (e.g. by a `remote: bool` flag
+added to each frame in a receiver-specific way, not specified normatively).
+
+**Security implications.** Because `RemoteException` instantiation is
+purely data-driven — no code path runs from the sender's side — there is
+no deserialization-as-code-execution surface even when receiving
+exceptions from fully untrusted senders.
+
+**Non-catchable BaseException subclasses.** `SystemExit`,
+`KeyboardInterrupt`, and `GeneratorExit` are serializable under this
+contract (they are `BaseException` subclasses) but deserializing them into
+a running program produces a `SecurityError` — allowing a remote endpoint
+to inject a `SystemExit` into a local process would be a vulnerability.
+The intent of these types is local-process lifecycle signaling, not cross-
+boundary transport. Applications that legitimately need to propagate these
+across boundaries do so by wrapping them in a regular `Exception`
+subclass.
+
+### §32.10 Format Driver Protocol
+
+A **format driver** is a type that converts between `Value` and a specific
+wire format (JSON, MessagePack, CBOR, etc.). Format drivers live in
+separate packages (e.g., `loom.format.json`); the language foundation
+specifies only the interface they implement.
+
+```loom
+namespace core.serialization;
+
+pub interface FormatDriver {
+  // Driver identity — stable name used in content-type headers, debug output.
+  static func name(): string;
+  static func contentType(): string;   // e.g. "application/json"
+
+  // Serialize a Value to the driver's wire format.
+  // MUST respect the config's limits (§32.11).
+  static func encode(value: Value, config: EncodeConfig = EncodeConfig.default()): bytes;
+
+  // Deserialize a Value from the driver's wire format.
+  // MUST reject inputs exceeding the config's limits with DeserializationError.
+  static func decode(bytes: borrow bytes, config: DecodeConfig = DecodeConfig.default()): Value;
+
+  // Streaming form — encodes to a writer and decodes from a reader.
+  // Optional for foundation; all drivers MUST provide the non-streaming form.
+  static func encodeStream(value: Value, writer: io.Writer, config: EncodeConfig): void
+    where Self: StreamingFormat;
+  static func decodeStream(reader: io.Reader, config: DecodeConfig): Value
+    where Self: StreamingFormat;
+}
+
+pub struct EncodeConfig {
+  pub maxDepth: int = 64;
+  pub maxSizeBytes: int = 16.MiB;
+  pub pretty: bool = false;              // format-dependent; may be ignored
+  pub sensitiveMode: SensitiveMode = SensitiveMode.Include;
+  pub deterministic: bool = true;        // sort map keys, normalize encoding
+}
+
+pub struct DecodeConfig {
+  pub maxDepth: int = 64;
+  pub maxSizeBytes: int = 16.MiB;
+  pub strictSchema: bool = false;
+  pub unknownTypeBehavior: UnknownTypeBehavior = UnknownTypeBehavior.RemoteException;
+}
+
+pub enum SensitiveMode {
+  Include;       // serialize sensitive values normally (flagged out-of-band)
+  Redact;        // replace with a redaction marker
+  Omit;          // drop sensitive fields entirely
+}
+
+pub enum UnknownTypeBehavior {
+  RemoteException;       // for @polymorphic BaseException hierarchies
+  Error;                 // throw DeserializationError (sealed hierarchies)
+  Skip;                  // drop the value (appropriate for lossy imports)
+}
+```
+
+**Convenience functions.** The stdlib provides top-level helpers that
+accept a driver as a generic parameter:
+
+```loom
+namespace core.serialization;
+
+pub func serialize[T: Serializable, D: FormatDriver](
+  value: T,
+  config: EncodeConfig = EncodeConfig.default(),
+): bytes;
+
+pub func deserialize[T: Deserializable, D: FormatDriver](
+  bytes: borrow bytes,
+  config: DecodeConfig = DecodeConfig.default(),
+): T;
+
+pub func roundtrip[T: Serializable + Deserializable, D: FormatDriver](
+  value: T,
+): T;   // diagnostic — serialize + deserialize; useful for testing
+```
+
+Example:
+
+```loom
+from loom.format.json import (JsonFormat);
+from core.serialization import (serialize, deserialize);
+
+let user = User(id: "u42", email: "alice@example.com");
+let wire: bytes = serialize[User, JsonFormat](user);
+let back: User = deserialize[User, JsonFormat](wire);
+```
+
+**Format driver compliance.** A format driver package declares compliance
+with the foundation by declaring `implements FormatDriver` on its driver
+type and passing the foundation's conformance test suite (published as
+part of the Loom toolchain). A compliant driver guarantees:
+
+- Round-trip fidelity for all `Value` variants the format can natively represent.
+- Deterministic output when `deterministic: true` is specified (same input produces byte-identical output across platforms, architectures, and Loom versions).
+- Depth and size limits are enforced and produce clean errors on violation.
+- Sensitive-field handling honors the `SensitiveMode` configuration.
+
+### §32.11 Security Model
+
+The serialization foundation commits to the following security properties:
+
+**Opt-in deserialization.** A type is constructible from serialized data
+only if it has been declared `Deserializable` and is registered in the
+deserialization target's compile-time type graph. No reflection-based
+fallback exists.
+
+**No code execution during deserialization.** The `fromValue` contract
+explicitly forbids:
+
+- Invoking user-declared constructors that have side effects beyond field
+  initialization.
+- Running field initializer expressions (auto-derived `fromValue` sets
+  fields by direct assignment, not by re-running declared defaults).
+- Triggering module initialization as a side effect of type resolution.
+- Performing I/O, spawning tasks, or acquiring locks.
+
+Manual `fromValue` implementations that violate these rules are
+recommended to be rejected by linting; the compiler emits
+`W_IMPURE_FROMVALUE` advisory warnings when it detects such calls in a
+`fromValue` body.
+
+**Resource bounds.** Format drivers enforce:
+
+- **Maximum depth** — the deepest nesting level of `Value.List`,
+  `Value.Map`, `Value.Variant`, `Value.Tagged`. Default 64. Exceeded
+  inputs produce `DeserializationError`.
+- **Maximum size** — the total byte count of the input. Default 16 MiB.
+  Exceeded inputs produce `DeserializationError`.
+- **Per-field size** — drivers MAY enforce per-string / per-bytes length
+  limits, though the foundation does not require a specific value.
+
+All limits are configurable per decode call. Applications accepting
+untrusted input SHOULD tune these down aggressively; applications
+round-tripping internal data MAY raise them for known-bounded payloads.
+
+**Polymorphism registry.** A polymorphic type's deserialization registry
+is populated from the compile-time type graph of the deserializing module.
+Types not visible at compile time cannot be deserialized. Dynamic type
+registration is not supported — this closes the attack vector where an
+attacker causes code to be loaded that registers a malicious type.
+
+**Unknown URI handling.** For `BaseException` subclasses,
+`RemoteException` is the data-only fallback. For other polymorphic
+families, the behavior is `DeserializationError` (default) or the
+user-chosen `UnknownTypeBehavior`. In no case can an unknown URI cause
+arbitrary code to run.
+
+**Cycle detection.** Deserialization tracks visited values; cyclic `Value`
+inputs produce `DeserializationError`. Serialization detects cycles in
+the source object graph and either uses a `WeakRef` escape hatch (for
+types declaring it) or raises `SerializationError`.
+
+**Integer range checks.** When a wire-format value exceeds the range of
+the target type (e.g., a wire `int64` being deserialized into an `int32`
+field), the deserializer produces `DeserializationError` rather than
+silently truncating.
+
+**Floating-point edge cases.** NaN, positive infinity, and negative
+infinity round-trip losslessly when the format supports them. Formats
+without native infinity/NaN representation (strict JSON) MUST either
+reject these values on encode (default) or accept an explicit opt-in
+configuration to encode them as strings — the choice is per-driver and
+documented.
+
+### §32.12 Interaction with `Sendable`, `Shareable`, and `shared class`
+
+`Serializable` is **independent** of `Sendable` and `Shareable`. A type
+may be:
+
+- `Serializable` only — safe to put on a wire but not to transfer across
+  threads in-memory (unusual, but possible — e.g., types holding
+  thread-local handles that serialize cleanly via adapters).
+- `Sendable` only — safe to transfer across threads by copy but not to
+  put on an external wire (e.g., types containing `extern native` handles).
+- `Shareable` only — safe to share across threads by reference but not to
+  put on an external wire (e.g., types containing `SharedMutex`).
+- Any combination of the above.
+
+The language does NOT imply any of these traits from any other. Each
+trait is opt-in and independently checkable.
+
+**`shared class` and serialization.** A `shared class` MAY implement
+`Serializable` and `Deserializable`. When it does, **the wire format goes
+through the normal `Value` intermediate representation** — the normative
+cross-mode ABI layout (§17b.7) is an in-process memory contract and is
+NOT used as a wire format. This keeps serialization format-independent
+and layout-independent; wire data can be round-tripped through modes and
+processes that have different `shared class` ABI versions.
+
+A `shared class`'s `toValue()` produces `Value.Map` entries for its
+fields in declaration order (same as `local class`). The atomic refcount,
+weakcount, type descriptor, vtable pointer, and other header fields are
+NOT serialized — they are reconstructed on deserialization into the
+receiver's local arena. Deserialization constructs a new `SharedRef[T]` in
+the receiver's default arena (or an explicitly-specified arena); the
+receiver and sender do not share the same arena memory.
+
+**`SharedRef[T]` as a `Serializable` type.** `SharedRef[T]` is conditionally
+`Serializable`: `SharedRef[T]` is `Serializable` if and only if `T` is
+`Serializable`. The compiler emits this conditional implementation
+automatically, matching the pattern used for `Sendable` on generic types.
+
+**`SharedRef[T]` field semantics.** A field of type `SharedRef[T]` in a
+`Serializable` class serializes the pointed-to instance by value. On
+deserialization, a fresh `SharedRef[T]` is constructed in the receiver's
+arena. Receivers handling many instances should pool allocations in a
+dedicated arena configured before the deserialization call.
+
+**Cycles involving shared references.** If a `shared class` contains fields
+that form a reference cycle via `SharedRef[T]`, serialization detects the
+cycle per §32.11 and either uses a `WeakRef` escape hatch (when the cycle
+is broken by a `weak` field) or raises `SerializationError`. The serializer
+does NOT emit in-wire backreference markers — the `Value` intermediate
+representation has no identity concept; every occurrence of an object in
+the source graph produces an independent serialized copy. This means
+non-cyclic shared-reference sharing (two paths in the graph reaching the
+same instance) produces two independent copies on the wire, which
+deserialize into two distinct instances on the receiver. Programs that
+depend on receiver-side identity preservation MUST use a higher-level
+protocol (e.g. a content-addressed dedup layer) above the foundation.
+
+### §32.13 Error Codes
+
+**Compile-time errors:**
+
+| Code | Condition |
+|---|---|
+| `E_FIELD_NOT_SERIALIZABLE` | Field in `Serializable` class has type not implementing `Serializable` (and no `@serialVia` adapter, no `@skip`) |
+| `E_FIELD_NOT_DESERIALIZABLE` | Field in `Deserializable` class has type not implementing `Deserializable` (and no `@serialVia` adapter, no `@skip`) |
+| `E_SKIP_NO_DEFAULT` | `@skip` annotation on a field with no declared default |
+| `E_SKIP_BOTH` | Field has both `@skip` and `@skipIfDefault` |
+| `E_SERIAL_URI_COLLISION` | Two types declare the same `@serializationId` |
+| `E_SERIAL_URI_MALFORMED` | `@serializationId` value does not match the canonical URI format |
+| `E_ADAPTER_TYPE_MISMATCH` | `@serialVia[Adapter]` where Adapter's `T` doesn't match the field type |
+| `E_OPEN_NOT_ENUM` | `@open` applied to a non-enum type |
+| `E_TAGGED_CONFLICT` | Both `@polymorphic` and `@tagged(...)` applied to the same type |
+| `E_MIGRATE_FROM_SAME_URI` | `@migrateFrom` references the declaring type's own URI |
+
+**Runtime errors:**
+
+| Exception | Thrown when |
+|---|---|
+| `SerializationError` | A `toValue` implementation detected an invariant violation (cycle not handled, adapter failure, etc.) |
+| `DeserializationError` | Wire input is malformed, exceeds limits, has schema mismatch, or violates invariants |
+| `UnknownTypeError` | Incoming type URI not registered in a non-`RemoteException`-configured polymorphic family |
+| `CauseTruncatedException` | Synthetic exception inserted at the end of a truncated exception cause chain |
+| `SecurityError` | Deserialization attempted a forbidden operation (e.g., reconstructing `SystemExit`) |
+| `UnknownEnumVariant` | Unknown variant received for an `@open` enum; exposed via `match` |
+
+---
 
 ## Appendix A: Keyword Index
 
@@ -13832,7 +16168,7 @@ policy) is described in the Packages Reference §31.
 | `break` | §6.4 | Exit loop |
 | `catch` | §6.9 | Exception handler |
 | `class` | §8.1 | Class declaration |
-| `consume` | §23.4.7 | Downgrade `unique` binding to ARC-managed reference (`@mode(native)` only) |
+| `consume` | §23.4.7 | Downgrade `unique` binding to ARC-managed reference (`@mode(host.native)` or `@mode(host.dual)`) |
 | `continue` | §6.4 | Skip to next loop iteration |
 | `defer` | §6.5, §13.10 | Register cleanup action (`defer expr`/`defer { }`); also `from X defer import (...)` for deferred type stubs that break import cycles |
 | `del` | §6.11 | Deterministic finalization |
@@ -13859,6 +16195,7 @@ policy) is described in the Packages Reference §31.
 | `is` | §4.5, §9.5 | Type narrowing check |
 | `let` | §6.2 | Immutable binding |
 | `lifetime` | §7.1, §10.11, §11.4, §12.1, §23.4.2 | Lifetime region parameter declaration |
+| `local` | §8.1.1, §27 | Class memory-strategy modifier (v1.18). `local class Foo` is the explicit form of the default `class Foo`; thread-local, non-atomic ARC. `local` is a **contextual keyword** — permitted as an identifier in non-class-modifier positions |
 | `macro` | §27.11 | Macro declaration: `pub macro name(params) { quote { ... } }` |
 | `match` | §9.4 | Pattern matching |
 | `new` | §8.4 | Constructor |
@@ -13874,6 +16211,7 @@ policy) is described in the Packages Reference §31.
 | `return` | §7.1 | Return from function |
 | `Self` | §8.4, §11 | Type alias for the implementing type; available inside class, struct, interface, and enum bodies |
 | `set` | §7.7 | Property setter keyword (contextual — also valid as a method or field name) |
+| `shared` | §8.1.1, §17b, §27 | Class memory-strategy modifier and constructor prefix (v1.18). `shared class Foo` declares an atomic-ARC, shared-arena-allocated class; `shared Foo(...)` / `shared(arena) Foo(...)` allocates a `shared class` instance. Also used as a field qualifier in existing `Sendable` contexts |
 | `spawn` | §17.2 | Spawn task in await group |
 | `super` | §8.4 | Superclass constructor call: `super(args)` inside a subclass constructor body |
 | `static` | §8.5 | Static member |
@@ -13884,6 +16222,7 @@ policy) is described in the Packages Reference §31.
 | `true` | §3.6 | Boolean literal |
 | `try` | §6.9 | Exception handling |
 | `type` | §4.6 | Type alias |
+| `weak` | §8 | Field qualifier for non-owning references to `local class` or `shared class` instances. Available in all modes with an ARC model (not `freestanding`). v1.18 generalized availability from ARC-only modes to all ARC-backed modes |
 | `typeof` | §4.7 | Type-of operator |
 | `unique` | §8, §23.4.7 | Ownership qualifier: `unique let`/`var` (single-owner binding), `unique class` (single-owner class type) |
 | `var` | §6.2 | Mutable binding |
@@ -13897,8 +16236,8 @@ policy) is described in the Packages Reference §31.
 | `modifier` | §23.4.11 | Method declaration keyword: declares a method that writes `var` fields on `self` (all modes) |
 | `requires` | §23.4.10 | Contract clause keyword: applies verbs to multiple parameters, declares `distinct()` contracts (all modes) |
 | `safe` | §23.4.12 | Context keyword: `safe {}` activates shared-XOR-mutable enforcement; `safe func` propagates the requirement (all modes) |
-| `synchronized` | §23.4.13 | Class modifier: per-instance mutex serializing all `modifier` invocations (scripted, compiled, native) |
-| `unsafe` | §23.4.14 | Lock-release block statement inside a `synchronized` modifier: `unsafe("reason") { ... }` (scripted, compiled, native) |
+| `synchronized` | §23.4.13 | Class modifier: per-instance mutex serializing all `modifier` invocations (web.scripted, web.compiled, host.scripted, host.dual, host.native) |
+| `unsafe` | §23.4.14 | Lock-release block statement inside a `synchronized` modifier: `unsafe("reason") { ... }` (web.scripted, web.compiled, host.scripted, host.dual, host.native) |
 | `borrow` | §7.1, §23.4.1, §23.4.2 | Parameter modifier / field qualifier / lifetime-tracked reference — prefer `reads`/`edits` verbs in new code |
 | `arc` | §6.2, §23.4.8 | Explicit ARC ownership binding qualifier (`arc let`, `arc var`) |
 | `atomic` | §17.7 | Cooperative atomicity scope — no suspension points within the block (scripted/compiled) |
@@ -13953,27 +16292,25 @@ policy) is described in the Packages Reference §31.
 
 | Contextual Keyword | Section | Description |
 |---|---|---|
-| `box` | §3.4, §4.3 | Contextual in prefix position; makes widening to `Any` explicit. `E_BOX_IN_NATIVE` in native/freestanding |
-| `excl` | §3.4, §23.4.1.1 | Contextual immediately before `borrow` in parameter declarations (`excl borrow`) |
+| `self` | §3.4 | Contextual in closure capture lists (`[weak self]`, `[unowned self]`) as an alias for the enclosing method's implicit `this` receiver; valid as an ordinary identifier elsewhere (e.g., first parameter name in UFCS-style functions) |
+| `quote` | §3.4, §25, §27.11 | Contextual as the macro body keyword (`macro name(p) { quote { ... } }`); valid as an ordinary identifier elsewhere |
+| `box` | §3.4, §4.3 | Contextual in prefix position; makes widening to `Any` explicit. `E_BOX_IN_FREESTANDING` in `@mode(freestanding)`; permitted in `@mode(host.native)` with the `W_ANY_IN_AOT_MODE` advisory |
+| `excl` | §3.4, §23.4.1.1 | Contextual immediately before `borrow`: `excl borrow param: T`; available in all modes (§2.6) |
 | `group` | §17.2 | Contextual in `await group { ... }` |
 | `once` | §20.3 | Contextual in debug activation requests |
 | `distinct` | §23.4.10 | Contextual in `requires` clauses and call-site contract acknowledgments |
-| `reinterpret` | §3.4, §24.18 | Contextual in `reinterpret[T, U](expr)`; native/freestanding only; requires `@unsafe` |
-| `reinterpretChecked` | §3.4, §24.18 | Contextual in `reinterpretChecked[T, U](expr)`; native/freestanding only; returns `Result[U, AlignmentError]` |
-| `size_of` | §3.4, §24.4.1 | Contextual in `size_of[T]()`; native/freestanding only |
-| `align_of` | §3.4, §24.4.1 | Contextual in `align_of[T]()`; native/freestanding only |
-| `compiled`, `native`, `scripted`, `freestanding` | §3.4, §2.5 | Contextual mode names in `@mode(X)` and `prefer compiled` clauses; valid identifiers elsewhere |
-| `excl` | §23.4.1.1 | Contextual immediately before `borrow`: `excl borrow param: T`; `@mode(native)` and `@mode(freestanding)` only |
-| `compiled` | §2.4.2, §2.5 | Mode name in `@mode(compiled)` and `prefer compiled` import clauses; valid identifier elsewhere |
-| `scripted` | §2.4.1, §2.5 | Mode name in `@mode(scripted)`; valid identifier elsewhere |
-| `native` | §2.4.3, §23 | Mode name in `@mode(native)`; valid identifier elsewhere |
-| `freestanding` | §2.4.4, §24 | Mode name in `@mode(freestanding)`; valid identifier elsewhere |
-| `reinterpret` | §24.18 | Contextual in `reinterpret[T, U](expr)`; requires `@unsafe`; `@mode(native)` and `@mode(freestanding)` only |
-| `reinterpretChecked` | §24.18 | Contextual in `reinterpretChecked[T, U](expr)`; no `@unsafe` required; returns `Result[U, AlignmentError]`; `@mode(native)` and `@mode(freestanding)` only |
-| `size_of` | §24.4.1 | Contextual in `size_of[T]()`; `@mode(native)` and `@mode(freestanding)` only |
-| `align_of` | §24.4.1 | Contextual in `align_of[T]()`; `@mode(native)` and `@mode(freestanding)` only |
+| `compiled` | §2.4.2, §2.5 | Mode name in `@mode(web.compiled)` and `prefer compiled` import clauses; valid identifier elsewhere |
+| `scripted` | §2.4.1, §2.4.3, §2.5 | Mode name in `@mode(web.scripted)` (§2.4.1) and `@mode(host.scripted)` (§2.4.3); valid identifier elsewhere |
+| `native` | §2.4.5, §23 | Mode name in `@mode(host.native)`; valid identifier elsewhere |
+| `dual` | §2.4.4, §2.5 | Mode name in `@mode(host.dual)`; valid identifier elsewhere |
+| `freestanding` | §2.4.6, §24 | Mode name in `@mode(freestanding)`; valid identifier elsewhere |
+| `reinterpret` | §3.4, §24.18 | Contextual in `reinterpret[T, U](expr)`; requires `@unsafe`; available in all modes (§2.6) |
+| `reinterpretChecked` | §3.4, §24.18 | Contextual in `reinterpretChecked[T, U](expr)`; no `@unsafe` required; returns `Result[U, AlignmentError]`; available in all modes (§2.6) |
+| `size_of` | §3.4, §24.4.1 | Contextual in `size_of[T]()`; `@mode(host.native)` and `@mode(freestanding)` only |
+| `align_of` | §3.4, §24.4.1 | Contextual in `align_of[T]()`; `@mode(host.native)` and `@mode(freestanding)` only |
+| `from` (method-name carve-out) | §3.4, §11.2 | `from` is a hard keyword (import statements §13.1; `throw ... from ...` chaining §6.9), but is additionally permitted as a method name in method-declaration headers and method-call position after `.` (e.g., `static func from(err: E): Self` and `F.from(e)`). Not permitted as a field, variable, parameter, type, or module name. |
 
-**Lifetime labels** — Reserved sigil for compile-time region identifiers (`@mode(native)` and `@mode(freestanding)` only):
+**Lifetime labels** — Reserved sigil for compile-time region identifiers (available in all modes, §2.6):
 
 | Identifier | Section | Description |
 |---|---|---|
@@ -13986,7 +16323,7 @@ policy) is described in the Packages Reference §31.
 |---|---|---|
 | `__name__` | §2.2 | Module name (`"__main__"` for entry script) |
 | `__file__` | §2.2 | Absolute file path of the module |
-| `__execmode__` | §2.2 | `"interpreted"` (scripted/REPL), `"compiled"` (AOT Wasm), `"native"`, or `"freestanding"` |
+| `__execmode__` | §2.2 | One of the six mode strings: `"web.scripted"`, `"web.compiled"`, `"host.scripted"` (also used by REPL), `"host.dual"`, `"host.native"`, or `"freestanding"` |
 | `__module__` | §2.3 | Declaration-level dunder on named types and functions |
 
 ---
@@ -13998,7 +16335,7 @@ policy) is described in the Packages Reference §31.
 | `()` `[]` `.` `?.` `!{}` `?.[` | 1 | Left | Call, index, member access, safe nav, dynamic access, null-safe index | §5.1 |
 | `typeof` | 2 | Prefix | Type-of operator | §4.7 |
 | `-` (unary) `not` `!` `bnot` | 3 | Prefix | Unary negation, logical not, bitwise not | §5.1 |
-| `box` `consume` | 4 | Prefix | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(native)` only) | §4.3, §23.4.7 |
+| `box` `consume` | 4 | Prefix | Boxing/widening (`box`); unique-to-ARC downgrade (`consume`, `@mode(host.native)` or `@mode(host.dual)`) | §4.3, §23.4.7 |
 | `**` | 5 | Right | Exponentiation | §5.1 |
 | `*` `/` `//` `%` | 6 | Left | Multiplication, division, floor division, modulo | §5.1 |
 | `+` `-` | 7 | Left | Addition, subtraction, string concatenation | §5.1 |
@@ -14024,7 +16361,7 @@ policy) is described in the Packages Reference §31.
 
 ## Appendix C: Built-in Type Index
 
-This appendix lists built-in language types only.  Standard library types are indexed in the [Loom Standard Library Reference](loom-stdlib-reference-v1_10.md) Appendix C.  Package types are indexed in the [Loom Packages Reference](loom-packages-reference-v1_10.md) Appendix C.
+This appendix lists built-in language types only.  Standard library types are indexed in the [Loom Standard Library Reference](loom-stdlib-reference-v1_18.md) Appendix C.  Package types are indexed in the [Loom Packages Reference](loom-packages-reference-v1_11.md) Appendix C.
 
 
 ### Primitive Types
@@ -14114,31 +16451,31 @@ The following opaque types are produced exclusively by the `ui` subsystem and ar
 
 ### Freestanding and Native Built-in Types
 
-The following types are available in `@mode(native)` and `@mode(freestanding)` unless otherwise noted.
+The following types are available in `@mode(host.native)` and `@mode(freestanding)` unless otherwise noted.
 
 | Type | Description | Mode | Section |
 |---|---|---|---|
-| `MaybeUninit[T]` | Wrapper for memory not yet initialized | Native, Freestanding | §24.17 |
-| `Volatile[T]` | MMIO wrapper enforcing volatile load/store semantics | Freestanding | §24.9 |
-| `InterruptFrame` | CPU exception frame layout (architecture-specific `@repr(C)` struct) | Freestanding | §24.13 |
-| `PartialInit[T]` | Tracks incremental field initialization of a `@repr(C)` struct at compile time | Native, Freestanding | §24.17a |
-| `DmaBuffer[T]` | Exclusive DMA-safe memory buffer with CPU/DMA access arbitration | Freestanding | §24.20 |
-| `DmaTransfer` | Active DMA transfer token — holds exclusive borrow of the associated `DmaBuffer[T]` | Freestanding | §24.20 |
-| `InterruptGuard` | RAII scope guard that disables interrupts on entry and re-enables on drop | Freestanding | §24.24 |
-| `PinnedRef[T]` | ARC-pinned lifetime anchor preventing GC collection while a native library holds a raw pointer | Native, Freestanding | §18.4 |
-| `OwnedHandle` | Owned `NativeHandle` wrapper with destructor registration | Native, Freestanding | §18.4 |
-| `BorrowedHandle` | Borrowed `NativeHandle` wrapper with lifetime tracking | Native, Freestanding | §18.4 |
-| `Mutex[T]` | OS-thread mutex wrapping `T`; always `Sendable` | Native | §17.8.2 |
-| `RwLock[T]` | OS-thread reader/writer lock wrapping `T`; always `Sendable` | Native | §17.8.2 |
-| `Atomic[T]` | Atomic cell for sequentially-consistent load/store/RMW on primitives | Native, Freestanding | §17.8.2 |
-| `Thread` | OS thread handle — spawn, join, detach | Native | §17.8.3 |
-| `ThreadHandle[T]` | Typed join handle returned by `Thread.spawnWith` | Native | §17.8.3 |
-| `ThreadPool` | Work-submission pool bridging async tasks to OS threads | Native | §17.8.4 |
-| `ThreadLocal[T]` | Per-OS-thread storage, initialized lazily | Native | §17.9.7 |
-| `TaskLocal[T]` | Per-async-task storage that follows the task across resumptions | Scripted, Compiled, Native | §17.9.8 |
-| `ScriptWorker[M]` | Isolated worker Wasm instance with typed `Sendable` message channel | Scripted, Compiled, Native | §17.10.2 |
-| `WorkerChannel[T]` | Worker-side message channel, valid only inside `workerMain` | Scripted, Compiled, Native | §17.10.3 |
+| `MaybeUninit[T]` | Wrapper for memory not yet initialized | host.native, freestanding | §24.17 |
+| `Volatile[T]` | MMIO wrapper enforcing volatile load/store semantics | freestanding | §24.9 |
+| `InterruptFrame` | CPU exception frame layout (architecture-specific `@repr(C)` struct) | freestanding | §24.13 |
+| `PartialInit[T]` | Tracks incremental field initialization of a `@repr(C)` struct at compile time | host.native, freestanding | §24.17a |
+| `DmaBuffer[T]` | Exclusive DMA-safe memory buffer with CPU/DMA access arbitration | freestanding | §24.20 |
+| `DmaTransfer` | Active DMA transfer token — holds exclusive borrow of the associated `DmaBuffer[T]` | freestanding | §24.20 |
+| `InterruptGuard` | RAII scope guard that disables interrupts on entry and re-enables on drop | freestanding | §24.24 |
+| `PinnedRef[T]` | ARC-pinned lifetime anchor preventing GC collection while a native library holds a raw pointer | host.dual, host.native | §18.4 |
+| `OwnedHandle` | Owned `NativeHandle` wrapper with destructor registration | host.dual, host.native, freestanding | §18.4 |
+| `BorrowedHandle` | Borrowed `NativeHandle` wrapper with lifetime tracking | host.dual, host.native, freestanding | §18.4 |
+| `Mutex[T]` | OS-thread mutex wrapping `T`; always `Sendable` | host.dual, host.native | §17.8.2 |
+| `RwLock[T]` | OS-thread reader/writer lock wrapping `T`; always `Sendable` | host.dual, host.native | §17.8.2 |
+| `Atomic[T]` | Atomic cell for sequentially-consistent load/store/RMW on primitives | host.dual, host.native, freestanding | §17.8.2 |
+| `Thread` | OS thread handle — spawn, join, detach | host.dual, host.native | §17.8.3 |
+| `ThreadHandle[T]` | Typed join handle returned by `Thread.spawnWith` | host.dual, host.native | §17.8.3 |
+| `ThreadPool` | Work-submission pool bridging async tasks to OS threads | host.dual, host.native | §17.8.4 |
+| `ThreadLocal[T]` | Per-OS-thread storage, initialized lazily | host.dual, host.native | §17.9.7 |
+| `TaskLocal[T]` | Per-async-task storage that follows the task across resumptions | All non-freestanding | §17.9.8 |
+| `ScriptWorker[M]` | Isolated worker Wasm instance with typed `Sendable` message channel | All non-freestanding | §17.10.2 |
+| `WorkerChannel[T]` | Worker-side message channel, valid only inside `workerMain` | All non-freestanding | §17.10.3 |
 | `CancellationToken` | Cooperative cancellation signal for `TaskGroup.withCancellation` | All | §17.3 |
-| `Task[T]` | Async task handle returned by `async func` invocations | Scripted, Compiled, Native | §17.1 |
-| `Actor[M]` | Supervised message-processing actor handle | Scripted, Compiled, Native | §17.6 |
+| `Task[T]` | Async task handle returned by `async func` invocations | All non-freestanding | §17.1 |
+| `Actor[M]` | Supervised message-processing actor handle | All non-freestanding | §17.6 |
 

@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Lexer — Tokenizer for Loom v1.16
+// Loom Lexer — Tokenizer for Loom v1.18
 // ============================================================================
 
 export enum TokenKind {
@@ -63,6 +63,8 @@ export enum TokenKind {
   UnsafeKw = 'unsafe',
   Requires = 'requires',
   Atomic = 'atomic',
+  Local = 'local',
+  Shared = 'shared',
 
   // Keywords — misc
   From = 'from',
@@ -259,6 +261,8 @@ const KEYWORDS: Record<string, TokenKind> = {
   'unsafe': TokenKind.UnsafeKw,
   'requires': TokenKind.Requires,
   'atomic': TokenKind.Atomic,
+  'local': TokenKind.Local,
+  'shared': TokenKind.Shared,
   'from': TokenKind.From,
   'import': TokenKind.Import,
   'prefer': TokenKind.Prefer,

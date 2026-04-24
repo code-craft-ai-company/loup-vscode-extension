@@ -30,15 +30,15 @@
       }
     },
     "top-level-keys": {
-      "match": "^\\s*(package|version|loom|stable_abi|abi_version)\\s+(.+)$",
+      "match": "^\\s*(package|version|loom|stable_abi|abi_version|shared_abi_version)\\s+(.+)$",
       "captures": {
         "1": { "name": "keyword.other.definition.loom-pkg" },
         "2": { "name": "string.unquoted.value.loom-pkg" }
       }
     },
     "build-directive": {
-      "comment": "Build-table keys (§2.5.2, §24.21): mode, portal_ring_size, stack_size, debug channels",
-      "match": "^\\s*(mode|portal_ring_size|stack_size|timeTravelEnabled|debug_control_channel|debug_trace_channel)\\s*(=)\\s*(.+)$",
+      "comment": "Build-table keys (§2.5.2, §24.21, v1.18 §13.5b): mode, shared_abi_version, portal_ring_size, stack_size, debug channels",
+      "match": "^\\s*(mode|shared_abi_version|portal_ring_size|stack_size|timeTravelEnabled|debug_control_channel|debug_trace_channel)\\s*(=)\\s*(.+)$",
       "captures": {
         "1": { "name": "keyword.control.build.loom-pkg" },
         "2": { "name": "keyword.operator.assignment.loom-pkg" },

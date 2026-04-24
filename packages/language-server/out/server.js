@@ -9170,6 +9170,8 @@ var KEYWORDS = {
   "unsafe": "unsafe" /* UnsafeKw */,
   "requires": "requires" /* Requires */,
   "atomic": "atomic" /* Atomic */,
+  "local": "local" /* Local */,
+  "shared": "shared" /* Shared */,
   "from": "from" /* From */,
   "import": "import" /* Import */,
   "prefer": "prefer" /* Prefer */,
@@ -12093,6 +12095,9 @@ var LOOM_KEYWORDS = [
   "unsafe",
   "requires",
   "atomic",
+  // v1.18 additions — shared memory model (§8.1.1, §17b)
+  "local",
+  "shared",
   // Contextual keywords surfaced for completion (§3.4)
   "get",
   "set",
@@ -12101,20 +12106,30 @@ var LOOM_KEYWORDS = [
   "group",
   "distinct",
   "excl",
-  "compiled",
-  "native",
-  "scripted",
-  "freestanding",
   "reinterpret",
   "reinterpretChecked",
   "size_of",
   "align_of",
+  // Dotted-mode-name tails (v1.18 §2.4.4, §2.5) — used inside @mode(...)
+  "compiled",
+  "native",
+  "scripted",
+  "freestanding",
+  "dual",
   // FFI keywords
   "js",
   "val",
   // Field and closure qualifiers
   "weak",
   "unowned"
+];
+var LOOM_MODES = [
+  "web.scripted",
+  "web.compiled",
+  "host.scripted",
+  "host.dual",
+  "host.native",
+  "freestanding"
 ];
 var LOOM_TYPES = [
   // Primitives (§4.1)
@@ -12174,13 +12189,14 @@ var LOOM_TYPES = [
   "ModuleLoadError",
   "BlockingTimeoutError",
   "AlignmentError",
+  "RemoteException",
   // Time
   "Duration",
   "Instant",
   // Text/regex
   "Regex",
   "Match",
-  // Concurrency
+  // Concurrency — thread-local primitives
   "Actor",
   "ActorContext",
   "CancellationToken",
@@ -12191,6 +12207,7 @@ var LOOM_TYPES = [
   "RwLockReadGuard",
   "RwLockWriteGuard",
   "Atomic",
+  "Ordering",
   "Thread",
   "ThreadHandle",
   "ThreadPool",
@@ -12200,6 +12217,35 @@ var LOOM_TYPES = [
   "RuntimeConfig",
   "ScriptWorker",
   "WorkerChannel",
+  // v1.18 shared memory types (§17b, stdlib §21.1, §21.3)
+  "Shareable",
+  "SharedBuffer",
+  "SharedArray",
+  "SharedArena",
+  "SharedRef",
+  "SharedWeakRef",
+  "WeakRef",
+  "SharedMutex",
+  "SharedRwLock",
+  "SharedCondVar",
+  "SharedSemaphore",
+  "SharedBarrier",
+  "SharedQueue",
+  "SharedStack",
+  // v1.18 serialization (§32, stdlib §21.6)
+  "Value",
+  "ValueKind",
+  "TemporalKind",
+  "Serializable",
+  "Deserializable",
+  "SerializationAdapter",
+  "FormatDriver",
+  "SerializationError",
+  "DeserializationError",
+  "UnknownEnumVariant",
+  // Numeric traits (v1.18 stdlib §21.2)
+  "Integer",
+  "Numeric",
   // UI
   "ComponentRegistry",
   "MountHandle",
@@ -12263,6 +12309,10 @@ var SYSTEM_MODULES = [
   { label: "core.math", detail: "Extended numeric math", items: ["sin", "cos", "exp", "log", "tan", "atan", "sqrt", "pow"] },
   { label: "core.reflect", detail: "Structural reflection (universal)", items: ["typeOf", "is", "fields", "methods", "constructors", "annotations", "variants", "callableName"] },
   { label: "core.inspect", detail: "Dynamic introspection (scripted/compiled)", items: ["new", "get", "getAs", "set", "invoke", "invokeAs", "as"] },
+  { label: "core.atomic", detail: "Hardware atomic primitives and ordering (v1.18 \xA721.2)", items: ["Ordering", "Relaxed", "Acquire", "Release", "AcqRel", "SeqCst", "Atomic", "atomicLoad", "atomicStore", "atomicAdd", "atomicSub", "atomicOr", "atomicAnd", "atomicXor", "compareExchange", "Integer", "Float", "Numeric"] },
+  { label: "core.serialization", detail: "Format-agnostic serialization foundation (v1.18 \xA732, \xA721.6)", items: ["Value", "ValueKind", "TemporalKind", "Serializable", "Deserializable", "SerializationAdapter", "FormatDriver", "SerializationError", "DeserializationError", "RemoteException", "migrate"] },
+  { label: "sync.shared", detail: "Inter-thread shared-memory primitives (v1.18 \xA721.3)", items: ["SharedMutex", "SharedRwLock", "SharedCondVar", "SharedSemaphore", "SharedBarrier", "SharedQueue", "SharedStack"] },
+  { label: "concurrent", detail: "Worker orchestration and arena bridging (v1.18 \xA721.4)", items: ["ScriptWorker", "WorkerChannel", "share"] },
   { label: "io.fs", detail: "Filesystem capability", items: ["read", "write", "readAsync", "writeAsync", "linesAsync"] },
   { label: "io.proc", detail: "Process execution", items: ["run", "runAsync", "on"] },
   { label: "net.net", detail: "Core networking", items: ["resolve", "bind", "connect"] },
@@ -12285,7 +12335,7 @@ var SYSTEM_MODULES = [
   { label: "lang.interop.js", detail: "Typed JS/native facades", items: ["fetch", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "querySelector", "querySelectorAll", "Request", "Response", "Element", "Event", "TimerHandle"] },
   { label: "sync.thread", detail: "OS thread parallelism (native)", items: ["Mutex", "MutexGuard", "RwLock", "Atomic", "Thread", "ThreadHandle", "ThreadPool", "spawnBlocking"] },
   { label: "structures", detail: "Additional data structures", items: ["SortedList", "TreeNode", "Tree"] },
-  { label: "runtime", detail: "Runtime configuration", items: ["configure", "ExecutorConfig", "RuntimeConfig"] },
+  { label: "runtime", detail: "Runtime configuration", items: ["configure", "ExecutorConfig", "RuntimeConfig", "setDefaultSharedArena", "configureDefaultSharedArena"] },
   { label: "native.ffi", detail: "Native FFI helpers", items: ["ThreadSafeHandle", "ptrAdd"] },
   { label: "native.atomic", detail: "Hardware atomic primitives", items: ["hwFence"] },
   { label: "native.gpu", detail: "Low-level GPU kernel dispatch", items: ["GpuKernel", "GpuBuffer", "dispatch"] },
@@ -12303,6 +12353,13 @@ connection.onCompletion((_params) => {
   }
   for (const kw of LOOM_KEYWORDS) {
     items.push({ label: kw, kind: import_node.CompletionItemKind.Keyword });
+  }
+  for (const mode of LOOM_MODES) {
+    items.push({
+      label: mode,
+      kind: import_node.CompletionItemKind.EnumMember,
+      detail: "@mode(...) target"
+    });
   }
   for (const t of LOOM_TYPES) {
     items.push({ label: t, kind: import_node.CompletionItemKind.Class });
@@ -12670,6 +12727,8 @@ connection.languages.semanticTokens.on((params) => {
       case "align_of":
       case "quote":
       case "asm":
+      case "local":
+      case "shared":
         tokenType = 0;
         break;
       case "TypeIdentifier":

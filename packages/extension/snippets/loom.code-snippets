@@ -138,6 +138,136 @@
     ],
     "description": "Synchronized class with per-instance mutex and modifier method (§23.4.13)"
   },
+  "Shared Class": {
+    "prefix": "shclass",
+    "body": [
+      "shared class ${1:Name} {",
+      "  pub var ${2:field}: ${3:int};",
+      "  $0",
+      "}"
+    ],
+    "description": "Shared-memory class — inter-thread shared instance (v1.18 §8.1.1, §17b)"
+  },
+  "Synchronized Shared Class": {
+    "prefix": "syshclass",
+    "body": [
+      "synchronized shared class ${1:Name} {",
+      "  modifier ${2:update}(${3:params}): void {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Synchronized + shared class — thread-safe shared instance (v1.18 §8.1.1, §17b)"
+  },
+  "Local Class": {
+    "prefix": "lclass",
+    "body": [
+      "local class ${1:Name} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Explicit local (thread-local default) class declaration (v1.18 §8.1.1)"
+  },
+  "Shared Constructor": {
+    "prefix": "shnew",
+    "body": "shared ${1:TypeName}(${2:args})",
+    "description": "Shared-memory instance constructor — yields SharedRef[T] (v1.18 §17b)"
+  },
+  "Shared Constructor with Arena": {
+    "prefix": "shnewa",
+    "body": "shared(${1:arena}) ${2:TypeName}(${3:args})",
+    "description": "Shared-memory instance allocated in explicit arena (v1.18 §17b)"
+  },
+  "Shared Arena": {
+    "prefix": "sharena",
+    "body": "let ${1:arena} = SharedArena.new(${2:capacity});",
+    "description": "Create a bounded SharedArena for shared-memory allocations (v1.18 stdlib §21.1)"
+  },
+  "Shared Mutex": {
+    "prefix": "shmutex",
+    "body": [
+      "let ${1:lock} = shared SharedMutex[${2:T}](${3:initial});",
+      "with (${4:guard} = ${1:lock}.lock()) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Shared mutex around shared state (v1.18 stdlib §21.3)"
+  },
+  "Atomic Load": {
+    "prefix": "atomicload",
+    "body": "atomicLoad(${1:cell}, Ordering.${2|Relaxed,Acquire,Release,AcqRel,SeqCst|})",
+    "description": "Atomic load with explicit memory ordering (v1.18 §21.2)"
+  },
+  "Atomic Store": {
+    "prefix": "atomicstore",
+    "body": "atomicStore(${1:cell}, ${2:value}, Ordering.${3|Relaxed,Release,SeqCst|})",
+    "description": "Atomic store with explicit memory ordering (v1.18 §21.2)"
+  },
+  "Compare Exchange": {
+    "prefix": "cmpxchg",
+    "body": "compareExchange(${1:cell}, ${2:expected}, ${3:desired}, Ordering.${4|SeqCst,AcqRel,Release,Acquire|}, Ordering.${5|Relaxed,Acquire|})",
+    "description": "CAS with success/failure ordering (v1.18 §21.2)"
+  },
+  "Serializable Class": {
+    "prefix": "seclass",
+    "body": [
+      "@serializationId(\"${1:urn:schema:${2:MyType}}\")",
+      "class ${2:MyType} : Any implements Serializable, Deserializable {",
+      "  @serialField(\"${3:wireName}\")",
+      "  pub var ${4:field}: ${5:string};",
+      "  $0",
+      "}"
+    ],
+    "description": "Class with v1.18 serialization identity and field mapping (§32)"
+  },
+  "Polymorphic Class": {
+    "prefix": "poclass",
+    "body": [
+      "@polymorphic",
+      "@serializationId(\"${1:urn:schema:${2:Base}}\")",
+      "class ${2:Base} : Any {",
+      "  $0",
+      "}"
+    ],
+    "description": "Polymorphic serializable base class (v1.18 §32.6)"
+  },
+  "Tagged Class": {
+    "prefix": "taclass",
+    "body": [
+      "@tagged(\"${1:kind}\")",
+      "@serializationId(\"${2:urn:schema:${3:Base}}\")",
+      "class ${3:Base} : Any {",
+      "  $0",
+      "}"
+    ],
+    "description": "Tagged polymorphism — external discriminator (v1.18 §32.6)"
+  },
+  "Sealed Hierarchy": {
+    "prefix": "sealedclass",
+    "body": [
+      "@sealed",
+      "@polymorphic",
+      "class ${1:Base} : Any {",
+      "  $0",
+      "}"
+    ],
+    "description": "Closed polymorphic hierarchy (v1.18 §32.6)"
+  },
+  "SerialVia Field": {
+    "prefix": "servia",
+    "body": "@serialVia[${1:AdapterType}] pub var ${2:field}: ${3:FieldType};",
+    "description": "Field with custom SerializationAdapter (v1.18 §32.3, §32.7)"
+  },
+  "Migrate From": {
+    "prefix": "migfrom",
+    "body": [
+      "@migrateFrom(${1:oldVersion})",
+      "class ${2:NewType} : Any {",
+      "  $0",
+      "}"
+    ],
+    "description": "Type migration annotation (v1.18 §32.8)"
+  },
   "Abstract Class": {
     "prefix": "aclass",
     "body": [
@@ -527,8 +657,8 @@
   },
   "Mode Directive": {
     "prefix": "mode",
-    "body": "@mode(${1|scripted,compiled,native,freestanding|})",
-    "description": "File-level @mode directive (§2.5)"
+    "body": "@mode(${1|web.scripted,web.compiled,host.scripted,host.dual,host.native,freestanding|})",
+    "description": "File-level @mode directive — dotted mode names (v1.18 §2.4.4, §2.5)"
   },
   "Namespace Declaration": {
     "prefix": "namespace",
@@ -583,24 +713,25 @@
   "Loom Package Manifest": {
     "prefix": "loompkg",
     "body": [
-      "package   ${1:my-app}",
-      "version   ${2:0.1.0}",
-      "loom      \">=1.16\"",
+      "package              ${1:my-app}",
+      "version              ${2:0.1.0}",
+      "loom                 \">=1.18\"",
+      "shared_abi_version   ${3:1}",
       "",
       "[deps]",
-      "${3:# dependency = \"^1.0\"}",
+      "${4:# dependency = \"^1.0\"}",
       "",
       "[dev-deps]",
-      "${4:# test-runner = \"^3.1\"}",
+      "${5:# test-runner = \"^3.1\"}",
       "",
       "[dev-overrides]",
-      "${5:# my-utils = { path = \"../my-utils\" }}",
+      "${6:# my-utils = { path = \"../my-utils\" }}",
       "",
-      "[target.${6:cli}]",
-      "${7:include io.fs}",
-      "${8:include io.proc}"
+      "[target.${7:cli}]",
+      "${8:include io.fs}",
+      "${9:include io.proc}"
     ],
-    "description": "Loom package manifest scaffold (§13.3)"
+    "description": "Loom package manifest scaffold with shared_abi_version (v1.18 §13.3, §13.5b)"
   },
   "Unique Binding": {
     "prefix": "ulet",

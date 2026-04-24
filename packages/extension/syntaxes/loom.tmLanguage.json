@@ -36,6 +36,8 @@
     { "include": "#struct-declaration" },
     { "include": "#abstract-class-declaration" },
     { "include": "#synchronized-class-declaration" },
+    { "include": "#shared-class-declaration" },
+    { "include": "#local-class-declaration" },
     { "include": "#unique-class-declaration" },
     { "include": "#class-declaration" },
     { "include": "#interface-declaration" },
@@ -87,9 +89,9 @@
     },
 
     "mode-directive": {
-      "comment": "File-level @mode(scripted|compiled|native|freestanding) directive (§2.5.1)",
+      "comment": "File-level @mode(...) directive (v1.18 §2.5.1). Dotted mode names: web.scripted, web.compiled, host.scripted, host.dual, host.native, freestanding, plus family wildcards web.*, host.*, *.scripted, *.compiled.",
       "name": "meta.directive.mode.loom",
-      "match": "^\\s*(@mode)\\s*(\\()\\s*(scripted|compiled|native|freestanding)\\s*(\\))",
+      "match": "^\\s*(@mode)\\s*(\\()\\s*((?:web|host|\\*)\\.(?:scripted|compiled|native|dual|\\*)|freestanding)\\s*(\\))",
       "captures": {
         "1": { "name": "storage.modifier.mode.loom" },
         "2": { "name": "punctuation.section.parens.begin.loom" },
@@ -110,6 +112,15 @@
 
     "annotations": {
       "patterns": [
+        {
+          "comment": "Known serialization annotations (v1.18 §32)",
+          "name": "meta.annotation.serialization.loom",
+          "match": "(@)(serializationId|polymorphic|tagged|sealed|serialField|alias|skip|skipIfDefault|sensitive|serialVia|migrateFrom|optional|open|strictSchema)\\b",
+          "captures": {
+            "1": { "name": "punctuation.definition.annotation.loom" },
+            "2": { "name": "storage.type.annotation.serialization.loom" }
+          }
+        },
         {
           "comment": "Annotations with optional arguments: @name or @name(...)",
           "name": "meta.annotation.loom",
@@ -185,6 +196,11 @@
           "match": "\\b(consume)\\b"
         },
         {
+          "comment": "shared T(args) / shared(arena) T(args) — shared-constructor expression (v1.18 §17b)",
+          "name": "keyword.operator.shared.loom",
+          "match": "\\bshared\\b(?=\\s*(?:\\(|[A-Z]))"
+        },
+        {
           "name": "keyword.operator.layout.loom",
           "match": "\\b(size_of|align_of|reinterpret|reinterpretChecked)\\b"
         },
@@ -211,7 +227,7 @@
         },
         {
           "name": "storage.modifier.loom",
-          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime|excl|unique|arc|synchronized|safe)\\b"
+          "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime|excl|unique|arc|synchronized|safe|local|shared)\\b"
         }
       ]
     },
@@ -231,12 +247,12 @@
         {
           "comment": "Built-in box / special types (PascalCase)",
           "name": "support.type.class.loom",
-          "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|ActorContext|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|AlignmentError|Animal|Any|AppError|ArcLet|AssertionError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|BorrowedHandle|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|DmaBuffer|DmaTransfer|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|FreestandingDebugFrame|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|InterruptFrame|InterruptGuard|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|MaybeUninit|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|MountTarget|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Ok|Optimizer|Option|OwnedHandle|PanicSource|PartialInit|PinnedRef|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RuntimeConfig|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SgdOptimizer|Shape|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|TypeError|UiRuntime|Url|UrlError|User|Variable|VendorId|View|Volatile|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
+          "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|ActorContext|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|AlignmentError|Animal|Any|AppError|ArcLet|AssertionError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|BorrowedHandle|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeserializationError|Deserializable|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|DmaBuffer|DmaTransfer|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|FormatDriver|FreestandingDebugFrame|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|Integer|InterruptFrame|InterruptGuard|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|MaybeUninit|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|MountTarget|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Numeric|Ok|Optimizer|Option|Ordering|OwnedHandle|PanicSource|PartialInit|PinnedRef|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RemoteException|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RuntimeConfig|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SerializationAdapter|SerializationError|SgdOptimizer|Shape|Shareable|SharedArena|SharedArray|SharedBarrier|SharedBuffer|SharedCondVar|SharedMutex|SharedQueue|SharedRef|SharedRwLock|SharedSemaphore|SharedStack|SharedWeakRef|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|TemporalKind|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|TypeError|UiRuntime|UnknownEnumVariant|Url|UrlError|User|Value|ValueKind|Variable|VendorId|View|Volatile|WeakRef|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
         },
         {
           "comment": "Top-level standard library namespace roots",
           "name": "support.type.namespace.loom",
-          "match": "\\b(core|io|net|data|web|sync|lang|debug|structures|ui|runtime|native|system)\\b"
+          "match": "\\b(core|io|net|data|web|sync|lang|debug|structures|ui|runtime|native|concurrent|system)\\b"
         }
       ]
     },
@@ -1022,11 +1038,37 @@
     },
 
     "synchronized-class-declaration": {
-      "comment": "synchronized class — per-instance lock (§23.4.13)",
+      "comment": "synchronized [local|shared] [unique] [abstract] [dynamic] class — per-instance lock (§23.4.13, v1.18 §27.15)",
       "name": "meta.class.synchronized.loom",
-      "match": "\\b(synchronized)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "match": "\\b(synchronized)(?:\\s+(local|shared))?(?:\\s+(unique))?(?:\\s+(abstract))?(?:\\s+(dynamic))?\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
         "1": { "name": "storage.modifier.synchronized.loom" },
+        "2": { "name": "storage.modifier.memory-strategy.loom" },
+        "3": { "name": "storage.modifier.unique.loom" },
+        "4": { "name": "storage.modifier.abstract.loom" },
+        "5": { "name": "storage.modifier.dynamic.loom" },
+        "6": { "name": "storage.type.class.loom" },
+        "7": { "name": "entity.name.type.class.loom" }
+      }
+    },
+
+    "shared-class-declaration": {
+      "comment": "shared class — inter-thread shared memory class (v1.18 §8.1.1, §17b)",
+      "name": "meta.class.shared.loom",
+      "match": "\\b(shared)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.memory-strategy.loom" },
+        "2": { "name": "storage.type.class.loom" },
+        "3": { "name": "entity.name.type.class.loom" }
+      }
+    },
+
+    "local-class-declaration": {
+      "comment": "local class — explicit form of the default thread-local class (v1.18 §8.1.1)",
+      "name": "meta.class.local.loom",
+      "match": "\\b(local)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.modifier.memory-strategy.loom" },
         "2": { "name": "storage.type.class.loom" },
         "3": { "name": "entity.name.type.class.loom" }
       }

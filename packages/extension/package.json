@@ -1,8 +1,8 @@
 {
   "name": "loom-lang",
   "displayName": "Loom Language",
-  "description": "Full language support for the Loom programming language (v1.16) — syntax highlighting, language intelligence, and debugging with time-travel capabilities.",
-  "version": "1.16.0",
+  "description": "Full language support for the Loom programming language (v1.18) — syntax highlighting, language intelligence, and debugging with time-travel capabilities.",
+  "version": "1.18.0",
   "publisher": "loom-lang",
   "engines": {
     "vscode": "^1.85.0"
@@ -101,7 +101,7 @@
               },
               "target": {
                 "type": "string",
-                "description": "Target platform. Scripted: browser/node/bun/deno. Compiled: wasm/browser. Native: native/cli/service/desktop. Freestanding: freestanding. (See Loom v1.16 §2.5.2.)",
+                "description": "Target platform. Corresponds to the file's @mode(...) directive (v1.18 §2.5.2). web.scripted: browser/node/bun/deno. web.compiled: wasm/browser. host.scripted / host.dual / host.native: native/cli/service/desktop. freestanding: bare-metal.",
                 "enum": ["cli", "browser", "service", "desktop", "native", "wasm", "node", "bun", "deno", "freestanding"],
                 "default": "cli"
               },

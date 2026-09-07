@@ -75,7 +75,7 @@ export class TimeTravelManager {
     const data = JSON.parse(text);
 
     const session: CaptureSession = {
-      id: path.basename(filePath, '.loom-trace'),
+      id: path.basename(filePath, '.loup-trace'),
       startTime: data.startTime || 0,
       endTime: data.endTime,
       events: data.events || [],

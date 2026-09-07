@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Loom Package Manifest",
-  "scopeName": "source.loom-pkg",
-  "fileTypes": ["lmpkg"],
+  "name": "Loup Package Manifest",
+  "scopeName": "source.loup-pkg",
+  "fileTypes": ["lppkg"],
   "patterns": [
     { "include": "#comments" },
     { "include": "#sections" },
@@ -19,98 +19,98 @@
   ],
   "repository": {
     "comments": {
-      "name": "comment.line.number-sign.loom-pkg",
+      "name": "comment.line.number-sign.loup-pkg",
       "match": "#.*$"
     },
     "sections": {
       "comment": "Section headers including [deps], [dev-deps], [dev-overrides], [build], [target.X], [registry]",
       "match": "^\\s*(\\[[a-zA-Z0-9_.\\-]+\\])\\s*$",
       "captures": {
-        "1": { "name": "entity.name.section.loom-pkg" }
+        "1": { "name": "entity.name.section.loup-pkg" }
       }
     },
     "top-level-keys": {
-      "match": "^\\s*(package|version|loom|stable_abi|abi_version|shared_abi_version)\\s+(.+)$",
+      "match": "^\\s*(package|version|loup|stable_abi|abi_version|shared_abi_version)\\s+(.+)$",
       "captures": {
-        "1": { "name": "keyword.other.definition.loom-pkg" },
-        "2": { "name": "string.unquoted.value.loom-pkg" }
+        "1": { "name": "keyword.other.definition.loup-pkg" },
+        "2": { "name": "string.unquoted.value.loup-pkg" }
       }
     },
     "build-directive": {
       "comment": "Build-table keys (§2.5.2, §24.21, v1.18 §13.5b): mode, shared_abi_version, portal_ring_size, stack_size, debug channels",
       "match": "^\\s*(mode|shared_abi_version|portal_ring_size|stack_size|timeTravelEnabled|debug_control_channel|debug_trace_channel)\\s*(=)\\s*(.+)$",
       "captures": {
-        "1": { "name": "keyword.control.build.loom-pkg" },
-        "2": { "name": "keyword.operator.assignment.loom-pkg" },
-        "3": { "name": "string.unquoted.value.loom-pkg" }
+        "1": { "name": "keyword.control.build.loup-pkg" },
+        "2": { "name": "keyword.operator.assignment.loup-pkg" },
+        "3": { "name": "string.unquoted.value.loup-pkg" }
       }
     },
     "inline-table": {
       "comment": "TOML inline table values such as { path = \"...\", version = \"^1.0\" }",
       "begin": "\\{",
       "end": "\\}",
-      "beginCaptures": { "0": { "name": "punctuation.section.inline-table.begin.loom-pkg" } },
-      "endCaptures": { "0": { "name": "punctuation.section.inline-table.end.loom-pkg" } },
+      "beginCaptures": { "0": { "name": "punctuation.section.inline-table.begin.loup-pkg" } },
+      "endCaptures": { "0": { "name": "punctuation.section.inline-table.end.loup-pkg" } },
       "patterns": [
         {
           "match": "\\b(path|version|git|branch|tag|rev|registry|features|optional)\\b\\s*(=)",
           "captures": {
-            "1": { "name": "keyword.other.key.loom-pkg" },
-            "2": { "name": "keyword.operator.assignment.loom-pkg" }
+            "1": { "name": "keyword.other.key.loup-pkg" },
+            "2": { "name": "keyword.operator.assignment.loup-pkg" }
           }
         },
         { "include": "#strings" },
         { "include": "#boolean-value" },
         { "include": "#version-constraint" },
-        { "name": "punctuation.separator.comma.loom-pkg", "match": "," }
+        { "name": "punctuation.separator.comma.loup-pkg", "match": "," }
       ]
     },
     "dependency-entry": {
       "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_.\\-]*)\\s*=\\s*(\"[^\"]*\"|'[^']*'|\\[.*\\])",
       "captures": {
-        "1": { "name": "entity.name.tag.dependency.loom-pkg" },
-        "2": { "name": "string.quoted.version.loom-pkg" }
+        "1": { "name": "entity.name.tag.dependency.loup-pkg" },
+        "2": { "name": "string.quoted.version.loup-pkg" }
       }
     },
     "target-directive": {
       "match": "^\\s*(include|exclude|state_integrity|csp)\\s+(.+)",
       "captures": {
-        "1": { "name": "keyword.control.target.loom-pkg" },
-        "2": { "name": "entity.name.namespace.loom-pkg" }
+        "1": { "name": "keyword.control.target.loup-pkg" },
+        "2": { "name": "entity.name.namespace.loup-pkg" }
       }
     },
     "native-directive": {
       "comment": "Native build directives: link, link_path, framework",
       "match": "^\\s*(link|link_path|framework)\\s+(.+)$",
       "captures": {
-        "1": { "name": "keyword.control.native.loom-pkg" },
-        "2": { "name": "string.unquoted.value.loom-pkg" }
+        "1": { "name": "keyword.control.native.loup-pkg" },
+        "2": { "name": "string.unquoted.value.loup-pkg" }
       }
     },
     "boolean-value": {
-      "name": "constant.language.boolean.loom-pkg",
+      "name": "constant.language.boolean.loup-pkg",
       "match": "\\b(true|false)\\b"
     },
     "strings": {
       "patterns": [
         {
-          "name": "string.quoted.double.loom-pkg",
+          "name": "string.quoted.double.loup-pkg",
           "begin": "\"",
           "end": "\""
         },
         {
-          "name": "string.quoted.single.loom-pkg",
+          "name": "string.quoted.single.loup-pkg",
           "begin": "'",
           "end": "'"
         }
       ]
     },
     "version-constraint": {
-      "name": "constant.numeric.version.loom-pkg",
+      "name": "constant.numeric.version.loup-pkg",
       "match": "\\b[0-9]+(\\.[0-9]+){0,2}\\b"
     },
     "identifiers": {
-      "name": "variable.other.loom-pkg",
+      "name": "variable.other.loup-pkg",
       "match": "\\b[a-zA-Z_][a-zA-Z0-9_.\\-]*\\b"
     }
   }

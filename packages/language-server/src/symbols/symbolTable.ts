@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Symbol Table — Scope resolver for go-to-definition and references
+// Loup Symbol Table — Scope resolver for go-to-definition and references
 // ============================================================================
 
 import * as AST from '../parser/ast.js';

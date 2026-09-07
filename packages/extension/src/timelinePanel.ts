@@ -20,12 +20,12 @@ export class TimelinePanel {
         switch (message.command) {
           case 'selectEvent':
             if (message.index !== undefined) {
-              vscode.commands.executeCommand('loom.navigateToEvent', message.index);
+              vscode.commands.executeCommand('loup.navigateToEvent', message.index);
             }
             break;
           case 'filterPortal':
             if (message.portal !== undefined) {
-              vscode.commands.executeCommand('loom.filterTimeline', message.portal);
+              vscode.commands.executeCommand('loup.filterTimeline', message.portal);
             }
             break;
         }
@@ -44,8 +44,8 @@ export class TimelinePanel {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'loomTimeline',
-      'Loom Timeline',
+      'loupTimeline',
+      'Loup Timeline',
       column,
       {
         enableScripts: true,
@@ -94,7 +94,7 @@ export class TimelinePanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loom Timeline</title>
+  <title>Loup Timeline</title>
   <style>
     :root {
       --bg: var(--vscode-editor-background);
@@ -261,14 +261,14 @@ export class TimelinePanel {
 </head>
 <body>
   <div class="header">
-    <h2 id="title">Loom Timeline</h2>
+    <h2 id="title">Loup Timeline</h2>
     <span class="stats" id="stats"></span>
   </div>
   <div class="controls" id="controls"></div>
   <div class="timeline-container" id="timeline">
     <div class="empty-state">
       <div class="icon">⏱</div>
-      <div>No trace loaded.<br>Start a time-travel capture or open a .loom-trace file.</div>
+      <div>No trace loaded.<br>Start a time-travel capture or open a .loup-trace file.</div>
     </div>
   </div>
 

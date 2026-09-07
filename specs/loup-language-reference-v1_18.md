@@ -1,4 +1,4 @@
-# Loom Language Reference v1.18
+# Loup Language Reference v1.18
 
 **Status:** Release
 **Version:** 1.18.0
@@ -51,8 +51,8 @@
   deserialization-as-code-execution.
 
 **Related documents:**
-- [Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md)
-- [Loom Packages Reference v1.11](loom-packages-reference-v1_11.md)
+- [Loup Standard Library Reference v1.18](loup-stdlib-reference-v1_18.md)
+- [Loup Packages Reference v1.11](loup-packages-reference-v1_11.md)
 
 ---
 
@@ -163,13 +163,13 @@
   - [§13.0 Namespace Declarations](#130-namespace-declarations)
   - [§13.1 Import Syntax](#131-import-syntax)
   - [§13.2 Re-Exports](#132-re-exports)
-  - [§13.3 Package Manifest (`.lmpkg`)](#133-package-manifest-lmpkg)
+  - [§13.3 Package Manifest (`.lppkg`)](#133-package-manifest-lppkg)
   - [§13.4 Module Initialization](#134-module-initialization)
   - [§13.5 Package Registry](#135-package-registry)
   - [§13.6 Reserved Namespaces](#136-reserved-namespaces)
   - [§13.7 Module Fallback Pairs](#137-module-fallback-pairs)
   - [§13.8 Core Package Set](#138-core-package-set)
-  - [§13.9 `LOOMPATH` — Development Package Search Path](#139-loompath--development-package-search-path)
+  - [§13.9 `LOUPPATH` — Development Package Search Path](#139-louppath--development-package-search-path)
   - [§13.10 Circular Imports and Deferred Type Resolution](#1310-circular-imports-and-deferred-type-resolution)
     - [§13.10.1 Circular Import Policy](#13101-circular-import-policy)
     - [§13.10.2 `defer import` — Deferred Type Resolution](#13102-defer-import--deferred-type-resolution)
@@ -272,7 +272,7 @@
   - [§23.5 ARC and the Scripted/Native Mode Boundary](#235-arc-and-the-scriptednative-mode-boundary)
   - [§23.6 ABI Stability](#236-abi-stability)
   - [§23.7 C Header Interop](#237-c-header-interop)
-  - [§23.8 Build Pipeline and `.lmpkg` for Native](#238-build-pipeline-and-lmpkg-for-native)
+  - [§23.8 Build Pipeline and `.lppkg` for Native](#238-build-pipeline-and-lppkg-for-native)
   - [§23.9 Requirements](#239-requirements)
 - [§24 Freestanding Mode](#24-freestanding-mode)
   - [§24.1 Overview](#241-overview)
@@ -295,7 +295,7 @@
   - [§24.18 `reinterpret[T, U]` — Type-Safe Reinterpretation](#2418-reinterpretu--type-safe-reinterpretation)
   - [§24.19 Integer Overflow Arithmetic Methods](#2419-integer-overflow-arithmetic-methods)
   - [§24.20 Available Standard Library Subset](#2420-available-standard-library-subset)
-  - [§24.21 `.lmpkg` Extensions for Freestanding](#2421-lmpkg-extensions-for-freestanding)
+  - [§24.21 `.lppkg` Extensions for Freestanding](#2421-lppkg-extensions-for-freestanding)
   - [§24.22 Freestanding Error Codes](#2422-freestanding-error-codes)
   - [§24.23 Example — x86_64 Kernel Stub](#2423-example--x8664-kernel-stub)
   - [§24.24 `@interruptSafe` Annotation and `InterruptGuard`](#2424-interruptsafe-annotation-and-interruptguard)
@@ -378,7 +378,7 @@
 
 *(This section is non-normative.)*
 
-Loom is a statically-typed, cooperatively-scheduled programming language designed for scripting, code generation, and full-stack application development. The following goals guide the language design:
+Loup is a statically-typed, cooperatively-scheduled programming language designed for scripting, code generation, and full-stack application development. The following goals guide the language design:
 
 - **Embeddable syntaxes.** The language is built so that other language syntaxes (Python, TypeScript, HTML, SQL, etc.) are easy to embed directly via template literals ("template fences"), with formatting and interpolation.
 
@@ -390,15 +390,15 @@ Loom is a statically-typed, cooperatively-scheduled programming language designe
 
 - **Dynamic debuggability.** The runtime is designed to support native tracing, in-process time-travel capture, and remotely activated debugging via named portals and callable entry points. The JIT compilation pipeline preserves full source maps for line-level debugging.
 
-- **Memory safety.** Loom provides memory safety guarantees comparable to Rust through a layered ownership system: ownership transfer verbs (`reads`, `edits`, `takes`, `shares`) enforce shared-XOR-mutable at call sites in all execution modes; the `modifier` keyword enforces exclusive access for class mutation; `safe` contexts extend enforcement to multi-statement borrow tracking; `synchronized` classes serialize mutation at runtime for concurrent and async contexts; and `distinct()` contracts replace unverified aliasing assertions with statically-verified or explicitly auditable guarantees. `atomic {}` blocks close TOCTOU races in cooperative async code by providing compiler-enforced suspension-free regions. Unlike Rust, these guarantees are available in all execution modes, not gated to native compilation.
+- **Memory safety.** Loup provides memory safety guarantees comparable to Rust through a layered ownership system: ownership transfer verbs (`reads`, `edits`, `takes`, `shares`) enforce shared-XOR-mutable at call sites in all execution modes; the `modifier` keyword enforces exclusive access for class mutation; `safe` contexts extend enforcement to multi-statement borrow tracking; `synchronized` classes serialize mutation at runtime for concurrent and async contexts; and `distinct()` contracts replace unverified aliasing assertions with statically-verified or explicitly auditable guarantees. `atomic {}` blocks close TOCTOU races in cooperative async code by providing compiler-enforced suspension-free regions. Unlike Rust, these guarantees are available in all execution modes, not gated to native compilation.
 
 - **Explicit meaning.** Core syntax avoids "magic fallback" behaviors. Where dynamic behavior exists, it is opt-in and syntactically explicit.
 
 - **Cross-platform viability.** The language and its toolchain are designed to work uniformly across CLI tools, server applications, native desktop applications, and the web browser. Platform-specific capabilities are capability-gated and enforced at build time via platform profiles.
 
-- **Compiled mode.** For performance-critical code, Loom supports a compiled mode that restricts the language to a statically-analyzable subset suitable for ahead-of-time compilation to optimized Wasm or native code. Portal statements and `core.reflect` are available in compiled mode.
+- **Compiled mode.** For performance-critical code, Loup supports a compiled mode that restricts the language to a statically-analyzable subset suitable for ahead-of-time compilation to optimized Wasm or native code. Portal statements and `core.reflect` are available in compiled mode.
 
-- **Native compilation.** Loom programs can be compiled to native binaries via LLVM or Cranelift backends using mandatory ARC memory management, bidirectional C header interop, and deployment without a Wasm runtime.
+- **Native compilation.** Loup programs can be compiled to native binaries via LLVM or Cranelift backends using mandatory ARC memory management, bidirectional C header interop, and deployment without a Wasm runtime.
 
 - **True parallelism.** On native targets, the async executor is optionally reconfigurable to a work-stealing multi-threaded model that distributes async tasks across all CPU cores. CPU-bound work runs on a dedicated blocking thread pool via `spawnBlocking`. In scripted mode and Wasm targets, `spawnBlocking` offloads synchronous work to a host-managed thread pool, and `ScriptWorker` provides isolated parallel Wasm instances with typed message channels. The `Sendable` interface enforces data-race freedom at compile time across all targets.
 
@@ -410,7 +410,7 @@ Loom is a statically-typed, cooperatively-scheduled programming language designe
 
 *(This section is normative.)*
 
-Loom defines six execution modes — `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, `@mode(host.native)`, and `@mode(freestanding)` — described fully in §2.4 and §2.6. The modes organize along two orthogonal axes:
+Loup defines six execution modes — `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, `@mode(host.native)`, and `@mode(freestanding)` — described fully in §2.4 and §2.6. The modes organize along two orthogonal axes:
 
 - **Deployment environment** — `web.*` targets the browser sandbox, `host.*` targets an operating system process, `freestanding` targets bare metal with no runtime.
 - **Compilation strategy** — `.scripted` denotes JIT compilation at load time, `.compiled` and `.native` denote AOT compilation at build time, `.dual` denotes source that is deliverable either as JIT-compiled script or AOT-compiled native binary.
@@ -433,37 +433,37 @@ The six modes are not a strict subset hierarchy — each combines an environment
 
 Script-mode execution uses a cooperative, single-threaded runtime with first-class `async`/`await`.
 
-**Runtime model.** The runtime SHALL execute Loom code cooperatively on a single thread by default, suspending only at explicit `await` expressions. All asynchronous work is represented as `Task[T]` values scheduled on the host event loop. Evaluation is deterministic between suspension points; only external I/O completion order may affect when suspended tasks resume. On `host.native` targets, the executor may be reconfigured to a work-stealing multi-threaded model via `runtime.configure` (§17.9.1) to enable parallelism across CPU cores. In script-mode runtimes and on all Wasm targets, `spawnBlocking` (§17.10.1) offloads CPU-bound synchronous work to a host-managed thread pool, and `ScriptWorker` (§17.10.2) provides isolated parallel Wasm instances with `Sendable`-typed message channels.
+**Runtime model.** The runtime SHALL execute Loup code cooperatively on a single thread by default, suspending only at explicit `await` expressions. All asynchronous work is represented as `Task[T]` values scheduled on the host event loop. Evaluation is deterministic between suspension points; only external I/O completion order may affect when suspended tasks resume. On `host.native` targets, the executor may be reconfigured to a work-stealing multi-threaded model via `runtime.configure` (§17.9.1) to enable parallelism across CPU cores. In script-mode runtimes and on all Wasm targets, `spawnBlocking` (§17.10.1) offloads CPU-bound synchronous work to a host-managed thread pool, and `ScriptWorker` (§17.10.2) provides isolated parallel Wasm instances with `Sendable`-typed message channels.
 
-**JIT compilation pipeline.** The `loom run` command uses a JIT compilation pipeline rather than ahead-of-time batch compilation:
+**JIT compilation pipeline.** The `loup run` command uses a JIT compilation pipeline rather than ahead-of-time batch compilation:
 
 1. **Cache lookup** — Before compiling, the runtime checks the module Wasm cache (§28.7) for an up-to-date compiled artifact matching the module's source hash and current toolchain version. If a cache hit is found, step 2 is skipped and the cached Wasm is instantiated directly.
 2. **Parse and JIT compile to Wasm** — If no cache entry exists, the source file is parsed into an AST and each top-level statement (or function body) is compiled to WebAssembly (GC+EH) incrementally.
 3. **Execute** — Compiled Wasm is executed immediately.
 
-This pipeline ensures that execution begins immediately and each statement is individually addressable by a debugger. There is no separate build step for script modes. For packages installed via `loom install`, step 1 will nearly always be a cache hit, reducing script-mode startup latency to near-zero for imported modules.
+This pipeline ensures that execution begins immediately and each statement is individually addressable by a debugger. There is no separate build step for script modes. For packages installed via `loup install`, step 1 will nearly always be a cache hit, reducing script-mode startup latency to near-zero for imported modules.
 
-**Statement-level execution.** In `@mode(host.scripted)`, the runtime SHALL treat every source-level statement as a discrete execution step. When a module is loaded, its top-level statements execute sequentially in source order. The JIT pipeline is the default execution mode for `loom run` and REPL sessions. Sequential top-level execution is specific to `host.scripted` — other modes use architectural entry points (web bootstrap, `main()`, `@entry`) described in §2.4.
+**Statement-level execution.** In `@mode(host.scripted)`, the runtime SHALL treat every source-level statement as a discrete execution step. When a module is loaded, its top-level statements execute sequentially in source order. The JIT pipeline is the default execution mode for `loup run` and REPL sessions. Sequential top-level execution is specific to `host.scripted` — other modes use architectural entry points (web bootstrap, `main()`, `@entry`) described in §2.4.
 
-**Source maps and debugging.** The runtime SHALL maintain a source map from every emitted Wasm instruction back to its originating Loom source line and column, enabling line-level breakpoints on any statement including imports and type definitions. JIT-compiled Wasm retains full debug metadata (source maps, local variable names, scope boundaries) by default.
+**Source maps and debugging.** The runtime SHALL maintain a source map from every emitted Wasm instruction back to its originating Loup source line and column, enabling line-level breakpoints on any statement including imports and type definitions. JIT-compiled Wasm retains full debug metadata (source maps, local variable names, scope boundaries) by default.
 
-**Source map delivery (normative).** When `loom build --debug --target browser` is invoked the toolchain SHALL:
+**Source map delivery (normative).** When `loup build --debug --target browser` is invoked the toolchain SHALL:
 
-1. Emit an external source map file `app.wasm.map` in the `dist/` output alongside `app.wasm`. Inline base64 source maps are permitted only for `loom serve` development mode; external files are required for all `loom build` outputs.
+1. Emit an external source map file `app.wasm.map` in the `dist/` output alongside `app.wasm`. Inline base64 source maps are permitted only for `loup serve` development mode; external files are required for all `loup build` outputs.
 2. Append a `//# sourceMappingURL=app.wasm.map` comment at the end of the `app.wasm` binary so V8's Wasm debugger discovers the map automatically.
-3. Annotate each portal entry point in the source map using the custom extension field `x-loom-portals`: a JSON object mapping portal names to their Wasm byte offsets. This enables the Loom DevTools extension (§21.26) to look up portals by name for CDP breakpoint placement.
+3. Annotate each portal entry point in the source map using the custom extension field `x-loup-portals`: a JSON object mapping portal names to their Wasm byte offsets. This enables the Loup DevTools extension (§21.26) to look up portals by name for CDP breakpoint placement.
 
-`loom serve` SHALL serve `*.wasm.map` files with `Content-Type: application/json` and the response header `Access-Control-Allow-Origin: *` so Chrome DevTools can fetch source maps across the local origin boundary. Production deployments are responsible for configuring equivalent headers on their static file servers; Loom does not enforce this at build time but the tooling documentation SHALL note the requirement.
+`loup serve` SHALL serve `*.wasm.map` files with `Content-Type: application/json` and the response header `Access-Control-Allow-Origin: *` so Chrome DevTools can fetch source maps across the local origin boundary. Production deployments are responsible for configuring equivalent headers on their static file servers; Loup does not enforce this at build time but the tooling documentation SHALL note the requirement.
 
 **Bytecode target.** The primary bytecode target for all Wasm-delivered modes (`web.scripted`, `web.compiled`, `host.scripted`, and the JIT side of `host.dual`) is WebAssembly with GC and Exception Handling proposals. The specification defines:
 
-- The mapping from Loom types to Wasm GC types (structs, arrays, `i31ref`, `funcref`, etc.)
-- How Loom exceptions map to Wasm EH tags
+- The mapping from Loup types to Wasm GC types (structs, arrays, `i31ref`, `funcref`, etc.)
+- How Loup exceptions map to Wasm EH tags
 - How `Task[T]` and async/await map to Wasm execution (stack switching or CPS transform)
-- The Wasm module interface (imports/exports) that the Loom runtime host must provide
-- The source map format that maps Wasm instruction offsets to Loom source locations (file, line, column)
+- The Wasm module interface (imports/exports) that the Loup runtime host must provide
+- The source map format that maps Wasm instruction offsets to Loup source locations (file, line, column)
 
-**AOT compilation.** The `loom build` command uses an ahead-of-time (AOT) compilation mode that produces optimized Wasm modules (for `web.compiled`) or native binaries (for `host.native`, `host.dual`, `freestanding`) for deployment. Debug info inclusion is controlled by a `--debug` flag. AOT-compiled artifacts strip debug metadata unless `--debug` is specified.
+**AOT compilation.** The `loup build` command uses an ahead-of-time (AOT) compilation mode that produces optimized Wasm modules (for `web.compiled`) or native binaries (for `host.native`, `host.dual`, `freestanding`) for deployment. Debug info inclusion is controlled by a `--debug` flag. AOT-compiled artifacts strip debug metadata unless `--debug` is specified.
 
 **Statement-level execution semantics.** The following rules define precisely what "executing" each kind of top-level statement means in `@mode(host.scripted)`:
 
@@ -488,19 +488,19 @@ The runtime supports the following debug operations:
 - **Step-over:** Advance execution one source-level statement at a time, skipping into function calls.
 - **Step-into:** Enter a function call or import statement and step through its statements.
 - **Step-out:** Complete the current function and return to the caller.
-- **Conditional breakpoints:** The condition is a Loom expression evaluated in the breakpoint's lexical scope.
+- **Conditional breakpoints:** The condition is a Loup expression evaluated in the breakpoint's lexical scope.
 - **Watch expressions:** Re-evaluated at each debugger pause using the current scope.
 
-When stepping into an import statement, the debugger enters the imported module and allows stepping through its top-level statements one by one. Line-level debugging is available in both `loom run` (JIT) mode and when running Wasm modules compiled with `loom build --debug`.
+When stepping into an import statement, the debugger enters the imported module and allows stepping through its top-level statements one by one. Line-level debugging is available in both `loup run` (JIT) mode and when running Wasm modules compiled with `loup build --debug`.
 
 The runtime SHALL emit `Line` trace events (as defined in §20.3) at every source-level statement boundary, enabling trace hooks to observe execution at line granularity.
 
-**Debug information and source maps.** The compiler SHALL emit DWARF debug information or a Wasm-compatible source map for every compiled Wasm module, mapping instruction offsets to Loom source locations (file path, line, column). Debug metadata includes:
+**Debug information and source maps.** The compiler SHALL emit DWARF debug information or a Wasm-compatible source map for every compiled Wasm module, mapping instruction offsets to Loup source locations (file path, line, column). Debug metadata includes:
 
 - Local variable name and scope boundary information, so debuggers can display variable values at any point in execution.
 - Type information, including enum variants, generic type parameters, and boxed/unboxed state, so debuggers can display typed values.
 
-When JIT-compiling, the runtime attaches debug metadata to each compiled Wasm function immediately, without requiring a post-processing step. When AOT-compiling with `loom build --debug`, the compiler embeds debug metadata in the output Wasm module or emits a companion `.loom-debug` sidecar file. When AOT-compiling without `--debug`, the compiler strips debug metadata from the output Wasm module for minimal binary size.
+When JIT-compiling, the runtime attaches debug metadata to each compiled Wasm function immediately, without requiring a post-processing step. When AOT-compiling with `loup build --debug`, the compiler embeds debug metadata in the output Wasm module or emits a companion `.loup-debug` sidecar file. When AOT-compiling without `--debug`, the compiler strips debug metadata from the output Wasm module for minimal binary size.
 
 The source map format is defined in relation to existing standards: DWARF for Wasm (for native and AOT targets) and the Wasm Source Map proposal (for browser-hosted execution).
 
@@ -508,11 +508,11 @@ The source map format is defined in relation to existing standards: DWARF for Wa
 
 **Failure model.** Failures are hard by default; see §26 for the complete failure policy.
 
-**Wasm call-stack exhaustion (normative).** A Wasm call-stack exhaustion trap encountered during execution of a Loom Wasm-delivered program SHALL be caught by the Loom runtime host and rethrown as `StackOverflowError extends RuntimeError` (§26.1) at the point of the deepest active Loom call frame. `StackOverflowError` is catchable by user `try/catch` blocks. The maximum call-stack depth is engine-defined and is not specified by Loom; programs MUST NOT rely on a particular limit. Recursive algorithms with unbounded depth SHOULD use explicit work-list patterns or `gen func` (§7.5) to avoid stack exhaustion.
+**Wasm call-stack exhaustion (normative).** A Wasm call-stack exhaustion trap encountered during execution of a Loup Wasm-delivered program SHALL be caught by the Loup runtime host and rethrown as `StackOverflowError extends RuntimeError` (§26.1) at the point of the deepest active Loup call frame. `StackOverflowError` is catchable by user `try/catch` blocks. The maximum call-stack depth is engine-defined and is not specified by Loup; programs MUST NOT rely on a particular limit. Recursive algorithms with unbounded depth SHOULD use explicit work-list patterns or `gen func` (§7.5) to avoid stack exhaustion.
 
 ### §2.2 Module Introspection Dunders
 
-Every Loom module has three implicit read-only bindings available at module scope:
+Every Loup module has three implicit read-only bindings available at module scope:
 
 | Dunder | Type | Description |
 |---|---|---|
@@ -522,7 +522,7 @@ Every Loom module has three implicit read-only bindings available at module scop
 
 **`__name__` rules:**
 
-- In `@mode(host.scripted)`, when a file is executed directly via `loom run`, `__name__` is `"__main__"`. When loaded as an import, `__name__` is the module's fully-qualified dotted name (e.g., `"mypackage.utils"`).
+- In `@mode(host.scripted)`, when a file is executed directly via `loup run`, `__name__` is `"__main__"`. When loaded as an import, `__name__` is the module's fully-qualified dotted name (e.g., `"mypackage.utils"`).
 - In `@mode(host.dual)` and `@mode(host.native)`, `__name__` is always the module's fully-qualified dotted name. Entry is via the `main()` function, not via file identity.
 - In `@mode(web.scripted)` and `@mode(web.compiled)`, `__name__` is always the module's fully-qualified dotted name. Web modules are loaded by the browser bootstrap (§28.6); there is no "run this file directly" disposition, so `"__main__"` is never a meaningful value.
 - In `@mode(freestanding)`, `__name__` is always the module's fully-qualified dotted name. Entry is via the `@entry` annotation (§24.5).
@@ -543,7 +543,7 @@ Every Loom module has three implicit read-only bindings available at module scop
 - `@mode(freestanding)`: `"freestanding"`
 - In the REPL: `"host.scripted"`
 
-In all AOT-compiled modes (`web.compiled`, `host.native`, `freestanding`, and the AOT side of `host.dual`), `__execmode__` is a compile-time string constant baked into the binary. It does not require the Loom runtime to evaluate. `core.reflect` is not needed to read `__execmode__` — it is always a compile-time constant in all AOT modes. In `host.dual`, the value is fixed at source-declaration time and does not vary between JIT and AOT delivery paths; user code wishing to detect the current delivery pipeline SHOULD use `runtime.delivery` (§20.1) instead.
+In all AOT-compiled modes (`web.compiled`, `host.native`, `freestanding`, and the AOT side of `host.dual`), `__execmode__` is a compile-time string constant baked into the binary. It does not require the Loup runtime to evaluate. `core.reflect` is not needed to read `__execmode__` — it is always a compile-time constant in all AOT modes. In `host.dual`, the value is fixed at source-declaration time and does not vary between JIT and AOT delivery paths; user code wishing to detect the current delivery pipeline SHOULD use `runtime.delivery` (§20.1) instead.
 
 **Read-only semantics.** The compiler SHALL treat `__name__`, `__file__`, and `__execmode__` as read-only implicit `let` bindings. Attempting to reassign any of them is a compile-time error (`E_LET_REASSIGN`).
 
@@ -554,13 +554,13 @@ In all AOT-compiled modes (`web.compiled`, `host.native`, `freestanding`, and th
 **Main guard pattern.** The idiomatic way to write code that runs only when a file is executed directly:
 
 ```
-// utils.loom — a dual-purpose module (host.scripted)
+// utils.loup — a dual-purpose module (host.scripted)
 pub func greet(name: string): string {
   return i"Hello, {$ name $}!";
 }
 
 if (__name__ == "__main__") {
-  // This block runs only when executed via `loom run utils.loom`
+  // This block runs only when executed via `loup run utils.loup`
   let message = greet("world");
   print(message);
 }
@@ -609,16 +609,16 @@ Classes have declaration-level dunders that are accessible as properties on name
 
 
 **`__module__` on named declarations.** Every named class, struct, enum, interface, and function declaration carries an implicit `__module__` property that returns a `Module` value representing the module where the declaration was made. This is accessible via dot syntax on any named type or function value:
-```loom
+```loup
 Encoder.__module__.__execmode__    // e.g., "host.scripted", "host.native", "web.compiled"
 decode.__module__.__name__         // "mylib.codec"
-Shape.__module__.__file__          // "/path/to/shapes.loom"
+Shape.__module__.__file__          // "/path/to/shapes.loup"
 ```
 
 `__module__` is not a module-scope dunder — it is a property on type and function values. It is available in all six modes. In any AOT-compiled mode (`web.compiled`, `host.native`, `freestanding`, and the AOT side of `host.dual`), `.__module__` returns compile-time-baked metadata requiring no runtime evaluation.
 
 **`Module` built-in type.** `Module` is a built-in class with read-only properties mirroring the module-scope dunders:
-```loom
+```loup
 class Module : Any {
   pub let __name__: string;      // fully-qualified module name
   pub let __file__: string;      // source file path at compile time
@@ -636,7 +636,7 @@ class Module : Any {
 `Module` values are not constructable by user code — they are produced only by the runtime in response to `.__module__` access. Two `.__module__` accesses on declarations from the same module return the same `Module` instance (referential equality).
 
 **`prefer compiled` and `__execmode__`.** When a module is loaded via `prefer compiled` resolution (§13.1, §13.7), its `__execmode__` reflects which path was taken: the AOT mode string if a compiled artifact was loaded, `"host.scripted"` or `"web.scripted"` if the scripted fallback was used. This is the canonical way to inspect fallback resolution from user code:
-```loom
+```loup
 from codec import (Encoder) prefer compiled;
 
 if (Encoder.__module__.__execmode__ == "host.scripted") {
@@ -650,7 +650,7 @@ if (Encoder.__module__.__execmode__ == "host.scripted") {
 
 *(This section is normative.)*
 
-Loom defines six execution modes. Each mode represents a specific combination of deployment environment and compilation strategy, determining runtime support, memory management strategy, permitted language features, and target deployment artifact. A source file declares its mode with the `@mode` directive (§2.5); the build system, compiler, linter, formatter, and language server treat the declared mode as authoritative for that file.
+Loup defines six execution modes. Each mode represents a specific combination of deployment environment and compilation strategy, determining runtime support, memory management strategy, permitted language features, and target deployment artifact. A source file declares its mode with the `@mode` directive (§2.5); the build system, compiler, linter, formatter, and language server treat the declared mode as authoritative for that file.
 
 The modes organize as a 2D grid:
 
@@ -670,9 +670,9 @@ A `host.native` binary that uses `runtime.compile` (§20.1) embeds a JIT runtime
 
 ### §2.4.1 `web.scripted` — Browser JIT
 
-The web-environment script mode. Loom source is delivered to the browser; `loom-rt.js` JIT-compiles each module to Wasm GC+EH at load time (§2.1, §28.6).
+The web-environment script mode. Loup source is delivered to the browser; `loup-rt.js` JIT-compiles each module to Wasm GC+EH at load time (§2.1, §28.6).
 
-**Entry point.** Architectural — the browser bootstrap fetches `app.wasm` (compiled from source at load time), runs top-level declarations, wires `data-loom-ev` event handlers, and invokes the registered `mount(...)` call. There is no `main()` function; top-level control flow is permitted for setup but `__name__ == "__main__"` is not meaningful (§2.2).
+**Entry point.** Architectural — the browser bootstrap fetches `app.wasm` (compiled from source at load time), runs top-level declarations, wires `data-loup-ev` event handlers, and invokes the registered `mount(...)` call. There is no `main()` function; top-level control flow is permitted for setup but `__name__ == "__main__"` is not meaningful (§2.2).
 
 **Features:**
 
@@ -692,7 +692,7 @@ Build-time-only features (`asm { }` inline Wasm, static layout control via `@rep
 
 ### §2.4.2 `web.compiled` — Browser AOT
 
-The web-environment compiled mode. Loom source is AOT-compiled at build time to a `.wasm` module that is fetched and instantiated by the browser bootstrap (§22, §28.6).
+The web-environment compiled mode. Loup source is AOT-compiled at build time to a `.wasm` module that is fetched and instantiated by the browser bootstrap (§22, §28.6).
 
 **Entry point.** Architectural, identical to `web.scripted` — the browser bootstrap runs top-level declarations, wires event handlers, and invokes the registered `mount(...)` call.
 
@@ -712,9 +712,9 @@ The web-environment compiled mode. Loom source is AOT-compiled at build time to 
 
 ### §2.4.3 `host.scripted` — Host JIT
 
-The host-environment script mode. Files are executed by `loom run` on a host runtime (`node`, `bun`, `deno`, or the standalone `loom` CLI), JIT-compiled to Wasm GC+EH inside the host process (§2.1).
+The host-environment script mode. Files are executed by `loup run` on a host runtime (`node`, `bun`, `deno`, or the standalone `loup` CLI), JIT-compiled to Wasm GC+EH inside the host process (§2.1).
 
-**Entry point.** Sequential top-level execution — when a file is invoked via `loom run foo.loom`, its top-level statements execute in source order, with `__name__ == "__main__"` available as a runtime-executable branch.
+**Entry point.** Sequential top-level execution — when a file is invoked via `loup run foo.loup`, its top-level statements execute in source order, with `__name__ == "__main__"` available as a runtime-executable branch.
 
 **Features.**
 
@@ -765,7 +765,7 @@ The host-environment hybrid mode. Files declare `@mode(host.dual)` to signal tha
 - **Top-level control flow:** `if`, `while`, `for`, `match`, or expression statements at file scope — the AOT pipeline has no sequential top-level execution model. Use `main()` instead. (`E_TOPLEVEL_CONTROL_AOT`)
 - **Non-constant top-level initializers:** permitted only if the initializer is a compile-time constant; otherwise move the assignment into a module-init call invoked from `main()`.
 
-**Delivery choice.** The build system selects the delivery pipeline based on project configuration (`[build]` in `.lmpkg`) and the availability of the native toolchain. A `host.dual` module built with `loom build --native` produces an AOT binary; the same source run via `loom run` uses the JIT pipeline. Source behaves identically on both paths. The current delivery path is observable via `runtime.delivery` (§20.1) — returns `"jit"` or `"aot"` — but user code SHOULD NOT need this; delivery differences are runtime implementation details.
+**Delivery choice.** The build system selects the delivery pipeline based on project configuration (`[build]` in `.lppkg`) and the availability of the native toolchain. A `host.dual` module built with `loup build --native` produces an AOT binary; the same source run via `loup run` uses the JIT pipeline. Source behaves identically on both paths. The current delivery path is observable via `runtime.delivery` (§20.1) — returns `"jit"` or `"aot"` — but user code SHOULD NOT need this; delivery differences are runtime implementation details.
 
 **Binary size implications (AOT path).** Using `runtime.compile` in a `host.dual` module causes the AOT build to embed the JIT runtime (approximately 300 KB uncompressed). Using `ScriptWorker` causes the AOT build to embed a minimal Wasm runtime (approximately 500 KB uncompressed, inclusive of the JIT). Projects that need minimum binary size should use `host.native` for the hot path and isolate any JIT-requiring code into separate `host.dual` modules that can be linked conditionally or omitted in constrained builds.
 
@@ -788,7 +788,7 @@ The host-environment AOT native mode. Compiles to a platform-native binary via L
 - `PinnedRef[T]`, `OwnedHandle`, `BorrowedHandle` — FFI ownership types (§18.4)
 - `@vectorize` hints honored by the backend
 - Full LLVM optimization: LTO, PGO, target-specific tuning
-- `runtime.compile` — the AOT binary embeds a JIT runtime so that `host.native` code can evaluate and call into dynamically-loaded script modules. Embedding adds approximately 300 KB and may be suppressed via `[build] embed_jit = false` in `.lmpkg` if `runtime.compile` is not used in the project.
+- `runtime.compile` — the AOT binary embeds a JIT runtime so that `host.native` code can evaluate and call into dynamically-loaded script modules. Embedding adds approximately 300 KB and may be suppressed via `[build] embed_jit = false` in `.lppkg` if `runtime.compile` is not used in the project.
 - `ScriptWorker` — the AOT binary may embed a minimal Wasm runtime for isolate-based parallelism; opt-in via usage or explicit configuration
 
 **Restrictions.** Host-native binaries are platform-specific (one binary per `os × arch` target) and are not deliverable as web modules. Web-environment features (`ui.web`, `@webcomponent`, browser DOM APIs) are unavailable; use `ui.desktop` for native UI.
@@ -803,7 +803,7 @@ The host-environment AOT native mode. Compiles to a platform-native binary via L
 
 ### §2.4.6 `freestanding` — Bare Metal
 
-The freestanding mode. Compiles to a native binary with **no Loom runtime linked** — designed for kernels, bootloaders, embedded firmware, and bare-metal environments.
+The freestanding mode. Compiles to a native binary with **no Loup runtime linked** — designed for kernels, bootloaders, embedded firmware, and bare-metal environments.
 
 **Entry point.** A function annotated with `@entry` (§24.5). There is no `main()`; there is no runtime to call `main()`. The `@entry` function is wired directly to the linker-defined entry symbol.
 
@@ -825,9 +825,9 @@ The freestanding mode. Compiles to a native binary with **no Loom runtime linked
 
 ### §2.5.1 The `@mode` Directive
 
-Every Loom source file carries an explicit or implicit mode declaration. The `@mode` directive MUST appear as the first non-comment, non-blank token:
+Every Loup source file carries an explicit or implicit mode declaration. The `@mode` directive MUST appear as the first non-comment, non-blank token:
 
-```loom
+```loup
 @mode(web.scripted)      // browser JIT
 @mode(web.compiled)      // browser AOT
 @mode(host.scripted)     // host JIT (default for host targets)
@@ -859,7 +859,7 @@ Family-based lint rules apply uniformly within a family (for example, the no-hos
 |---|---|---|
 | `@mode(web.scripted)` | `browser` | Source + JIT at load time |
 | `@mode(web.compiled)` | `browser`, `wasm` | AOT-compiled Wasm module |
-| `@mode(host.scripted)` | `node`, `bun`, `deno`, `cli` | Source + JIT at `loom run` |
+| `@mode(host.scripted)` | `node`, `bun`, `deno`, `cli` | Source + JIT at `loup run` |
 | `@mode(host.dual)` | `node`, `bun`, `deno`, `cli`, `service`, `desktop`, `native` | Either JIT or AOT native |
 | `@mode(host.native)` | `native`, `cli`, `service`, `desktop` | AOT native binary |
 | `@mode(freestanding)` | `freestanding` | AOT native binary, no runtime |
@@ -868,7 +868,7 @@ A mismatch between file `@mode` and `--target` is `E_MODE_TARGET_MISMATCH`.
 
 **Note on host targets.** The `cli`, `service`, and `desktop` build targets accept `@mode(host.scripted)`, `@mode(host.dual)`, or `@mode(host.native)`. Mixed-mode projects where script files import native modules use the script/native interop boundary (§23.5) — the boundary is transparent to source code; import transparency is a design principle (§2).
 
-**Project-wide mode.** A `.lmpkg` manifest may declare `mode = "web.scripted"` (or another mode string) in its `[build]` table. All files without an explicit `@mode` inherit the project mode. When no project mode is declared, the implicit mode is `host.scripted`.
+**Project-wide mode.** A `.lppkg` manifest may declare `mode = "web.scripted"` (or another mode string) in its `[build]` table. All files without an explicit `@mode` inherit the project mode. When no project mode is declared, the implicit mode is `host.scripted`.
 
 ### §2.5.3 Tooling Semantics
 
@@ -981,7 +981,7 @@ Column key: **w.s** = `web.scripted`, **w.c** = `web.compiled`, **h.s** = `host.
 | Freestanding debug service (§24.25) | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
 | Time-travel replay (§24.25.9) | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ (`--debug` + enabled) |
 | `@debug_control_channel` / `@debug_trace_channel` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| `--stack-size N` build flag | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ (via `.lmpkg`) |
+| `--stack-size N` build flag | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ (via `.lppkg`) |
 | `@signalSafe` annotation | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
 | `extern native` — C FFI declarations | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ |
 | `portal_ring_size` — time-travel ring buffer | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ (`--debug`) |
@@ -1001,7 +1001,7 @@ Column key: **w.s** = `web.scripted`, **w.c** = `web.compiled`, **h.s** = `host.
 
 2. **Freestanding shared-memory features.** In `@mode(freestanding)`, `shared class` and `SharedRef[T]` are available only when the target provides a `@allocator`-backed arena satisfying the shared-arena header contract (§17b.5). Targets without multi-core coherent memory or without an arena implementation produce `E_SHARED_ALLOCATOR_UNAVAILABLE` at the first `shared` allocation site. Atomic operations are always available but map to target-specific instructions (see §17b.4).
 
-3. **Freestanding serialization features.** In `@mode(freestanding)`, the serialization trait surface is available but depends on an allocator for dynamically-sized `Value` content (`List`, `Map`, `String`, `Bytes`). Targets without a heap-capable `@allocator` may implement a restricted serialization subset limited to fixed-layout primitives and enums; wire-format packages declare their allocator requirements in `.lmpkg`.
+3. **Freestanding serialization features.** In `@mode(freestanding)`, the serialization trait surface is available but depends on an allocator for dynamically-sized `Value` content (`List`, `Map`, `String`, `Bytes`). Targets without a heap-capable `@allocator` may implement a restricted serialization subset limited to fixed-layout primitives and enums; wire-format packages declare their allocator requirements in `.lppkg`.
 
 4. **No `RemoteException` in freestanding.** Freestanding targets have no `BaseException` hierarchy (exceptions are unavailable per §2.6 row for `throw`/`try`/`catch`); consequently no `RemoteException` is meaningful. Freestanding code that receives serialized exception data through a communication channel must handle exception-typed payloads explicitly at the application layer.
 
@@ -1013,7 +1013,7 @@ Column key: **w.s** = `web.scripted`, **w.c** = `web.compiled`, **h.s** = `host.
 
 ### §3.1 Source Encoding
 
-All Loom source files SHALL be encoded in UTF-8. A byte order mark (BOM) at the start of a file is permitted but not required; if present, it is ignored. Source files that are not valid UTF-8 produce a compile-time error (`E_INVALID_UTF8`).
+All Loup source files SHALL be encoded in UTF-8. A byte order mark (BOM) at the start of a file is permitted but not required; if present, it is ignored. Source files that are not valid UTF-8 produce a compile-time error (`E_INVALID_UTF8`).
 
 | Code | Mode | Condition |
 |---|---|---|
@@ -1021,7 +1021,7 @@ All Loom source files SHALL be encoded in UTF-8. A byte order mark (BOM) at the 
 
 ### §3.2 Comments
 
-Loom supports three comment forms:
+Loup supports three comment forms:
 
 **Single-line comments** begin with `//` and extend to the end of the line:
 
@@ -1047,13 +1047,13 @@ func factorial(n: int): int {
 }
 ```
 
-Comments are lexically transparent: for any valid Loom program, removing all comments SHALL produce an AST identical to the original program's AST. Comments do not affect parsing, type-checking, or execution.
+Comments are lexically transparent: for any valid Loup program, removing all comments SHALL produce an AST identical to the original program's AST. Comments do not affect parsing, type-checking, or execution.
 
 ### §3.3 Statement Termination
 
-Loom uses **newline-terminated statements**. A statement ends at the newline following its last token. An explicit semicolon (`;`) may be written at the end of any simple statement for style or compatibility but is not required:
+Loup uses **newline-terminated statements**. A statement ends at the newline following its last token. An explicit semicolon (`;`) may be written at the end of any simple statement for style or compatibility but is not required:
 
-```loom
+```loup
 let x = 42       // valid — newline terminates
 let y = 43;      // also valid — explicit semicolon
 ```
@@ -1062,7 +1062,7 @@ The reference formatter (§28.4) preserves semicolons as written. Block statemen
 
 **Continuation lines.** An expression that ends with a binary operator, open bracket, or comma automatically continues on the next line without a statement boundary:
 
-```loom
+```loup
 let total = a +
             b        // continuation — no new statement here
 ```
@@ -1166,7 +1166,7 @@ Identifiers are case-sensitive. By convention:
 
 #### Integer Literals
 
-Integer literals represent values of type `int`. Loom supports four bases:
+Integer literals represent values of type `int`. Loup supports four bases:
 
 | Base | Prefix | Digits | Example |
 |---|---|---|---|
@@ -1225,7 +1225,7 @@ A `float32` literal may lose precision relative to the source value — the comp
 
 #### String Literals
 
-Loom supports three standard forms of string literals: **normal strings**, **interpolated strings**, and **raw strings**. All strings are UTF-8 encoded sequences of Unicode scalar values.
+Loup supports three standard forms of string literals: **normal strings**, **interpolated strings**, and **raw strings**. All strings are UTF-8 encoded sequences of Unicode scalar values.
 
 **Normal Strings**
 Normal strings are delimited by double quotes (`"`) or single quotes (`'`). They process escape sequences but **do not** evaluate inline expressions (`{$...$}`).
@@ -1289,7 +1289,7 @@ Bytes literals support the same escape sequences as string literals, plus `\xHH`
 
 A `char` literal represents a single Unicode scalar value and has type `char`. It is prefixed with `c` and delimited by double or single quotes:
 
-```loom
+```loup
 let a: char = c"A";
 let newline: char = c"\n";
 let snowman: char = c"☃";
@@ -1298,7 +1298,7 @@ let hi: char = c"\u{1F600}";    // 😀
 
 `char` literals support the same escape sequences as string literals. The `\xHH` escape is not permitted in `char` literals — use `\u{HH}` instead (`E_CHAR_LITERAL_INVALID`). A `char` literal containing zero Unicode scalar values or more than one is also `E_CHAR_LITERAL_INVALID`:
 
-```loom
+```loup
 let bad1: char = c"";    // E_CHAR_LITERAL_INVALID: empty char literal
 let bad2: char = c"ab";  // E_CHAR_LITERAL_INVALID: multiple scalar values
 ```
@@ -1311,7 +1311,7 @@ The boolean type `bool` has exactly two values: `true` and `false`.
 
 ### §3.7 Operators
 
-Loom defines the following operators, listed from highest to lowest precedence. Operators at the same precedence level associate as indicated.
+Loup defines the following operators, listed from highest to lowest precedence. Operators at the same precedence level associate as indicated.
 
 | Precedence | Operator(s) | Description | Associativity |
 |---|---|---|---|
@@ -1348,7 +1348,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 
 **Logical operators** (`and`/`&&`, `or`/`||`, `not`/`!`) operate on `bool` values. `and` and `or` are short-circuit: the right operand is not evaluated if the left operand determines the result.
 
-**Canonical style.** The keyword forms `and`, `or`, and `not` are the idiomatic Loom style. The symbol aliases `&&`, `||`, and `!` are legal and semantically identical but are considered non-canonical. The reference formatter (§28.4) rewrites symbol forms to keyword forms. Code using symbol forms is accepted by the compiler but produces a lint advisory (`symbol-logical-ops`) that can be suppressed per-line with `// loom:allow(symbol-logical-ops)`. New code should use keyword forms exclusively. This rule applies uniformly in scripted mode, compiled mode, and template fence expressions.
+**Canonical style.** The keyword forms `and`, `or`, and `not` are the idiomatic Loup style. The symbol aliases `&&`, `||`, and `!` are legal and semantically identical but are considered non-canonical. The reference formatter (§28.4) rewrites symbol forms to keyword forms. Code using symbol forms is accepted by the compiler but produces a lint advisory (`symbol-logical-ops`) that can be suppressed per-line with `// loup:allow(symbol-logical-ops)`. New code should use keyword forms exclusively. This rule applies uniformly in scripted mode, compiled mode, and template fence expressions.
 
 **User-defined operator overloading** is supported via the operator interface protocol. See §5.1 for desugar rules and §11.2 for the full operator interface set.
 
@@ -1358,7 +1358,7 @@ Loom defines the following operators, listed from highest to lowest precedence. 
 
 ### §3.8 Collection Literals
 
-Loom provides literal syntax for the built-in collection types:
+Loup provides literal syntax for the built-in collection types:
 
 **List literals:**
 ```
@@ -1407,7 +1407,7 @@ let extended = {**base, "y": 2};  // {"x": 1, "y": 2}
 
 *(This section is normative.)*
 
-Loom is a statically-typed language with type inference. Every value has a type known at compile time. The type system supports primitives, classes, interfaces, enums, structs, tuples, union types, generics, and function types.
+Loup is a statically-typed language with type inference. Every value has a type known at compile time. The type system supports primitives, classes, interfaces, enums, structs, tuples, union types, generics, and function types.
 
 ### §4.0 Core Numeric Trait Interfaces (v1.18)
 
@@ -1415,7 +1415,7 @@ The following marker interfaces live in the `core` namespace and are
 automatically implemented by built-in numeric types. They serve as trait
 bounds for generic numeric code.
 
-```loom
+```loup
 namespace core;
 
 // Marker trait for fixed-width integer primitives.
@@ -1494,7 +1494,7 @@ In `@mode(host.native)` and `@mode(freestanding)`, the default is **wrapping ari
 
 `int` / `int64` are an exception in `@mode(host.native)`: they default to **checked arithmetic** (throwing `NumericOverflowError` on overflow), matching scripted-mode and `@mode(host.dual)` semantics. `uint` follows the same rule as other fixed-width unsigned integers — it wraps by default in `@mode(host.native)` and `@mode(freestanding)`. In `@mode(freestanding)`, exceptions are unavailable, so `int` / `int64` wrap on overflow the same as other fixed-width integers — use `--overflow=trap` to trap instead, or `checkedAdd` / `saturatingAdd` for explicit overflow handling. Use `@overflowWrapping` on a function to opt into wrapping for all fixed-width arithmetic within it. When `--overflow=trap` is also set, `@overflowWrapping` on a function overrides the trap flag for that function's body — the function uses wrapping arithmetic regardless of the project-wide trap setting:
 
-```loom
+```loup
 @mode(host.native)
 @overflowWrapping
 func addWrapping(a: int32, b: int32): int32 {
@@ -1504,7 +1504,7 @@ func addWrapping(a: int32, b: int32): int32 {
 
 **Explicit checked and saturating arithmetic.** All fixed-width integer types provide methods for explicit overflow handling regardless of the ambient mode:
 
-```loom
+```loup
 let a: int32 = 2_147_483_647i32;
 let b: Option[int32] = int32.checkedAdd(a, 1);  // Option[int32] — None on overflow
 let c: int32 = int32.saturatingAdd(a, 1);       // int32 — clamps to 2_147_483_647
@@ -1525,7 +1525,7 @@ All narrowing conversions between numeric types are **explicit** — no implicit
 
 **Explicit conversion functions:**
 
-```loom
+```loup
 int8(x)     // truncate / wrap to int8
 int16(x)    // truncate / wrap to int16
 int32(x)    // truncate / wrap to int32
@@ -1554,7 +1554,7 @@ Conversion that cannot represent the value (e.g. `int8(300)`) wraps on native ta
 
 **Literal syntax.** Append `n` to any integer literal:
 
-```loom
+```loup
 let x: bigint = 99_999_999_999_999_999_999n;
 let y: bigint = 0xFF_FF_FF_FF_FF_FF_FF_FFn;
 let z: bigint = bigint(42);    // construct from int
@@ -1583,7 +1583,7 @@ Based on the IEEE 754-2019 decimal128 arithmetic model. Suitable for financial c
 
 **Literal syntax.** Append `d` to any numeric literal, or construct from a string for values beyond literal range:
 
-```loom
+```loup
 let price: decimal = 19.99d;
 let rate:  decimal = 0.075d;
 let pi:    decimal = decimal("3.14159265358979323846264338327950288");
@@ -1602,7 +1602,7 @@ let pi:    decimal = decimal("3.14159265358979323846264338327950288");
 
 **`char` is not `int` and not `string`.** Implicit conversion is prohibited in both directions:
 
-```loom
+```loup
 let c: char = c"A";
 let n: int    = c.toInt();         // 65  — explicit
 let s: string = c.toString();      // "A" — explicit
@@ -1614,7 +1614,7 @@ let c3: char  = "hello"[0];        // char: c"h"
 
 **Methods on `char`:**
 
-```loom
+```loup
 // Code point value
 c.toInt(): int                    // Unicode code point as int
 c.toString(): string              // single-character string
@@ -1748,7 +1748,7 @@ class Any {
 
 Function types describe callable values:
 
-```loom
+```loup
 fn(int, int): int                  // function taking two ints, returning int
 fn(): void                         // function taking no args, returning void
 fn(string): Task[int]              // function taking string, returning async task
@@ -1773,7 +1773,7 @@ Function types are first-class: they can be stored in variables, passed as argum
 
 **Type aliases with `noescape fn`:**
 
-```loom
+```loup
 type Predicate[T] = noescape fn(reads T): bool;
 type Transform[T, R] = noescape fn(reads T): R;
 type Mutator[T] = noescape fn(edits T): void;
@@ -1788,7 +1788,7 @@ These aliases are valid in all execution modes (§2.6).
 
 **Verb modifiers in function types.** Each parameter position in a `fn(...)` type may carry an optional verb modifier. The verb is part of the type and determines the acknowledgment the caller must provide:
 
-```loom
+```loup
 fn(reads Buffer): void               // explicit reads — same as fn(Buffer): void
 fn(Buffer): void                     // implicit reads — equivalent to above
 fn(edits Buffer): void               // caller must use edits: acknowledgment
@@ -1798,7 +1798,7 @@ fn(reads Buffer, edits Buffer): void // mixed: first implicit-ok, second require
 
 **Calling a verb-typed function.** When calling a value whose function type declares a verb modifier, the call site must provide the matching verb acknowledgment, exactly as it would for a named parameter:
 
-```loom
+```loup
 let fill: fn(edits Buffer, uint8): void = func(edits buf, v) { ... }
 
 fill(edits: myBuf, 0xFF)         // ✓ edits: acknowledgment — required
@@ -1812,7 +1812,7 @@ render(myBuf)                    // ✓ implicit reads — no acknowledgment nee
 
 **Higher-order functions.** Verb-typed function parameters correctly express the ownership contract for callbacks:
 
-```loom
+```loup
 func forEach(
   items: list[Buffer],
   body:  fn(reads Buffer): void
@@ -1952,7 +1952,7 @@ type Bad = list[Bad];   // E_TYPE_ALIAS_RECURSIVE: recursive type alias
 
 ### §4.7 `typeof` and `instanceof` Operators
 
-Loom provides inline operators for type inspection as surface sugar over `core.reflect`:
+Loup provides inline operators for type inspection as surface sugar over `core.reflect`:
 
 **`typeof` operator.** Returns a `Type` value for any expression:
 
@@ -2020,7 +2020,7 @@ if (!(x instanceof string)) {
 
 ### §4.8 Generics
 
-Loom supports generic type parameters on functions, classes, interfaces, enums, and structs:
+Loup supports generic type parameters on functions, classes, interfaces, enums, and structs:
 
 ```
 func identity[T](x: T): T { return x; }
@@ -2126,7 +2126,7 @@ Tuples have value semantics: two tuples are equal if all their elements are equa
 
 ### §5.1 Operator Semantics
 
-Operators in Loom are defined on primitive types and may be extended to user-defined types through the `Comparable[T]` interface. This section specifies the semantics of every operator category.
+Operators in Loup are defined on primitive types and may be extended to user-defined types through the `Comparable[T]` interface. This section specifies the semantics of every operator category.
 
 #### Arithmetic Operators (`+`, `-`, `*`, `/`, `//`, `%`, `**`)
 
@@ -2237,7 +2237,7 @@ Bitwise operators are defined on all integer types: `int`, `uint`, `int8`, `int1
 
 #### Operator Overloading
 
-Loom supports user-defined operator overloading via the **operator interface protocol**. When `a + b` is evaluated and `a` is not a built-in numeric/string/collection type, the compiler looks up the `Add` interface on the type of `a`. If found, `a + b` desugars to `a.op_+(b)`. If not found, `E_OPERATOR_MISSING` is emitted.
+Loup supports user-defined operator overloading via the **operator interface protocol**. When `a + b` is evaluated and `a` is not a built-in numeric/string/collection type, the compiler looks up the `Add` interface on the type of `a`. If found, `a + b` desugars to `a.op_+(b)`. If not found, `E_OPERATOR_MISSING` is emitted.
 
 **Desugar rules for binary operator expressions:**
 
@@ -2292,7 +2292,7 @@ No custom operator symbols are permitted. Only the existing operator set is exte
 
 ### §5.2 Comprehensions
 
-Loom supports list, dict, and set comprehensions for concise collection construction.
+Loup supports list, dict, and set comprehensions for concise collection construction.
 
 **List comprehensions** produce `list[T]` where `T` is inferred from the expression before `for`:
 
@@ -2372,7 +2372,7 @@ Comprehensions eagerly build the full collection. For lazy evaluation, use gener
 
 ### §5.3 Slicing
 
-Loom supports Python-style slice syntax on indexable types:
+Loup supports Python-style slice syntax on indexable types:
 
 ```
 let items = [10, 20, 30, 40, 50];
@@ -2690,7 +2690,7 @@ var name: string;              // declared but uninitialized — must be assigne
 
 **Uninitialized `var` reads.** A `var` binding declared without an initializer must be assigned before its value is read. The compiler performs definite-assignment analysis: reading a `var` that may not have been assigned on all control-flow paths leading to the read is a compile-time error (`E_USE_BEFORE_ASSIGN`). `let` bindings always require an initializer at declaration time, so this error applies only to `var`. Example:
 
-```loom
+```loup
 var count: int;
 if (flag) { count = 1; }
 print(count);   // E_USE_BEFORE_ASSIGN — count may not be assigned when flag is false
@@ -2704,7 +2704,7 @@ print(count);   // E_USE_BEFORE_ASSIGN — count may not be assigned when flag i
 
 **`arc let` and `arc var` declarations** create explicit ARC-managed bindings (`@mode(host.native)` or `@mode(host.dual)`):
 
-```loom
+```loup
 @mode(host.native)
 
 arc let conn = Connection.open(addr)    // explicit ARC; aliases permitted
@@ -2773,7 +2773,7 @@ In all modes, a `for (x in items)` statement creates an **implicit `reads` borro
 - Calling any method requiring `edits: items` (e.g., `append`, `remove`, `clear`)
 - Passing `items` as an `edits` argument
 
-```loom
+```loup
 @mode(host.native)
 
 var items = [1, 2, 3]
@@ -2785,7 +2785,7 @@ for (x in items) {
 
 Read-only access inside the loop is permitted:
 
-```loom
+```loup
 @mode(host.native)
 
 var items = [1, 2, 3]
@@ -2795,7 +2795,7 @@ for (x in items) {
 }
 ```
 
-In scripted mode the compiler emits a runtime warning `borrow-loop-mutation` rather than a compile-time error, since scripted mode is the most permissive mode. Promote to an error with `// loom:error(borrow-loop-mutation)`.
+In scripted mode the compiler emits a runtime warning `borrow-loop-mutation` rather than a compile-time error, since scripted mode is the most permissive mode. Promote to an error with `// loup:error(borrow-loop-mutation)`.
 
 
 
@@ -2940,7 +2940,7 @@ portal "checkout.enter" {
 
 **Two-tier condition model:**
 
-*Scripted mode — full lexical scope evaluation.* Conditions in `activatePortal` calls against scripted portals are Loom expressions parsed and evaluated in the lexical environment of the target portal at activation time. The full scope of the portal's enclosing function is available:
+*Scripted mode — full lexical scope evaluation.* Conditions in `activatePortal` calls against scripted portals are Loup expressions parsed and evaluated in the lexical environment of the target portal at activation time. The full scope of the portal's enclosing function is available:
 
 ```
 // Scripted portal condition — full lexical scope accessible
@@ -2960,7 +2960,7 @@ The runtime identifies the portal's mode from the module's metadata table regist
 
 **Portal statement in compiled mode.** Explicit `portal` blocks are syntactically and semantically permitted in compiled-mode files. They register with the shared runtime activation registry on module load. The body executes in all cases; tracing is activated when a matching registry entry exists with a true condition.
 
-**Portal statement in freestanding mode (`--debug` builds only, normative).** `portal` statements are permitted in `@mode(freestanding)` when `loom build --debug` is active and at least one debug channel or ring buffer is configured (see §24.25). In release builds, all portal instrumentation is stripped unconditionally and `E_FREESTANDING_PORTAL` is the compile-time error for any portal statement, as before.
+**Portal statement in freestanding mode (`--debug` builds only, normative).** `portal` statements are permitted in `@mode(freestanding)` when `loup build --debug` is active and at least one debug channel or ring buffer is configured (see §24.25). In release builds, all portal instrumentation is stripped unconditionally and `E_FREESTANDING_PORTAL` is the compile-time error for any portal statement, as before.
 
 Freestanding portals carry the following restrictions relative to other modes:
 
@@ -2972,7 +2972,7 @@ Freestanding portals carry the following restrictions relative to other modes:
 
 ### §6.8 Destructuring
 
-Loom supports destructuring in declarations, assignments, function parameters, loops, and match arms.
+Loup supports destructuring in declarations, assignments, function parameters, loops, and match arms.
 
 **Tuple destructuring:**
 
@@ -3155,7 +3155,7 @@ The compiler SHALL emit a warning when a `Finalizable` object goes out of scope 
 
 ### Statement Classification
 
-Loom distinguishes **simple statements** and **block statements**:
+Loup distinguishes **simple statements** and **block statements**:
 
 - **Simple statements** conventionally end with `;`, but the semicolon is **optional**. Newlines terminate statements; an explicit `;` may always be added for style or clarity.
 - **Block statements** do NOT end with `;`.
@@ -3178,7 +3178,7 @@ Note: `do { ... } while (cond);` is a block statement that includes a trailing `
 
 ### §7.1 Function Declarations
 
-Loom supports four function declaration forms:
+Loup supports four function declaration forms:
 
 **Synchronous function:**
 
@@ -3289,7 +3289,7 @@ let c = a + b;   // Vec2(x=4.0, y=6.0) — desugars to a.op_+(b)
 
 **`borrow` parameter modifier.** Prefixing a parameter declaration with `borrow` asserts that the caller's binding of that value is guaranteed to outlive the function call. The compiler elides the ARC `retain()` on entry and `release()` on exit for that parameter. `borrow` is available in all six modes; the ARC-elision benefit applies in modes that use ARC (`@mode(host.dual)` and `@mode(host.native)`), while the frame-escape constraint is enforced uniformly.
 
-```loom
+```loup
 @mode(host.native)
 
 // Without borrow — ARC retains config on call, releases on return
@@ -3309,7 +3309,7 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 - Within the function body, a `borrow` value may be: read, called (if a function), indexed, passed to another `borrow` parameter, or passed to a `noescape fn` parameter.
 - A `borrow` parameter value may NOT escape the call frame by: assignment into a class field, assignment into an existing mutable struct field, assignment to a module-level binding, return as an owned value, passing to an escaping `fn` parameter, or use as a `spawn` argument. (Note: declaring a struct field *of* `borrow` type in the struct definition is valid — see `borrow` on struct fields below. The restriction is on runtime assignment from a `borrow` parameter, not on struct field declarations.)
 
-```loom
+```loup
 @mode(host.native)
 
 func processConfig(borrow config: Config): Result[void, AppError] {
@@ -3323,7 +3323,7 @@ func processConfig(borrow config: Config): Result[void, AppError] {
 
 **`borrow` and `noescape fn` together.** The combination produces zero ARC activity on hot iteration paths:
 
-```loom
+```loup
 @mode(host.native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
@@ -3343,7 +3343,7 @@ func filter[T](borrow items: list[T], pred: noescape fn(borrow T): bool): list[T
 
 **`borrow` on struct fields.** A struct field declared with `borrow` holds a non-owning reference. The struct cannot outlive the source data:
 
-```loom
+```loup
 @mode(host.native)
 
 struct TokenStream {
@@ -3379,7 +3379,7 @@ When a non-owning reference must flow beyond the call frame — as a return valu
 
 **Lifetime label syntax.** A lifetime label is a lowercase identifier prefixed with `~`. The `~` sigil visually distinguishes lifetime labels from type parameters (`T`, `E`, `K`) and from ordinary identifiers:
 
-```loom
+```loup
 ~src       // a lifetime label named "src"
 ~origin    // a lifetime label named "origin"
 ~static    // the reserved forever-lifetime (see below)
@@ -3387,7 +3387,7 @@ When a non-owning reference must flow beyond the call frame — as a return valu
 
 **`lifetime ~name` — declaring a region.** Lifetime parameters are declared in the `[...]` generic brackets of a function or type using the `lifetime` keyword. The `lifetime` keyword introduces the label into scope for the function signature and body:
 
-```loom
+```loup
 @mode(host.native)
 
 // Declare a single lifetime region ~src
@@ -3410,7 +3410,7 @@ func merge[lifetime ~a, lifetime ~b, T](
 
 **`~static` — the forever lifetime.** `~static` is a reserved lifetime label that requires no declaration. A `borrow[~static] T` is valid for the entire program execution. Module-level `let` bindings, string literals, and compile-time constants carry implicit `~static` lifetime. Via covariance (§23.4.2), `borrow[~static]` satisfies any `borrow[~name]` requirement:
 
-```loom
+```loup
 @mode(host.native)
 
 let SEPARATOR: string = " | ";   // implicit ~static lifetime
@@ -3427,7 +3427,7 @@ wrap(borrow userInput, borrow SEPARATOR);  // ~static satisfies ~src by covarian
 
 **`async func` restriction.** A function declared `async` may not have `borrow[~label]` parameters. The async runtime suspends the function at `await` points; the caller's stack frame may no longer be valid when the function resumes. Plain `borrow` (unlabeled) inside an `async` function body is permitted provided the compiler verifies it does not cross any `await` point. Violation is `E_BORROW_ASYNC`.
 
-```loom
+```loup
 @mode(host.native)
 
 // COMPILE-TIME ERROR — E_BORROW_ASYNC
@@ -3465,7 +3465,7 @@ async func process(template: string): Task[string] {
 
 **`E_BORROW_ESCAPE` — Borrow of local escaping scope.** When a plain `borrow` of a stack-local variable would escape the current call frame — via a return statement, a function-typed argument, or a struct field — the compiler emits `E_BORROW_ESCAPE`:
 
-```loom
+```loup
 @mode(host.native)
 
 func dangle(): borrow int {
@@ -3478,7 +3478,7 @@ func dangle(): borrow int {
 
 The fix is to return by value, or annotate the function with `[lifetime ~name]` that ties the return borrow to an input borrow:
 
-```loom
+```loup
 // Return by value:
 func getValue(): int {
     let x = 42
@@ -3495,7 +3495,7 @@ func firstOf[lifetime ~src](borrow[~src] items: list[int]): borrow[~src] int {
 
 **Reborrowing.** A `borrow[~a]` value may be passed to a `borrow[~b]` parameter when `~b` does not appear in the callee's return type, output fields, or any out-parameter position. The compiler creates an implicit sub-region of `~a` and unifies it with `~b` for the duration of the call. No annotation is needed at call sites:
 
-```loom
+```loup
 @mode(host.native)
 
 func validate[lifetime ~v](borrow[~v] text: string): bool { ... }
@@ -3614,11 +3614,11 @@ for (let i = 0; i < 5; i = i + 1) {
 - Captured `var` bindings are kept alive by the closure; the variable's storage persists as long as any closure referencing it is alive.
 - In compiled mode, closures that capture `var` bindings allocate the captured variable on the heap rather than the stack.
 
-**Variable resolution.** The compiler resolves variable references using lexical scope chain lookup. Unlike Python, there is no ambiguity because Loom requires explicit `let`/`var` for all declarations — bare assignment without `let`/`var` is always a reference to an existing binding.
+**Variable resolution.** The compiler resolves variable references using lexical scope chain lookup. Unlike Python, there is no ambiguity because Loup requires explicit `let`/`var` for all declarations — bare assignment without `let`/`var` is always a reference to an existing binding.
 
 **Structural typing for closures.** Closures are structurally typed for assignment compatibility: a closure is assignable to any `fn(ParamTypes): ReturnType` where the parameter types and return type match, regardless of what the closure captures.
 
-**No built-in partial application.** Loom does not provide built-in partial application or currying syntax. Developers use lambdas to achieve the same effect:
+**No built-in partial application.** Loup does not provide built-in partial application or currying syntax. Developers use lambdas to achieve the same effect:
 
 ```
 func add(a: int, b: int): int { return a + b; }
@@ -3643,7 +3643,7 @@ let handle = effect(func() [weak handle] {
 
 **Capture list syntax:** `func(params) [weak name, unowned other] { body }` or `func(params) [weak name] => expr`. Captured names with `weak` become `T?` inside the closure body. Captured names with `unowned` retain type `T`. Accessing a deallocated `unowned` capture is a `LifetimeError` trap in **all builds** — there is no opt-out from this trap.
 
-```loom
+```loup
 // Safe: LifetimeError trap in all builds if self is freed before handler fires.
 let handler = callback(func() [unowned self] { self.onFire(); });
 
@@ -3665,7 +3665,7 @@ For cases where the relationship cannot be statically determined, the compiler e
 
 **`noescape fn` closures.** When a closure is passed to a `noescape fn` parameter, the compiler verifies the closure body does not attempt to escape any `borrow` or `reads` values it receives (both are non-owning borrows with zero ARC overhead in `@mode(host.native)`). The compiler may stack-allocate the closure's captured variables if they are all stack-resident, eliminating heap allocation entirely.
 
-```loom
+```loup
 @mode(host.native)
 
 func withLock(lock: Mutex, body: noescape fn(): void): void {
@@ -4012,7 +4012,7 @@ An implementation MAY back `local class` allocation with a tracing garbage colle
 - A tracer-backed implementation must reclaim memory promptly enough that programs running within a bounded working-set do not accumulate reachable-only-via-cycle objects indefinitely. The runtime MAY include a best-effort cycle collector to satisfy this requirement, but the language specification does not require one and programs must not assume it exists.
 - A tracer-backed implementation must preserve identity semantics, including `===` and hash stability, across any compaction or movement the tracer performs.
 
-The typical implementation strategy on Wasm GC hosts is to allocate each `local class` instance as a Wasm GC struct whose first word is a Loom-managed refcount; retain/release operate on the refcount and the struct becomes unreachable to the Wasm GC exactly when the refcount drops to zero. This gives the Wasm GC runtime a prompt hint to reclaim the memory while preserving ARC semantics at the language level.
+The typical implementation strategy on Wasm GC hosts is to allocate each `local class` instance as a Wasm GC struct whose first word is a Loup-managed refcount; retain/release operate on the refcount and the struct becomes unreachable to the Wasm GC exactly when the refcount drops to zero. This gives the Wasm GC runtime a prompt hint to reclaim the memory while preserving ARC semantics at the language level.
 
 `shared class` has no such implementation freedom: its memory layout, header format, and refcount protocol are normatively specified in §17b.5–§17b.7 to enable cross-mode interop.
 
@@ -4071,16 +4071,16 @@ Both strategies are available in `@mode(host.dual)` without restriction — dual
 
 ### §8.2 Visibility
 
-Loom uses two visibility levels:
+Loup uses two visibility levels:
 
 - `pub` — public, accessible from any module.
 - (default) — module-private, accessible only within the declaring module.
 
-There is no `protected` or `private`. Loom uses module-level encapsulation.
+There is no `protected` or `private`. Loup uses module-level encapsulation.
 
 ### §8.3 Inheritance
 
-Loom supports single inheritance from one superclass (defaulting to `Any` if omitted) plus implementation of multiple interfaces. A class that (directly or transitively) inherits from itself creates a circular class hierarchy and is a compile-time error (`E_CIRCULAR_CLASS`).
+Loup supports single inheritance from one superclass (defaulting to `Any` if omitted) plus implementation of multiple interfaces. A class that (directly or transitively) inherits from itself creates a circular class hierarchy and is a compile-time error (`E_CIRCULAR_CLASS`).
 
 
 
@@ -4132,7 +4132,7 @@ Abstract classes cannot be instantiated directly — attempting to do so is a co
 
 **Constructors** use `new(params) { ... }` inside the class body. A class may have at most one constructor. If no constructor is declared, the compiler generates a default constructor that accepts all declared fields as named parameters.
 
-**Multiple construction strategies** are expressed using `pub static func` factory methods rather than overloaded constructors. This is the idiomatic Loom pattern:
+**Multiple construction strategies** are expressed using `pub static func` factory methods rather than overloaded constructors. This is the idiomatic Loup pattern:
 
 ```
 class Connection : Any {
@@ -4258,13 +4258,13 @@ class Node : Any {
 
 **Mode availability (updated in v1.18).** `weak` references are available in all modes that have an ARC memory model: `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In modes where the runtime backs `local class` with a tracing collector (per §8.1.1.1), the runtime maintains the required weak-reference side table as part of its ARC-equivalent contract. `weak` is **not available** in `@mode(freestanding)` — the target does not provide the side-table infrastructure required (`E_FREESTANDING_WEAK`).
 
-**`weak` references to `shared class` instances.** A `weak` field referencing a `shared class` instance compiles to a `SharedWeakRef[T]` (see Loom Standard Library Reference §21.1.6) and is backed by the arena's weak-reference side table (§17b.5 header offset 32). Weak-upgrade uses the compare-exchange protocol specified in §17b.7 under "Refcount protocol". Cross-thread weak-upgrade is atomic — a `weak` read that observes a live instance is guaranteed to see that instance remain live for the duration of the read.
+**`weak` references to `shared class` instances.** A `weak` field referencing a `shared class` instance compiles to a `SharedWeakRef[T]` (see Loup Standard Library Reference §21.1.6) and is backed by the arena's weak-reference side table (§17b.5 header offset 32). Weak-upgrade uses the compare-exchange protocol specified in §17b.7 under "Refcount protocol". Cross-thread weak-upgrade is atomic — a `weak` read that observes a live instance is guaranteed to see that instance remain live for the duration of the read.
 
 **`unowned[~name]` field qualifier.** An `unowned[~name]` field holds a non-owning reference whose safety is **compile-time proven** via the existing region system (§23.4.2). The class must declare `[lifetime ~name]` as a class-level lifetime parameter. The referent must originate from a scope that the compiler can statically verify contains (outlives) the `~name` region.
 
 `unowned[~name]` fields do not increment `strong_count` and are not tracked by the ARC zeroing side table. Because safety is proven at compile time, **no runtime null-trap is inserted** — access is zero-cost, equivalent to a raw pointer load.
 
-```loom
+```loup
 @mode(host.native)
 
 // The class carries [lifetime ~owner] anchoring all unowned fields.
@@ -4298,7 +4298,7 @@ class TreeNode[lifetime ~owner] : Any {
 
 **`weak` vs `unowned[~name]`.** `weak` is always safe on all targets and requires no lifetime annotation. Use `unowned[~name]` only when: (a) the lifetime relationship is strictly hierarchical and provable from scope nesting, and (b) the absence of a runtime side-table lookup is measurable and meaningful for the workload.
 
-```loom
+```loup
 @mode(host.native)
 
 // Correct: parent is created in scope ~tree, which outlives all nodes.
@@ -4487,7 +4487,7 @@ Type parameter constraints use the syntax `T: InterfaceName`.
 
 `unique class` declares a class whose instances are **always uniquely owned** — ARC is never applied and aliases are structurally prohibited. It is the class-level analogue of `unique let`/`unique var`: instead of marking a binding as unique, it marks the entire type as ownership-locked.
 
-```loom
+```loup
 @mode(host.native)
 
 unique class FileHandle : Any {
@@ -4501,7 +4501,7 @@ unique class FileHandle : Any {
 
 **Construction.** `unique class` instances must always be bound with `unique let` or `unique var`. Any non-`unique` binding position is `E_UNIQUE_CLASS_ARC_BINDING`:
 
-```loom
+```loup
 unique let fh = FileHandle.open("/etc/hosts")   // OK
 let fh        = FileHandle.open("/etc/hosts")   // E_UNIQUE_CLASS_ARC_BINDING
 arc let fh    = FileHandle.open("/etc/hosts")   // E_UNIQUE_CLASS_ARC_BINDING
@@ -4509,7 +4509,7 @@ arc let fh    = FileHandle.open("/etc/hosts")   // E_UNIQUE_CLASS_ARC_BINDING
 
 **Move semantics.** Assigning a `unique class` binding to another binding moves ownership; the source is consumed:
 
-```loom
+```loup
 unique let a = FileHandle.open("/etc/hosts")
 unique let b = a    // MOVE: b owns the handle; a consumed
 a.close()           // E_USE_AFTER_MOVE
@@ -4517,7 +4517,7 @@ a.close()           // E_USE_AFTER_MOVE
 
 **Borrowing.** Both `reads` (shared immutable borrow) and `edits` (exclusive mutable borrow) are valid on `unique` values. Because single ownership is compiler-proven, exclusivity for `edits` requires no alias check:
 
-```loom
+```loup
 unique let fh = FileHandle.open("/data/log.txt")
 inspect(reads: fh)        // shared borrow — fh not consumed
 inspect(fh)               // identical — implicit reads
@@ -4526,14 +4526,14 @@ write(edits: fh)          // exclusive borrow — trivially safe, no alias scan
 
 **`consume` is prohibited.** `consume` downgrades a `unique` value to ARC. For `unique class` types this downgrade is structurally forbidden — the type can never enter ARC:
 
-```loom
+```loup
 unique let fh = FileHandle.open("/data/log.txt")
 let shared = consume fh   // E_UNIQUE_CLASS_CONSUME
 ```
 
 **Subclassing.** A subclass of a `unique class` MUST also be `unique class`. A non-`unique` subclass could escape the constraint via the base type:
 
-```loom
+```loup
 unique class Handle : Any { ... }
 
 unique class FileHandle : Handle { ... }   // OK
@@ -4544,7 +4544,7 @@ class FileHandle : Handle { ... }
 
 **Collections.** `unique class` instances may be stored in collections; extraction moves the element out. In-place access returns an implicit `reads` borrow:
 
-```loom
+```loup
 unique var handles: list[FileHandle] = []
 unique let fh = FileHandle.open("/a")
 handles.append(fh)                        // MOVE into list
@@ -4554,7 +4554,7 @@ inspect(handles[0])                       // implicit reads borrow in place
 
 **Struct fields.** A struct may hold a `unique class` field with `unique var`:
 
-```loom
+```loup
 struct Connection {
     var host:   string;
     unique var sock: Socket;
@@ -4565,7 +4565,7 @@ A struct with a `unique class` field is move-only (§10.3.2).
 
 **Thread transfer.** A `unique class` value may be moved into a `Thread.spawn` closure; the caller loses access at the move point:
 
-```loom
+```loup
 unique let fh = FileHandle.open("/data/log.txt")
 let t = Thread.spawn(func() { process(fh) })
 fh.close()   // E_USE_AFTER_MOVE
@@ -4573,7 +4573,7 @@ fh.close()   // E_USE_AFTER_MOVE
 
 **Type parameters.** `unique class` supports type parameters normally:
 
-```loom
+```loup
 @mode(host.native)
 
 unique class Pool[T] : Any {
@@ -4642,7 +4642,7 @@ enum Tree[T] {
 
 **Enum lifetime parameters.** An enum may declare lifetime parameters to allow `borrow[~name]` variant payloads. The syntax follows the same `[lifetime ~name]` convention used for structs (§10.11) and interfaces (§11.4):
 
-```loom
+```loup
 @mode(host.native)
 
 enum Token[lifetime ~src] {
@@ -4654,7 +4654,7 @@ enum Token[lifetime ~src] {
 
 Destructuring a lifetime-parameterized enum variant extracts the borrow with its label intact:
 
-```loom
+```loup
 match tok {
   Token.Word(borrow[~src] w) => process(borrow w),
   Token.Number(n)            => display(n),
@@ -4835,7 +4835,7 @@ A struct field may not have a class type. The field's declared type must be one 
 
 Declaring a struct field whose resolved type is a plain ARC class reference is a compile-time error (`E_STRUCT_CLASS_FIELD`). A `unique T` field is explicitly not a plain ARC reference and does not trigger this error.
 
-```loom
+```loup
 class Connection : Any { ... }
 
 // COMPILE ERROR — class reference in struct field
@@ -4856,7 +4856,7 @@ struct Request {
 
 To enforce the constraint at the definition site and produce a clearer error at call sites, annotate the type parameter with the `ValueType` constraint:
 
-```loom
+```loup
 // Unconstrained — error surfaces at instantiation site
 struct Box[T] {
   var value: T;
@@ -4891,7 +4891,7 @@ A struct containing one or more `unique`-qualified fields is a **move-only struc
 
 **Ordinary structs** (no `unique` fields) retain copy semantics — assignment produces an independent copy, and the source binding remains valid:
 
-```loom
+```loup
 @mode(web.compiled)
 
 struct Point { x: float; y: float; }
@@ -4903,7 +4903,7 @@ use(a)           // OK — a is still valid
 
 **Move-only structs** (one or more `unique` fields) transfer ownership on assignment — the source binding is consumed and may not be used again:
 
-```loom
+```loup
 @mode(host.native)
 
 struct Request {
@@ -4918,7 +4918,7 @@ use(r1)            // E_USE_AFTER_MOVE: r1 was moved to r2
 
 **Function call semantics.** A no-verb parameter on a move-only struct is an implicit `reads` borrow — the caller retains ownership after the call. To transfer ownership into the function, declare the parameter with `takes`:
 
-```loom
+```loup
 // Implicit reads borrow (default) — caller retains ownership
 func inspect(req: Request): string { return req.path; }  // implicit reads
 
@@ -4930,7 +4930,7 @@ use(r)               // OK — r still valid
 
 To transfer ownership, declare the parameter with `takes` and acknowledge at the call site:
 
-```loom
+```loup
 func handle(takes req: Request): void { ... }
 
 let r = Request(path="/api", conn=Connection.open(addr))
@@ -4940,7 +4940,7 @@ use(r)               // E_USE_AFTER_TAKE
 
 For a mutable borrow without consuming, use `edits`:
 
-```loom
+```loup
 func update(edits req: Request): void { req.path = "/updated"; }
 
 update(edits: r)     // exclusive mutable borrow — r not consumed
@@ -5078,7 +5078,7 @@ Structs are the preferred type for compiled mode data records — they map direc
 
 A struct may declare one or more lifetime parameters to allow `borrow[~name]` fields whose source region is tracked across function boundaries. Lifetime parameters are declared in the struct's `[...]` generic brackets using the `lifetime` keyword:
 
-```loom
+```loup
 @mode(host.native)
 
 struct Slice[lifetime ~src] {
@@ -5103,7 +5103,7 @@ struct Parser[lifetime ~src, T] {
 
 **Methods on lifetime-parameterized structs.** Methods have implicit access to the struct's declared lifetime parameters. The compiler infers that a `borrow` return type on a method borrows from `self`'s lifetime — no explicit annotation is required for the common case:
 
-```loom
+```loup
 @mode(host.native)
 
 struct Slice[lifetime ~src] {
@@ -5129,7 +5129,7 @@ struct Slice[lifetime ~src] {
 
 **Constructing a lifetime-parameterized struct.** The auto-generated constructor (§10.1) accepts `borrow[~name]` values for borrow fields. The compiler ties the resulting struct's lifetime to the provided source region:
 
-```loom
+```loup
 @mode(host.native)
 
 func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
@@ -5149,7 +5149,7 @@ func tokenize[lifetime ~src](borrow[~src] input: string): list[string] {
 
 **Type aliases with lifetime parameters.** Type aliases may carry lifetime parameters using the same `[lifetime ~name]` syntax:
 
-```loom
+```loup
 @mode(host.native)
 
 type StrSlice[lifetime ~src]     = Slice[~src];
@@ -5166,7 +5166,7 @@ type ParseState[lifetime ~src, T] = Parser[~src, T];
 
 Interfaces define contracts that classes and structs explicitly implement. Interface methods may be declared as abstract signatures (using `;`) or with a default implementation (using a `{ body }` block). A class implementing the interface may override a default-body method; if it does not, the default implementation is used. Abstract interface methods (ending in `;`) must be provided by every implementing class:
 
-```loom
+```loup
 interface Greetable {
   func name(): string;            // abstract — must be implemented
   func greet(): string {          // default implementation
@@ -5175,7 +5175,7 @@ interface Greetable {
 }
 ```
 
-```loom
+```loup
 interface Serializable {
   func serialize(): bytes;
   static func deserialize(data: bytes): Self;
@@ -5482,7 +5482,7 @@ for (n in countdown(5)) {
 
 An interface may declare lifetime parameters to express contracts involving `borrow[~name]` return values or method parameters:
 
-```loom
+```loup
 @mode(host.native)
 
 interface Sliceable[lifetime ~src] {
@@ -5497,7 +5497,7 @@ interface Source[lifetime ~src, T] {
 
 **Implementing a lifetime-parameterized interface.** The implementing type must declare a matching lifetime parameter by position. The names of the parameters need not match:
 
-```loom
+```loup
 @mode(host.native)
 
 struct BorrowedSlice[lifetime ~buf] implements Sliceable[~buf] {
@@ -5522,7 +5522,7 @@ struct BorrowedSlice[lifetime ~buf] implements Sliceable[~buf] {
 
 *(This section is normative.)*
 
-Loom supports generic type parameters on functions, classes, interfaces, enums, and structs. This section consolidates the generic type system rules.
+Loup supports generic type parameters on functions, classes, interfaces, enums, and structs. This section consolidates the generic type system rules.
 
 **Declaration syntax:**
 
@@ -5605,7 +5605,7 @@ Lifetime parameters and type parameters may be freely mixed in any order: `[life
 
 **Mixed generic brackets:**
 
-```loom
+```loup
 @mode(host.native)
 
 func transform[lifetime ~src, T, R](
@@ -5638,14 +5638,14 @@ struct Pipeline[lifetime ~src, T, R] {
 
 A **namespace declaration** associates a source file with a dotted module path. All public declarations in the file are exposed under that path when other modules import from it:
 
-```loom
+```loup
 namespace core.text;
 
 pub class Url : Any { ... }
 pub func encode(s: string): string { ... }
 ```
 
-```loom
+```loup
 from core.text import (Url, encode);
 ```
 
@@ -5699,7 +5699,7 @@ from .. {
 
 **`prefer compiled` clause.** An import statement may carry the `prefer compiled` modifier to request runtime fallback resolution:
 
-```loom
+```loup
 from codec import (Encoder, decode) prefer compiled;
 ```
 
@@ -5712,7 +5712,7 @@ When the runtime encounters `prefer compiled` on an import, it attempts to load 
 
 `prefer compiled` may appear on individual imports within a grouped import block:
 
-```loom
+```loup
 from mylib {
   fast import (Encoder) prefer compiled;
   utils import (format);
@@ -5730,7 +5730,7 @@ from mylib {
 Re-exports allow barrel modules to expose symbols from internal modules:
 
 ```
-// components/index.loom — barrel module
+// components/index.loup — barrel module
 pub from .counter import (Counter);
 pub from .header import (Header, HeaderProps);
 pub from .sidebar import (Sidebar as AppSidebar);
@@ -5766,16 +5766,16 @@ pub from .components {
 
 For any symbol re-exported via `pub from .internal import (Foo)`, importing `Foo` from the barrel module yields the same binding as importing `Foo` directly from the internal module.
 
-### §13.3 Package Manifest (`.lmpkg`)
+### §13.3 Package Manifest (`.lppkg`)
 
-Every distributable package or application root contains a manifest file with the `.lmpkg` extension. The manifest may be named either `package.lmpkg` (the canonical name used by tooling by default) or `<package-name>.lmpkg` (matching the `package` field in the manifest). The toolchain accepts both forms; `<name>.lmpkg` takes precedence over `package.lmpkg` when both exist in the same directory.
+Every distributable package or application root contains a manifest file with the `.lppkg` extension. The manifest may be named either `package.lppkg` (the canonical name used by tooling by default) or `<package-name>.lppkg` (matching the `package` field in the manifest). The toolchain accepts both forms; `<name>.lppkg` takes precedence over `package.lppkg` when both exist in the same directory.
 
 ```toml
-# my-app.lmpkg — Loom package manifest
+# my-app.lppkg — Loup package manifest
 
 package   my-app
 version   1.4.0
-loom      ">=1.3"
+loup      ">=1.3"
 
 [deps]
 net.http     = "^2.0"
@@ -5786,9 +5786,9 @@ ui-toolkit   = "^0.8"
 test-runner  = "^3.1"
 
 [dev-overrides]
-# Local filesystem overrides for development. Ignored by loom install --locked
+# Local filesystem overrides for development. Ignored by loup install --locked
 # and stripped from the published manifest. See §13.9.
-# loom.http = { path = "../loom-http" }
+# loup.http = { path = "../loup-http" }
 # my-utils  = { path = "/home/dev/my-utils" }
 
 [target.browser]
@@ -5820,9 +5820,9 @@ include net.net
 
 - `package` names are lowercase, hyphen-separated identifiers.
 - `version` follows semantic versioning (`MAJOR.MINOR.PATCH`).
-- `loom` specifies the minimum required toolchain version.
+- `loup` specifies the minimum required toolchain version.
 - Dependency versions use constraint expressions: `^` (compatible), `~` (patch-compatible), `>=`, `<=`, exact, or range.
-- A `loom.lock` lockfile records exact resolved versions of all transitive dependencies.
+- A `loup.lock` lockfile records exact resolved versions of all transitive dependencies.
 - **Platform profiles** (`[target.X]`) declare which stdlib capabilities are available. The compiler enforces these at build time.
 - Default targets: `cli`, `browser`, `service`.
 - `core.text`, `data.json`, `core.time`, and `core.collections` are available on all targets without restriction.
@@ -5833,36 +5833,36 @@ include net.net
 
 ```toml
 [dev-overrides]
-loom.http = { path = "../loom-http" }
+loup.http = { path = "../loup-http" }
 my-utils  = { path = "/home/dev/my-utils" }
 ```
 
-- Each entry overrides the version resolved from `loom.lock` for that package name. The `path` must contain a valid `.lmpkg` manifest. The package name in that manifest must match the key.
-- Packages listed in `[dev-overrides]` are compiled via the JIT pipeline and their artifacts are written to the **project-local cache** (`.loom/cache/` — see §28.7) instead of the global cache (`~/.loom/cache/`). This prevents overwriting cached artifacts that other projects depend on.
-- `[dev-overrides]` entries are **ignored** when `loom install --locked` is used (CI mode).
-- `[dev-overrides]` entries are **stripped** from the published manifest. `loom publish` emits a warning if any `[dev-overrides]` entries are present and proceeds only after confirmation.
-- The `loom link` and `loom unlink` commands (§28.1) manage `[dev-overrides]` entries automatically.
+- Each entry overrides the version resolved from `loup.lock` for that package name. The `path` must contain a valid `.lppkg` manifest. The package name in that manifest must match the key.
+- Packages listed in `[dev-overrides]` are compiled via the JIT pipeline and their artifacts are written to the **project-local cache** (`.loup/cache/` — see §28.7) instead of the global cache (`~/.loup/cache/`). This prevents overwriting cached artifacts that other projects depend on.
+- `[dev-overrides]` entries are **ignored** when `loup install --locked` is used (CI mode).
+- `[dev-overrides]` entries are **stripped** from the published manifest. `loup publish` emits a warning if any `[dev-overrides]` entries are present and proceeds only after confirmation.
+- The `loup link` and `loup unlink` commands (§28.1) manage `[dev-overrides]` entries automatically.
 
 **Namespace package installation layout:**
 
-When multiple packages share the same root namespace (e.g., `loom.http`, `loom.db`, `loom.crypto`), the toolchain installs their `.lmpkg` files side-by-side under a shared namespace directory rather than giving each package its own isolated directory. This mirrors Python's namespace package convention and allows packages to be developed and versioned independently while presenting a coherent import tree.
+When multiple packages share the same root namespace (e.g., `loup.http`, `loup.db`, `loup.crypto`), the toolchain installs their `.lppkg` files side-by-side under a shared namespace directory rather than giving each package its own isolated directory. This mirrors Python's namespace package convention and allows packages to be developed and versioned independently while presenting a coherent import tree.
 
 ```
 # Installed layout under a project's package root:
 packages/
-  loom/                          # namespace directory (no .lmpkg here)
-    loom.http.lmpkg              # package file named after the package
-    loom.db.lmpkg
-    loom.crypto.lmpkg
+  loup/                          # namespace directory (no .lppkg here)
+    loup.http.lppkg              # package file named after the package
+    loup.db.lppkg
+    loup.crypto.lppkg
   my-utils/
-    my-utils.lmpkg
+    my-utils.lppkg
 ```
 
-- The **namespace directory** (e.g., `loom/`) is created when the first package under that namespace is installed. It contains no `.lmpkg` of its own — it is purely a grouping directory.
-- Each installed package's `.lmpkg` file is named `<package-name>.lmpkg` and placed inside the namespace directory.
-- The resolver identifies a directory as a namespace package root when it contains one or more `.lmpkg` files but no `package.lmpkg` or `<name>.lmpkg` at the directory level itself.
-- Multiple packages under the same namespace can be installed, upgraded, and removed independently. Installing `loom.http` does not affect `loom.db`.
-- The `loom install` command manages this layout automatically. Manual manipulation of the `packages/` directory is not supported.
+- The **namespace directory** (e.g., `loup/`) is created when the first package under that namespace is installed. It contains no `.lppkg` of its own — it is purely a grouping directory.
+- Each installed package's `.lppkg` file is named `<package-name>.lppkg` and placed inside the namespace directory.
+- The resolver identifies a directory as a namespace package root when it contains one or more `.lppkg` files but no `package.lppkg` or `<name>.lppkg` at the directory level itself.
+- Multiple packages under the same namespace can be installed, upgraded, and removed independently. Installing `loup.http` does not affect `loup.db`.
+- The `loup install` command manages this layout automatically. Manual manipulation of the `packages/` directory is not supported.
 
 ### §13.4 Module Initialization
 
@@ -5878,11 +5878,11 @@ The module dunders (`__name__`, `__file__`, `__execmode__`) are set before any t
 
 ### §13.5 Package Registry
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
+*(Full specification moved to the [Loup Packages Reference](loup-packages-reference-v1_11.md).)*
 
-The Loom package registry is a signed, content-addressed registry of Loom
+The Loup package registry is a signed, content-addressed registry of Loup
 packages.  Packages are identified by name and version and authenticated with
-Ed25519 signatures.  CLI commands: `loom install`, `loom cache`, `loom publish`.
+Ed25519 signatures.  CLI commands: `loup install`, `loup cache`, `loup publish`.
 See the Packages Reference for the full registry protocol, signing requirements,
 and CLI reference.
 
@@ -5904,7 +5904,7 @@ The following root namespaces are reserved for the standard library. User packag
 | `debug` | Debugging, tracing, profiling, MCP agent tooling | All targets (when enabled) |
 | `structures` | Data structures beyond primitive collections | All targets |
 
-The `loom.` namespace prefix remains reserved for first-party packages (see §13.8). User packages cannot use `loom.` as a prefix. The previously reserved `system` prefix is retired; `system` may be used as a user package name beginning with v1.1.
+The `loup.` namespace prefix remains reserved for first-party packages (see §13.8). User packages cannot use `loup.` as a prefix. The previously reserved `system` prefix is retired; `system` may be used as a user package name beginning with v1.1.
 
 ### §13.7 Module Fallback Pairs
 
@@ -5919,16 +5919,16 @@ When the runtime encounters `from mylib.codec import (...) prefer compiled`, it 
 1. **Search for compiled artefact.** The runtime searches for a compiled artefact at the module's resolved file path with a platform-appropriate extension:
    - `module/path.wasm` — Wasm module (browser and CLI Wasm targets)
    - `module/path.so` / `module/path.dylib` / `module/path.dll` — native shared library (native target)
-   The search follows the same directory resolution rules as for `.loom` source files.
+   The search follows the same directory resolution rules as for `.loup` source files.
 
 2. **Attempt instantiation.** If a compiled artefact is found, the runtime attempts to load and instantiate it. Instantiation failure for any of the following reasons is treated identically as "compiled artefact unavailable":
    - The host environment does not support Wasm.
    - A required native shared library is not present.
-   - The artefact's ABI version is incompatible with the current Loom runtime.
+   - The artefact's ABI version is incompatible with the current Loup runtime.
    - The artefact's exports do not include all names listed in the import statement.
    - Any other instantiation error.
 
-3. **Fall back to scripted source.** If no compiled artefact is found or instantiation fails, the runtime locates the scripted source at the same module path with `.loom` extension and proceeds with the normal JIT pipeline.
+3. **Fall back to scripted source.** If no compiled artefact is found or instantiation fails, the runtime locates the scripted source at the same module path with `.loup` extension and proceeds with the normal JIT pipeline.
 
 4. **Failure.** If neither the compiled artefact nor the scripted source can be loaded, the runtime throws `ModuleLoadError`.
 
@@ -5939,13 +5939,13 @@ The fallback is always silent on success. Developers who need to detect which pa
 The compiled artefact search path is:
 
 1. The directory containing the scripted source file.
-2. Any paths specified in `.lmpkg` under `[compiled_search_paths]`.
+2. Any paths specified in `.lppkg` under `[compiled_search_paths]`.
 3. The platform's standard shared library search path (for native targets).
 
 ```toml
-# <name>.lmpkg
+# <name>.lppkg
 [compiled_search_paths]
-paths = ["./native", "/usr/local/lib/loom"]
+paths = ["./native", "/usr/local/lib/loup"]
 ```
 
 #### §13.7.3 API Compatibility
@@ -5954,18 +5954,18 @@ The spec does not require compiled and scripted module versions to export identi
 
 The recommended practice is for both versions to implement the same named interface (§11.1), ensuring compile-time verification of API compatibility on both sides independently:
 
-```loom
-// codec/Api.loom — shared contract
+```loup
+// codec/Api.loup — shared contract
 interface Codec {
   func encode(data: bytes): bytes;
   func decode(data: bytes): bytes;
 }
 
-// codec.loom (scripted fallback)
+// codec.loup (scripted fallback)
 from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
 
-// codec_native.loom (compiled artefact source)
+// codec_native.loup (compiled artefact source)
 @mode(web.compiled)
 from codec import (Api);
 pub class Encoder : Any implements Api.Codec { ... }
@@ -5978,7 +5978,7 @@ After resolution, the loaded module's `__execmode__` (accessible via `TypeName._
 - The AOT mode string (`"web.compiled"`, `"host.native"`, or the AOT side of `"host.dual"`) — a compiled artefact was instantiated successfully.
 - `"host.scripted"` or `"web.scripted"` — the scripted fallback was loaded.
 
-```loom
+```loup
 from codec import (Encoder) prefer compiled;
 
 let compiledVariants = ["web.compiled", "host.native", "host.dual"];
@@ -5991,7 +5991,7 @@ A package ships both files at the same module path:
 
 ```
 src/
-  codec.loom        # scripted implementation — always present
+  codec.loup        # scripted implementation — always present
   codec.wasm        # compiled Wasm — for browser/CLI targets
   codec.so          # compiled native — for native target
 ```
@@ -6000,7 +6000,7 @@ The package registry stores and serves all variants. Consumers use `prefer compi
 
 #### §13.7.6 `ModuleLoadError`
 
-```loom
+```loup
 class RuntimeError : Exception {}
   (* General-purpose runtime error base class. Extend for specific runtime error categories.
      The standard library uses RuntimeError as the base for: StackOverflowError, TaskQueueFullError,
@@ -6017,54 +6017,54 @@ Thrown when both the compiled artifact and the scripted source fail to load. `ca
 
 ### §13.8 Core Package Set
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
+*(Full specification moved to the [Loup Packages Reference](loup-packages-reference-v1_11.md).)*
 
-Five first-party packages ship under the `loom.` namespace and are available
-via `loom install`:
+Five first-party packages ship under the `loup.` namespace and are available
+via `loup install`:
 
 | Package | Purpose |
 |---|---|
-| `loom.ai` | Multi-provider AI client (`Client`, `StructuredOutput[T]`, streaming) |
-| `loom.db` | Database access (query builder, connection pool, migrations) |
-| `loom.testing` | Testing framework (`describe`, `it`, `expect`) |
-| `loom.bench` | Micro-benchmark harness |
-| `loom.format` | Document formatting utilities |
+| `loup.ai` | Multi-provider AI client (`Client`, `StructuredOutput[T]`, streaming) |
+| `loup.db` | Database access (query builder, connection pool, migrations) |
+| `loup.testing` | Testing framework (`describe`, `it`, `expect`) |
+| `loup.bench` | Micro-benchmark harness |
+| `loup.format` | Document formatting utilities |
 
 See the Packages Reference for full API documentation.
 
 
-### §13.9 `LOOMPATH` — Development Package Search Path
+### §13.9 `LOUPPATH` — Development Package Search Path
 
 *(This section is normative.)*
 
-`LOOMPATH` is an environment variable that extends the module resolver's search path for package imports, enabling development-time use of local package checkouts without modifying `loom.lock` or running `loom install`.
+`LOUPPATH` is an environment variable that extends the module resolver's search path for package imports, enabling development-time use of local package checkouts without modifying `loup.lock` or running `loup install`.
 
-**Format.** `LOOMPATH` is a colon-separated list of directory paths on Unix/macOS and a semicolon-separated list on Windows. Each entry is a directory that contains a valid `.lmpkg` manifest:
+**Format.** `LOUPPATH` is a colon-separated list of directory paths on Unix/macOS and a semicolon-separated list on Windows. Each entry is a directory that contains a valid `.lppkg` manifest:
 
 ```sh
 # Unix — two local checkouts on the search path
-export LOOMPATH="/home/dev/loom-http:/home/dev/my-utils"
+export LOUPPATH="/home/dev/loup-http:/home/dev/my-utils"
 
 # Windows
-set LOOMPATH=C:\dev\loom-http;C:\dev\my-utils
+set LOUPPATH=C:\dev\loup-http;C:\dev\my-utils
 ```
 
 **Resolution order.** For any non-relative, non-stdlib import, the resolver searches in the following order and uses the first match:
 
-1. `[dev-overrides]` entries in the project's `.lmpkg` (§13.3) — highest priority.
-2. `LOOMPATH` directories, left to right — each directory is checked for a `.lmpkg` whose `package` field matches the import's package name.
-3. Installed packages from `loom.lock` — resolved via the global or project-local Wasm cache (§28.7).
-4. Global cache (`~/.loom/cache/`) — fallback for packages installed globally.
+1. `[dev-overrides]` entries in the project's `.lppkg` (§13.3) — highest priority.
+2. `LOUPPATH` directories, left to right — each directory is checked for a `.lppkg` whose `package` field matches the import's package name.
+3. Installed packages from `loup.lock` — resolved via the global or project-local Wasm cache (§28.7).
+4. Global cache (`~/.loup/cache/`) — fallback for packages installed globally.
 
-**Package identity.** Each `LOOMPATH` directory is treated as an independent package source. The resolver reads the directory's `.lmpkg` to determine the package name and version. The version is used only for diagnostic messages — `LOOMPATH` entries take precedence over the `loom.lock`-resolved version regardless of version number. This allows a developer to test an unreleased or patched version of a dependency without bumping version numbers.
+**Package identity.** Each `LOUPPATH` directory is treated as an independent package source. The resolver reads the directory's `.lppkg` to determine the package name and version. The version is used only for diagnostic messages — `LOUPPATH` entries take precedence over the `loup.lock`-resolved version regardless of version number. This allows a developer to test an unreleased or patched version of a dependency without bumping version numbers.
 
-**JIT-only.** `LOOMPATH` packages are always resolved via the JIT pipeline and bypass the Wasm cache. Because `LOOMPATH` sources are under active development and change frequently, cache validation overhead would exceed the benefit. The JIT pipeline uses incremental compilation so only changed modules are recompiled on each `loom run`.
+**JIT-only.** `LOUPPATH` packages are always resolved via the JIT pipeline and bypass the Wasm cache. Because `LOUPPATH` sources are under active development and change frequently, cache validation overhead would exceed the benefit. The JIT pipeline uses incremental compilation so only changed modules are recompiled on each `loup run`.
 
-**CI isolation.** `LOOMPATH` is **ignored** when `loom install --locked` is in effect. This ensures that CI builds are fully reproducible and unaffected by the developer's local environment.
+**CI isolation.** `LOUPPATH` is **ignored** when `loup install --locked` is in effect. This ensures that CI builds are fully reproducible and unaffected by the developer's local environment.
 
-**Diagnostic.** `loom run --verbose` logs each `LOOMPATH` entry consulted and reports which packages were resolved from `LOOMPATH` versus `loom.lock`.
+**Diagnostic.** `loup run --verbose` logs each `LOUPPATH` entry consulted and reports which packages were resolved from `LOUPPATH` versus `loup.lock`.
 
-**Interaction with namespace packages.** If a `LOOMPATH` entry resolves a package that is part of a namespace (e.g., `loom.http`), only that specific package is overridden. Other packages in the same namespace (e.g., `loom.db`) continue to resolve from `loom.lock` as usual.
+**Interaction with namespace packages.** If a `LOUPPATH` entry resolves a package that is part of a namespace (e.g., `loup.http`), only that specific package is overridden. Other packages in the same namespace (e.g., `loup.db`) continue to resolve from `loup.lock` as usual.
 
 ---
 
@@ -6092,7 +6092,7 @@ initialization completes.
 
 **Syntax:**
 
-```loom
+```loup
 from geometry defer import (Point, Transform)
 from events defer import (EventBus, Handler)
 ```
@@ -6138,8 +6138,8 @@ deferred names are always fully resolved — these usages are unrestricted.
 
 **Example — mutual reference cycle:**
 
-```loom
-// nodes.loom
+```loup
+// nodes.loup
 from edges defer import (Edge)
 
 class Node : Any {
@@ -6152,8 +6152,8 @@ class Node : Any {
 }
 ```
 
-```loom
-// edges.loom
+```loup
+// edges.loup
 from nodes defer import (Node)
 
 class Edge : Any {
@@ -6282,10 +6282,10 @@ Template fences produce `lang.template.Template` values. The opener is a run of 
 ```
 `````
 
-**Extended form (4+ backticks) for nesting.** When a fence body must contain literal backtick sequences (for example, when generating Loom source that itself contains template fences), use more backticks on the outer fence. The parser only closes the fence when it encounters the exact same backtick count as the opener:
+**Extended form (4+ backticks) for nesting.** When a fence body must contain literal backtick sequences (for example, when generating Loup source that itself contains template fences), use more backticks on the outer fence. The parser only closes the fence when it encounters the exact same backtick count as the opener:
 
 ``````
-````(loom):(none)
+````(loup):(none)
   func render(): View {
     return ```(html):(none)
       <p>hello</p>
@@ -6338,10 +6338,10 @@ Fences follow the same anchor `P` alignment rule as multiline strings.
 
 Delimiter requirements: each opener/closer must be non-empty; `stmt_*` delimiters must not equal `expr_*` delimiters.
 
-**Combining extended backticks with alternative delimiters.** When generating Loom that itself generates HTML, use extended backticks for the fence delimiter and alternative expression delimiters for interpolation:
+**Combining extended backticks with alternative delimiters.** When generating Loup that itself generates HTML, use extended backticks for the fence delimiter and alternative expression delimiters for interpolation:
 
 ``````
-`````(loom):(expr_open="<<", expr_close=">>")
+`````(loup):(expr_open="<<", expr_close=">>")
   let page = ````(html):(none)
     <h1>{$ title $}</h1>     ← {$ $} is literal in the output
     <p><< body >></p>        ← << >> is the outer interpolation
@@ -6582,8 +6582,8 @@ Interpolations inside `<script>` or `<style>` blocks in an `html` fence are a **
 |---|---|---|
 | `E_SCRIPT_STYLE_INTERPOLATION` | All | `{$ expr $}` or `{% directive %}` inside a `<script>` or `<style>` block in an `html` fence |
 
-- Pass data from Loom to JavaScript via the structured state serialization mechanism (§19.7) or via `data-` attributes, then read those from JavaScript after the Wasm module loads.
-- Never inject Loom values directly into inline `<script>` blocks.
+- Pass data from Loup to JavaScript via the structured state serialization mechanism (§19.7) or via `data-` attributes, then read those from JavaScript after the Wasm module loads.
+- Never inject Loup values directly into inline `<script>` blocks.
 
 ```
 // COMPILE-TIME ERROR:
@@ -6617,7 +6617,7 @@ The `raw` filter suppresses all context-aware escaping. The compiler emits a lin
 class SafeHtml : Any implements Renderable {
   let content: string;
 
-  // Trusted constructor — compile-time constants and Loom rendering output only.
+  // Trusted constructor — compile-time constants and Loup rendering output only.
   // Using this with user-provided input is a security defect.
   pub static func of(trusted: string): SafeHtml;
 
@@ -6625,7 +6625,7 @@ class SafeHtml : Any implements Renderable {
 }
 ```
 
-`SafeHtml` values produced by Loom's own rendering pipeline (e.g., output of `renderToString`, or a nested `View` rendered to string) are automatically typed as `SafeHtml` and pass through without double-escaping.
+`SafeHtml` values produced by Loup's own rendering pipeline (e.g., output of `renderToString`, or a nested `View` rendered to string) are automatically typed as `SafeHtml` and pass through without double-escaping.
 
 **`Url`** is a wrapper type for validated URLs. Defined in `core.text`, available on all targets:
 
@@ -6662,7 +6662,7 @@ When `renderToString` renders a component tree containing `html` fences, the con
 
 The `css` language descriptor in a template fence produces a **`StyleSheet`** value — a typed, scoped bundle of CSS rules. Class names are automatically mangled to a hash-scoped form, preventing collisions between components.
 
-```loom
+```loup
 let styles = ```(css)
   .container {
     display: flex;
@@ -6688,7 +6688,7 @@ let styles = ```(css)
 
 #### §16.7.1 `StyleSheet` and `ClassName`
 
-```loom
+```loup
 namespace web.css;
 
 // A scoped CSS class name string (e.g. "container-a3f9b2")
@@ -6715,17 +6715,17 @@ class StyleSheet : Any {
 
 **Shadow-root CSS encapsulation (normative).** When a `css` fence is evaluated inside the `render()` method of a `@webcomponent` class (§19.10), hash-scoped class name mangling is suppressed. Instead, the compiled `StyleSheet` is attached to the element's shadow root via the Constructable Stylesheets API (`CSSStyleSheet.replace()` + `shadowRoot.adoptedStyleSheets`). The shadow root boundary provides equivalent isolation without name mangling. This rule applies only to `css` fences whose lexically enclosing function is the `render()` method of a `@webcomponent` class; all other `css` fences continue to use hash-scoped mangling.
 
-**Rule access.** CSS selectors that are valid Loom identifiers are accessible as direct property names on the `StyleSheet` value. Selectors containing non-identifier characters (e.g. `.my-button`, `.grid-2col`) are accessed via `styles.get("myButton")` using camelCase:
+**Rule access.** CSS selectors that are valid Loup identifiers are accessible as direct property names on the `StyleSheet` value. Selectors containing non-identifier characters (e.g. `.my-button`, `.grid-2col`) are accessed via `styles.get("myButton")` using camelCase:
 
-```loom
+```loup
 let cls = styles.get("gridItem");   // for rule .grid-item
 ```
 
 #### §16.7.2 Dynamic Values
 
-CSS property values may embed Loom expressions with `{$ expr $}`:
+CSS property values may embed Loup expressions with `{$ expr $}`:
 
-```loom
+```loup
 let spacing: int = 16;
 let brand: string = "#0066cc";
 
@@ -6746,7 +6746,7 @@ Dynamic values are interpolated at the time the fence expression is evaluated. T
 
 **In `html` fences.** Use `styles.toCSS()` to inject a `<style>` block, or reference class names directly:
 
-```loom
+```loup
 let page = ```(html)
   <style>{$ styles.toCSS() | raw $}</style>
   <div class="{$ styles.container $}">
@@ -6757,7 +6757,7 @@ let page = ```(html)
 
 **In `ui` fences.** The `class` attribute accepts `ClassName` directly:
 
-```loom
+```loup
 let view = ```(ui)
   <Column class={styles.container}>
     <Button class={styles.button}>Click</Button>
@@ -6771,7 +6771,7 @@ let view = ```(ui)
 
 Media queries and pseudo-selectors are supported within `css` fences. Only top-level class selectors (`.ruleName { ... }`) produce `ClassName` properties on the returned `StyleSheet`. Other rule types (media queries, keyframes, `@font-face`) are compiled into the CSS output but are not directly addressable:
 
-```loom
+```loup
 let styles = ```(css)
   .hero {
     font-size: 32px;
@@ -6798,7 +6798,7 @@ let styles = ```(css)
 
 | Target | Behavior |
 |---|---|
-| `browser` | `StyleSheet.toCSS()` is injected into a `<style>` element by the Loom runtime |
+| `browser` | `StyleSheet.toCSS()` is injected into a `<style>` element by the Loup runtime |
 | `service` / SSR | `toCSS()` is inlined in the SSR `<style>` block |
 | `native` | `StyleSheet` is passed to `ui.desktop` as a style descriptor; CSS properties are translated to the platform rendering model |
 | `cli` | `css` fences are valid but `toCSS()` simply returns the CSS string — no DOM is available |
@@ -6811,11 +6811,11 @@ let styles = ```(css)
 
 *(This section is normative. Applies to `@mode(host.native)`, `@mode(host.dual)`, and `@mode(web.compiled)`/`@mode(web.scripted)` targets where WebGPU is available.)*
 
-Three additional language descriptors extend the template fence system (§16.1) for GPU kernel authoring. These fences produce `GpuKernel` values (defined in `native.gpu`; see the stdlib reference) rather than `Template` strings. The fence body is a shader program in the target shading language; `{$ expr $}` interpolations inject Loom compile-time constant expressions as shader constants.
+Three additional language descriptors extend the template fence system (§16.1) for GPU kernel authoring. These fences produce `GpuKernel` values (defined in `native.gpu`; see the stdlib reference) rather than `Template` strings. The fence body is a shader program in the target shading language; `{$ expr $}` interpolations inject Loup compile-time constant expressions as shader constants.
 
 #### §16.8.1 `wgsl` — WebGPU Shading Language
 
-```loom
+```loup
 from native.gpu import (GpuKernel, GpuBuffer, dispatch);
 
 let WGSIZE: int = 256;
@@ -6837,8 +6837,8 @@ let addKernel = GpuKernel.compile(```(wgsl):(none)
 
 **Rules:**
 - The `wgsl` descriptor is valid on `browser` targets and on native targets with a WebGPU-capable GPU backend.
-- Only compile-time constant Loom expressions (`int`, `float32`, `bool`) are permitted in `{$ expr $}` interpolations inside `wgsl` fences. Runtime values are a compile-time error (`E_GPU_FENCE_RUNTIME`).
-- The fence body must be valid WGSL. Syntax errors in the fence body are reported as compile-time errors when the containing file is processed by `loom build --check`; at runtime, `GpuKernel.compile` throws `GpuCompileError` on shader compilation failure.
+- Only compile-time constant Loup expressions (`int`, `float32`, `bool`) are permitted in `{$ expr $}` interpolations inside `wgsl` fences. Runtime values are a compile-time error (`E_GPU_FENCE_RUNTIME`).
+- The fence body must be valid WGSL. Syntax errors in the fence body are reported as compile-time errors when the containing file is processed by `loup build --check`; at runtime, `GpuKernel.compile` throws `GpuCompileError` on shader compilation failure.
 - Multiple entry points (`@compute`, `@vertex`, `@fragment`) are permitted in a single fence.
 
 | Code | Mode | Condition |
@@ -6848,7 +6848,7 @@ let addKernel = GpuKernel.compile(```(wgsl):(none)
 
 #### §16.8.2 `metal` — Metal Shading Language
 
-```loom
+```loup
 from native.gpu import (GpuKernel, dispatch);
 
 let kernel = GpuKernel.compile(```(metal):(none)
@@ -6872,7 +6872,7 @@ let kernel = GpuKernel.compile(```(metal):(none)
 
 #### §16.8.3 `glsl` — OpenGL/Vulkan Compute Shader
 
-```loom
+```loup
 from native.gpu import (GpuKernel, dispatch);
 
 let kernel = GpuKernel.compile(```(glsl):(none)
@@ -6897,7 +6897,7 @@ let kernel = GpuKernel.compile(```(glsl):(none)
 
 #### §16.8.4 Fence Body Compilation Model
 
-GPU compute fences follow the same multi-backtick nesting rules as all other fences (§16.1). The `constants` map in `GpuKernel.compile` receives a `dict[string, Any]` whose values must be compile-time constants. The fence interpolations `{$ expr $}` are evaluated at the time the fence expression is evaluated and substituted into the shader source string before it is passed to the GPU driver for compilation. This allows loop unrolling counts, workgroup sizes, and compile-time feature flags to be expressed as Loom values rather than magic numbers in the shader source.
+GPU compute fences follow the same multi-backtick nesting rules as all other fences (§16.1). The `constants` map in `GpuKernel.compile` receives a `dict[string, Any]` whose values must be compile-time constants. The fence interpolations `{$ expr $}` are evaluated at the time the fence expression is evaluated and substituted into the shader source string before it is passed to the GPU driver for compilation. This allows loop unrolling counts, workgroup sizes, and compile-time feature flags to be expressed as Loup values rather than magic numbers in the shader source.
 
 
 ---
@@ -6908,7 +6908,7 @@ GPU compute fences follow the same multi-backtick nesting rules as all other fen
 
 ### §17.1 `async`/`await`
 
-Loom supports asynchronous functions and explicit suspension via `await`:
+Loup supports asynchronous functions and explicit suspension via `await`:
 
 ```
 async func buildPage(): Task[string] {
@@ -7138,7 +7138,7 @@ An `atomic {}` block guarantees that no suspension point occurs within its lexic
 
 **Semantics.** The compiler rejects `await` expressions, `for await` loops, and `spawn` statements inside an `atomic {}` block (`E_ATOMIC_AWAIT`). No call to a function declared `async` is permitted inside `atomic {}` unless it is statically proven to not contain any suspension point — in practice, only `safe func` and non-`async` functions are permitted. The cooperative scheduler does not preempt within an `atomic {}` block; other tasks do not run until the block exits.
 
-```loom
+```loup
 // Without atomic {}: TOCTOU window between check and act
 if (cache.has(key)) {
   await expensiveOperation()   // another task may evict key here
@@ -7199,13 +7199,13 @@ On GC runtimes (scripted/Wasm), `weak` references behave consistently — the GC
 
 *(This section is normative. It applies only to `@mode(host.dual)` and `@mode(host.native)` files. All constructs in this section are compile-time errors in scripted mode, in `@mode(web.compiled)` files targeting Wasm, or in `@mode(freestanding)` files.)*
 
-Loom's cooperative async runtime runs on a single OS thread by default. For CPU-bound workloads on `--target native`, true parallelism is available via OS threads using the primitives in this section. For parallelizing async work itself across cores, see §17.9 (Multi-Threaded Async Executor). OS thread primitives are a lower-level interface intended for compute-heavy work and synchronous blocking operations.
+Loup's cooperative async runtime runs on a single OS thread by default. For CPU-bound workloads on `--target native`, true parallelism is available via OS threads using the primitives in this section. For parallelizing async work itself across cores, see §17.9 (Multi-Threaded Async Executor). OS thread primitives are a lower-level interface intended for compute-heavy work and synchronous blocking operations.
 
 #### §17.8.1 `Sendable` Interface
 
 `Sendable` is a marker interface indicating that a type is safe to transfer across thread boundaries:
 
-```loom
+```loup
 interface Sendable {}
 ```
 
@@ -7224,7 +7224,7 @@ interface Sendable {}
 
 A `var` field of any other type — including `Sendable` types such as `int` or `string` — on a class declaring `implements Sendable` is a compile-time error (`E_SENDABLE_UNPROTECTED_VAR`). Even `Sendable` value types are unsafe as unprotected `var` fields because two threads could simultaneously read-modify-write the field, producing a data race.
 
-```loom
+```loup
 @mode(host.native)
 
 // COMPILE ERROR — unprotected var field
@@ -7248,7 +7248,7 @@ class SafeCounter : Any implements Sendable {
 
 To opt out of structural verification when the compiler cannot see the synchronization mechanism — for example, when safety is ensured by an external lock or protocol — annotate the class with `@unsafe("sendable: <reason>")` (see §23.4.6). The `@unsafe` annotation is the explicit, auditable record of the programmer's assertion.
 
-```loom
+```loup
 @mode(web.compiled)
 
 // OK — programmer asserts external synchronization via @unsafe
@@ -7268,7 +7268,7 @@ class LegacyState : Any implements Sendable {
 
 #### §17.8.2 Shared Mutable State: `Mutex[T]`, `RwLock[T]`, `Atomic[T]`
 
-```loom
+```loup
 namespace sync.thread;
 
 class MutexGuard[T] : Any implements Scoped[T] {
@@ -7332,7 +7332,7 @@ All operations on `Atomic[T]` use sequentially-consistent memory ordering. Weake
 
 #### §17.8.3 `Thread` and `ThreadHandle`
 
-```loom
+```loup
 namespace sync.thread;
 
 class Thread : Any {
@@ -7368,7 +7368,7 @@ class ThreadHandle[T: Sendable] : Any {
 
 **Example — parallel chunk processing:**
 
-```loom
+```loup
 @mode(host.native)
 
 from sync.thread import (Thread, Mutex);
@@ -7395,7 +7395,7 @@ func parallelSum(chunks: list[list[int]]): int {
 
 #### §17.8.4 `ThreadPool`
 
-```loom
+```loup
 namespace sync.thread;
 
 class ThreadPool : Any implements Sendable {
@@ -7414,7 +7414,7 @@ class ThreadPool : Any implements Sendable {
 
 **`borrow[~label]` capture restriction.** Closures passed to `ThreadPool.run` may not capture any `borrow[~label]` binding (`E_BORROW_THREAD_CAPTURE`). The pool work item runs on a separate OS thread and may outlive the calling frame, invalidating any lifetime-labeled borrow. Plain `borrow` captures are separately prevented by the existing `Sendable` requirement on the closure's captured types.
 
-```loom
+```loup
 @mode(host.native)
 
 from sync.thread import (ThreadPool);
@@ -7452,11 +7452,11 @@ async func renderAllFrames(frames: list[Frame]): Task[list[bytes]] {
 
 *(This section is normative. Executor configuration (`RuntimeConfig`, `ExecutorConfig`, work-stealing executor, `@concurrent`, actor isolation, `ThreadLocal[T]`) applies to `@mode(host.dual)` and `@mode(host.native)` — the only modes with OS threads (§2.6). `spawnBlocking` is available in all non-freestanding modes — see §17.10.1. `TaskLocal[T]` is available in all non-freestanding modes. `TaskLocal[T]` is not available in `@mode(freestanding)` — there is no async task scheduler to bind task-local storage to.)*
 
-The default Loom async executor is a cooperative, single-threaded event loop. For programs that require true parallel execution of async tasks across CPU cores, the executor may be reconfigured to a **work-stealing multi-threaded model** via the `RuntimeConfig` API.
+The default Loup async executor is a cooperative, single-threaded event loop. For programs that require true parallel execution of async tasks across CPU cores, the executor may be reconfigured to a **work-stealing multi-threaded model** via the `RuntimeConfig` API.
 
 #### §17.9.1 `ExecutorConfig` and `RuntimeConfig`
 
-```loom
+```loup
 namespace runtime;
 
 enum ExecutorConfig {
@@ -7481,14 +7481,14 @@ func configure(config: RuntimeConfig): void;
 
 **Multi-threaded.** `ExecutorConfig.MultiThreaded` activates a work-stealing executor:
 
-- Each worker thread runs the Loom async task scheduler cooperatively on its own OS thread.
+- Each worker thread runs the Loup async task scheduler cooperatively on its own OS thread.
 - Tasks are load-balanced automatically via work-stealing: each worker has a local task queue and steals from peer queues when idle.
 - The worker count defaults to `Thread.hardwareConcurrency()` when not specified.
 - The executor is created at `runtime.configure()` time and persists for the process lifetime.
 
 **Example — opting into multi-threaded execution:**
 
-```loom
+```loup
 @mode(host.native)
 
 from runtime import (RuntimeConfig, ExecutorConfig);
@@ -7518,7 +7518,7 @@ When `ExecutorConfig.MultiThreaded` is active:
 
 #### §17.9.3 `spawnBlocking` — Blocking Work Bridge
 
-```loom
+```loup
 namespace sync.thread;
 
 // Runs `body` on the dedicated blocking thread pool.
@@ -7548,7 +7548,7 @@ class BlockingTimeoutError : Exception {
 
 **Example:**
 
-```loom
+```loup
 @mode(host.native)
 
 from sync.thread import (spawnBlocking);
@@ -7576,7 +7576,7 @@ The executor mode determines whether `Sendable` constraints apply to async task 
 
 **Rule 2 — Multi-threaded executor.** In `MultiThreaded` executor mode, async task closures SHALL only capture values whose types implement `Sendable`. A non-`Sendable` capture at a `spawn` or `async func` call site is a compile-time error naming the offending captured variables.
 
-```loom
+```loup
 @mode(host.native)
 
 // In MultiThreaded executor mode:
@@ -7599,7 +7599,7 @@ async func fetch(): Task[void] {
 - All values captured in the function body and its nested async closures implement `Sendable`.
 - The function body does not directly read or write any module-level `var` bindings (module-level mutable state is not thread-safe without explicit synchronization).
 
-```loom
+```loup
 @mode(host.native)
 
 @concurrent
@@ -7620,7 +7620,7 @@ The `Actor[M]` model (§17.6) is inherently safe in multi-threaded executor cont
 
 **Rule: Message types must be `Sendable` in multi-threaded mode.** Messages sent via `Actor[M].send(msg)` or `Actor[M].ask(msg)` cross thread boundaries (from the sender's worker to the actor's handler). When `ExecutorConfig.MultiThreaded` is active, `M` must implement `Sendable`. This is enforced at the call sites of `send` and `ask` — compile-time error if `M` is not `Sendable`.
 
-```loom
+```loup
 @mode(host.native)
 
 // Internal state does not need to be Sendable — stays inside the actor
@@ -7642,7 +7642,7 @@ In `SingleThreaded` executor mode, `M` has no `Sendable` constraint. The restric
 
 #### §17.9.7 Thread-Local Storage (`ThreadLocal[T]`)
 
-```loom
+```loup
 namespace sync.thread;
 
 // Available in @mode(host.dual) and @mode(host.native); compile-time error in
@@ -7674,7 +7674,7 @@ class ThreadLocal[T] : Any {
 
 #### §17.9.8 Task-Local Storage (`TaskLocal[T]`)
 
-```loom
+```loup
 namespace runtime;
 
 // Available on all targets including Wasm and scripted mode.
@@ -7702,7 +7702,7 @@ class TaskLocal[T] : Any {
 
 **Example — request-scoped tracing ID:**
 
-```loom
+```loup
 @mode(web.compiled)
 
 from runtime import (TaskLocal);
@@ -7731,7 +7731,7 @@ async func handleRequest(id: string): Task[void] {
 
 *(This section is normative. All constructs in this section are available in scripted mode and on all Wasm targets. `ScriptWorker` and `WorkerChannel[T]` are additionally available in `@mode(web.compiled)` Wasm targets and in `@mode(host.native)` via an embedded Wasm runtime (see §2.6). They are not available in `@mode(freestanding)`, which has no async or thread primitives; use `native.atomic` and `InterruptGuard` (§24.20, §24.24) instead.)*
 
-Loom's scripted runtime executes cooperatively on a single thread by default (§2.1). Three mechanisms provide parallelism within the scripted and Wasm execution environments:
+Loup's scripted runtime executes cooperatively on a single thread by default (§2.1). Three mechanisms provide parallelism within the scripted and Wasm execution environments:
 
 - **`spawnBlocking`** (§17.10.1) — offloads synchronous CPU-bound closures to a host-managed blocking thread pool.
 - **`ScriptWorker`** (§17.10.2) — spawns an isolated Wasm instance with its own heap, communicating via `Sendable`-typed message channels.
@@ -7743,17 +7743,17 @@ These three mechanisms are complementary: `spawnBlocking` is for short synchrono
 
 `spawnBlocking` is declared in `sync.thread` (§17.9.3) and is available on all targets. This subsection specifies its behaviour specifically in scripted mode and Wasm targets.
 
-**Host thread pool.** On browser targets (`--target browser`), `spawnBlocking` dispatches the closure to the browser's dedicated worker thread pool managed by the Loom runtime bootstrap. On non-browser Wasm and scripted CLI targets, the runtime maintains a native OS thread pool equivalent to the `--target native` blocking pool, sized by the host runtime configuration (default 512 threads; not configurable via `RuntimeConfig` in scripted mode).
+**Host thread pool.** On browser targets (`--target browser`), `spawnBlocking` dispatches the closure to the browser's dedicated worker thread pool managed by the Loup runtime bootstrap. On non-browser Wasm and scripted CLI targets, the runtime maintains a native OS thread pool equivalent to the `--target native` blocking pool, sized by the host runtime configuration (default 512 threads; not configurable via `RuntimeConfig` in scripted mode).
 
 **Sendable constraint.** The closure passed to `spawnBlocking` SHALL only capture values whose types implement `Sendable`. Captured values are serialized for transfer to the blocking thread and the return value `T` is serialized back. The serialization mechanism is the same structured-clone protocol used by `ScriptWorker` channels (§17.10.4). A closure capturing a non-`Sendable` type is a compile-time error (`E_BLOCKING_CAPTURE`).
 
-**GC object restriction.** The body of a `spawnBlocking` closure executes in an environment where the Loom GC heap of the calling script is not accessible. GC-managed objects (classes, closures, `list`, `dict`, `set`) may only be passed if they are `Sendable` and are therefore serialized by value. Mutable class instances are not `Sendable` by default; only classes explicitly declaring `implements Sendable` (with appropriate internal synchronization) may cross the boundary.
+**GC object restriction.** The body of a `spawnBlocking` closure executes in an environment where the Loup GC heap of the calling script is not accessible. GC-managed objects (classes, closures, `list`, `dict`, `set`) may only be passed if they are `Sendable` and are therefore serialized by value. Mutable class instances are not `Sendable` by default; only classes explicitly declaring `implements Sendable` (with appropriate internal synchronization) may cross the boundary.
 
 **No `await` inside `spawnBlocking`.** The body closure is synchronous. `await` expressions inside `spawnBlocking` are a compile-time error (`E_AWAIT_IN_BLOCKING`).
 
 **Example — CPU-bound work in scripted mode:**
 
-```loom
+```loup
 from sync.thread import (spawnBlocking);
 
 async func compressData(raw: bytes): Task[bytes] {
@@ -7767,9 +7767,9 @@ async func compressData(raw: bytes): Task[bytes] {
 
 #### §17.10.2 `ScriptWorker` — Isolated Worker Instances
 
-`ScriptWorker` provides true parallelism in scripted and Wasm environments by spawning an isolated Loom Wasm instance with its own GC heap. Workers communicate with the host script exclusively through typed `WorkerChannel[T]` message channels. Because workers do not share a heap, all values transferred across the channel must implement `Sendable` and are serialized by copy (§17.10.4).
+`ScriptWorker` provides true parallelism in scripted and Wasm environments by spawning an isolated Loup Wasm instance with its own GC heap. Workers communicate with the host script exclusively through typed `WorkerChannel[T]` message channels. Because workers do not share a heap, all values transferred across the channel must implement `Sendable` and are serialized by copy (§17.10.4).
 
-```loom
+```loup
 namespace concurrent;
 
 // Spawns a new isolated Wasm worker instance running the module at `modulePath`.
@@ -7814,13 +7814,13 @@ class WorkerPanicError : Exception {
 
 **Example — parallel data processing:**
 
-```loom
-// host.loom
+```loup
+// host.loup
 from concurrent import (ScriptWorker);
 
 async func processChunks(chunks: list[bytes]): Task[list[bytes]] {
   let workers = await TaskGroup.collect(chunks, async func(chunk) {
-    let w = await ScriptWorker[bytes].spawn("./worker.loom");
+    let w = await ScriptWorker[bytes].spawn("./worker.loup");
     w.send(chunk);
     let result = await w.receive();
     await w.join();
@@ -7830,8 +7830,8 @@ async func processChunks(chunks: list[bytes]): Task[list[bytes]] {
 }
 ```
 
-```loom
-// worker.loom
+```loup
+// worker.loup
 from concurrent import (WorkerChannel);
 
 async func workerMain(channel: WorkerChannel[bytes]): Task[void] {
@@ -7848,7 +7848,7 @@ async func workerMain(channel: WorkerChannel[bytes]): Task[void] {
 
 `WorkerChannel[T]` is the worker-side counterpart to `ScriptWorker[T]`. It is only accessible inside a worker module's `workerMain` function.
 
-```loom
+```loup
 namespace concurrent;
 
 // Available only inside a worker entry point (workerMain parameter).
@@ -7872,7 +7872,7 @@ class WorkerChannel[T: Sendable] : Any {
 
 #### §17.10.4 Serialization Contract
 
-All values transferred across a `ScriptWorker` channel or through `spawnBlocking` are serialized by the **Loom structured transfer protocol**, which is defined as follows:
+All values transferred across a `ScriptWorker` channel or through `spawnBlocking` are serialized by the **Loup structured transfer protocol**, which is defined as follows:
 
 **Transfer rules:**
 
@@ -7899,7 +7899,7 @@ All values transferred across a `ScriptWorker` channel or through `spawnBlocking
 
 **Transfer errors.** If the serialization of a value fails at runtime (e.g. due to a cycle in a `Sendable` class instance that cannot be represented), the transfer throws `WorkerTransferError` at the call site of `send()`, `reply()`, or `spawnBlocking(...)`.
 
-```loom
+```loup
 class WorkerTransferError : Exception {
   pub let typeName: string;
   pub let reason: string;
@@ -7931,7 +7931,7 @@ A `ScriptWorker` module executes in a restricted scope:
 
 *(This section is normative.)*
 
-This section specifies Loom's shared-memory concurrency model: mechanisms by
+This section specifies Loup's shared-memory concurrency model: mechanisms by
 which multiple execution contexts — worker Wasm instances, native OS threads,
 and a mixture of both — operate on the same underlying memory without copying.
 The model complements the message-passing primitives of §17.10 and the native
@@ -7939,7 +7939,7 @@ OS-thread primitives of §17.8–§17.9; it is not a replacement for either.
 
 ### §17b.1 Overview and Mode Availability
 
-Shared-memory concurrency in Loom rests on five layered primitives:
+Shared-memory concurrency in Loup rests on five layered primitives:
 
 1. **The `Shareable` marker trait** (§17b.2) — identifies types whose values may be simultaneously accessed by multiple execution contexts.
 2. **`SharedBuffer[T]` and `SharedArray[T]`** (§17b.3) — flat, typed views over shared linear memory for POD data (numeric arrays, byte buffers, fixed-size structs).
@@ -7981,13 +7981,13 @@ builds on platform atomics (C11 `<stdatomic.h>` semantics on POSIX; Interlocked
 intrinsics on Windows) and futex-like waiting primitives (`futex` on Linux,
 `ulock_wait` on macOS, `WaitOnAddress` on Windows).
 
-**Runtime host requirements (Wasm).** A Wasm runtime host hosting Loom MUST:
+**Runtime host requirements (Wasm).** A Wasm runtime host hosting Loup MUST:
 
 - Provide a shared linear memory (one instance per `SharedArena`) with a minimum initial size of 64 KiB and a maximum size of at least 4 GiB.
 - Expose `memory.atomic.wait32`, `memory.atomic.wait64`, and `memory.atomic.notify` imports, or use the native Wasm instructions if available.
 - Permit posting the shared memory handle to worker instances via `postMessage` with transfer (browser) or structured clone with transfer (Node, Bun, Deno, Wasmtime).
 
-These are the Wasm threads proposal's standard requirements. Loom does not
+These are the Wasm threads proposal's standard requirements. Loup does not
 extend them.
 
 **Relationship to `host.dual`.** A `host.dual` module may freely declare and
@@ -8221,7 +8221,7 @@ layout.
 **Wasm mapping.** On Wasm targets, these operations lower directly to the
 Wasm threads proposal's `atomic.*` opcodes:
 
-| Loom function | Wasm opcode |
+| Loup function | Wasm opcode |
 |---|---|
 | `atomicLoad[int32]` | `i32.atomic.load` |
 | `atomicStore[int32]` | `i32.atomic.store` |
@@ -8285,7 +8285,7 @@ both JIT-compiled and AOT-compiled code parse identically:
 ```
 Offset  Size  Field                    Description
 ---------------------------------------------------------------------------
- 0      4     magic                    0x4C4F4F4D ("LOOM" in ASCII)
+ 0      4     magic                    0x4C4F4F4D ("LOUP" in ASCII)
  4      4     abiVersion               see §17b.7
  8      8     capacityBytes            total arena size
 16      8     usedBytes                high-water mark of allocator
@@ -8307,7 +8307,7 @@ live in shared memory. This creates an apparent bootstrap problem: an arena
 must exist before any `shared class` (including `SharedArena` itself) can
 be allocated. The runtime resolves this by maintaining a **primordial arena**
 per execution context — a fixed-size shared memory region allocated by the
-runtime host during context initialization (browser bootstrap, `loom run`
+runtime host during context initialization (browser bootstrap, `loup run`
 startup, native thread creation, etc.). The primordial arena is reserved
 for `SharedArena` instances themselves and a small set of runtime-internal
 bookkeeping objects; it is never exposed to user code as a target for
@@ -8348,7 +8348,7 @@ occurred in a context, `runtime.configureDefaultSharedArena(...)` produces
 `DefaultArenaAlreadyInitializedError`. Programs that need a custom default
 arena configuration MUST call `configureDefaultSharedArena` before any
 top-level shared allocation; the recommended practice is to place the
-configuration call in a dedicated `init.loom` module imported before any
+configuration call in a dedicated `init.loup` module imported before any
 module that allocates shared objects.
 
 **Error codes:**
@@ -8362,7 +8362,7 @@ module that allocates shared objects.
 ### §17b.6 `SharedRef[T]` and `shared class`
 
 `SharedRef[T]` is the ref-counted handle to a `shared class` instance. It is
-Loom's analogue to Rust's `Arc<T>` with a stable cross-mode ABI.
+Loup's analogue to Rust's `Arc<T>` with a stable cross-mode ABI.
 
 **On the `T` parameter.** `SharedRef[T]` accepts a type parameter `T` that
 MUST be a `shared class` type. The bound `T: shared class` is a v1.18
@@ -8384,7 +8384,7 @@ pub struct SharedRef[T: shared class] implements Shareable, Sendable {
   pub func clone(): SharedRef[T];
 
   // Downgrade to a weak reference. `SharedWeakRef[T]` is the shared-arena
-  // weak reference type; see §8 (weak field qualifier) and the Loom
+  // weak reference type; see §8 (weak field qualifier) and the Loup
   // Standard Library Reference §21.1.6 for the full contract.
   pub func downgrade(): SharedWeakRef[T];
 
@@ -8442,7 +8442,7 @@ reference, matching the ARC-equivalent contract of §8.1.1.
 always safe. Simultaneous mutation of a field without synchronization is a
 data race and produces undefined behavior unless the field type is an
 `Atomic[T]` or unless access is gated by a `SharedMutex`/`SharedRwLock`.
-Loom's borrow checker enforces this statically via the ownership verbs
+Loup's borrow checker enforces this statically via the ownership verbs
 (§17b.9).
 
 **Cycle handling.** `SharedRef[T]` does not automatically collect cycles.
@@ -8486,7 +8486,7 @@ out per the target platform's C ABI:
   multiple of `alignof(T)`).
 - Trailing padding to bring the total size to a multiple of the class's
   maximum field alignment.
-- No reordering. Unlike some managed runtimes, Loom does not reorder fields
+- No reordering. Unlike some managed runtimes, Loup does not reorder fields
   for packing; programmers may rely on declared order.
 
 For fields of `shared class` type (via `SharedRef[T]`), the stored value is
@@ -8530,7 +8530,7 @@ populates per-mode vtable entries for each `shared class`:
   function pointers.
 
 Each `shared class` has one vtable per attached mode; all slots point to
-implementations of the same Loom method with identical observable behavior.
+implementations of the same Loup method with identical observable behavior.
 When a method is invoked on a `SharedRef[T]`, the call site selects the
 slot matching the caller's mode.
 
@@ -8772,7 +8772,7 @@ in that arena.
 
 *(This section is normative.)*
 
-Loom provides an explicit foreign function interface for calling JavaScript APIs and native shared libraries. FFI declarations are opt-in and syntactically visible.
+Loup provides an explicit foreign function interface for calling JavaScript APIs and native shared libraries. FFI declarations are opt-in and syntactically visible.
 
 ### §18.1 JavaScript Interop (`extern js`)
 
@@ -8786,15 +8786,15 @@ extern js val window: Any;
 **Rules:**
 
 - `extern js func` and `extern js val` are simple declarations (trailing `;`).
-- Declared Loom types are trusted and not verified at compile time; type mismatches produce runtime errors.
+- Declared Loup types are trusted and not verified at compile time; type mismatches produce runtime errors.
 - `extern js func` returning a JS Promise is declared with return type `Task[T]`; the runtime wraps the Promise automatically.
 - `extern js` declarations are only valid on `browser`, `node`, `bun`, and `deno` targets (i.e. targets where a JavaScript runtime is present). Using `extern js` in `@mode(host.native)` or `@mode(freestanding)` files is a compile-time error (`E_EXTERN_JS_NOT_NATIVE`, defined in §24.22).
 
-**SharedArrayBuffer aliasing (normative).** Any `extern js` declaration that accepts or returns a typed array (e.g., `Uint8Array`, `Float32Array`) backed by a `SharedArrayBuffer` MUST carry `@unsafe("sharedMemory: <reason>")` at the declaration site. The reason string SHALL document which Loom tasks or workers share the buffer and the synchronization protocol used. Without this annotation, the compiler treats the buffer as exclusively owned by the Loom side. Concurrent access by JS code to memory also accessed by Loom constitutes a data race outside Loom's ownership model.
+**SharedArrayBuffer aliasing (normative).** Any `extern js` declaration that accepts or returns a typed array (e.g., `Uint8Array`, `Float32Array`) backed by a `SharedArrayBuffer` MUST carry `@unsafe("sharedMemory: <reason>")` at the declaration site. The reason string SHALL document which Loup tasks or workers share the buffer and the synchronization protocol used. Without this annotation, the compiler treats the buffer as exclusively owned by the Loup side. Concurrent access by JS code to memory also accessed by Loup constitutes a data race outside Loup's ownership model.
 
 `lang.interop.js` provides `SharedView[T]` as a safe wrapper for `SharedArrayBuffer` access — all reads and writes go through `native.atomic`-backed operations, making the shared-memory protocol explicit at the type level:
 
-```loom
+```loup
 from lang.interop.js import (SharedView);
 
 // Safe: all accesses are atomic
@@ -8807,7 +8807,7 @@ Raw `extern js` declarations of `SharedArrayBuffer`-backed types must use `@unsa
 
 ### §18.2 `@jsexport`
 
-`@jsexport` marks Loom functions as callable from JavaScript:
+`@jsexport` marks Loup functions as callable from JavaScript:
 
 ```
 @jsexport
@@ -8825,7 +8825,7 @@ async func fetchSummary(userId: string): Task[string] {
 **Rules:**
 
 - `@jsexport` may annotate `func` or `async func` declarations at module level, or `func` expressions.
-- The runtime marshals JS arguments to declared Loom types using boundary coercions. Unmarshalable arguments produce `FfiTypeError`.
+- The runtime marshals JS arguments to declared Loup types using boundary coercions. Unmarshalable arguments produce `FfiTypeError`.
 - `async func` exports return a `Promise<T>` to JS.
 - Synchronous `@jsexport` functions must not contain `await` (`E_JSEXPORT_AWAIT`).
 - `@jsexport` is only valid on `browser` and `service` targets.
@@ -8895,9 +8895,9 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 **Rules:**
 
 - `extern native "libname"` specifies the shared library by name (without platform-specific prefix/extension; the runtime resolves `libname.so`, `libname.dylib`, `libname.dll`).
-- `NativeHandle` is an opaque built-in type for C pointers — cannot be inspected, dereferenced, or constructed in Loom code. Its definition is compiler-internal: `@repr(C) struct NativeHandle { /* opaque */ }`. Values of type `NativeHandle` are only obtained from `extern native` function return values or by calling `OwnedHandle.inner()` / `BorrowedHandle.inner()`. `NativeHandle` is implicitly non-`Sendable`; cross-thread use requires `@unsafe("threadSafe: ...")` (§18.5).
+- `NativeHandle` is an opaque built-in type for C pointers — cannot be inspected, dereferenced, or constructed in Loup code. Its definition is compiler-internal: `@repr(C) struct NativeHandle { /* opaque */ }`. Values of type `NativeHandle` are only obtained from `extern native` function return values or by calling `OwnedHandle.inner()` / `BorrowedHandle.inner()`. `NativeHandle` is implicitly non-`Sendable`; cross-thread use requires `@unsafe("threadSafe: ...")` (§18.5).
 - `extern native` is valid in `@mode(host.native)` (all native targets: `native`, `cli`, `service`, `desktop`) and `@mode(freestanding)`. It is not available in `@mode(host.scripted)` or `@mode(web.compiled)` Wasm targets — there is no native ABI at the Wasm GC boundary (`E_EXTERN_JS_NOT_NATIVE` does not apply here; using `extern native` in a Wasm target is `E_EXTERN_NATIVE_WASM`).
-- Passing a Loom `string` to a native function expecting a C string provides a null-terminated UTF-8 copy for the duration of the call.
+- Passing a Loup `string` to a native function expecting a C string provides a null-terminated UTF-8 copy for the duration of the call.
 - Memory management of native resources is the caller's responsibility; use `defer` for cleanup.
 - All `extern native` function parameters that receive `borrow` or `borrow[~label]` values are implicitly `noescape`. The compiler verifies that no `borrow[~label]` value escapes the native call. A native function that requires the pointer to outlive the call must be annotated `@unsafe("escapingBorrow: <reason>")` at the declaration site; every call site must also carry `@unsafe("escapingBorrow: <reason>")` to acknowledge that the caller asserts the borrowed value outlives the native call. See §23.4.6.
 
@@ -8908,11 +8908,11 @@ extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
 | `E_EXTERN_NATIVE_WASM` | web.scripted, web.compiled, host.scripted | `extern native` declaration in a file targeting Wasm — no native ABI at the Wasm GC boundary |
 | `E_EXTERN_STRUCT_NOT_REPR_C` | host.dual, host.native, freestanding | Struct parameter or return type in `extern native` signature is not annotated `@repr(C)` |
 
-**`@repr(C)` requirement for struct parameters.** Any Loom `struct` type passed to or returned from an `extern native` function MUST be annotated `@repr(C)`. Without `@repr(C)`, the compiler cannot guarantee that the Loom struct layout matches the C ABI layout expected by the native function, which would produce silent data corruption. A struct without `@repr(C)` used in an `extern native` signature is `E_EXTERN_STRUCT_NOT_REPR_C`. This requirement applies in all compiled modes (`@mode(web.compiled)` Wasm targets are exempt since C structs are not valid Wasm types; the requirement applies to `@mode(host.native)` and `@mode(freestanding)`).
+**`@repr(C)` requirement for struct parameters.** Any Loup `struct` type passed to or returned from an `extern native` function MUST be annotated `@repr(C)`. Without `@repr(C)`, the compiler cannot guarantee that the Loup struct layout matches the C ABI layout expected by the native function, which would produce silent data corruption. A struct without `@repr(C)` used in an `extern native` signature is `E_EXTERN_STRUCT_NOT_REPR_C`. This requirement applies in all compiled modes (`@mode(web.compiled)` Wasm targets are exempt since C structs are not valid Wasm types; the requirement applies to `@mode(host.native)` and `@mode(freestanding)`).
 
 **Nullable return types — `NativeHandle?` (normative).** An `extern native` function declaration whose return type is `NativeHandle?` (optional `NativeHandle`) maps a null pointer return to `None` automatically. A non-optional `NativeHandle` return maps null to a runtime `NullHandleError` (§26.1). The compiler enforces the distinction at the declaration site:
 
-```loom
+```loup
 // Null → None: caller uses ?.  pattern-matching
 extern native "libsqlite3" func sqlite3_open(path: string): NativeHandle?
 
@@ -8922,9 +8922,9 @@ extern native "libfoo" func foo_create(): NativeHandle
 
 `NullHandleError extends RuntimeError` (§26.1) and is catchable.
 
-**`PinnedRef[T]` — ARC-pinned lifetime anchor for FFI (normative).** `PinnedRef[T]` holds a strong ARC retain specifically to prevent collection while a native library holds a raw pointer to the object. The constructor increments `strong_count`; `release()` decrements it. `rawPtr()` requires `@unsafe` to acknowledge the transition out of Loom's ownership model:
+**`PinnedRef[T]` — ARC-pinned lifetime anchor for FFI (normative).** `PinnedRef[T]` holds a strong ARC retain specifically to prevent collection while a native library holds a raw pointer to the object. The constructor increments `strong_count`; `release()` decrements it. `rawPtr()` requires `@unsafe` to acknowledge the transition out of Loup's ownership model:
 
-```loom
+```loup
 namespace native.ffi;
 
 class PinnedRef[T] : Any {
@@ -8942,7 +8942,7 @@ class PinnedRef[T] : Any {
 
 Usage pattern:
 
-```loom
+```loup
 let pin = PinnedRef.new(myObject)
 someNativeLib_register(pin.rawPtr())   // ✓ — object pinned
 // ... later:
@@ -8951,7 +8951,7 @@ pin.release()                          // ARC retain dropped
 
 **`OwnedHandle` and `BorrowedHandle` — FFI heap ownership types (normative).** These types in `native.ffi` encode ownership intent at the type level, replacing the informal comment convention:
 
-```loom
+```loup
 namespace native.ffi;
 
 // OwnedHandle: this side is responsible for freeing the resource.
@@ -8979,7 +8979,7 @@ A C library function that allocates (e.g., `sqlite3_open`) should be declared to
 
 `native.ffi.ptrAdd` performs raw address arithmetic on `uint`-typed pointer values. It is the single supported mechanism for offsetting raw addresses at the FFI boundary and requires `@unsafe` at each call site because offset validity cannot be checked statically:
 
-```loom
+```loup
 namespace native.ffi;
 
 // Add a byte offset to a raw address. Requires @unsafe acknowledgment at
@@ -9000,7 +9000,7 @@ Native libraries accessed via `extern native` vary widely in their thread-safety
 
 #### §18.5.1 `@unsafe("threadSafe: ...")` Annotation
 
-```loom
+```loup
 // Declares that the external function is safe to call concurrently from multiple threads.
 // This is a programmer assertion — use @unsafe to make the assertion auditable.
 @unsafe("threadSafe: libpq pq_exec is documented as thread-safe when using separate connections")
@@ -9020,7 +9020,7 @@ Thread-safety assertions on `extern native` declarations use `@unsafe("threadSaf
 
 #### §18.5.2 `ThreadSafeHandle`
 
-```loom
+```loup
 namespace native.ffi;
 
 // A Sendable wrapper for a NativeHandle the programmer asserts is thread-safe.
@@ -9038,7 +9038,7 @@ class ThreadSafeHandle : Any implements Sendable {
 
 **Example — sharing a thread-safe connection pool across async tasks:**
 
-```loom
+```loup
 @mode(host.native)
 
 from native.ffi import (ThreadSafeHandle);
@@ -9110,7 +9110,7 @@ count.set(1);   // effect runs; doubled is now 2
 
 Components are functions returning `View`. `signal` must be imported from the `ui` module; the `components` fence descriptor requires a `ComponentRegistry` value to be in scope:
 
-```loom
+```loup
 @mode(host.scripted)
 
 from ui import (signal, ComponentRegistry);
@@ -9170,7 +9170,7 @@ class ComponentRegistry : Any {
 - Async components (`async func` returning `Task[View]`) are supported.
 - When a registered value in a `ComponentRegistry` is not a function returning `View` or `Task[View]` (`E_COMPONENT_NOT_VIEW`), and is not a `@webcomponent` class, the compiler emits a compile-time error.
 
-**Event handler compilation in `html` fences.** Event handler attributes (`onclick`, `oninput`, `onchange`, `onsubmit`, `onkeydown`, `onfocus`, `onblur`, and all other `on*` attributes) in `html` fences accept Loom callable values typed as `fn(): void` or `fn(Event): void`. They do **not** produce inline JavaScript handler strings.
+**Event handler compilation in `html` fences.** Event handler attributes (`onclick`, `oninput`, `onchange`, `onsubmit`, `onkeydown`, `onfocus`, `onblur`, and all other `on*` attributes) in `html` fences accept Loup callable values typed as `fn(): void` or `fn(Event): void`. They do **not** produce inline JavaScript handler strings.
 
 The compiler transforms event handler attribute bindings:
 
@@ -9179,10 +9179,10 @@ The compiler transforms event handler attribute bindings:
 <button onclick={$ func() { count.set(count.get() + 1); } $}>+</button>
 
 // Compiled output (what reaches the DOM):
-<button data-loom-ev="click:__ev_7f3a2b">+</button>
+<button data-loup-ev="click:__ev_7f3a2b">+</button>
 ```
 
-The compiler assigns a stable, deterministic event slot ID (content-addressed from the closure's source location and module path) and registers the handler in the Wasm module's event table. After the Wasm module loads, the Loom runtime wires all `data-loom-ev` elements via `addEventListener` — no inline JavaScript is emitted. See §28.6 for the bootstrap sequence.
+The compiler assigns a stable, deterministic event slot ID (content-addressed from the closure's source location and module path) and registers the handler in the Wasm module's event table. After the Wasm module loads, the Loup runtime wires all `data-loup-ev` elements via `addEventListener` — no inline JavaScript is emitted. See §28.6 for the bootstrap sequence.
 
 Passing a literal JavaScript string as an event handler value is a **compile-time error** (`E_INLINE_JS_EVENT_HANDLER`):
 
@@ -9190,7 +9190,7 @@ Passing a literal JavaScript string as an event handler value is a **compile-tim
 // COMPILE-TIME ERROR: inline JavaScript string not permitted
 <button onclick="count++">bad</button>
 
-// Correct: Loom callable
+// Correct: Loup callable
 <button onclick={$ func() { count.update(func(n) => n + 1); } $}>+</button>
 ```
 
@@ -9365,7 +9365,7 @@ Attaches event handlers and reactive state to server-rendered HTML on `browser` 
 The server serializes component state (signal initial values) as a JSON object embedded in the HTML output. The serializer applies Unicode escape encoding to `<` and `>` throughout the JSON output, guaranteeing that the literal byte sequence `</` can never appear in the state block:
 
 ```html
-<script id="__loom_state__" type="application/json">
+<script id="__loup_state__" type="application/json">
   {"count": 0, "comment": "example \u003C/script\u003E is safe"}
 </script>
 ```
@@ -9388,7 +9388,7 @@ class StateSerializer {
 
 The `hydrate` function reads this state to initialize signals with server-computed values, ensuring the client component tree matches the server-rendered HTML.
 
-**Minimum required Content Security Policy.** A Loom browser application compiled with `loom build --target browser` requires the following minimum CSP — no `'unsafe-inline'` or `'unsafe-eval'` is needed:
+**Minimum required Content Security Policy.** A Loup browser application compiled with `loup build --target browser` requires the following minimum CSP — no `'unsafe-inline'` or `'unsafe-eval'` is needed:
 
 ```
 Content-Security-Policy:
@@ -9397,7 +9397,7 @@ Content-Security-Policy:
   connect-src 'self';
 ```
 
-`'wasm-unsafe-eval'` permits Wasm module evaluation, which is required by all Wasm-based applications and is a narrower permission than `'unsafe-eval'` (which also permits `eval()` and `new Function()`). The absence of `'unsafe-inline'` is ensured by the `data-loom-ev` event handler compilation model (§19.2).
+`'wasm-unsafe-eval'` permits Wasm module evaluation, which is required by all Wasm-based applications and is a narrower permission than `'unsafe-eval'` (which also permits `eval()` and `new Function()`). The absence of `'unsafe-inline'` is ensured by the `data-loup-ev` event handler compilation model (§19.2).
 
 **`mount` (web form):**
 
@@ -9524,12 +9524,12 @@ struct ScreenInfo {
 
 | Code | Mode | Condition |
 |---|---|---|
-| `E_INLINE_JS_EVENT_HANDLER` | web.scripted, web.compiled | Event handler attribute value is a literal JavaScript string (e.g. `onclick="count++"`) rather than a Loom closure |
+| `E_INLINE_JS_EVENT_HANDLER` | web.scripted, web.compiled | Event handler attribute value is a literal JavaScript string (e.g. `onclick="count++"`) rather than a Loup closure |
 
 ### §19.9 Cross-Platform Example
 
 ```
-// app.loom — shared, uses only ui and ui fence
+// app.loup — shared, uses only ui and ui fence
 from ui import (signal, mount);
 
 func TodoApp(): View {
@@ -9565,11 +9565,11 @@ This file compiles and runs unchanged on `browser`, `desktop`, and `service` tar
 
 *(This section is normative. Available on `browser` target only.)*
 
-Loom provides first-class support for the W3C Custom Elements v1 standard via the `@webcomponent` annotation and the `WebComponentLifecycle` interface (§11.2). A `@webcomponent` class compiles to a `customElements.define()` registration in the browser bootstrap (§28.6).
+Loup provides first-class support for the W3C Custom Elements v1 standard via the `@webcomponent` annotation and the `WebComponentLifecycle` interface (§11.2). A `@webcomponent` class compiles to a `customElements.define()` registration in the browser bootstrap (§28.6).
 
 #### §19.10.1 Declaring a Web Component
 
-```loom
+```loup
 from ui import (signal, View);
 from web.dom import (ShadowRoot);
 
@@ -9656,7 +9656,7 @@ Every `@webcomponent` class renders into an open shadow root created automatical
 
 `css` fences used inside `render()` are attached to the shadow root via Constructable Stylesheets rather than the document `<head>`. Hash-scoped class name mangling is suppressed (see §16.7.1). The shadow boundary provides native encapsulation.
 
-```loom
+```loup
 func render(): View {
   let styles = ```(css)
     .button { background: navy; color: white; padding: 8px 16px; }
@@ -9674,7 +9674,7 @@ func render(): View {
 
 Registered web components may be used inside `html` and `ui` fences via a `ComponentRegistry`:
 
-```loom
+```loup
 let registry = ComponentRegistry.of({
   "my-counter": CounterElement,
 });
@@ -9692,7 +9692,7 @@ Attribute values in web component tags follow the same escaping rules as regular
 
 #### §19.10.7 Bootstrap Registration
 
-The Loom runtime registers all `@webcomponent` classes via `customElements.define()` during bootstrap step 6 (§28.6), before `mount()` is called. Registration order follows source declaration order within each module and dependency order across modules.
+The Loup runtime registers all `@webcomponent` classes via `customElements.define()` during bootstrap step 6 (§28.6), before `mount()` is called. Registration order follows source declaration order within each module and dependency order across modules.
 
 ## §20 Runtime Root and Capabilities
 
@@ -9700,7 +9700,7 @@ The Loom runtime registers all `@webcomponent` classes via `customElements.defin
 
 ### §20.1 `runtime` Object
 
-A root-level identifier `runtime` is available in scope in all non-freestanding modes: `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In `@mode(freestanding)`, the Loom runtime is not linked and `runtime` is **not available** — using it is a compile-time error (`E_FREESTANDING_RUNTIME`). Bare-metal entry points interact with hardware directly using `@entry`, `asm { }`, and the `native.mem` / `native.atomic` modules (§24).
+A root-level identifier `runtime` is available in scope in all non-freestanding modes: `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In `@mode(freestanding)`, the Loup runtime is not linked and `runtime` is **not available** — using it is a compile-time error (`E_FREESTANDING_RUNTIME`). Bare-metal entry points interact with hardware directly using `@entry`, `asm { }`, and the `native.mem` / `native.atomic` modules (§24).
 
 ```
 interface Runtime {
@@ -9737,7 +9737,7 @@ class CompileOptions {
 
 **`runtime.configure` — task queue depth (normative).** The `runtime.configure` call (§17.9.1) accepts a `RuntimeConfig` value. The `maxTaskQueueDepth: int` field caps the pending spawn queue: when the queue already contains `maxTaskQueueDepth` entries, further `spawn` operations throw `TaskQueueFullError` (§26.1). The default value `0` means unlimited. Set a positive value to bound memory usage under heavy task production; the runtime's release notes MUST document the platform-specific default behaviour.
 
-```loom
+```loup
 runtime.configure(RuntimeConfig(maxTaskQueueDepth: 10_000))
 ```
 
@@ -9747,7 +9747,7 @@ If a capability is not available on the current platform target, calling any met
 
 **`runtime.compile(source)` — Dynamic module compilation:**
 
-`runtime.compile(source)` compiles a Loom source string through the standard pipeline (parse → HIR → resolve → typecheck → MIR) and returns a `Module` value representing the compiled module. The module's top-level statements are NOT executed — only declarations are collected. To invoke an exported function, use `Module.call(name, args)` or `Module.get(name)`.
+`runtime.compile(source)` compiles a Loup source string through the standard pipeline (parse → HIR → resolve → typecheck → MIR) and returns a `Module` value representing the compiled module. The module's top-level statements are NOT executed — only declarations are collected. To invoke an exported function, use `Module.call(name, args)` or `Module.get(name)`.
 
 ```
 let mod = runtime.compile("""
@@ -9804,7 +9804,7 @@ Entry scripts and REPL sessions receive convenience helpers as surface sugar ove
 | `execAsync(argv)` | `runtime.proc.runAsync(argv)` |
 
 ```
-let cfg = readText("loom.json");
+let cfg = readText("loup.json");
 let who = env("USER");
 let result = exec(["echo", "hi"]);
 ```
@@ -9853,7 +9853,7 @@ interface DebugRuntime {
 **Activation model:**
 
 - Activations may include a name, optional condition expression, and `once` flag.
-- Condition expressions are Loom expressions parsed and evaluated in the lexical environment of the target portal.
+- Condition expressions are Loup expressions parsed and evaluated in the lexical environment of the target portal.
 - Invalid condition expressions reject the activation request.
 - Condition evaluation failures are treated as false without changing application semantics.
 - When a matching portal is entered and the condition is true, tracing activates for the entering task.
@@ -9915,9 +9915,9 @@ When returning from compiled to interpreted code, a `Return` event fires (callab
 
 ## §21 Standard Library
 
-*(Full specification in the [Loom Standard Library Reference](loom-stdlib-reference-v1_18.md).)*
+*(Full specification in the [Loup Standard Library Reference](loup-stdlib-reference-v1_18.md).)*
 
-The standard library provides `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, and `ui.*` modules available on all targets without a separate `loom install` step. GPU/accelerator packages (`loom.tensor`, `native.gpu`, `native.hal`, etc.) are documented in the [Loom Packages Reference](loom-packages-reference-v1_11.md).
+The standard library provides `core.*`, `io.*`, `net.*`, `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, and `ui.*` modules available on all targets without a separate `loup install` step. GPU/accelerator packages (`loup.tensor`, `native.gpu`, `native.hal`, etc.) are documented in the [Loup Packages Reference](loup-packages-reference-v1_11.md).
 
 Numbered subsections §21.1–§21.27 are defined in the stdlib reference document. Cross-references in this specification of the form §21.N refer to those sections.
 
@@ -9927,7 +9927,7 @@ Numbered subsections §21.1–§21.27 are defined in the stdlib reference docume
 
 *(This section is normative for `@mode(web.compiled)` — it is the detailed specification; §2.4.2 is the summary.)*
 
-Web compiled mode enables ahead-of-time (AOT) compilation of Loom source files to WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §28.1). Native binary targets (executables, shared libraries, freestanding images) are specified separately in §23 under `@mode(host.native)` and `@mode(freestanding)`; they are distinct modes with distinct restrictions and do not share this section's rules.
+Web compiled mode enables ahead-of-time (AOT) compilation of Loup source files to WebAssembly with GC and Exception Handling proposals (Wasm GC+EH), the same bytecode target used by the JIT pipeline (§2.1). The Wasm GC+EH type mappings and exception tag mappings defined in §2.1 apply equally to AOT-compiled Wasm modules; AOT compilation produces optimized Wasm modules where debug metadata is stripped unless `--debug` is specified (see §28.1). Native binary targets (executables, shared libraries, freestanding images) are specified separately in §23 under `@mode(host.native)` and `@mode(freestanding)`; they are distinct modes with distinct restrictions and do not share this section's rules.
 
 ### §22.1 Compiled Mode Declaration
 
@@ -10018,7 +10018,7 @@ The compiler SHALL emit a compile-time error for any prohibited construct in a `
 
 **Import rules.** `@mode(web.compiled)` files may import other `@mode(web.compiled)` files. Importing a scripted-mode file from a `@mode(web.compiled)` file is a compile-time error. Conversely, scripted-mode files may import `@mode(web.compiled)` files — the JIT runtime loads the compiled module's exports as pre-compiled native or Wasm code. `@mode(freestanding)` modules may not be imported by any other mode — see §24.2 for complete cross-mode import rules.
 
-The restriction is subtractive, not a different language: `@mode(web.compiled)` files use the same Loom syntax, type system, and semantics as scripted files for all permitted features.
+The restriction is subtractive, not a different language: `@mode(web.compiled)` files use the same Loup syntax, type system, and semantics as scripted files for all permitted features.
 
 **v1.16 features available in `@mode(web.compiled)`:** `atomic {}` blocks (§17.7), `reinterpretChecked[T, U]` (§24.18). The `atomic {}` block is permitted because `@mode(web.compiled)` targets the same Wasm cooperative-scheduler environment as scripted Wasm modes.
 
@@ -10047,10 +10047,10 @@ The restriction is subtractive, not a different language: `@mode(web.compiled)` 
 
 *(This section is normative.)*
 
-Loom supports compilation to native binaries via LLVM or Cranelift backends as an alternative to the primary Wasm GC+EH target. Native compilation produces platform-specific binaries with ARC memory management, zero-overhead C FFI, and deployment without a Wasm runtime.
+Loup supports compilation to native binaries via LLVM or Cranelift backends as an alternative to the primary Wasm GC+EH target. Native compilation produces platform-specific binaries with ARC memory management, zero-overhead C FFI, and deployment without a Wasm runtime.
 
 ```
-loom build --target native
+loup build --target native
 ```
 
 ### §23.1 Platform Targets and Output Formats
@@ -10066,9 +10066,9 @@ loom build --target native
 **Cross-compilation:**
 
 ```
-loom build --target native --arch aarch64 --os linux     # ARM64 Linux
-loom build --target native --arch arm64 --os macos       # Apple Silicon
-loom build --target native --arch x86_64 --os windows    # Windows from Linux/macOS
+loup build --target native --arch aarch64 --os linux     # ARM64 Linux
+loup build --target native --arch arm64 --os macos       # Apple Silicon
+loup build --target native --arch x86_64 --os windows    # Windows from Linux/macOS
 ```
 
 Cross-compilation requires a cross-linker and target sysroot. The toolchain searches `PATH` for `<arch>-<os>-lld` or accepts `--linker` override.
@@ -10076,9 +10076,9 @@ Cross-compilation requires a cross-linker and target sysroot. The toolchain sear
 **Output types:**
 
 ```
-loom build --target native                  # executable (default)
-loom build --target native --lib shared     # shared library (.so/.dylib/.dll)
-loom build --target native --lib static     # static library (.a/.lib)
+loup build --target native                  # executable (default)
+loup build --target native --lib shared     # shared library (.so/.dylib/.dll)
+loup build --target native --lib static     # static library (.a/.lib)
 ```
 
 ### §23.2 Compiler Backends
@@ -10089,7 +10089,7 @@ The native compilation pipeline:
 2. Lower to MIR (mid-level intermediate representation).
 3. Emit LLVM IR or Cranelift IR (selected by `--backend llvm|cranelift`; default: `llvm`).
 4. Optimise (LLVM: `O0`–`O3` via `--opt`; Cranelift: speed-focused).
-5. Link with the Loom native runtime library and any `extern native` libraries.
+5. Link with the Loup native runtime library and any `extern native` libraries.
 6. Produce the final binary.
 
 **LLVM backend:** Provides the full LLVM optimisation pipeline including LTO, vectorisation, and profile-guided optimisation. Recommended for production builds.
@@ -10098,24 +10098,24 @@ The native compilation pipeline:
 
 ### §23.3 Linker
 
-**Reference linker:** `lld` (LLVM linker). `lld` ships with LLVM, supports all three output platforms from a single binary, and enables LTO across Loom and C/C++ translation units.
+**Reference linker:** `lld` (LLVM linker). `lld` ships with LLVM, supports all three output platforms from a single binary, and enables LTO across Loup and C/C++ translation units.
 
 The toolchain searches for `lld` in the following order:
 1. The path specified by `--linker <path>`.
-2. `loom-lld` in the toolchain's `bin/` directory (bundled).
+2. `loup-lld` in the toolchain's `bin/` directory (bundled).
 3. `lld` on `PATH`.
 4. Platform fallback: `ld.lld` (Linux), `ld64.lld` (macOS), `lld-link` (Windows).
 
 **Platform toolchain overrides.** For Apple platforms, the Apple `ld` linker is available for code signing and entitlements:
 
 ```
-loom build --target native --os macos --linker ld
+loup build --target native --os macos --linker ld
 ```
 
 **Linker flags passthrough:**
 
 ```
-loom build --target native -- -Wl,--version-script=exports.map
+loup build --target native -- -Wl,--version-script=exports.map
 ```
 
 Arguments after `--` are passed verbatim to the linker.
@@ -10123,8 +10123,8 @@ Arguments after `--` are passed verbatim to the linker.
 **Link-time optimisation (LTO):**
 
 ```
-loom build --target native --lto thin     # ThinLTO (recommended)
-loom build --target native --lto full     # Full LTO (slower, better)
+loup build --target native --lto thin     # ThinLTO (recommended)
+loup build --target native --lto full     # Full LTO (slower, better)
 ```
 
 LTO requires the LLVM backend and is disabled by default.
@@ -10172,7 +10172,7 @@ The combined pattern produces zero ARC activity on hot iteration paths. For life
 
 **Syntax.**
 
-```loom
+```loup
 func fill(excl borrow buf: Buffer): void {
   buf.data = bytes.alloc(1024);
   buf.pos = 0;
@@ -10185,7 +10185,7 @@ func fill(excl borrow buf: Buffer): void {
 
 **Compiler verification.** At each call site, the compiler verifies that the argument binding has no simultaneous active `borrow` or `excl borrow`. If the same binding is borrowed — either shared or exclusively — at the point of a `excl borrow` call, `E_EXCL_BORROW_ALIAS` is emitted.
 
-```loom
+```loup
 @mode(host.native)
 
 struct Cursor {
@@ -10235,7 +10235,7 @@ func process(): void {
 
 
 
-```loom
+```loup
 @mode(host.native)
 
 func forEach[T](borrow items: list[T], body: noescape fn(borrow T): void): void {
@@ -10314,7 +10314,7 @@ Because safety is compiler-proven, `unowned[~name]` fields do not insert any run
 
 A class with `unowned[~name]` fields must declare `[lifetime ~name]` as a class-level lifetime parameter. This anchors the class instance's own lifetime to the `~name` region, which the compiler uses to verify that the class cannot outlive any of its `unowned[~name]` referents.
 
-```loom
+```loup
 @mode(host.native)
 
 class TreeNode[lifetime ~owner] : Any {
@@ -10337,7 +10337,7 @@ class TreeNode[lifetime ~owner] : Any {
 
 The compiler applies rule 7 of §23.4.2 at every site that writes to an `unowned[~name]` field. The value's declaration scope must statically contain the `~name` region:
 
-```loom
+```loup
 @mode(host.native)
 
 func buildTree[lifetime ~tree](): TreeNode[~tree] {
@@ -10396,7 +10396,7 @@ When a struct's fields are all declared with `borrow` or `borrow[~name]` qualifi
 
 The inferred lifetime is transparent to the programmer: no `[lifetime ~self]` appears in source code, no annotation is required at the constructor call site, and the compiled binary carries no lifetime metadata.
 
-```loom
+```loup
 @mode(host.native)
 
 // All fields are borrow — lifetime inferred; no annotation needed
@@ -10438,7 +10438,7 @@ See §23.4.10 for the complete specification of `distinct()` contracts.
 
 *(This section is normative. Applies to `@mode(host.native)` and `@mode(freestanding)` unless otherwise noted.)*
 
-`@unsafe(reason: string)` is the single, unified annotation for all programmer-asserted safety claims in Loom. It consolidates what were previously scattered, ad-hoc annotations into one auditable surface. Every use of `@unsafe` is a greppable record of a specific safety property that the programmer asserts and the compiler cannot verify.
+`@unsafe(reason: string)` is the single, unified annotation for all programmer-asserted safety claims in Loup. It consolidates what were previously scattered, ad-hoc annotations into one auditable surface. Every use of `@unsafe` is a greppable record of a specific safety property that the programmer asserts and the compiler cannot verify.
 
 **The required `reason` string** documents what is being asserted. It is not optional — `@unsafe` without a reason string is a compile-time error. The reason string is preserved in the binary's debug metadata and is accessible via `core.reflect`.
 
@@ -10454,7 +10454,7 @@ See §23.4.10 for the complete specification of `distinct()` contracts.
 
 **Thread-safety assertion on `extern native`:**
 
-```loom
+```loup
 @unsafe("threadSafe: sqlite3 is documented thread-safe in serialized mode")
 extern native "libsqlite3" func sqlite3_exec(
   db: NativeHandle,
@@ -10467,7 +10467,7 @@ extern native "libsqlite3" func sqlite3_exec(
 
 **Escaping borrow assertion on `extern native`:**
 
-```loom
+```loup
 // Declaration site — asserts the pointer may outlive the call
 @unsafe("escapingBorrow: libfoo_register stores the pointer; caller must ensure buf outlives the registration")
 extern native "libfoo" func libfoo_register(buf: NativeHandle): void;
@@ -10481,7 +10481,7 @@ Both the declaration site and every call site must carry `@unsafe` when a borrow
 
 **`Sendable` opt-out for classes.** When structural `Sendable` verification (§17.8.1) cannot be satisfied — for example, when thread safety is ensured by an external protocol invisible to the compiler — annotate the class:
 
-```loom
+```loup
 @unsafe("sendable: mutations are confined to the initialization phase; fully immutable after construction")
 class ImmutableAfterInit : Any implements Sendable {
   var data: list[int] = [];  // written only during init, never thereafter
@@ -10514,7 +10514,7 @@ This is the primary safety audit tool. The reason strings provide context for ea
 
 #### Syntax — standalone bindings
 
-```loom
+```loup
 @mode(host.native)
 
 unique let conn = Connection.open(addr)      // immutable unique binding
@@ -10526,7 +10526,7 @@ unique var buf = Buffer.alloc(1024)          // mutable unique binding
 
 #### Syntax — struct fields
 
-```loom
+```loup
 @mode(host.native)
 
 struct Request {
@@ -10541,7 +10541,7 @@ A struct with `unique` fields is move-only (§10.3.2). The `unique` qualifier on
 
 Assigning a `unique` binding to another binding **moves** ownership — the source is consumed and may not be used again:
 
-```loom
+```loup
 unique let a = Connection.open(addr)
 unique let b = a         // MOVE: b owns the Connection; a is consumed
 use(a)                   // E_USE_AFTER_MOVE
@@ -10549,7 +10549,7 @@ use(a)                   // E_USE_AFTER_MOVE
 
 To transfer ownership of a `unique` value into a function, declare the parameter with `takes`. A no-verb parameter is an implicit `reads` borrow and does not consume the binding:
 
-```loom
+```loup
 // takes — ownership transferred; caller's binding consumed
 func process(takes conn: unique Connection): void { ... }
 
@@ -10558,7 +10558,7 @@ process(takes: c)        // MOVE: c consumed
 use(c)                   // E_USE_AFTER_TAKE
 ```
 
-```loom
+```loup
 // reads (implicit) — borrow only; caller retains ownership
 func inspect(conn: unique Connection): void { ... }  // implicit reads
 
@@ -10571,7 +10571,7 @@ use(c)                   // OK — c not consumed
 
 `reads` and `edits` are both valid on `unique` bindings. Because single ownership is compiler-proven, exclusivity for `edits` is trivially guaranteed — no alias check is needed:
 
-```loom
+```loup
 unique let conn = Connection.open(addr)
 
 read(conn)                   // implicit reads borrow — conn not consumed
@@ -10584,7 +10584,7 @@ use(conn)                    // OK — conn still uniquely owned
 
 `consume expr` explicitly transfers a `unique` value into the ARC ownership model, producing a regular ARC-managed reference. The source binding is consumed. The downgrade is **one-way and irreversible** — once a value enters ARC, the compiler no longer tracks uniqueness.
 
-```loom
+```loup
 unique let conn = Connection.open(addr)
 
 // Configure conn exclusively before sharing
@@ -10604,7 +10604,7 @@ use(conn)                                 // E_USE_AFTER_MOVE
 
 `unique` values are not `Sendable` under the standard rule — `Sendable` is about safe sharing across threads, and `unique` values are not shared. However, a `unique` value may be **moved** into a `Thread.spawn` closure, transferring ownership to the spawned thread. This is safe because the caller loses access to the value at the move point — there is no concurrent access.
 
-```loom
+```loup
 unique let conn = Connection.open(addr)
 
 let handle = Thread.spawn(func() {
@@ -10619,7 +10619,7 @@ use(conn)              // E_USE_AFTER_MOVE — conn was moved into the closure
 
 `del` on a `unique` binding calls `finalize()` immediately and releases the memory — there is no ARC decrement since there is no reference count. The binding is consumed by `del`:
 
-```loom
+```loup
 unique let handle = NativeResource.open("data.bin")
 // ... use handle ...
 del handle    // finalize() called; memory freed immediately; handle consumed
@@ -10664,7 +10664,7 @@ del handle    // finalize() called; memory freed immediately; handle consumed
 | `E_BOUNDS_LITERAL` | All | Array/list indexed with a compile-time constant that is out of range |
 | `E_PREFER_COMPILED_NOT_SCRIPTED` | host.native, freestanding | `prefer compiled` import clause used in `@mode(host.native)` or `@mode(freestanding)` |
 
-**`--require-explicit-arc`** (build flag, `@mode(host.native)` or `@mode(host.dual)`). When set, constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits lint advisory `implicit-arc-binding`. Promote to an error with `// loom:error(implicit-arc-binding)`.
+**`--require-explicit-arc`** (build flag, `@mode(host.native)` or `@mode(host.dual)`). When set, constructing a class into a plain `let` or `var` without `arc let` or `unique let` emits lint advisory `implicit-arc-binding`. Promote to an error with `// loup:error(implicit-arc-binding)`.
 
 **`--overflow=trap`** (build flag, `@mode(host.native)` and `@mode(freestanding)`). When set, plain `+`, `-`, `*`, `/` on fixed-width integer types trap on overflow in all build configurations (debug and release), providing stronger guarantees than Rust's default (release builds silently wrap). The explicit overflow arithmetic methods (§24.19) remain available alongside this flag.
 
@@ -10689,7 +10689,7 @@ The ownership transfer verb system provides a unified, mode-agnostic vocabulary 
 
 **Declaration syntax.**
 
-```loom
+```loup
 func f(reads  x: T): void { ... }   // explicit reads — shared immutable borrow
 func f(        x: T): void { ... }  // implicit reads — identical to the line above
 func f(edits  x: T): void { ... }   // exclusive mutable borrow
@@ -10699,14 +10699,14 @@ func f(shares x: T): void { ... }   // ARC retain
 
 **Implicit default — `reads`.** A parameter declared without a verb is implicitly `reads`. Omitting the verb on a parameter is exactly equivalent to writing `reads`. This makes the safe, common case — passing a value for reading — require no annotation:
 
-```loom
+```loup
 func render(buf: Buffer): string { ... }     // implicitly reads buf
 func render(reads buf: Buffer): string { ... } // explicitly reads buf — identical
 ```
 
 **Call site syntax.** `reads` is the implicit default and its acknowledgment is optional. `edits`, `takes`, and `shares` are explicit and their acknowledgments are required — omitting them is `E_VERB_REQUIRED`. A mismatched verb is `E_VERB_MISMATCH`:
 
-```loom
+```loup
 // reads — both forms are always valid; explicit form preferred for clarity
 f(reads:  x)   // ✓ explicit reads acknowledgment — always valid
 f(x)           // ✓ implicit reads — valid when intent is clear
@@ -10775,7 +10775,7 @@ distinct_arg      ::= IDENT | IDENT '[' expr ':' expr ']'
 
 Multiple contracts are comma-separated. When stacked for readability:
 
-```loom
+```loup
 func merge(dst: Buffer, src: Buffer, aux: Buffer)
   requires
     edits(dst),             // overrides implicit reads on dst
@@ -10785,7 +10785,7 @@ func merge(dst: Buffer, src: Buffer, aux: Buffer)
 
 **Multi-parameter verb shorthand.** Applying a verb to multiple parameters in `requires` is exactly equivalent to placing that verb inline on each parameter individually:
 
-```loom
+```loup
 // Both declaration forms are valid and mean exactly the same thing.
 // Explicit reads is recommended when making the read-only contract visible matters:
 func compare(reads x: Buffer, reads y: Buffer): bool  // explicit — contract visible in signature
@@ -10804,7 +10804,7 @@ When a parameter already carries an inline verb, repeating it in `requires` is r
 
 **Call site acknowledgment.** `requires edits(...)`, `requires takes(...)`, `requires shares(...)`, and `requires distinct(...)` contracts must be acknowledged at every call site. `requires reads(...)` acknowledgments are optional at call sites — consistent with `reads` being the implicit default:
 
-```loom
+```loup
 merge(dstBuf, srcBuf, auxBuf,
   edits(dstBuf),                      // required — edits must be acknowledged
   distinct(dstBuf, srcBuf, auxBuf),   // required — distinct must be acknowledged
@@ -10845,7 +10845,7 @@ The compiler enforces this declaration bidirectionally for class methods.
 
 **Declaration syntax.**
 
-```loom
+```loup
 class Foo {
   var _count: int = 0
 
@@ -10864,7 +10864,7 @@ class Foo {
 
 **`operator func` methods and `modifier`.** Operator methods are not implicitly `modifier` — the `modifier` keyword must be written explicitly when the body writes `var` fields on `self`. The syntax is `modifier operator func +=` (the `modifier` keyword precedes `operator`). Without `modifier`, writing to a `var` field inside an `operator func` body is `E_MODIFIER_REQUIRED`. With `modifier`, calling the operator on a plain ARC instance requires safe context at the call site, exactly like any other `modifier` method.
 
-```loom
+```loup
 class Config {
   var _timeout: int = 30
   pub get timeout(): int  { return _timeout }   // non-modifier
@@ -10903,7 +10903,7 @@ A `safe` context is a lexical scope within which the compiler activates shared-X
 
 **`safe {}` block.** Introduces a safe context for its lexical scope. Values declared before the block that remain in scope are subject to enforcement within it:
 
-```loom
+```loup
 let config = Config()
 let alias  = config
 
@@ -10919,7 +10919,7 @@ safe {
 
 **`safe func` declaration.** A function declared `safe func` both requires and provides a safe context. It may call other `safe func`s and `modifier` methods freely without additional `safe {}` wrappers:
 
-```loom
+```loup
 safe func process(edits buf: Buffer): void {
   fill(edits: buf)    // ✓ safe context active
 }
@@ -10927,7 +10927,7 @@ safe func process(edits buf: Buffer): void {
 
 **Propagation.** `safe` propagates identically to `async`: a `safe func` is a context requirement that travels upward through the call stack until anchored by a `safe {}` block:
 
-```loom
+```loup
 safe func fill(edits buf: Buffer): void { ... }
 
 // Option 1 — propagate upward
@@ -10945,7 +10945,7 @@ func setup(edits buf: Buffer): void {
 
 **`safe async func`, `safe gen func`, `safe async gen func`.** `safe` may be combined with `async`, `gen`, or both. A `safe async func` enforces safety checks at each individual call site within the function body — each `edits:` call and each `modifier` call is independently verified at the moment it executes. The `await` between calls is not a problem because the exclusivity check is per-call, not a persistent live borrow spanning the suspension point:
 
-```loom
+```loup
 safe async func loadAndProcess(edits buf: Buffer): void {
   let data = await fetchData()    // ✓ async context
   fill(edits: buf)                 // ✓ safe context
@@ -10976,7 +10976,7 @@ A `synchronized` class serializes all `modifier` method invocations through a pe
 
 **Declaration syntax.**
 
-```loom
+```loup
 synchronized class Config {
   var _timeout:  int    = 30
   var _endpoint: string = ""
@@ -10991,7 +10991,7 @@ synchronized class Config {
 
 **Call site.** `modifier` methods on `synchronized` instances require no safe context:
 
-```loom
+```loup
 let config = Config()    // synchronized
 let alias  = config      // ARC alias
 
@@ -11015,7 +11015,7 @@ A `safe {}` context cannot span an `await` suspension point, a thread boundary, 
 
 **`synchronized` and `Sendable`.** A `synchronized` class may declare `implements Sendable`. The compiler recognises `synchronized` as providing thread safety equivalent to `Mutex[T]`-wrapped fields and suppresses `E_SENDABLE_UNPROTECTED_VAR` for `var` fields on classes that declare both `synchronized` and `implements Sendable`. This is the only exception to the structural `Sendable` verification rule (§17.8.1). Non-modifier read methods on a `synchronized Sendable` class are inherently thread-safe because the compiler verifies they contain no `var` field writes.
 
-```loom
+```loup
 synchronized class Counter : Any implements Sendable {
   var _value: int = 0            // ✓ no E_SENDABLE_UNPROTECTED_VAR
                                  //   synchronized exempts var fields
@@ -11028,7 +11028,7 @@ let counter = Counter()          // Sendable — can be passed to Thread.spawn
 
 **`@lockOrder(n: int)` — lock ordering annotation (normative).** To prevent deadlock from inconsistent lock acquisition order, `synchronized` classes may be annotated with `@lockOrder(n)` where `n` is a positive integer. Within a `modifier` method body, if the method calls a `modifier` on another `synchronized` object of a different class, that object's `@lockOrder` value MUST be strictly greater than the current class's `@lockOrder` value. Violations are compile-time errors (`E_LOCK_ORDER_VIOLATION`).
 
-```loom
+```loup
 @lockOrder(1)
 synchronized class Account : Any {
   var _balance: int = 0
@@ -11086,7 +11086,7 @@ Inside a `modifier` method on a `synchronized` class, an `unsafe {}` block expli
 
 **Syntax and required reason string.**
 
-```loom
+```loup
 synchronized class Cache {
   var _entries: dict[string, string] = {}
   var _hits:    int = 0
@@ -11183,10 +11183,10 @@ For cases that are not statically detectable — for example, reference graphs c
 
 ### §23.6 ABI Stability
 
-Loom native modules export a stable C-compatible ABI for `pub` functions and types when opted in:
+Loup native modules export a stable C-compatible ABI for `pub` functions and types when opted in:
 
 ```
-# <name>.lmpkg
+# <name>.lppkg
 stable_abi  true      # opt in to ABI stability guarantees
 abi_version 1         # increment on breaking changes
 ```
@@ -11206,20 +11206,20 @@ abi_version 1         # increment on breaking changes
 
 ### §23.7 C Header Interop
 
-Loom provides bidirectional C header interop for native builds.
+Loup provides bidirectional C header interop for native builds.
 
-#### §23.7.1 `loom export-headers` — Loom → C
+#### §23.7.1 `loup export-headers` — Loup → C
 
-Generates a C header file from a compiled Loom module's public API, allowing C/C++ code to call Loom:
+Generates a C header file from a compiled Loup module's public API, allowing C/C++ code to call Loup:
 
 ```
-loom export-headers --target native mymodule.loom -o mymodule.h
+loup export-headers --target native mymodule.loup -o mymodule.h
 ```
 
 **Generated header format:**
 
 ```c
-// mymodule.h — generated by loom export-headers
+// mymodule.h — generated by loup export-headers
 // DO NOT EDIT
 
 #pragma once
@@ -11230,14 +11230,14 @@ loom export-headers --target native mymodule.loom -o mymodule.h
 extern "C" {
 #endif
 
-typedef struct { double x; double y; } LoomPoint;
+typedef struct { double x; double y; } LoupPoint;
 
-double loom_mymodule_distance(LoomPoint a, LoomPoint b);
+double loup_mymodule_distance(LoupPoint a, LoupPoint b);
 
-typedef struct LoomString LoomString;
-LoomString* loom_mymodule_greet(const char* name);
-const char* loom_string_cstr(const LoomString* s);
-void        loom_string_free(LoomString* s);
+typedef struct LoupString LoupString;
+LoupString* loup_mymodule_greet(const char* name);
+const char* loup_string_cstr(const LoupString* s);
+void        loup_string_free(LoupString* s);
 
 #ifdef __cplusplus
 }
@@ -11246,7 +11246,7 @@ void        loom_string_free(LoomString* s);
 
 **Type mapping:**
 
-| Loom type | C type | Notes |
+| Loup type | C type | Notes |
 |---|---|---|
 | `int` / `int64` | `int64_t` | |
 | `int8` | `int8_t` | |
@@ -11260,14 +11260,14 @@ void        loom_string_free(LoomString* s);
 | `uint64` | `uint64_t` | |
 | `float` / `float64` | `double` | |
 | `float32` | `float` | |
-| `bigint` | `LoomBigInt*` | Opaque; caller manages via `loom_bigint_retain`/`loom_bigint_release` |
-| `decimal` | `LoomDecimal*` | Opaque; caller manages via `loom_decimal_retain`/`loom_decimal_release` |
+| `bigint` | `LoupBigInt*` | Opaque; caller manages via `loup_bigint_retain`/`loup_bigint_release` |
+| `decimal` | `LoupDecimal*` | Opaque; caller manages via `loup_decimal_retain`/`loup_decimal_release` |
 | `bool` | `bool` | |
-| `string` | `LoomString*` | Caller frees via `loom_string_free` |
-| `bytes` | `LoomBytes*` | Caller frees via `loom_bytes_free` |
+| `string` | `LoupString*` | Caller frees via `loup_string_free` |
+| `bytes` | `LoupBytes*` | Caller frees via `loup_bytes_free` |
 | `Vec[T, N]` | `T[N]` (array) | Must be 16/32/64-byte aligned; pass by pointer for N > 4 |
-| `struct T` | `LoomT` | By value for small structs |
-| `class T` | `LoomT*` (opaque) | Caller manages via `loom_T_retain`/`loom_T_release` |
+| `struct T` | `LoupT` | By value for small structs |
+| `class T` | `LoupT*` (opaque) | Caller manages via `loup_T_retain`/`loup_T_release` |
 | `Option[T]` (primitive) | `T` with sentinel or bool out-param | Configurable via `@cexport` |
 | `void` | `void` | |
 
@@ -11278,18 +11278,18 @@ void        loom_string_free(LoomString* s);
 pub func getUserName(id: string): string? { ... }
 ```
 
-#### §23.7.2 `loom import-headers` — C → Loom
+#### §23.7.2 `loup import-headers` — C → Loup
 
-Generates Loom `extern native` declarations from a C header file, eliminating hand-written FFI bindings:
+Generates Loup `extern native` declarations from a C header file, eliminating hand-written FFI bindings:
 
 ```
-loom import-headers --lib sqlite3 /usr/include/sqlite3.h -o sqlite3.loom
+loup import-headers --lib sqlite3 /usr/include/sqlite3.h -o sqlite3.loup
 ```
 
 **Generated binding format:**
 
-```loom
-// sqlite3.loom — generated by loom import-headers
+```loup
+// sqlite3.loup — generated by loup import-headers
 // DO NOT EDIT
 
 @mode(host.native)
@@ -11323,15 +11323,15 @@ return_type = "string"
 **Multi-library imports:**
 
 ```
-loom import-headers --lib ssl --lib crypto /usr/include/openssl/ssl.h -o openssl.loom
+loup import-headers --lib ssl --lib crypto /usr/include/openssl/ssl.h -o openssl.loup
 ```
 
-### §23.8 Build Pipeline and `.lmpkg` for Native
+### §23.8 Build Pipeline and `.lppkg` for Native
 
 **Manifest additions:**
 
 ```
-# <name>.lmpkg
+# <name>.lppkg
 stable_abi   true
 abi_version  1
 
@@ -11347,17 +11347,17 @@ framework CoreFoundation  # macOS framework (ignored on non-Apple)
 **Full build command set:**
 
 ```
-loom build --target native                        # debug build
-loom build --target native --release              # release build
-loom build --target native --release --lto thin   # release with ThinLTO
-loom build --target native --debug                # release with DWARF debug info
-loom build --target native --backend cranelift    # fast Cranelift backend
-loom build --target native --lib shared           # shared library
-loom build --target native --lib static           # static library
-loom build --target native --arch aarch64 --os linux  # cross-compile
-loom build --target native --stack-size 8388608        # 8 MB stack (default: platform ABI default)
-loom export-headers --target native mymodule.loom -o include/mymodule.h
-loom import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loom
+loup build --target native                        # debug build
+loup build --target native --release              # release build
+loup build --target native --release --lto thin   # release with ThinLTO
+loup build --target native --debug                # release with DWARF debug info
+loup build --target native --backend cranelift    # fast Cranelift backend
+loup build --target native --lib shared           # shared library
+loup build --target native --lib static           # static library
+loup build --target native --arch aarch64 --os linux  # cross-compile
+loup build --target native --stack-size 8388608        # 8 MB stack (default: platform ABI default)
+loup export-headers --target native mymodule.loup -o include/mymodule.h
+loup import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loup
 ```
 
 ### §23.9 Requirements
@@ -11368,7 +11368,7 @@ loom import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loom
 - All types should be statically known. `Any` as a declared type, `dynamic class`, and `core.inspect` are permitted but produce the `W_ANY_IN_AOT_MODE` advisory (§2.4.2, §2.6); projects that prefer to enforce static typing can promote it with `--warnings-as-errors=W_ANY_IN_AOT_MODE`.
 - ARC is mandatory; there is no GC option for `--target native`.
 
-**Stack overflow in native mode (normative).** The `--stack-size N` build flag (bytes, must be a multiple of the platform page size) sets the OS thread stack size for the main thread and all `Thread.spawn` threads. The Loom native runtime SHALL install a stack guard page (one platform page below the stack bottom) on all platforms that support `mprotect`/`VirtualProtect`. An access to the guard page produces a signal (SIGBUS/SIGSEGV on POSIX, structured exception on Windows) that the runtime maps to `StackOverflowError` and delivers to the current thread's exception handler. On platforms that do not support guard pages, a `--stack-size` overflow produces undefined behavior; the runtime documentation MUST note this for each target triple. The `deep-async-stack` lint advisory fires when an `async func` declares local variables whose total stack footprint exceeds 64 KB — async coroutine frames are heap-allocated but can still be unexpectedly large.
+**Stack overflow in native mode (normative).** The `--stack-size N` build flag (bytes, must be a multiple of the platform page size) sets the OS thread stack size for the main thread and all `Thread.spawn` threads. The Loup native runtime SHALL install a stack guard page (one platform page below the stack bottom) on all platforms that support `mprotect`/`VirtualProtect`. An access to the guard page produces a signal (SIGBUS/SIGSEGV on POSIX, structured exception on Windows) that the runtime maps to `StackOverflowError` and delivers to the current thread's exception handler. On platforms that do not support guard pages, a `--stack-size` overflow produces undefined behavior; the runtime documentation MUST note this for each target triple. The `deep-async-stack` lint advisory fires when an `async func` declares local variables whose total stack footprint exceeds 64 KB — async coroutine frames are heap-allocated but can still be unexpectedly large.
 
 **Overflow arithmetic methods.** Fixed-width integer types in all modes have `checkedAdd`, `wrappingAdd`, `saturatingAdd` (and the equivalent `Sub`, `Mul`, `Div` families) for explicit overflow control. See §24.19 for the full specification.
 
@@ -11381,7 +11381,7 @@ loom import-headers --lib sqlite3 sqlite3.h -o bindings/sqlite3.loom
 
 ### §24.1 Overview
 
-Freestanding mode (`@mode(freestanding)`) compiles Loom source to a native binary with **no Loom runtime linked**. It targets kernels, bootloaders, embedded firmware, hypervisors, and any environment where no OS, no libc, and no host runtime exists. The binary contains only what Loom source files explicitly produce plus any `extern native` libraries the programmer declares.
+Freestanding mode (`@mode(freestanding)`) compiles Loup source to a native binary with **no Loup runtime linked**. It targets kernels, bootloaders, embedded firmware, hypervisors, and any environment where no OS, no libc, and no host runtime exists. The binary contains only what Loup source files explicitly produce plus any `extern native` libraries the programmer declares.
 
 **Design goals:**
 
@@ -11393,9 +11393,9 @@ Freestanding mode (`@mode(freestanding)`) compiles Loom source to a native binar
 ### §24.2 Target Declaration and Compilation
 
 ```
-loom build --target freestanding --arch x86_64
-loom build --target freestanding --arch aarch64
-loom build --target freestanding --arch riscv64 --march rv64imac
+loup build --target freestanding --arch x86_64
+loup build --target freestanding --arch aarch64
+loup build --target freestanding --arch riscv64 --march rv64imac
 ```
 
 | `--arch` | Description |
@@ -11412,7 +11412,7 @@ Every source file in a freestanding compilation unit MUST declare `@mode(freesta
 **Cross-mode import rules.** `@mode(freestanding)` files may import:
 
 - Other `@mode(freestanding)` files in the same compilation unit.
-- `extern native` C libraries declared with `extern native "libname"` — these are linked directly and require no Loom runtime.
+- `extern native` C libraries declared with `extern native "libname"` — these are linked directly and require no Loup runtime.
 
 `@mode(freestanding)` files may NOT import:
 
@@ -11468,7 +11468,7 @@ Plus the hardware-access features described in §24.5–§24.24 and the freestan
 
 `size_of[T]()` and `align_of[T]()` are compile-time built-in generic expressions that return the size and minimum alignment of type `T` in bytes, respectively. Both are evaluated entirely at compile time and produce a `uint64` constant; they have zero runtime cost and cannot be used on unsized types.
 
-```loom
+```loup
 @mode(freestanding)
 
 let sz  = size_of[PageTable]()      // uint64: 4096 (512 × 8-byte entries)
@@ -11491,7 +11491,7 @@ let ptr = size_of[uint]()           // uint64: 8 (on 64-bit targets)
 
 `@entry` marks the single function the linker uses as the binary entry symbol. The function runs before any C runtime initialization.
 
-```loom
+```loup
 @mode(freestanding)
 
 @entry
@@ -11520,7 +11520,7 @@ Override the exported symbol name with `@entry(symbol: "_kernel_start")`.
 
 **`PanicSource` — panic discriminant (normative).** The `@panic_handler` receives a `PanicSource` enum value as an additional parameter (appended to the signature) when `--panic=custom` is set, allowing handlers to distinguish the source of the panic:
 
-```loom
+```loup
 enum PanicSource {
   Assertion;        // explicit panic("msg") or assert_eq! failure
   BoundsCheck;      // array/slice out-of-bounds access
@@ -11543,7 +11543,7 @@ The compiler selects the correct signature variant based on the presence of the 
 | `--panic=abort` | Triggers a CPU fault (x86_64: `ud2`). |
 | `--panic=custom` | Calls the `@panic_handler` function. |
 
-```loom
+```loup
 @mode(freestanding)
 
 @panic_handler
@@ -11578,11 +11578,11 @@ The double-fault handler is distinct from `@panic_handler` and does not receive 
 
 ### §24.7 `asm { }` — Inline Assembly
 
-`asm { }` blocks embed inline assembly for CPU-specific instructions that have no higher-level Loom equivalent.
+`asm { }` blocks embed inline assembly for CPU-specific instructions that have no higher-level Loup equivalent.
 
 **Basic form:**
 
-```loom
+```loup
 @mode(freestanding)
 
 func disableInterrupts(): void { asm { "cli" } }
@@ -11592,7 +11592,7 @@ func memoryBarrier(): void     { asm { "mfence" } }
 
 **Full form with operands:**
 
-```loom
+```loup
 @mode(freestanding)
 
 func readMsr(msr: uint32): uint64 {
@@ -11622,7 +11622,7 @@ Constraint strings follow GCC/LLVM conventions. Output operands bind to mutable 
 
 **`clobbers: "all"` shorthand.** The string literal `"all"` in the clobbers list is a normative shorthand for all caller-saved registers on the compilation target. It is the conservative safe choice when the clobber list is uncertain:
 
-```loom
+```loup
 asm {
     "cpuid"
     out: eax = "=a", ebx = "=b", ecx = "=c", edx = "=d"
@@ -11652,13 +11652,13 @@ asm {
 
 Use a preset or `"all"` rather than an incomplete manual list to avoid the silent register-corruption bug class.
 
-**`borrow` values as `asm` input operands.** A `borrow T` parameter or binding may appear as an `asm` input operand. The address of the borrowed value is passed to the constraint as an integer pointer (equivalent to taking the address with `"=m"` or `"r"` constraints). The compiler verifies that the borrow's lifetime is still valid at the `asm` block. Passing a consumed or expired `borrow` as an `asm` input is `E_ASM_EXPIRED_BORROW`. In `@mode(freestanding)`, `asm` blocks do not require `@unsafe`; the compiler emits per-function lint advisory `asm-unchecked` (suppressible with `// loom:allow(asm-unchecked)`). In `@mode(host.native)`, `asm` blocks require `@unsafe("asm: <reason>")`.
+**`borrow` values as `asm` input operands.** A `borrow T` parameter or binding may appear as an `asm` input operand. The address of the borrowed value is passed to the constraint as an integer pointer (equivalent to taking the address with `"=m"` or `"r"` constraints). The compiler verifies that the borrow's lifetime is still valid at the `asm` block. Passing a consumed or expired `borrow` as an `asm` input is `E_ASM_EXPIRED_BORROW`. In `@mode(freestanding)`, `asm` blocks do not require `@unsafe`; the compiler emits per-function lint advisory `asm-unchecked` (suppressible with `// loup:allow(asm-unchecked)`). In `@mode(host.native)`, `asm` blocks require `@unsafe("asm: <reason>")`.
 
 ### §24.8 `@volatile` — MMIO Semantics
 
 `@volatile` on a `borrow` parameter asserts that reads/writes through that reference are observable side effects that the optimizer must not reorder, merge, hoist, sink, or eliminate.
 
-```loom
+```loup
 @mode(freestanding)
 
 @repr(packed)
@@ -11679,7 +11679,7 @@ func uartWrite(@volatile borrow uart: UartRegs, byte: uint8): void {
 
 `Volatile[T]` wraps a raw hardware address and enforces volatile semantics on all accesses.
 
-```loom
+```loup
 @mode(freestanding)
 
 let UART_DR = Volatile[uint8].at(0x3F8)
@@ -11690,7 +11690,7 @@ func serialRead():  uint8          { return UART_DR.read() }
 
 **API:**
 
-```loom
+```loup
 struct Volatile[T] {
     @unsafe("mmio: address must be a valid mapped device register for T")
     pub static func at(addr: uint): Volatile[T]
@@ -11709,7 +11709,7 @@ struct Volatile[T] {
 
 **Hardware barrier after volatile stores.** On weakly-ordered architectures (ARM, RISC-V), a volatile store alone does not guarantee that the peripheral device observes the write before subsequent CPU instructions execute. Follow every volatile store to a device register with `native.atomic.hwFence(MemoryOrder.DeviceRelease)` to insert the required hardware barrier. Example:
 
-```loom
+```loup
 uart.data = byte                                          // volatile store
 native.atomic.hwFence(MemoryOrder.DeviceRelease)          // hardware barrier — ARM DSB ST / RISC-V FENCE ow,ow
 ```
@@ -11720,7 +11720,7 @@ On x86/x86_64, the strong memory model makes this barrier a no-op (the instructi
 
 `@repr` controls the memory layout of a struct — essential for hardware register maps, DMA descriptors, and any structure where byte layout is mandated by hardware spec.
 
-```loom
+```loup
 @mode(freestanding)
 
 @repr(C)
@@ -11748,7 +11748,7 @@ struct PageTableEntry {
 | Variant | Meaning |
 |---|---|
 | `@repr(C)` | C layout: fields in declaration order, each at its ABI alignment. Required for `extern native` structs. |
-| `@repr(packed)` | No padding. Potentially unaligned fields. Loom emits unaligned load/store sequences — defined behavior (not UB). |
+| `@repr(packed)` | No padding. Potentially unaligned fields. Loup emits unaligned load/store sequences — defined behavior (not UB). |
 | `@repr(transparent)` | Single-field wrapper; ABI identical to the inner type. |
 
 Valid in `@mode(freestanding)` and `@mode(host.native)`. In `@mode(web.compiled)`, a Wasm-compatible subset of `@repr` is supported (see §2.6). Using `@repr` in `@mode(web.scripted)`, `@mode(host.scripted)`, or `@mode(host.dual)` is a compile-time error (`E_REPR_NOT_NATIVE`).
@@ -11757,7 +11757,7 @@ Valid in `@mode(freestanding)` and `@mode(host.native)`. In `@mode(web.compiled)
 
 `@align(n)` specifies minimum alignment in bytes for a struct type, function, or static binding. `n` must be a power of two.
 
-```loom
+```loup
 @mode(freestanding)
 
 @align(4096)
@@ -11776,7 +11776,7 @@ static IDT: InterruptDescriptorTable = InterruptDescriptorTable.zero()
 
 `@section("name")` places a function or static binding into the named linker section. The linker script assigns virtual and physical addresses to each named section.
 
-```loom
+```loup
 @mode(freestanding)
 
 @section(".text.boot")
@@ -11784,7 +11784,7 @@ static IDT: InterruptDescriptorTable = InterruptDescriptorTable.zero()
 func _start(): void { ... }
 
 @section(".rodata.strings")
-static BANNER: string = "Loom Kernel v1.14"
+static BANNER: string = "Loup Kernel v1.14"
 
 @section(".data.percpu")
 static CPU_STATE: CpuState = CpuState.zero()
@@ -11796,7 +11796,7 @@ Valid only in `@mode(freestanding)` (`E_SECTION_NOT_FREESTANDING`).
 
 `@interrupt` generates the ISR calling convention: saves/restores all registers and returns with `iretq`/`eret`/`mret` rather than a normal return.
 
-```loom
+```loup
 @mode(freestanding)
 
 @repr(C)
@@ -11829,7 +11829,7 @@ func timerHandler(frame: borrow InterruptFrame): void {
 
 **x86_64 (`--arch x86_64`):**
 
-```loom
+```loup
 @repr(C)
 struct InterruptFrame {
     let rip:    uint64;  // saved instruction pointer
@@ -11842,7 +11842,7 @@ struct InterruptFrame {
 
 **AArch64 (`--arch aarch64`):**
 
-```loom
+```loup
 @repr(C)
 struct InterruptFrame {
     let elr_el1:  uint64;  // exception link register (return address)
@@ -11854,7 +11854,7 @@ struct InterruptFrame {
 
 **RISC-V 64-bit (`--arch riscv64`):**
 
-```loom
+```loup
 @repr(C)
 struct InterruptFrame {
     let mepc:   uint64;  // machine exception program counter
@@ -11866,7 +11866,7 @@ struct InterruptFrame {
 
 `InterruptFrame` values are produced by the CPU exception mechanism and passed to `@interrupt` functions by the compiler-generated trampoline. User code cannot construct `InterruptFrame` directly — attempting to do so is `E_INTERRUPT_FRAME_CONSTRUCT`.
 
-`@interrupt` functions must not be called directly from Loom code (`E_INTERRUPT_DIRECT_CALL`), must not be `async` (`E_INTERRUPT_ASYNC`), and must return `void` (`E_INTERRUPT_NONVOID`).
+`@interrupt` functions must not be called directly from Loup code (`E_INTERRUPT_DIRECT_CALL`), must not be `async` (`E_INTERRUPT_ASYNC`), and must return `void` (`E_INTERRUPT_NONVOID`).
 
 ### §24.14 `@naked` — Naked Functions
 
@@ -11883,7 +11883,7 @@ struct InterruptFrame {
 | `E_NAKED_ASYNC` | Freestanding | `@naked` function declared `async` |
 | `E_NAKED_NOT_FREESTANDING` | All | `@naked` outside `@mode(freestanding)` |
 
-```loom
+```loup
 @mode(freestanding)
 
 @naked
@@ -11902,7 +11902,7 @@ func contextSwitch(from_sp: uint, to_sp: uint): void {
 
 Additionally, the compiler emits the `naked-missing-return` lint advisory when a `@naked` function's `asm {}` blocks do not contain any string that matches the target architecture's standard return instruction patterns (`"ret"` on x86_64, `"ret"` on AArch64, `"jalr zero, 0(ra)"` on RISC-V). This catches the common mistake of a naked function that falls through.
 
-```loom
+```loup
 @mode(freestanding)
 
 @unsafe("naked: hand-written context-switch prologue/epilogue")
@@ -11921,7 +11921,7 @@ func contextSwitch(from_sp: uint, to_sp: uint): void {
 
 **Parameters in `@naked` functions.** A `@naked` function may declare parameters. They are passed to the function per the active calling convention (registers/stack positions, as selected by `@callconv`), but the compiler does NOT generate any code to spill, reload, or otherwise manage them. The function body must use `asm` input operands to access parameter values:
 
-```loom
+```loup
 @mode(freestanding)
 
 @unsafe("naked: hand-written context-switch prologue/epilogue")
@@ -11938,7 +11938,7 @@ func contextSwitch(from_ctx: uint, to_ctx: uint): void {
 }
 ```
 
-Naming a parameter inside a non-`asm` Loom expression (e.g. `let x = from_ctx + 1`) inside a `@naked` function body is `E_NAKED_NON_ASM`.
+Naming a parameter inside a non-`asm` Loup expression (e.g. `let x = from_ctx + 1`) inside a `@naked` function body is `E_NAKED_NON_ASM`.
 
 Any non-`asm` statement in a `@naked` function is `E_NAKED_NON_ASM`. `@naked` functions must not be `async` (`E_NAKED_ASYNC`).
 
@@ -11955,7 +11955,7 @@ Overrides the calling convention for a function. The default in freestanding mod
 | `naked` | Equivalent to `@naked` |
 | `interrupt` | Equivalent to `@interrupt` |
 
-```loom
+```loup
 @mode(freestanding)
 
 @callconv(win64)
@@ -11966,7 +11966,7 @@ func efiMain(image: uint64, table: uint64): uint64 { ... }
 
 Registers a custom heap allocator. Class construction is a compile-time error without a registered allocator (`E_FREESTANDING_CLASS_NO_ALLOC`). Once registered, class construction may return `unique T` or propagate `AllocError` if the allocator signals failure.
 
-```loom
+```loup
 @mode(freestanding)
 
 @allocator
@@ -11990,7 +11990,7 @@ func kernelFree(ptr: uint, size: uint64, align: uint64): void {
 
 `MaybeUninit[T]` represents memory that may not yet be initialized — the safe mechanism for hardware-provided data, DMA buffers, and C-style out-parameter patterns.
 
-```loom
+```loup
 @mode(freestanding)
 
 var pt: MaybeUninit[PageTable] = MaybeUninit.uninit()
@@ -12003,7 +12003,7 @@ let table = pt.assumeInit()
 
 **API:**
 
-```loom
+```loup
 struct MaybeUninit[T] {
     pub static func uninit(): MaybeUninit[T]
     pub static func zeroed(): MaybeUninit[T]
@@ -12030,7 +12030,7 @@ Available in `@mode(host.native)` and `@mode(freestanding)`. `T` must be a primi
 
 This closes the partial-initialization gap in `MaybeUninit[T]`: rather than relying on a single `@unsafe("init: all fields written")` assertion, each field write is individually tracked.
 
-```loom
+```loup
 @mode(freestanding)
 
 @repr(C)
@@ -12063,7 +12063,7 @@ func badHeader(src: uint16, dst: uint16, len: uint16): NetworkHeader {
 
 **API:**
 
-```loom
+```loup
 struct PartialInit[T] {
   pub static func begin(): PartialInit[T]
   pub func set[F](field: field_ref[T, F], value: F): void
@@ -12085,7 +12085,7 @@ struct PartialInit[T] {
 
 `reinterpret[T, U](value)` reinterprets the bit pattern of a value of type `T` (the source type) as type `U` (the target type) without conversion — stricter than Rust's `transmute` because size/alignment mismatch is always a compile-time error rather than a lint warning.
 
-```loom
+```loup
 @mode(freestanding)
 
 @unsafe("transmute: float bit-pattern extraction")
@@ -12103,7 +12103,7 @@ let bits: uint32 = reinterpret[float32, uint32](f)
 
 **`reinterpretChecked[T, U](value: T): Result[U, AlignmentError]` (normative). `T` is the source type of the input value; `U` is the desired target type.** This is the safe default variant. It performs the same compile-time size/alignment checks as `reinterpret[T, U]` and additionally verifies at runtime that the source value's address satisfies `align_of[U]()`. On alignment failure it returns `Err(AlignmentError)` rather than producing undefined behavior. `reinterpretChecked` does not require `@unsafe`. Use `reinterpret[T, U]` with `@unsafe` only when the caller has externally verified alignment through means invisible to the compiler.
 
-```loom
+```loup
 // Safe default — checked at runtime
 let result = reinterpretChecked[uint32, float32](rawBits)
 match result {
@@ -12124,7 +12124,7 @@ All fixed-width integer types (`int8`–`int64`, `uint8`–`uint64`) gain three 
 
 **Checked — returns `Option[T]`:**
 
-```loom
+```loup
 let result = uint8.checkedAdd(250u8, 10u8)    // Option[uint8]: None
 let result = uint8.checkedSub(250u8, 10u8)    // Option[uint8]: Some(240)
 let result = uint8.checkedMul(250u8, 10u8)    // Option[uint8]: None
@@ -12133,7 +12133,7 @@ let result = uint8.checkedDiv(250u8, 10u8)    // Option[uint8]: Some(25)
 
 **Wrapping — always succeeds, wraps on overflow:**
 
-```loom
+```loup
 let result = uint8.wrappingAdd(250u8, 10u8)   // uint8: 4
 let result = uint8.wrappingSub(250u8, 10u8)   // uint8: 240
 let result = uint8.wrappingMul(250u8, 10u8)   // uint8: 132
@@ -12141,7 +12141,7 @@ let result = uint8.wrappingMul(250u8, 10u8)   // uint8: 132
 
 **Saturating — clamps to min/max:**
 
-```loom
+```loup
 let result = uint8.saturatingAdd(250u8, 10u8) // uint8: 255
 let result = uint8.saturatingSub(250u8, 10u8) // uint8: 240
 let result = uint8.saturatingMul(250u8, 10u8) // uint8: 255
@@ -12167,7 +12167,7 @@ The naming convention is `TypeName.family(a, b)`. These methods are available in
 
 **`native.mem` API (freestanding and native):**
 
-```loom
+```loup
 // Copy n bytes from src to dst (may overlap — uses memmove semantics)
 func native.mem.copy(dst: uint, src: uint, n: uint64): void
 
@@ -12187,7 +12187,7 @@ func native.mem.free(ptr: uint, n: uint64, align: uint64): void
 
 **`native.atomic` API (freestanding and native):**
 
-```loom
+```loup
 // Atomic load with acquire ordering
 func native.atomic.load[T](ptr: uint): T
 
@@ -12224,7 +12224,7 @@ func native.atomic.hwFence(order: MemoryOrder): void
 
 **`MemoryOrder` enum:**
 
-```loom
+```loup
 namespace native.atomic;
 
 enum MemoryOrder {
@@ -12244,7 +12244,7 @@ enum MemoryOrder {
 
 The normative MMIO pattern requiring a hardware barrier after a volatile store:
 
-```loom
+```loup
 uart.data = byte                              // volatile store (optimizer-barrier)
 native.atomic.hwFence(MemoryOrder.DeviceRelease)  // hardware-barrier (CPU reorder-barrier)
 ```
@@ -12253,16 +12253,16 @@ native.atomic.hwFence(MemoryOrder.DeviceRelease)  // hardware-barrier (CPU reord
 
 **`native.mem` addition — `tryAlloc` (normative):**
 
-```loom
+```loup
 // Fallible allocation: returns Ok(ptr) or Err(AllocError) without panicking.
 func native.mem.tryAlloc(n: uint64, align: uint64): Result[uint, AllocError]
 ```
 
 **`native.dma` API (freestanding only):**
 
-`native.dma.DmaBuffer[T]` models DMA buffer ownership using Loom's ownership verb system. The CPU and the DMA controller cannot access the buffer simultaneously — the `startTransfer` call acquires an exclusive `edits` borrow that blocks CPU access for the transfer duration.
+`native.dma.DmaBuffer[T]` models DMA buffer ownership using Loup's ownership verb system. The CPU and the DMA controller cannot access the buffer simultaneously — the `startTransfer` call acquires an exclusive `edits` borrow that blocks CPU access for the transfer duration.
 
-```loom
+```loup
 namespace native.dma;
 
 // Allocate a cache-coherent, page-aligned DMA buffer for n elements of T.
@@ -12297,7 +12297,7 @@ unique class DmaTransfer[T] : Any {
 
 **`native.mpu` API (freestanding only):**
 
-```loom
+```loup
 namespace native.mpu;
 
 // Install a stack guard region. Accesses to [guardBase, guardBase+guardSize) trap as a fault.
@@ -12317,7 +12317,7 @@ enum MpuError {
 
 All other standard library modules are unavailable (`E_FREESTANDING_MODULE`).
 
-### §24.21 `.lmpkg` Extensions for Freestanding
+### §24.21 `.lppkg` Extensions for Freestanding
 
 ```toml
 [build]
@@ -12440,7 +12440,7 @@ portal_filter            = ["*"]  # compile-time glob prune of activation table
 
 ### §24.23 Example — x86_64 Kernel Stub
 
-```loom
+```loup
 @mode(freestanding)
 
 import native.mem
@@ -12508,13 +12508,13 @@ func kernelPanic(msg: string, file: string, line: int): void {
 // ── Kernel entry ──────────────────────────────────────────────────────────
 
 func kernelMain(): void {
-    serialWrite("Loom kernel v1.17\n")
+    serialWrite("Loup kernel v1.17\n")
     // Load IDT, enable interrupts ...
     asm { "sti" }
     while (true) { asm { "hlt" } }
 }
 
-@unsafe("naked: kernel entry point, hand-written stack setup before any Loom code runs")
+@unsafe("naked: kernel entry point, hand-written stack setup before any Loup code runs")
 @entry @naked @section(".text.boot")
 func _start(): void {
     asm {
@@ -12529,7 +12529,7 @@ func _start(): void {
 }
 ```
 
-**Corresponding `.lmpkg`:**
+**Corresponding `.lppkg`:**
 
 ```toml
 [package]
@@ -12562,9 +12562,9 @@ overflow   = "trap"
 
 `@interruptSafe` declares that a function may be called from an interrupt handler context. The compiler enforces that `@interruptSafe` functions access `static var` bindings only through `native.atomic` operations — direct field reads or writes on a `static var` inside an `@interruptSafe` context are `E_INTERRUPT_SAFE_VIOLATION`.
 
-This annotation closes the interrupt-reentrancy gap: a mutable global accessed from both the main loop and an interrupt handler is a data race that Loom's ownership system does not track by default. `@interruptSafe` makes the constraint statically enforced.
+This annotation closes the interrupt-reentrancy gap: a mutable global accessed from both the main loop and an interrupt handler is a data race that Loup's ownership system does not track by default. `@interruptSafe` makes the constraint statically enforced.
 
-```loom
+```loup
 @mode(freestanding)
 
 static var interruptCount: uint64 = 0
@@ -12593,7 +12593,7 @@ func badIrqHandler(): void {
 
 `InterruptGuard` implements `Scoped[void]` and masks interrupts for the duration of its lexical scope. This provides mutual exclusion between the main execution path and interrupt handlers without requiring a runtime mutex.
 
-```loom
+```loup
 namespace native.freestanding;
 
 class InterruptGuard : Any implements Scoped[void] {
@@ -12607,7 +12607,7 @@ class InterruptGuard : Any implements Scoped[void] {
 
 Usage with `with`:
 
-```loom
+```loup
 @mode(freestanding)
 
 static var sharedCounter: uint32 = 0
@@ -12622,7 +12622,7 @@ func incrementSafely(): void {
 
 `InterruptGuard` is not reentrant — nesting two `InterruptGuard` scopes results in the inner guard re-enabling interrupts on release before the outer guard exits (`E_INTERRUPT_GUARD_NESTED` lint advisory). When nesting is required, use an interrupt-save/restore pattern instead:
 
-```loom
+```loup
 // Save and restore interrupt state across nested calls
 let flags = native.atomic.readInterruptFlags()
 InterruptGuard.disable()
@@ -12641,7 +12641,7 @@ native.atomic.writeInterruptFlags(flags)
 
 #### §24.25.1 Overview
 
-When `loom build --debug --target freestanding` is invoked and at least one debug channel or ring buffer is configured via `.lmpkg`, the compiler synthesizes a freestanding debug service that provides:
+When `loup build --debug --target freestanding` is invoked and at least one debug channel or ring buffer is configured via `.lppkg`, the compiler synthesizes a freestanding debug service that provides:
 
 - A static **activation table** in BSS: one `atomic uint8` per portal, indexed by compile-time portal ID. All entries are zero-initialized. Portal sites perform a single aligned atomic byte load; a zero value is the fast path (inert). Inactive-portal cost: one aligned atomic load per portal site, no branch.
 - A read-only **portal name table** in the `.debug_portals` linker section: maps portal IDs to fully-qualified name strings, source file paths, and line numbers. Baked at link time. Analogous to the static metadata table in `@mode(host.native)`.
@@ -12653,7 +12653,7 @@ Release builds strip all portal instrumentation, the activation table, the porta
 
 #### §24.25.2 `FreestandingDebugFrame`
 
-```loom
+```loup
 @repr(C)
 struct FreestandingDebugFrame {
     pub let eventKind:  uint8;   // 0=Portal, 1=Call, 2=Return
@@ -12676,7 +12676,7 @@ Two optional annotations provide the compiler with user-supplied transport imple
 
 **Transport and configuration types (normative):**
 
-```loom
+```loup
 // Bidirectional control transport; returned by an @debug_control_channel function.
 // read/write are function-pointer fields; both are mandatory.
 @repr(C)
@@ -12713,7 +12713,7 @@ These types are available exclusively in `--debug` freestanding builds. Referenc
 
 **`@debug_control_channel`**
 
-```loom
+```loup
 @debug_control_channel
 func myControlChannel(): FreestandingControlChannel {
     return FreestandingControlChannel {
@@ -12727,7 +12727,7 @@ Bidirectional. Used for command/response traffic (portal query, activate, deacti
 
 **`@debug_trace_channel`**
 
-```loom
+```loup
 @debug_trace_channel
 func myTraceChannel(): FreestandingTraceChannel {
     return FreestandingTraceChannel {
@@ -12743,7 +12743,7 @@ Both annotations follow the `@panic_handler` error pattern: wrong signature is t
 
 #### §24.25.4 Starting the Debug Service
 
-```loom
+```loup
 // FreestandingDebugConfig field types:
 //   controlPollMode:      ControlPollMode   // .Polling or .Interrupt
 //   traceFlushThreshold:  uint32            // flush staging buffer when N bytes pending
@@ -12822,13 +12822,13 @@ Target → host only. All integers little-endian.
 
 #### §24.25.8 Host Tooling
 
-The `loom debug attach` command connects to a running freestanding debug service:
+The `loup debug attach` command connects to a running freestanding debug service:
 
 ```
-loom debug attach --uart /dev/ttyUSB0 --baud 115200
-loom debug attach --tcp 192.168.1.100:2345
-loom debug attach --semihosting                          # ARM/RISC-V via debug probe
-loom debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
+loup debug attach --uart /dev/ttyUSB0 --baud 115200
+loup debug attach --tcp 192.168.1.100:2345
+loup debug attach --semihosting                          # ARM/RISC-V via debug probe
+loup debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
 ```
 
 `--trace-swo` (or `--trace-uart`, `--trace-tcp`) specifies a separate transport for the trace channel when control and trace are physically distinct. When only one transport is specified, it carries both channels multiplexed by opcode prefix. After attaching, the host reads the portal name table via `QUERY_PORTALS` and presents the standard portal activation interface.
@@ -12845,7 +12845,7 @@ When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates 
 
 **Read path.** The host requests ring contents via the `READ_REPLAY_BUFFER` control command (§24.25.6), receiving up to `max_frames` `FreestandingDebugFrame` records in `REPLAY_BUFFER_CHUNK` response messages. The ring state is not disturbed by a read — the target continues appending; the host receives a snapshot.
 
-**Replay semantics.** Freestanding time-travel is `TraceLevel.PortalOnly` — the ring contains call/return/portal events with source locations, but no local-variable state. The host `loom debug attach` session renders the captured event sequence as a portal-level trace timeline. This is the same visualization produced by `TraceLevel.PortalOnly` capture in `@mode(host.native)`, with the distinction that the ring is stored on-target rather than in host memory.
+**Replay semantics.** Freestanding time-travel is `TraceLevel.PortalOnly` — the ring contains call/return/portal events with source locations, but no local-variable state. The host `loup debug attach` session renders the captured event sequence as a portal-level trace timeline. This is the same visualization produced by `TraceLevel.PortalOnly` capture in `@mode(host.native)`, with the distinction that the ring is stored on-target rather than in host memory.
 
 **Zero-overhead when disabled.** When `timeTravelEnabled = false` (the default), no ring is allocated, no write path code is emitted, and BSS is unaffected. The `READ_REPLAY_BUFFER` opcode returns `ERR` with code `0x01` (feature disabled).
 
@@ -12871,7 +12871,7 @@ When `FreestandingDebugConfig.timeTravelEnabled = true`, the compiler allocates 
 
 *(This section is normative.)*
 
-Loom provides a hygienic macro system for compile-time code generation:
+Loup provides a hygienic macro system for compile-time code generation:
 
 **Hygiene.** Macro-introduced bindings do not capture or shadow caller bindings. The macro body has its own scope. Spliced parameters (`${param}`) are substituted as syntactic AST fragments before name resolution — the caller's names are never visible inside the macro body unless explicitly spliced.
 
@@ -12893,7 +12893,7 @@ macro assert_eq(a, b) {
 assert_eq!(compute(), expected);
 ```
 
-**Quasiquote AST categories.** A `quote` block may contain any syntactically valid Loom constructs: statements, expressions, declarations, and type annotations. Splice positions (`${param}`) are resolved by the macro expander using the category of the surrounding syntax — a splice in expression position must receive an expression, a splice in type position must receive a type, and so on. A category mismatch is `E_MACRO_SPLICE_CATEGORY` at the macro declaration site.
+**Quasiquote AST categories.** A `quote` block may contain any syntactically valid Loup constructs: statements, expressions, declarations, and type annotations. Splice positions (`${param}`) are resolved by the macro expander using the category of the surrounding syntax — a splice in expression position must receive an expression, a splice in type position must receive a type, and so on. A category mismatch is `E_MACRO_SPLICE_CATEGORY` at the macro declaration site.
 
 **Parameters and arity.** Macro parameters are positional identifiers. Macros do not support default values, rest parameters, or keyword arguments. Invoking a macro with the wrong number of arguments is a compile-time error (`E_MACRO_ARITY`).
 
@@ -12928,7 +12928,7 @@ assert_eq!(compute(), expected);
 
 *(This section is normative. This section applies to all modes except `@mode(freestanding)` — specifically `@mode(web.scripted)`, `@mode(web.compiled)`, `@mode(host.scripted)`, `@mode(host.dual)`, and `@mode(host.native)`. In `@mode(freestanding)`, the exception system is unavailable — `throw`, `try`, and `catch` are compile-time errors (`E_FREESTANDING_EXCEPTIONS`). Freestanding failure handling is specified in §24.6 (`@panic_handler` and `--panic` policy).)*
 
-This section consolidates all failure behaviors across the Loom language.
+This section consolidates all failure behaviors across the Loup language.
 
 ### §26.1 Exception Hierarchy
 
@@ -13293,7 +13293,7 @@ The runtime provides signal handling for graceful shutdown and interrupt process
 | `SIGUSR1` | No-op (available for user handlers) |
 | `SIGUSR2` | No-op (available for user handlers) |
 
-**Signal delivery.** When a signal is received, the runtime schedules the handler to execute on the event loop at the next safe point — not inside the OS signal handler context. This ensures that Loom code (including cleanup frames) executes safely.
+**Signal delivery.** When a signal is received, the runtime schedules the handler to execute on the event loop at the next safe point — not inside the OS signal handler context. This ensures that Loup code (including cleanup frames) executes safely.
 
 **Double-interrupt protection.** If a second `SIGINT` is received while a `KeyboardInterrupt` is already propagating (e.g., during cleanup), the runtime force-terminates the process immediately with exit code 130, without further cleanup. This prevents hung cleanup from blocking termination.
 
@@ -13301,7 +13301,7 @@ The runtime provides signal handling for graceful shutdown and interrupt process
 
 **Custom signal handlers.** The `io.proc` module provides `onSignal(signal, handler)` to register custom signal handlers, `resetSignal(signal)` to restore defaults, and `awaitSignal(signal)` for async signal-driven workflows. See §21.8 for the full API.
 
-**`@signalSafe` annotation (normative, `@mode(host.native)` or `@mode(host.dual)`).** Functions that may be called from OS signal handler context must be annotated `@signalSafe`. The compiler enforces that `@signalSafe` functions do not call any operation that is not signal-safe. The following are NOT signal-safe in Loom and are compile-time errors from a `@signalSafe` context:
+**`@signalSafe` annotation (normative, `@mode(host.native)` or `@mode(host.dual)`).** Functions that may be called from OS signal handler context must be annotated `@signalSafe`. The compiler enforces that `@signalSafe` functions do not call any operation that is not signal-safe. The following are NOT signal-safe in Loup and are compile-time errors from a `@signalSafe` context:
 
 - ARC `retain()` / `release()` — ARC operations are not signal-safe
 - Any heap allocation — `malloc` and ARC `alloc` are not signal-safe
@@ -13317,7 +13317,7 @@ The following ARE signal-safe and are permitted inside `@signalSafe` contexts:
 - `Mutex[T].tryLock()` — non-blocking; signal-safe (may return `None`)
 - Static field reads of `let` (immutable) bindings — signal-safe
 
-```loom
+```loup
 @mode(host.native)
 
 let signalFlag = Atomic[bool].new(false)
@@ -13349,7 +13349,7 @@ io.proc.onSignal(SIGTERM, sigtermHandler)
 
 *(This section is normative.)*
 
-This section provides the complete formal grammar for the Loom language in Extended Backus-Naur Form (EBNF). The grammar covers all syntactic constructs defined in this specification. The grammar is target-independent — it applies equally to the Wasm GC+EH bytecode target (§2.1, §22) and the native compilation target (§23). Target-specific semantics (e.g., Wasm type mappings, native ABI conventions) are defined in their respective sections.
+This section provides the complete formal grammar for the Loup language in Extended Backus-Naur Form (EBNF). The grammar covers all syntactic constructs defined in this specification. The grammar is target-independent — it applies equally to the Wasm GC+EH bytecode target (§2.1, §22) and the native compilation target (§23). Target-specific semantics (e.g., Wasm type mappings, native ABI conventions) are defined in their respective sections.
 
 **Notation conventions:**
 
@@ -14128,8 +14128,8 @@ MacroDecl      ::= [ "pub" ] "macro" Identifier "(" [ MacroParamList ] ")" "{" M
 MacroParamList ::= Identifier { "," Identifier }
 MacroBody      ::= "quote" QuoteBlock
 QuoteBlock     ::= "{" { QuoteItem } "}"
-QuoteItem      ::= MacroSplice | ANY_LOOM_CONSTRUCT
-                   (* ANY_LOOM_CONSTRUCT is any syntactically valid Loom
+QuoteItem      ::= MacroSplice | ANY_LOUP_CONSTRUCT
+                   (* ANY_LOUP_CONSTRUCT is any syntactically valid Loup
                       statement, expression, declaration, or type. *)
 MacroSplice    ::= "${" Identifier "}"
                    (* Splices the AST node bound to the named macro parameter
@@ -14137,7 +14137,7 @@ MacroSplice    ::= "${" Identifier "}"
 MacroInvoke    ::= Identifier "!" "(" [ ArgList ] ")"
 ```
 
-For any valid Loom source text, parsing it into an AST and then pretty-printing that AST back to source text and parsing again SHALL produce an equivalent AST (round-trip property).
+For any valid Loup source text, parsing it into an AST and then pretty-printing that AST back to source text and parsing again SHALL produce an equivalent AST (round-trip property).
 
 ### §27.12 Syntactic Grammar — Additional Productions
 
@@ -14536,121 +14536,121 @@ v1.17 adds no new grammar rules beyond the dotted `ModeName` form (§2.5.1). The
 
 ### §28.1 Command-Line Interface
 
-**`loom run path/to/file.loom`** — Execute a Loom source file using the JIT compilation pipeline. This is the baseline single-file execution workflow. The script prelude (§20.2) is available in the entry file.
+**`loup run path/to/file.loup`** — Execute a Loup source file using the JIT compilation pipeline. This is the baseline single-file execution workflow. The script prelude (§20.2) is available in the entry file.
 
-**`loom build`** — Compile a Loom project for deployment:
-
-```
-loom build --target browser         # Wasm module for browser
-loom build --target cli             # Wasm module for CLI
-loom build --target service         # Wasm module for server
-loom build --target desktop         # Native desktop app (requires @mode(host.native) or @mode(host.dual))
-loom build --target native          # Native binary (requires @mode(host.native) or @mode(host.dual))
-loom build --target native --lib shared   # Shared library
-loom build --target native --lib static   # Static library
-loom build --target freestanding --arch x86_64   # Freestanding kernel/bare-metal
-loom build --target freestanding --arch aarch64  # Freestanding AArch64
-loom build --target freestanding --arch riscv64 --march rv64imac  # RISC-V
-loom build --debug                  # Include DWARF debug info in output
-loom build --release                # Optimised release build
-loom build --lto thin               # ThinLTO (LLVM backend only)
-loom build --lto full               # Full LTO
-loom build --backend cranelift      # Use Cranelift instead of LLVM
-loom build --arch aarch64 --os linux              # Cross-compile
-loom build --target native --stack-size 4194304   # Set OS stack size to 4 MB (default: platform ABI default)
-loom build --target native --overflow trap         # Trap on fixed-width integer overflow (native/freestanding)
-loom build --target freestanding --panic custom --double-fault reset  # Double-fault policy (freestanding)
-loom build --check                      # Type-check and validate fence syntax; no output produced
-```
-
-`loom build --check` parses and type-checks the entire project, validates template fence syntax (including `stablehlo`, `hlo`, `wgsl`, `metal`, and `glsl` fences), and reports all compile-time errors without producing any output artefact. Exit code is 0 if the project is error-free, non-zero otherwise. Equivalent to a dry-run of `loom build` without writing to disk.
-
-**`loom export-headers`** — Generate C headers from a compiled Loom module:
+**`loup build`** — Compile a Loup project for deployment:
 
 ```
-loom export-headers --target native mymodule.loom -o include/mymodule.h
-loom export-headers --target native mymodule.loom -o mymodule.h --lang cpp
+loup build --target browser         # Wasm module for browser
+loup build --target cli             # Wasm module for CLI
+loup build --target service         # Wasm module for server
+loup build --target desktop         # Native desktop app (requires @mode(host.native) or @mode(host.dual))
+loup build --target native          # Native binary (requires @mode(host.native) or @mode(host.dual))
+loup build --target native --lib shared   # Shared library
+loup build --target native --lib static   # Static library
+loup build --target freestanding --arch x86_64   # Freestanding kernel/bare-metal
+loup build --target freestanding --arch aarch64  # Freestanding AArch64
+loup build --target freestanding --arch riscv64 --march rv64imac  # RISC-V
+loup build --debug                  # Include DWARF debug info in output
+loup build --release                # Optimised release build
+loup build --lto thin               # ThinLTO (LLVM backend only)
+loup build --lto full               # Full LTO
+loup build --backend cranelift      # Use Cranelift instead of LLVM
+loup build --arch aarch64 --os linux              # Cross-compile
+loup build --target native --stack-size 4194304   # Set OS stack size to 4 MB (default: platform ABI default)
+loup build --target native --overflow trap         # Trap on fixed-width integer overflow (native/freestanding)
+loup build --target freestanding --panic custom --double-fault reset  # Double-fault policy (freestanding)
+loup build --check                      # Type-check and validate fence syntax; no output produced
 ```
 
-**`loom import-headers`** — Generate Loom `extern native` bindings from C headers:
+`loup build --check` parses and type-checks the entire project, validates template fence syntax (including `stablehlo`, `hlo`, `wgsl`, `metal`, and `glsl` fences), and reports all compile-time errors without producing any output artefact. Exit code is 0 if the project is error-free, non-zero otherwise. Equivalent to a dry-run of `loup build` without writing to disk.
+
+**`loup export-headers`** — Generate C headers from a compiled Loup module:
 
 ```
-loom import-headers --lib sqlite3 /usr/include/sqlite3.h -o bindings/sqlite3.loom
-loom import-headers --lib ssl --lib crypto /usr/include/openssl/ssl.h -o openssl.loom
-loom import-headers --hints openssl.hints /usr/include/openssl/ssl.h -o openssl.loom
+loup export-headers --target native mymodule.loup -o include/mymodule.h
+loup export-headers --target native mymodule.loup -o mymodule.h --lang cpp
 ```
 
-**`loom add <package>[@version]`** — Resolve and add a dependency to `.lmpkg`, update `loom.lock`, and precompile the newly added package's modules to the Wasm cache (§28.7).
-
-**`loom install`** — Install all dependencies recorded in `loom.lock` and precompile each installed module to the Wasm cache. `loom install` is idempotent: packages with up-to-date cache entries are not recompiled.
+**`loup import-headers`** — Generate Loup `extern native` bindings from C headers:
 
 ```
-loom install                    # install + precompile all deps
-loom install --no-precompile    # install source only, skip Wasm cache
-loom install --offline          # use only local cache; error if any dep is missing
-loom install --locked           # CI mode: error if loom.lock would change;
-                                #   ignores [dev-overrides] and LOOMPATH
+loup import-headers --lib sqlite3 /usr/include/sqlite3.h -o bindings/sqlite3.loup
+loup import-headers --lib ssl --lib crypto /usr/include/openssl/ssl.h -o openssl.loup
+loup import-headers --hints openssl.hints /usr/include/openssl/ssl.h -o openssl.loup
 ```
 
-When `loom install` processes `[dev-overrides]` entries, it compiles those packages to the **project-local cache** (`.loom/cache/`) rather than the global cache, so that locally-patched artifacts do not overwrite globally-shared entries. Published dependencies from `loom.lock` are written to the global cache as usual.
+**`loup add <package>[@version]`** — Resolve and add a dependency to `.lppkg`, update `loup.lock`, and precompile the newly added package's modules to the Wasm cache (§28.7).
 
-**`loom test`** — Discover and run test files. Test files match `**/*.test.loom`. Requires the `testing` core package (§13.8).
-
-```
-loom test                              # run all tests in the project
-loom test path/to/file.test.loom       # run a specific test file
-loom test --filter "addition"          # run tests whose name contains the filter string
-loom test --watch                      # re-run on file change
-```
-
-**`loom publish`** — Publish a package to a registry. Requires prior `loom auth login`. If the project's `.lmpkg` contains a `[dev-overrides]` section with any active entries, `loom publish` emits a warning listing the overridden packages and requires explicit confirmation (`--force`) before proceeding. The `[dev-overrides]` section is stripped from the manifest uploaded to the registry.
-
-**`loom auth login`** — Authenticate with a registry and store credentials in the system keychain.
-
-**`loom fmt`** — Format Loom source files using the reference formatter. Rewrites symbol logical operators to their canonical keyword forms: `&&` → `and`, `||` → `or`, `!` → `not` (see §3.7, §28.4).
-
-**`loom check`** — Type-check without executing.
-
-**`loom link <path>`** — Register a local package directory as a `[dev-overrides]` entry in the current project's `.lmpkg`. Reads the `.lmpkg` at `<path>`, adds an entry mapping its package name to that path, and compiles it to the project-local cache (`.loom/cache/`). Idempotent — running `loom link` on an already-linked path updates the cache if the source has changed.
+**`loup install`** — Install all dependencies recorded in `loup.lock` and precompile each installed module to the Wasm cache. `loup install` is idempotent: packages with up-to-date cache entries are not recompiled.
 
 ```
-loom link ../loom-http          # links the package at ../loom-http
-loom link /home/dev/my-utils    # absolute path also accepted
+loup install                    # install + precompile all deps
+loup install --no-precompile    # install source only, skip Wasm cache
+loup install --offline          # use only local cache; error if any dep is missing
+loup install --locked           # CI mode: error if loup.lock would change;
+                                #   ignores [dev-overrides] and LOUPPATH
 ```
 
-**`loom unlink <package-name>`** — Remove the `[dev-overrides]` entry for `<package-name>` from the current project's `.lmpkg` and delete the corresponding project-local cache entry. The package reverts to the version resolved from `loom.lock`.
+When `loup install` processes `[dev-overrides]` entries, it compiles those packages to the **project-local cache** (`.loup/cache/`) rather than the global cache, so that locally-patched artifacts do not overwrite globally-shared entries. Published dependencies from `loup.lock` are written to the global cache as usual.
+
+**`loup test`** — Discover and run test files. Test files match `**/*.test.loup`. Requires the `testing` core package (§13.8).
 
 ```
-loom unlink loom.http
-loom unlink my-utils
+loup test                              # run all tests in the project
+loup test path/to/file.test.loup       # run a specific test file
+loup test --filter "addition"          # run tests whose name contains the filter string
+loup test --watch                      # re-run on file change
 ```
 
-**`loom cache clean`** — Remove all entries from the global Wasm cache (`~/.loom/cache/`). Does not affect the project-local cache.
+**`loup publish`** — Publish a package to a registry. Requires prior `loup auth login`. If the project's `.lppkg` contains a `[dev-overrides]` section with any active entries, `loup publish` emits a warning listing the overridden packages and requires explicit confirmation (`--force`) before proceeding. The `[dev-overrides]` section is stripped from the manifest uploaded to the registry.
 
-**`loom debug attach`** — Connect to a running freestanding debug service (§24.25.8):
+**`loup auth login`** — Authenticate with a registry and store credentials in the system keychain.
+
+**`loup fmt`** — Format Loup source files using the reference formatter. Rewrites symbol logical operators to their canonical keyword forms: `&&` → `and`, `||` → `or`, `!` → `not` (see §3.7, §28.4).
+
+**`loup check`** — Type-check without executing.
+
+**`loup link <path>`** — Register a local package directory as a `[dev-overrides]` entry in the current project's `.lppkg`. Reads the `.lppkg` at `<path>`, adds an entry mapping its package name to that path, and compiles it to the project-local cache (`.loup/cache/`). Idempotent — running `loup link` on an already-linked path updates the cache if the source has changed.
 
 ```
-loom debug attach --uart /dev/ttyUSB0 --baud 115200
-loom debug attach --tcp 192.168.1.100:2345
-loom debug attach --semihosting
-loom debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
+loup link ../loup-http          # links the package at ../loup-http
+loup link /home/dev/my-utils    # absolute path also accepted
+```
+
+**`loup unlink <package-name>`** — Remove the `[dev-overrides]` entry for `<package-name>` from the current project's `.lppkg` and delete the corresponding project-local cache entry. The package reverts to the version resolved from `loup.lock`.
+
+```
+loup unlink loup.http
+loup unlink my-utils
+```
+
+**`loup cache clean`** — Remove all entries from the global Wasm cache (`~/.loup/cache/`). Does not affect the project-local cache.
+
+**`loup debug attach`** — Connect to a running freestanding debug service (§24.25.8):
+
+```
+loup debug attach --uart /dev/ttyUSB0 --baud 115200
+loup debug attach --tcp 192.168.1.100:2345
+loup debug attach --semihosting
+loup debug attach --uart /dev/ttyUSB0 --trace-swo /dev/ttyUSB1
 ```
 
 Reads the portal name table from the target via `QUERY_PORTALS`, presents the portal activation interface, and optionally streams time-travel replay (`READ_REPLAY_BUFFER`). Requires a `--debug` freestanding binary with at least one channel configured (§24.25). See §24.25.8 for the full transport option reference.
 
-**`loom cache clean --local`** — Remove all entries from the project-local cache (`.loom/cache/`) only. Does not affect the global cache.
+**`loup cache clean --local`** — Remove all entries from the project-local cache (`.loup/cache/`) only. Does not affect the global cache.
 
-**`loom cache clean --prune-orphans`** — Remove only global cache entries for packages no longer in `loom.lock`. Add `--local` to also prune the project-local cache.
+**`loup cache clean --prune-orphans`** — Remove only global cache entries for packages no longer in `loup.lock`. Add `--local` to also prune the project-local cache.
 
-**`loom cache info`** — List all cached entries with source hashes, toolchain versions, and sizes. Entries are grouped and labeled by cache tier:
+**`loup cache info`** — List all cached entries with source hashes, toolchain versions, and sizes. Entries are grouped and labeled by cache tier:
 
 ```
-Project-local cache (.loom/cache/):
-  loom.http  2.1.0-dev  [toolchain 1.3.0]  src_hash: a1b2...  312 KB
+Project-local cache (.loup/cache/):
+  loup.http  2.1.0-dev  [toolchain 1.3.0]  src_hash: a1b2...  312 KB
 
-Global cache (~/.loom/cache/):
-  loom.http  2.0.4  [toolchain 1.3.0]  src_hash: c3d4...  308 KB
-  loom.db    1.5.2  [toolchain 1.3.0]  src_hash: e5f6...  204 KB
+Global cache (~/.loup/cache/):
+  loup.http  2.0.4  [toolchain 1.3.0]  src_hash: c3d4...  308 KB
+  loup.db    1.5.2  [toolchain 1.3.0]  src_hash: e5f6...  204 KB
 ```
 
 ### §28.2 Shebang Support
@@ -14658,7 +14658,7 @@ Global cache (~/.loom/cache/):
 Unix-style shebang execution is supported:
 
 ```
-#!/usr/bin/env loom run
+#!/usr/bin/env loup run
 let name = env("USER") ?? "world";
 print(i"Hello, {$ name $}!");
 ```
@@ -14673,7 +14673,7 @@ The reference toolchain provides a REPL for exploratory scripting. The REPL:
 
 ### §28.4 Formatter
 
-The reference formatter shares the parser and rendering rules used by execution. It formats Loom source files to a canonical style. Key formatting rules include:
+The reference formatter shares the parser and rendering rules used by execution. It formats Loup source files to a canonical style. Key formatting rules include:
 
 **Canonical logical operators.** The formatter rewrites symbol logical operators to keyword forms in all positions — expressions, template fences, and condition clauses:
 
@@ -14685,20 +14685,20 @@ The reference formatter shares the parser and rendering rules used by execution.
 | `!!expr` | `not not expr` |
 | `!(a && b)` | `not (a and b)` |
 
-This rewrite is applied unconditionally. Lines annotated with `// loom:allow(symbol-logical-ops)` are exempt from the rewrite but must still parse as valid Loom. The annotation is preserved in the formatted output.
+This rewrite is applied unconditionally. Lines annotated with `// loup:allow(symbol-logical-ops)` are exempt from the rewrite but must still parse as valid Loup. The annotation is preserved in the formatted output.
 
 **Indentation.** The formatter uses 2-space indentation by default. The `indent_type` and `indent` descriptors on template fences are preserved.
 
 **Trailing commas.** The formatter adds trailing commas to multi-line collection literals, function argument lists, and parameter lists.
 
-**Semicolons.** Semicolons are optional in Loom (§3.3). The formatter preserves semicolons exactly as the programmer wrote them — it does not add missing semicolons or remove present ones.
+**Semicolons.** Semicolons are optional in Loup (§3.3). The formatter preserves semicolons exactly as the programmer wrote them — it does not add missing semicolons or remove present ones.
 
 ### §28.5 Language Server
 
 *(This section is non-normative.)*
 
-The Loom reference toolchain ships a Language Server Protocol (LSP) 3.17-compatible
-language server, `loom-lsp`. It integrates with any LSP-capable editor (VS Code,
+The Loup reference toolchain ships a Language Server Protocol (LSP) 3.17-compatible
+language server, `loup-lsp`. It integrates with any LSP-capable editor (VS Code,
 Neovim, Emacs, JetBrains IDEs via the LSP plugin).
 
 **Capabilities provided:**
@@ -14716,21 +14716,21 @@ Neovim, Emacs, JetBrains IDEs via the LSP plugin).
 | `textDocument/codeAction` | Quick-fixes for lint advisories (e.g. `symbol-logical-ops`) |
 | `textDocument/semanticTokens` | Full semantic token classification |
 | `workspace/symbol` | Project-wide symbol search |
-| `loom/portals` | Non-standard: lists active portal names for the current module |
+| `loup/portals` | Non-standard: lists active portal names for the current module |
 
 **Startup.** Start the server with:
 
 ```
-loom lsp              # stdio transport (default, for most editors)
-loom lsp --tcp 7777   # TCP transport
+loup lsp              # stdio transport (default, for most editors)
+loup lsp --tcp 7777   # TCP transport
 ```
 
 **Workspace detection.** The language server searches upward from the opened file
-for a `.lmpkg` manifest to determine the project root and dependency graph.
+for a `.lppkg` manifest to determine the project root and dependency graph.
 Multi-root workspaces are supported.
 
 **Template fence support.** Inside template fences, completions and hover are
-provided for Loom interpolation expressions (`{$ ... $}`). The fence body
+provided for Loup interpolation expressions (`{$ ... $}`). The fence body
 (HTML, CSS, SQL, etc.) is forwarded to an embedded sub-server for that
 language when available.
 
@@ -14738,12 +14738,12 @@ language when available.
 
 *(This section is non-normative.)*
 
-A Loom browser application compiled with `loom build --target browser` produces the following output structure:
+A Loup browser application compiled with `loup build --target browser` produces the following output structure:
 
 ```
 dist/
   index.html          # Minimal HTML shell (generated or user-provided)
-  loom-rt.js          # Loom runtime bootstrap (~30 KB gzipped, versioned filename)
+  loup-rt.js          # Loup runtime bootstrap (~30 KB gzipped, versioned filename)
   app.wasm            # Compiled application module
   app.wasm.br         # Brotli-compressed variant (served when client supports it)
   app.wasm.gz         # Gzip-compressed variant
@@ -14759,48 +14759,48 @@ dist/
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Loom App</title>
-  <!-- Preload hints: fetch Wasm before loom-rt.js has executed -->
+  <title>My Loup App</title>
+  <!-- Preload hints: fetch Wasm before loup-rt.js has executed -->
   <link rel="preload" href="/app.wasm" as="fetch" type="application/wasm" crossorigin>
-  <link rel="modulepreload" href="/loom-rt.1.0.0.js">
+  <link rel="modulepreload" href="/loup-rt.1.0.0.js">
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="/loom-rt.1.0.0.js"></script>
+  <script type="module" src="/loup-rt.1.0.0.js"></script>
 </body>
 </html>
 ```
 
-**Bootstrap sequence.** `loom-rt.js` executes the following steps on page load:
+**Bootstrap sequence.** `loup-rt.js` executes the following steps on page load:
 
 1. **Streaming instantiation.** Fetches `app.wasm` using `WebAssembly.instantiateStreaming()` so browser compilation begins as bytes arrive — download and compilation overlap. Falls back to `WebAssembly.instantiate()` when streaming is unavailable.
 2. **Module initialization.** Runs the Wasm module's start function, executing top-level declarations.
-3. **Event wiring.** Scans the DOM for `data-loom-ev` attributes and registers Wasm event handlers via `addEventListener`.
-4. **Hydration (SSR only).** If `<script id="__loom_state__" type="application/json">` is present, reads the serialized state and initializes signals before mounting. Verifies `data-integrity` hash if present (§19.7).
+3. **Event wiring.** Scans the DOM for `data-loup-ev` attributes and registers Wasm event handlers via `addEventListener`.
+4. **Hydration (SSR only).** If `<script id="__loup_state__" type="application/json">` is present, reads the serialized state and initializes signals before mounting. Verifies `data-integrity` hash if present (§19.7).
 5. **Mount.** Calls the application's entry point (`mount(App(), "#root")`).
-6. **Web Component registration.** Before step 5, `loom-rt.js` calls `customElements.define(name, cls)` for each class annotated with `@webcomponent` in the loaded Wasm module. Registration follows source declaration order within each module and dependency module order across modules. This step occurs after Wasm instantiation (step 1) but before event wiring (step 3) and mount (step 5) to ensure custom elements are defined before any component tree that references them is rendered. The revised bootstrap order is therefore: **instantiate → initialize → register custom elements → wire events → hydrate → mount**.
+6. **Web Component registration.** Before step 5, `loup-rt.js` calls `customElements.define(name, cls)` for each class annotated with `@webcomponent` in the loaded Wasm module. Registration follows source declaration order within each module and dependency module order across modules. This step occurs after Wasm instantiation (step 1) but before event wiring (step 3) and mount (step 5) to ensure custom elements are defined before any component tree that references them is rendered. The revised bootstrap order is therefore: **instantiate → initialize → register custom elements → wire events → hydrate → mount**.
 
-**MIME type requirement.** Wasm modules must be served with `Content-Type: application/wasm` for streaming instantiation to succeed. `loom serve` sets this automatically. Production servers must be configured explicitly — many default configurations serve `.wasm` as `application/octet-stream`, which disables streaming and roughly doubles initialization time.
+**MIME type requirement.** Wasm modules must be served with `Content-Type: application/wasm` for streaming instantiation to succeed. `loup serve` sets this automatically. Production servers must be configured explicitly — many default configurations serve `.wasm` as `application/octet-stream`, which disables streaming and roughly doubles initialization time.
 
 **Minimizing bootstrap latency.** The dominant factors affecting time-to-interactive, in decreasing order of impact:
 
-1. **Wasm module size.** Use `loom build --target browser --release` for an optimized, stripped module. The `--release` flag enables dead-code elimination and Wasm-level optimization. A typical small-to-medium Loom application produces a 100–400 KB gzipped Wasm module. `loom-rt.js` is approximately 30 KB gzipped and is versioned for long-term caching.
+1. **Wasm module size.** Use `loup build --target browser --release` for an optimized, stripped module. The `--release` flag enables dead-code elimination and Wasm-level optimization. A typical small-to-medium Loup application produces a 100–400 KB gzipped Wasm module. `loup-rt.js` is approximately 30 KB gzipped and is versioned for long-term caching.
 
-2. **Brotli compression.** Deploy with Brotli when the server and client support it (all major browsers do). `loom build` produces pre-compressed `app.wasm.br` and `app.wasm.gz` files. Serve the `.br` variant with `Content-Encoding: br` when `Accept-Encoding` includes `br`. Brotli typically reduces size by 15–25% versus gzip.
+2. **Brotli compression.** Deploy with Brotli when the server and client support it (all major browsers do). `loup build` produces pre-compressed `app.wasm.br` and `app.wasm.gz` files. Serve the `.br` variant with `Content-Encoding: br` when `Accept-Encoding` includes `br`. Brotli typically reduces size by 15–25% versus gzip.
 
-3. **Preload hints.** The generated HTML shell includes `<link rel="preload">` for the Wasm module, instructing the browser to fetch it immediately on HTML parse — before `loom-rt.js` has executed — eliminating one network round-trip from the critical path.
+3. **Preload hints.** The generated HTML shell includes `<link rel="preload">` for the Wasm module, instructing the browser to fetch it immediately on HTML parse — before `loup-rt.js` has executed — eliminating one network round-trip from the critical path.
 
-4. **Runtime caching.** `loom-rt.js` uses a versioned filename (e.g., `loom-rt.1.0.0.js`) served with `Cache-Control: max-age=31536000, immutable`. Application Wasm filenames are content-hashed. Returning users skip both downloads entirely.
+4. **Runtime caching.** `loup-rt.js` uses a versioned filename (e.g., `loup-rt.1.0.0.js`) served with `Cache-Control: max-age=31536000, immutable`. Application Wasm filenames are content-hashed. Returning users skip both downloads entirely.
 
 5. **SSR + hydration.** For content-heavy or SEO-sensitive applications, use the SSR path (`ui.web.renderToString`, §19.7). The browser receives meaningful HTML immediately; the Wasm bundle loads in the background and hydrates the rendered tree without a visible layout shift.
 
 6. **Streaming Wasm compilation.** Modern browsers compile Wasm in a background thread while bytes are still downloading, provided the MIME type is correct. This is automatic when the MIME type is set correctly — no developer action required.
 
-**`loom serve` (development server).** The development server:
+**`loup serve` (development server).** The development server:
 
 - Serves `dist/` with correct MIME types including `application/wasm`.
 - Serves `*.wasm.map` files with `Content-Type: application/json` and `Access-Control-Allow-Origin: *` so Chrome DevTools can fetch source maps from any local port.
-- Watches source files and triggers incremental `loom build` on change.
+- Watches source files and triggers incremental `loup build` on change.
 - Sends a reload signal to connected browsers via a lightweight WebSocket after each successful rebuild.
 - Sets `Cache-Control: no-cache` on all responses so rebuilt artifacts are always fresh.
 - When started with `--inspect`, injects a debug bootstrap `<script>` into the served `index.html` that calls `debug.browser.start()` before the application entry point. See §28.6.2.
@@ -14826,58 +14826,58 @@ The following conventions apply to source map serving in both development and pr
 
 **MIME type.** Source map files must be served as `Content-Type: application/json`. Serving as `text/plain` or `application/octet-stream` causes Chrome DevTools to silently ignore the map.
 
-**CORS.** Chrome DevTools fetches source maps from its own internal origin. The server must include `Access-Control-Allow-Origin: *` (or the specific DevTools origin) on source map responses. `loom serve` sets this automatically. Production servers must be configured explicitly.
+**CORS.** Chrome DevTools fetches source maps from its own internal origin. The server must include `Access-Control-Allow-Origin: *` (or the specific DevTools origin) on source map responses. `loup serve` sets this automatically. Production servers must be configured explicitly.
 
-**Inline maps.** `loom serve --inline-source-maps` appends a base64-encoded data URL as the `sourceMappingURL` instead of a separate file. Useful for single-origin development setups where CORS is not desired. Not recommended for production debug builds because inline maps significantly increase Wasm binary size.
+**Inline maps.** `loup serve --inline-source-maps` appends a base64-encoded data URL as the `sourceMappingURL` instead of a separate file. Useful for single-origin development setups where CORS is not desired. Not recommended for production debug builds because inline maps significantly increase Wasm binary size.
 
-**`x-loom-portals` extension field.** When `--debug` is specified, the source map includes a top-level `x-loom-portals` extension field: a JSON object mapping portal name strings to their Wasm byte offsets. Example:
+**`x-loup-portals` extension field.** When `--debug` is specified, the source map includes a top-level `x-loup-portals` extension field: a JSON object mapping portal name strings to their Wasm byte offsets. Example:
 
 ```json
 {
   "version": 3,
-  "sources": ["src/app.loom"],
-  "x-loom-portals": {
+  "sources": ["src/app.loup"],
+  "x-loup-portals": {
     "handlePayment": 4096,
     "onUserLogin": 8192
   }
 }
 ```
 
-The Loom DevTools Extension reads this field to place CDP breakpoints at portal entry points by name.
+The Loup DevTools Extension reads this field to place CDP breakpoints at portal entry points by name.
 
 ### §28.6.2 Debug Server Bootstrap (`--inspect`)
 
-`loom serve --inspect` and `loom build --debug --inspect` activate the browser debug bridge:
+`loup serve --inspect` and `loup build --debug --inspect` activate the browser debug bridge:
 
-**`loom serve --inspect`.** The development server injects the following script block immediately before the closing `</body>` tag of the served `index.html`:
+**`loup serve --inspect`.** The development server injects the following script block immediately before the closing `</body>` tag of the served `index.html`:
 
 ```html
 <script type="module">
-  import { startDebug } from "/loom-rt.1.0.0.js";
+  import { startDebug } from "/loup-rt.1.0.0.js";
   startDebug({ captureLocals: true, maxFrames: 10000 });
 </script>
 ```
 
-`startDebug` is an export of `loom-rt.js` that calls `debug.browser.start()` with the provided config. This wires the `postMessage` bridge before the application entry point runs, ensuring all portal registrations are visible to the Loom DevTools Extension.
+`startDebug` is an export of `loup-rt.js` that calls `debug.browser.start()` with the provided config. This wires the `postMessage` bridge before the application entry point runs, ensuring all portal registrations are visible to the Loup DevTools Extension.
 
-**`loom build --debug --inspect`.** Embeds the `startDebug` call directly in the generated `index.html` shell. This is intended for staging environments where the Loom DevTools Extension should be connectable without running the development server.
+**`loup build --debug --inspect`.** Embeds the `startDebug` call directly in the generated `index.html` shell. This is intended for staging environments where the Loup DevTools Extension should be connectable without running the development server.
 
 **CSP note.** `--inspect` does not require `'unsafe-inline'`. The injected bootstrap is a `<script type="module" src="...">` external reference, not an inline script.
 
-**Production note.** `--inspect` should not be used in production builds. The portal registry and trace event stream expose internal application structure. `loom build --release` without `--inspect` strips all `debug.browser` calls to no-ops.
+**Production note.** `--inspect` should not be used in production builds. The portal registry and trace event stream expose internal application structure. `loup build --release` without `--inspect` strips all `debug.browser` calls to no-ops.
 
 ### §28.7 Module Wasm Cache
 
 *(This section is non-normative.)*
 
-The **module Wasm cache** stores compiled Wasm artifacts for installed package modules, eliminating JIT compilation overhead on subsequent `loom run` invocations. The cache is managed automatically by `loom install` and `loom add`.
+The **module Wasm cache** stores compiled Wasm artifacts for installed package modules, eliminating JIT compilation overhead on subsequent `loup run` invocations. The cache is managed automatically by `loup install` and `loup add`.
 
 **Two-tier cache architecture.** The Wasm cache operates as two independent tiers looked up in order:
 
 | Tier | Location | Written by | Cleared by |
 |------|----------|-----------|------------|
-| Project-local | `.loom/cache/` (relative to project root) | `loom link`, `loom install` for `[dev-overrides]` packages | `loom cache clean --local` |
-| Global | `~/.loom/cache/` (or `$LOOM_CACHE_DIR`) | `loom install` for registry packages | `loom cache clean` |
+| Project-local | `.loup/cache/` (relative to project root) | `loup link`, `loup install` for `[dev-overrides]` packages | `loup cache clean --local` |
+| Global | `~/.loup/cache/` (or `$LOUP_CACHE_DIR`) | `loup install` for registry packages | `loup cache clean` |
 
 On every cache lookup, the project-local tier is checked first. If a valid entry exists there, it is used and the global tier is not consulted. Otherwise, the global tier is checked.
 
@@ -14885,48 +14885,48 @@ On every cache lookup, the project-local tier is checked first. If a valid entry
 
 ```
 # Project-local cache
-.loom/cache/
-  loom.http/
+.loup/cache/
+  loup.http/
     2.1.0-dev/
-      1.3.0/                     # loom toolchain version
+      1.3.0/                     # loup toolchain version
         net_http.wasm            # compiled module artifact
         net_http.hash            # SHA-256 of the source used to compile
-        net_http.lmpkg.sig       # absent for dev-override packages
+        net_http.lppkg.sig       # absent for dev-override packages
 
 # Global cache
-~/.loom/cache/
-  loom.http/
+~/.loup/cache/
+  loup.http/
     2.0.4/
       1.3.0/
         net_http.wasm
         net_http.hash
-        net_http.lmpkg.sig       # signature sidecar (§13.5)
+        net_http.lppkg.sig       # signature sidecar (§13.5)
 ```
 
 **Cache key.** A cache entry is valid if and only if:
 
 1. The package name and version match.
-2. The Loom toolchain version matches (ABI-breaking toolchain changes invalidate all entries).
+2. The Loup toolchain version matches (ABI-breaking toolchain changes invalidate all entries).
 3. The SHA-256 hash of the module's source files matches the `.hash` sidecar.
 
-`loom run` checks all three conditions before deciding whether to JIT-compile or instantiate from cache. The check requires a single file read (the `.hash` sidecar) and is fast.
+`loup run` checks all three conditions before deciding whether to JIT-compile or instantiate from cache. The check requires a single file read (the `.hash` sidecar) and is fast.
 
-**Cache population.** `loom install` compiles each installed module's source to Wasm using the same optimizer settings as `loom build --target cli --release`, stores the result in the appropriate cache tier, and writes the source hash sidecar:
+**Cache population.** `loup install` compiles each installed module's source to Wasm using the same optimizer settings as `loup build --target cli --release`, stores the result in the appropriate cache tier, and writes the source hash sidecar:
 
-- **Registry packages** (resolved from `loom.lock`) → written to the global cache.
-- **Dev-override packages** (from `[dev-overrides]` or `loom link`) → written to the project-local cache.
+- **Registry packages** (resolved from `loup.lock`) → written to the global cache.
+- **Dev-override packages** (from `[dev-overrides]` or `loup link`) → written to the project-local cache.
 
-Precompilation runs in parallel across modules using all available CPU cores. On a modern machine with a warm build cache, `loom install` for a medium-sized project (20–50 packages) typically completes in under 10 seconds.
+Precompilation runs in parallel across modules using all available CPU cores. On a modern machine with a warm build cache, `loup install` for a medium-sized project (20–50 packages) typically completes in under 10 seconds.
 
-**`LOOMPATH` packages bypass the cache entirely** and always use the JIT pipeline. They are assumed to change frequently and cache invalidation on every save would exceed the benefit. See §13.9.
+**`LOUPPATH` packages bypass the cache entirely** and always use the JIT pipeline. They are assumed to change frequently and cache invalidation on every save would exceed the benefit. See §13.9.
 
 **Cache invalidation.** A cache entry is invalidated when:
 
 - The module's source changes (hash mismatch).
-- The Loom toolchain is upgraded (toolchain version component of the cache path changes).
-- `loom cache clean` (global) or `loom cache clean --local` (project-local) is run explicitly.
+- The Loup toolchain is upgraded (toolchain version component of the cache path changes).
+- `loup cache clean` (global) or `loup cache clean --local` (project-local) is run explicitly.
 
-Cache entries for removed packages are not automatically cleaned — use `loom cache clean --prune-orphans` to remove entries for packages no longer in `loom.lock`.
+Cache entries for removed packages are not automatically cleaned — use `loup cache clean --prune-orphans` to remove entries for packages no longer in `loup.lock`.
 
 **Interaction with `prefer compiled`.** The fallback resolution algorithm (§13.7) checks both cache tiers (project-local first, then global) as part of its compiled-artefact search, before searching the source directory. A cache hit at either tier satisfies `prefer compiled`.
 
@@ -14935,10 +14935,10 @@ Cache entries for removed packages are not automatically cleaned — use `loom c
 **.gitignore recommendation.** The following entries are recommended for projects using version control:
 
 ```
-.loom/cache/
+.loup/cache/
 ```
 
-The global cache (`~/.loom/cache/`) is never committed — it lives outside the project tree. The project-local cache contains compiled artifacts that are fully reproducible from source and should not be committed.
+The global cache (`~/.loup/cache/`) is never committed — it lives outside the project tree. The project-local cache contains compiled artifacts that are fully reproducible from source and should not be committed.
 
 
 ### §28.8 Project-Local Cache and Development Isolation
@@ -14947,14 +14947,14 @@ The global cache (`~/.loom/cache/`) is never committed — it lives outside the 
 
 This section explains the design rationale for the two-tier cache and development isolation workflow.
 
-**The problem.** The global Wasm cache (`~/.loom/cache/`) is shared across all projects on the machine. Its cache key is content-addressed: identical source + toolchain version always produces an identical entry. This means multiple projects can share cached artifacts for common dependencies with no duplication penalty.
+**The problem.** The global Wasm cache (`~/.loup/cache/`) is shared across all projects on the machine. Its cache key is content-addressed: identical source + toolchain version always produces an identical entry. This means multiple projects can share cached artifacts for common dependencies with no duplication penalty.
 
-The problem arises during **package development**: when a developer is actively modifying `loom.http` (for example) and that package has the same `name` and `version` as an entry already in the global cache, writing a newly-compiled artifact to the global cache would corrupt the entry that every other project on the machine depends on. A colleague's unrelated project that imports `loom.http@2.1.0` would silently pick up a partially-working development build.
+The problem arises during **package development**: when a developer is actively modifying `loup.http` (for example) and that package has the same `name` and `version` as an entry already in the global cache, writing a newly-compiled artifact to the global cache would corrupt the entry that every other project on the machine depends on. A colleague's unrelated project that imports `loup.http@2.1.0` would silently pick up a partially-working development build.
 
-**The solution.** Rather than replicating Python's full virtual environment model (which duplicates the entire stdlib and toolchain per project), Loom scopes isolation to the minimum needed:
+**The solution.** Rather than replicating Python's full virtual environment model (which duplicates the entire stdlib and toolchain per project), Loup scopes isolation to the minimum needed:
 
-- `[dev-overrides]` packages write to `.loom/cache/` (project-local) only.
-- `LOOMPATH` packages bypass the cache entirely and use JIT.
+- `[dev-overrides]` packages write to `.loup/cache/` (project-local) only.
+- `LOUPPATH` packages bypass the cache entirely and use JIT.
 - All other packages continue to use the global cache.
 
 The project-local cache uses the same content-addressed key structure as the global cache, so the toolchain can find and validate entries using the same code path.
@@ -14963,25 +14963,25 @@ The project-local cache uses the same content-addressed key structure as the glo
 
 | How package is provided | Cache written | Cache read priority | Signature verified |
 |------------------------|---------------|--------------------|--------------------|
-| `loom.lock` (registry) | Global | Project-local, then global | Yes |
-| `[dev-overrides]` / `loom link` | Project-local | Project-local only | No (local source) |
-| `LOOMPATH` | None (JIT) | Not cached | No (local source) |
+| `loup.lock` (registry) | Global | Project-local, then global | Yes |
+| `[dev-overrides]` / `loup link` | Project-local | Project-local only | No (local source) |
+| `LOUPPATH` | None (JIT) | Not cached | No (local source) |
 
 **Starting a development session:**
 
 ```sh
-# Working on loom.http locally
-git clone https://github.com/loom-lang/loom-http ../loom-http
+# Working on loup.http locally
+git clone https://github.com/loup-lang/loup-http ../loup-http
 cd my-project
-loom link ../loom-http     # adds to [dev-overrides], compiles to .loom/cache/
+loup link ../loup-http     # adds to [dev-overrides], compiles to .loup/cache/
 
-loom run src/main.loom     # picks up local loom.http from .loom/cache/
+loup run src/main.loup     # picks up local loup.http from .loup/cache/
 
 # When done:
-loom unlink loom.http      # reverts to registry version from loom.lock
+loup unlink loup.http      # reverts to registry version from loup.lock
 ```
 
-**CI/CD.** In CI, always use `loom install --locked`. This ignores `[dev-overrides]`, `LOOMPATH`, and any local state, ensuring a fully reproducible build from `loom.lock` only.
+**CI/CD.** In CI, always use `loup install --locked`. This ignores `[dev-overrides]`, `LOUPPATH`, and any local state, ensuring a fully reproducible build from `loup.lock` only.
 
 
 
@@ -14997,17 +14997,17 @@ The reference toolchain provides language-server diagnostics (LSP) for IDE integ
 
 ### §28.9 Hardware Management Commands
 
-*(Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
+*(Full specification moved to the [Loup Packages Reference](loup-packages-reference-v1_11.md).)*
 
-Hardware management commands (`loom hardware detect`, `loom hardware compile`,
-`loom hardware list`) are available when hardware backend packages are
+Hardware management commands (`loup hardware detect`, `loup hardware compile`,
+`loup hardware list`) are available when hardware backend packages are
 installed.  See the Packages Reference §28.9 for the complete CLI reference.
 
 ## §29 Progressive Disclosure
 
 *(This section is non-normative.)*
 
-Loom is a single language and semantic model. There are no separate beginner and advanced dialects. However, the language is designed for progressive adoption with a three-tier learning path:
+Loup is a single language and semantic model. There are no separate beginner and advanced dialects. However, the language is designed for progressive adoption with a three-tier learning path:
 
 ### Tier 1: Core Scripting
 
@@ -15079,14 +15079,14 @@ Loom is a single language and semantic model. There are no separate beginner and
 
 *(This section is non-normative.)*
 
-The following features are under consideration for future versions of the Loom specification:
+The following features are under consideration for future versions of the Loup specification:
 
-- **WCET and timing constraints.** Worst-case execution time analysis, hard real-time deadline modeling, and timing-constraint annotations for safety-critical targets (automotive, medical, aviation) are explicitly out of scope for the Loom language specification. These capabilities belong in external static analysis tooling (e.g., a future `loom analyze --wcet` command) that operates on the compiled binary rather than the source language. The specification will document WCET tool integration points when such tooling is standardized.
+- **WCET and timing constraints.** Worst-case execution time analysis, hard real-time deadline modeling, and timing-constraint annotations for safety-critical targets (automotive, medical, aviation) are explicitly out of scope for the Loup language specification. These capabilities belong in external static analysis tooling (e.g., a future `loup analyze --wcet` command) that operates on the compiled binary rather than the source language. The specification will document WCET tool integration points when such tooling is standardized.
 
 - **Incremental compilation cache.** Fine-grained caching of compilation artifacts for faster rebuilds.
-- **`loom lsp` improvements.** ARC cycle detection code actions, operator interface scaffolding, HTML context escaping hints.
+- **`loup lsp` improvements.** ARC cycle detection code actions, operator interface scaffolding, HTML context escaping hints.
 - **`ui.desktop` rendering backend reference implementations.** The `ui.desktop` API contract is specified; Skia, WebGPU, and platform-native widget backends are reference implementations under active development.
-- **WASI target.** `loom build --target wasi` for non-browser Wasm hosts.
+- **WASI target.** `loup build --target wasi` for non-browser Wasm hosts.
 - **`Url` type extensions.** `Url.parse`, relative URL resolution, query parameter construction.
 - **`SafeHtml` builder API.** Fluent programmatic HTML construction without template fences.
 - **Effect system.** Tracking side effects in the type system for purity guarantees.
@@ -15102,22 +15102,22 @@ The following features are under consideration for future versions of the Loom s
 
 - **Async work-stealing tuning.** Adaptive work-stealing strategies and executor affinity hints for NUMA-aware scheduling.
 - **Cycle-tolerant class kind details.** (`traced class` entry above.) Design details: an opt-in class modifier that commits to tracing-GC semantics in scripted and web modes — cycles are automatically reclaimed, finalizer timing is non-deterministic, scripted-only deployment. Deferred from v1.18 pending evidence of user demand beyond what manual `weak`-based cycle breaking provides.
-- **User-module incremental compilation cache.** Persistent caching of compiled Wasm artifacts for user-authored modules (not just installed packages) across `loom run` invocations.
+- **User-module incremental compilation cache.** Persistent caching of compiled Wasm artifacts for user-authored modules (not just installed packages) across `loup run` invocations.
 - **`net.ws` browser target.** Native `net.ws` client support on the `browser` target (currently uses `lang.interop.js` bridge).
 - **`ThreadLocal[T]` on Wasm.** Now partially addressed in v1.18 via `SharedRef[T]` and shared-arena allocation; a full `ThreadLocal` emulation remains future work for cases where per-context storage is specifically desired rather than shared storage.
-- **`loom.db` driver ecosystem.** Reference driver implementations for PostgreSQL, SQLite, and MySQL under the `loom.db.*` namespace.
-- **`loom.ai` ecosystem.** Expand provider sub-packages and add `loom.ai.embeddings`, `loom.ai.vision`, and structured agent-loop primitives built on the actor model (§17.6) and portal debug infrastructure (§6.7).
+- **`loup.db` driver ecosystem.** Reference driver implementations for PostgreSQL, SQLite, and MySQL under the `loup.db.*` namespace.
+- **`loup.ai` ecosystem.** Expand provider sub-packages and add `loup.ai.embeddings`, `loup.ai.vision`, and structured agent-loop primitives built on the actor model (§17.6) and portal debug infrastructure (§6.7).
 - **TPU `ptx`-equivalent fence.** A `triton` or `mosaic` fence descriptor for authoring TPU kernels in a higher-level IR without writing raw StableHLO.
 - **`native.hal` NUMA-aware scheduling.** Affinity hints for multi-socket CPU + multi-GPU + multi-TPU systems.
-- **`loom.backend.rocm`.** AMD ROCm/HIP backend for AMD GPU ML workloads (alternative to Vulkan for compute-heavy tasks).
+- **`loup.backend.rocm`.** AMD ROCm/HIP backend for AMD GPU ML workloads (alternative to Vulkan for compute-heavy tasks).
 - **Int4 / FP8 dtypes.** `DType.Int4`, `DType.Float8E4M3`, `DType.Float8E5M2` for next-generation quantised inference on NVIDIA Hopper, AMD CDNA3, and TPU v5+.
-- **Distributed tensor ops.** `loom.tensor.distributed` — multi-device tensor sharding, all-reduce, and pipeline parallelism primitives.
-- **`loom.backend.tpu.pjrt` auto-discovery.** Automatic detection of third-party PJRT plugins from standard install paths without requiring `PJRT_PLUGIN_PATH`.
+- **Distributed tensor ops.** `loup.tensor.distributed` — multi-device tensor sharding, all-reduce, and pipeline parallelism primitives.
+- **`loup.backend.tpu.pjrt` auto-discovery.** Automatic detection of third-party PJRT plugins from standard install paths without requiring `PJRT_PLUGIN_PATH`.
 - **Streaming serialization.** Extension of §32.10 `FormatDriver` with full streaming contracts — chunked encoding, progressive validation, partial-value emit, and back-pressure handling. The `StreamingFormat` sub-interface is declared in v1.18 but its contract is thin; a future revision pins down streaming semantics for each format-driver category.
-- **IDL / schema generation.** A `loom schema export --format proto|fbs|openapi|...` command that produces wire-format schema files from `Serializable` types. Enables cross-language interop where the peer ecosystem consumes a schema file (Python/TypeScript/Rust) rather than importing Loom's type graph directly.
-- **Cross-language type-mapping registry.** A normative mapping from Loom types (`int32`, `decimal`, `Instant`, `Option[T]`, `Result[T, E]`, etc.) to equivalent types in Python, TypeScript, Rust, Go, and JVM languages, to aid interop library authors.
-- **RPC library (`loom.rpc`).** A first-party package building on §32 for request/response framing, timeout/retry semantics, bidirectional streaming, service discovery, and automatic exception forwarding via `RemoteException`. Will integrate with `debug.mcp` for agent-accessible RPC inspection.
-- **Content-addressed data store (`loom.content`).** Built on the `deterministic: true` mode of §32.10 `EncodeConfig` — a persistent key-value store keyed by blake3 hash of the canonicalised `Value` representation. Enables cache-like semantics, Merkle-style data structures, and signed-data workflows without per-project encoding conventions.
+- **IDL / schema generation.** A `loup schema export --format proto|fbs|openapi|...` command that produces wire-format schema files from `Serializable` types. Enables cross-language interop where the peer ecosystem consumes a schema file (Python/TypeScript/Rust) rather than importing Loup's type graph directly.
+- **Cross-language type-mapping registry.** A normative mapping from Loup types (`int32`, `decimal`, `Instant`, `Option[T]`, `Result[T, E]`, etc.) to equivalent types in Python, TypeScript, Rust, Go, and JVM languages, to aid interop library authors.
+- **RPC library (`loup.rpc`).** A first-party package building on §32 for request/response framing, timeout/retry semantics, bidirectional streaming, service discovery, and automatic exception forwarding via `RemoteException`. Will integrate with `debug.mcp` for agent-accessible RPC inspection.
+- **Content-addressed data store (`loup.content`).** Built on the `deterministic: true` mode of §32.10 `EncodeConfig` — a persistent key-value store keyed by blake3 hash of the canonicalised `Value` representation. Enables cache-like semantics, Merkle-style data structures, and signed-data workflows without per-project encoding conventions.
 - **Partial deserialization / lazy fields.** Annotation (`@lazy`) for fields whose deserialization is deferred until first access. Reduces deserialization cost for large values where most fields are never read.
 - **Cycle-tolerant class kind (`traced class`).** Previously noted: an opt-in class modifier that commits to tracing-GC semantics in scripted and web modes for cyclic data structures.
 
@@ -15126,7 +15126,7 @@ The following features are under consideration for future versions of the Loom s
 
 ## §31 Hardware Backend Lifecycle
 
-*(Non-normative. Full specification moved to the [Loom Packages Reference](loom-packages-reference-v1_11.md).)*
+*(Non-normative. Full specification moved to the [Loup Packages Reference](loup-packages-reference-v1_11.md).)*
 
 The hardware backend lifecycle (detection, compilation, registration, staleness
 policy) is described in the Packages Reference §31.
@@ -15139,11 +15139,11 @@ libraries build upon. This section does NOT specify any particular wire
 format — those are shipped as separate packages. It also does NOT specify
 an RPC protocol — that is left to future work. The goal of this chapter is
 to fix the shape of the serialization surface so that all future
-serialization work in the Loom ecosystem is interoperable.)*
+serialization work in the Loup ecosystem is interoperable.)*
 
 ### §32.1 Overview and Design Principles
 
-Loom's serialization foundation rests on six design principles:
+Loup's serialization foundation rests on six design principles:
 
 1. **Trait-based, not reflection-based.** Types opt into serialization by
    implementing `Serializable` and/or `Deserializable`. The compiler can
@@ -15207,7 +15207,7 @@ The foundation does NOT specify:
 
 Every `Serializable` type converts to and from a value of type `core.serialization.Value`:
 
-```loom
+```loup
 namespace core.serialization;
 
 pub enum TemporalKind {
@@ -15251,7 +15251,7 @@ pub enum Value {
 
 **Helper methods:**
 
-```loom
+```loup
 namespace core.serialization;
 
 class Value {
@@ -15286,7 +15286,7 @@ pub enum ValueKind {
 
 Two trait interfaces form the core contract:
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface Serializable {
@@ -15318,7 +15318,7 @@ pub interface Deserializable {
 ```
 
 **Self-type in `Deserializable`.** `Self` refers to the implementing type.
-This is the only place in the Loom type system where `Self` appears as a
+This is the only place in the Loup type system where `Self` appears as a
 return type of a static method; the compiler emits the appropriate
 dispatch to the concrete implementation.
 
@@ -15351,7 +15351,7 @@ with partially-working serialization.
 `Serializable` (e.g., external types from packages the author doesn't own),
 users provide adapters:
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface SerializationAdapter[T] {
@@ -15390,7 +15390,7 @@ For the common case — classes and structs whose fields are all
 implementations when the type declares `implements Serializable`,
 `implements Deserializable`, or both:
 
-```loom
+```loup
 class User implements Serializable, Deserializable {
   let id: string;
   let email: string;
@@ -15445,7 +15445,7 @@ the subclass's own fields. For polymorphic dispatch, the subclass's
 the conditional-`Sendable` mechanism (§17.8.1). Declare the conditional
 implementation with a `where` clause:
 
-```loom
+```loup
 class Box[T] : Any
   implements Serializable   where T: Serializable,
   implements Deserializable where T: Deserializable
@@ -15465,7 +15465,7 @@ Under the conditional implementation:
 generic type may be constrained by `where` to apply only for certain type
 argument combinations:
 
-```loom
+```loup
 class Box[T] implements Serializable where T: Serializable,
                     implements Deserializable where T: Deserializable {
   pub let value: T;
@@ -15498,17 +15498,17 @@ scoped name that identifies the type on the wire. The canonical form is:
 ```
 
 **Examples:**
-- `loom.http/errors/HttpConnectionError@2`
+- `loup.http/errors/HttpConnectionError@2`
 - `myapp/models/User@1`
-- `loom.stdlib/core/Option@1`
+- `loup.stdlib/core/Option@1`
 
 **Field meanings:**
 
-- `<package-name>` — the package name from `.lmpkg`. For stdlib types,
-  this is `loom.stdlib`. For user-project types with no published package
+- `<package-name>` — the package name from `.lppkg`. For stdlib types,
+  this is `loup.stdlib`. For user-project types with no published package
   (running locally), this is `_local_` followed by the first 16 lowercase
   hex characters of SHA-256 applied to the absolute path of the project's
-  `.lmpkg` file — e.g., `_local_3a7b9c2d4e6f1a8b`. This prevents URI
+  `.lppkg` file — e.g., `_local_3a7b9c2d4e6f1a8b`. This prevents URI
   collisions when developers share serialized data across machines with
   independent projects, at the cost of a URI that changes if the project
   moves on disk. Packages that eventually publish (assign a real package
@@ -15516,7 +15516,7 @@ scoped name that identifies the type on the wire. The canonical form is:
   is intentional; users who need wire stability across the publish boundary
   declare `@serializationId` explicitly from the start.
 - `<module-path>` — dotted path from package root to the declaring module,
-  e.g. `errors` for a module at `src/errors.loom` or `net.http.errors` for
+  e.g. `errors` for a module at `src/errors.loup` or `net.http.errors` for
   nested modules.
 - `<type-name>` — the declared type name.
 - `<major-version>` — a monotonically increasing integer matching the
@@ -15531,7 +15531,7 @@ explicitly when making breaking changes (see §32.8).
 for cross-language interop or for renaming a type without breaking
 wire compatibility:
 
-```loom
+```loup
 @serializationId("com.example.auth/User@3")
 class User implements Serializable, Deserializable {
   // ...
@@ -15574,7 +15574,7 @@ type opts into polymorphism in one of two ways:
 class and all its subclasses as polymorphic. Serialized instances are
 wrapped in `Value.Tagged` carrying the dynamic type's URI:
 
-```loom
+```loup
 @polymorphic
 class Shape implements Serializable, Deserializable {
   let color: string;
@@ -15612,7 +15612,7 @@ serialized `Value.Map` as a named field rather than wrapping in
 `Value.Tagged`. This matches how many wire formats (Protobuf `oneof`,
 JSON discriminated unions) conventionally represent polymorphism:
 
-```loom
+```loup
 @tagged("kind")
 class Event implements Serializable, Deserializable {
   let timestamp: Instant;
@@ -15666,7 +15666,7 @@ The following annotations control per-field serialization behavior:
 **`@serialField(name: string)`** — Alias for `@alias`; overrides the wire
 name of a field. Useful for matching external schemas or legacy data.
 
-```loom
+```loup
 class User implements Serializable, Deserializable {
   @serialField("user_id")
   let id: string;
@@ -15681,7 +15681,7 @@ deserializer accepts for a field. The primary serialized name remains the
 field's declared name (unless `@serialField` also applies). Used during
 schema migrations.
 
-```loom
+```loup
 class User implements Serializable, Deserializable {
   @alias("username", "user_name")    // accepts both on read
   let name: string;                   // writes as "name"
@@ -15766,7 +15766,7 @@ type doesn't know about, the behavior depends on `@strictSchema`:
 
 **Migration helpers.** The stdlib provides `core.serialization.migrate`:
 
-```loom
+```loup
 namespace core.serialization;
 
 pub func migrate[T: Deserializable](
@@ -15780,7 +15780,7 @@ pub func migrate[T: Deserializable](
 receiver encounters a serialized value with the old URI. The author of
 the new type registers a migration function via `@migrateFrom`:
 
-```loom
+```loup
 @serializationId("myapp/User@2")
 @migrateFrom("myapp/User@1", migrateUserV1)
 class User implements Serializable, Deserializable {
@@ -15820,7 +15820,7 @@ with:
 
 **StackFrame serialization.** `StackFrame` is a struct:
 
-```loom
+```loup
 namespace core;
 
 pub struct StackFrame implements Serializable, Deserializable {
@@ -15842,7 +15842,7 @@ encounters a `Value.Tagged` whose `typeUri` refers to a `BaseException`
 subclass that is not registered as `Deserializable` on the receiver, it
 produces a `RemoteException` instance:
 
-```loom
+```loup
 namespace core;
 
 pub class RemoteException : Exception {
@@ -15862,7 +15862,7 @@ pub class RemoteException : Exception {
   `BaseException` — which ARE always reconstructed because they are part
   of the root exception contract.
 
-This design means: **a Loom receiver can always debug a remote exception
+This design means: **a Loup receiver can always debug a remote exception
 even from a language or package it has never heard of.** The type URI tells
 it what was thrown, the message tells it why, the cause chain shows the
 upstream failure, and the stack trace shows where it came from.
@@ -15903,10 +15903,10 @@ subclass.
 
 A **format driver** is a type that converts between `Value` and a specific
 wire format (JSON, MessagePack, CBOR, etc.). Format drivers live in
-separate packages (e.g., `loom.format.json`); the language foundation
+separate packages (e.g., `loup.format.json`); the language foundation
 specifies only the interface they implement.
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface FormatDriver {
@@ -15961,7 +15961,7 @@ pub enum UnknownTypeBehavior {
 **Convenience functions.** The stdlib provides top-level helpers that
 accept a driver as a generic parameter:
 
-```loom
+```loup
 namespace core.serialization;
 
 pub func serialize[T: Serializable, D: FormatDriver](
@@ -15981,8 +15981,8 @@ pub func roundtrip[T: Serializable + Deserializable, D: FormatDriver](
 
 Example:
 
-```loom
-from loom.format.json import (JsonFormat);
+```loup
+from loup.format.json import (JsonFormat);
 from core.serialization import (serialize, deserialize);
 
 let user = User(id: "u42", email: "alice@example.com");
@@ -15993,10 +15993,10 @@ let back: User = deserialize[User, JsonFormat](wire);
 **Format driver compliance.** A format driver package declares compliance
 with the foundation by declaring `implements FormatDriver` on its driver
 type and passing the foundation's conformance test suite (published as
-part of the Loom toolchain). A compliant driver guarantees:
+part of the Loup toolchain). A compliant driver guarantees:
 
 - Round-trip fidelity for all `Value` variants the format can natively represent.
-- Deterministic output when `deterministic: true` is specified (same input produces byte-identical output across platforms, architectures, and Loom versions).
+- Deterministic output when `deterministic: true` is specified (same input produces byte-identical output across platforms, architectures, and Loup versions).
 - Depth and size limits are enforced and produce clean errors on violation.
 - Sensitive-field handling honors the `SensitiveMode` configuration.
 
@@ -16244,7 +16244,7 @@ protocol (e.g. a content-addressed dedup layer) above the foundation.
 | `bnot` | §3.7, §5.1 | Bitwise NOT operator |
 | `noescape` | §4.4, §23.4.1 | Function type modifier |
 
-**Annotations** — Compile-time annotations recognised by the Loom toolchain:
+**Annotations** — Compile-time annotations recognised by the Loup toolchain:
 
 | Annotation | Section | Description |
 |---|---|---|
@@ -16361,7 +16361,7 @@ protocol (e.g. a content-addressed dedup layer) above the foundation.
 
 ## Appendix C: Built-in Type Index
 
-This appendix lists built-in language types only.  Standard library types are indexed in the [Loom Standard Library Reference](loom-stdlib-reference-v1_18.md) Appendix C.  Package types are indexed in the [Loom Packages Reference](loom-packages-reference-v1_11.md) Appendix C.
+This appendix lists built-in language types only.  Standard library types are indexed in the [Loup Standard Library Reference](loup-stdlib-reference-v1_18.md) Appendix C.  Package types are indexed in the [Loup Packages Reference](loup-packages-reference-v1_11.md) Appendix C.
 
 
 ### Primitive Types

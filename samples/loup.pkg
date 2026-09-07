@@ -1,8 +1,8 @@
-# loom.pkg — sample manifest for grammar verification (Loom v1.18 §13.3, §13.5b)
+# loup.pkg — sample manifest for grammar verification (Loup v1.18 §13.3, §13.5b)
 
 package              my-app
 version              1.4.0
-loom                 ">=1.18"
+loup                 ">=1.18"
 shared_abi_version   1
 
 [deps]

@@ -1,5 +1,5 @@
 // ============================================================================
-// Portal Breakpoints Provider — Tree view for managing Loom portal breakpoints
+// Portal Breakpoints Provider — Tree view for managing Loup portal breakpoints
 // ============================================================================
 
 import * as vscode from 'vscode';
@@ -39,7 +39,7 @@ export class PortalBreakpointsProvider implements vscode.TreeDataProvider<Portal
     );
     item.contextValue = element.enabled ? 'portalActive' : 'portalInactive';
     item.command = {
-      command: 'loom.togglePortalBreakpoint',
+      command: 'loup.togglePortalBreakpoint',
       title: 'Toggle Portal Breakpoint',
       arguments: [element],
     };

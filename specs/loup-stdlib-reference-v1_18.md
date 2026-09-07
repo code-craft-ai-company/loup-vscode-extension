@@ -1,17 +1,17 @@
-# Loom Standard Library Reference v1.18
+# Loup Standard Library Reference v1.18
 
 **Status:** Release
 **Version:** 1.18.0
 **Date:** 2026-04-20
 **Supersedes:** 1.10.0 (placeholder)
-**Scope:** Standard-library modules that ship with the Loom runtime — no
-  `loom install` required. Types, functions, and classes in this document
+**Scope:** Standard-library modules that ship with the Loup runtime — no
+  `loup install` required. Types, functions, and classes in this document
   are available in every execution mode except where a mode restriction is
   explicitly noted.
 
 **Related documents:**
-- [Loom Language Reference v1.18](loom-language-reference-v1_18.md)
-- [Loom Packages Reference v1.11](loom-packages-reference-v1_11.md)
+- [Loup Language Reference v1.18](loup-language-reference-v1_18.md)
+- [Loup Packages Reference v1.11](loup-packages-reference-v1_11.md)
 
 **Note.** This document specifies the stdlib surface normatively introduced
 by v1.18 — specifically the shared-memory concurrency primitives (§17b of
@@ -78,7 +78,7 @@ and behaviors.
 
 ### §21.1.1 `Shareable` Marker Trait
 
-```loom
+```loup
 namespace core;
 
 pub interface Shareable extends Sendable {}
@@ -97,7 +97,7 @@ the derivation rules is a compile-time error (`E_SHAREABLE_DERIVATION_FAILED`).
 
 ### §21.1.2 `SharedBuffer[T]`
 
-```loom
+```loup
 namespace core;
 
 pub shared class SharedBuffer[T: Shareable] {
@@ -143,7 +143,7 @@ obtain a zero-copy view.
 
 ### §21.1.3 `SharedArray[T]`
 
-```loom
+```loup
 namespace core;
 
 pub shared class SharedArray[T: Shareable] {
@@ -181,7 +181,7 @@ promoted to buffers with shared backing if implementation allows.
 
 ### §21.1.4 `SharedArena`
 
-```loom
+```loup
 namespace core;
 
 pub shared class SharedArena {
@@ -223,7 +223,7 @@ semantics mean `SharedRef[T]` is copied (with an atomic refcount increment)
 when assigned, passed, or returned — matching Rust's `Arc<T>` and Swift's
 managed reference semantics.
 
-```loom
+```loup
 namespace core;
 
 // T: shared class is a class-kind bound — see Language Reference §12.
@@ -263,13 +263,13 @@ companion object in the same arena as an existing reference.
 
 ### §21.1.6 `WeakRef[T]` and `SharedWeakRef[T]`
 
-Loom provides two weak reference value types, one per class memory
+Loup provides two weak reference value types, one per class memory
 strategy. Both are **value types** — struct-like handles — and are
 idiomatically declared via the `weak` field qualifier (§8) within class
 bodies. The standalone types below are used for locals, parameters, and
 generic containers.
 
-```loom
+```loup
 namespace core;
 
 // Weak reference to a local class instance.
@@ -315,13 +315,13 @@ returns `Some` only if they match.
 ## §21.2 `core.atomic` — Atomic Operations
 
 *(This section is normative. Imports from `core.atomic` are not required in
-Loom scope — the functions are accessible as `core.atomic.atomicLoad`, etc.
+Loup scope — the functions are accessible as `core.atomic.atomicLoad`, etc.
 Short aliases may be imported explicitly: `from core.atomic import (fetchAdd,
 compareExchange);`.)*
 
 ### §21.2.1 `Ordering` Enum
 
-```loom
+```loup
 namespace core.atomic;
 
 pub enum Ordering {
@@ -368,7 +368,7 @@ integer of equivalent width before the atomic operation.
 
 ### §21.2.3 `Atomic[T]` Cell
 
-```loom
+```loup
 namespace core.atomic;
 
 // Inline value type — laid out inline when embedded as a field of a
@@ -396,7 +396,7 @@ it is represented as a one-element `SharedArray[T]` plus helper methods.
 
 **Use case.** `Atomic[T]` is idiomatic for fields of `shared class`:
 
-```loom
+```loup
 shared class Counter {
   let value: Atomic[int64];
 
@@ -432,7 +432,7 @@ allocated in a specific arena.)*
 
 ### §21.3.1 `SharedMutex[T]`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedMutex[T: Shareable] {
@@ -484,7 +484,7 @@ may use `lockRecover()` to acquire despite poisoning.
 **Guard scope.** The `MutexGuard[T]` returned by `lock()` is intended to be
 used within a narrow lexical scope:
 
-```loom
+```loup
 let guard = await myMutex.lock();
 guard.edits(func(edits state: State) {
   state.counter += 1;
@@ -500,7 +500,7 @@ invariant.
 
 ### §21.3.2 `SharedRwLock[T]`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedRwLock[T: Shareable] {
@@ -541,7 +541,7 @@ proceeds.
 
 ### §21.3.3 `SharedCondVar`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedCondVar {
@@ -566,7 +566,7 @@ binding — the original guard is consumed.
 **Spurious wakeups.** As with standard CV semantics, `wait` may return
 spuriously. Callers must re-check the predicate in a loop:
 
-```loom
+```loup
 let guard = await myMutex.lock();
 while (!conditionMet(guard)) {
   guard = await myCondVar.wait(guard);
@@ -576,7 +576,7 @@ guard.edits(func(edits state) { /* predicate holds, proceed */ });
 
 ### §21.3.4 `SharedSemaphore`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedSemaphore {
@@ -593,7 +593,7 @@ pub shared class SharedSemaphore {
 
 ### §21.3.5 `SharedBarrier`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedBarrier {
@@ -618,7 +618,7 @@ pub enum BarrierResult {
 
 ### §21.3.6 `SharedQueue[T]`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedQueue[T: Shareable] {
@@ -652,7 +652,7 @@ spin budget.
 
 ### §21.3.7 `SharedStack[T]`
 
-```loom
+```loup
 namespace sync.shared;
 
 pub shared class SharedStack[T: Shareable] {
@@ -677,7 +677,7 @@ never block — contention is handled via compare-exchange retry loops.
 
 ### §21.4.1 `ScriptWorker` Arena Extension
 
-```loom
+```loup
 namespace concurrent;
 
 class ScriptWorker[M: Sendable] {
@@ -710,7 +710,7 @@ class ScriptWorker[M: Sendable] {
 
 ### §21.4.2 `WorkerChannel` Arena Extension
 
-```loom
+```loup
 namespace concurrent;
 
 class WorkerChannel[T: Sendable] {
@@ -741,7 +741,7 @@ message type.
 Reference §20.1; this section adds the v1.18 shared-memory configuration
 methods.)*
 
-```loom
+```loup
 namespace runtime;
 
 // Set the default shared arena for the current execution context. Future
@@ -783,7 +783,7 @@ that implement `FormatDriver`.)*
 
 ### §21.6.1 `Value` Intermediate Representation
 
-```loom
+```loup
 namespace core.serialization;
 
 pub enum TemporalKind {
@@ -858,7 +858,7 @@ class Value {
 
 ### §21.6.2 `Serializable` and `Deserializable` Traits
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface Serializable {
@@ -907,7 +907,7 @@ type-mismatch or range violation; no silent coercion occurs.
 
 ### §21.6.3 `SerializationAdapter[T]`
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface SerializationAdapter[T] {
@@ -921,7 +921,7 @@ Used with `@serialVia[Adapter]` on fields whose types are not directly
 
 ### §21.6.4 `FormatDriver` Interface
 
-```loom
+```loup
 namespace core.serialization;
 
 pub interface FormatDriver {
@@ -943,7 +943,7 @@ See Language Reference §32.10 for driver compliance requirements.
 
 ### §21.6.5 Convenience Functions
 
-```loom
+```loup
 namespace core.serialization;
 
 pub func serialize[T: Serializable, D: FormatDriver](
@@ -974,7 +974,7 @@ pub func fromValue[T: Deserializable](v: Value): T;
 
 ### §21.6.6 Configuration Types
 
-```loom
+```loup
 namespace core.serialization;
 
 pub struct EncodeConfig {
@@ -1020,7 +1020,7 @@ pub enum UnknownTypeBehavior {
 
 ### §21.6.7 Migration Helpers
 
-```loom
+```loup
 namespace core.serialization;
 
 // Invoked by the runtime when a type has rolled over its major version.
@@ -1044,7 +1044,7 @@ pub func registerMigration(
 
 ### §21.6.8 `RemoteException` and `StackFrame`
 
-```loom
+```loup
 namespace core;
 
 pub struct StackFrame implements Serializable, Deserializable {
@@ -1149,7 +1149,7 @@ Reference §26) and participate in `try`/`catch`.
 The following table shows how `core.atomic` functions lower to Wasm threads
 proposal opcodes on Wasm targets:
 
-| Loom function (32-bit variant) | Wasm opcode |
+| Loup function (32-bit variant) | Wasm opcode |
 |---|---|
 | `atomicLoad[int32]` | `i32.atomic.load` |
 | `atomicLoad[int16]` sign-ext | `i32.atomic.load16_s` |
@@ -1185,7 +1185,7 @@ On native targets, `core.atomic` functions lower to the target's native
 atomic instructions. The table below shows representative lowerings for
 three major architectures:
 
-| Loom function (32-bit variant) | x86-64 | ARM64 | C11 equivalent |
+| Loup function (32-bit variant) | x86-64 | ARM64 | C11 equivalent |
 |---|---|---|---|
 | `atomicLoad(SeqCst)` | `MOV; MFENCE` | `LDAR` | `atomic_load_explicit(_, memory_order_seq_cst)` |
 | `atomicLoad(Acquire)` | `MOV` | `LDAR` | `atomic_load_explicit(_, memory_order_acquire)` |

@@ -11987,11 +11987,11 @@ function validateDocument(document) {
       end: { line: d.range.end.line, character: d.range.end.column }
     },
     message: d.message,
-    source: "loom"
+    source: "loup"
   }));
   connection.sendDiagnostics({ uri, diagnostics });
 }
-var LOOM_BUILTINS = [
+var LOUP_BUILTINS = [
   "print",
   "println",
   "len",
@@ -12010,13 +12010,13 @@ var LOOM_BUILTINS = [
   "writeTextAsync",
   "execAsync"
 ];
-var LOOM_DUNDERS = [
+var LOUP_DUNDERS = [
   "__name__",
   "__file__",
   "__execmode__",
   "__module__"
 ];
-var LOOM_KEYWORDS = [
+var LOUP_KEYWORDS = [
   "abstract",
   "and",
   "as",
@@ -12123,7 +12123,7 @@ var LOOM_KEYWORDS = [
   "weak",
   "unowned"
 ];
-var LOOM_MODES = [
+var LOUP_MODES = [
   "web.scripted",
   "web.compiled",
   "host.scripted",
@@ -12131,7 +12131,7 @@ var LOOM_MODES = [
   "host.native",
   "freestanding"
 ];
-var LOOM_TYPES = [
+var LOUP_TYPES = [
   // Primitives (§4.1)
   "int",
   "int8",
@@ -12329,7 +12329,7 @@ var SYSTEM_MODULES = [
   { label: "ui.web", detail: "Web-specific UI rendering and SSR", items: ["renderToString", "hydrate", "mount", "StateSerializer", "serializeState", "deserializeState", "render"] },
   { label: "ui.desktop", detail: "Desktop window management", items: ["Window", "WindowConfig", "Tray", "showWindow", "showDialog", "showNotification"] },
   { label: "web.dom", detail: "DOM access", items: ["querySelector", "querySelectorAll", "Element", "Event"] },
-  { label: "web.css", detail: "CSS-in-Loom styling", items: ["StyleSheet", "ClassName", "css", "keyframes", "media"] },
+  { label: "web.css", detail: "CSS-in-Loup styling", items: ["StyleSheet", "ClassName", "css", "keyframes", "media"] },
   { label: "web.storage", detail: "Browser storage", items: ["localStorage", "sessionStorage"] },
   { label: "lang.template", detail: "Templates and rendering", items: ["Template", "RenderContext", "Renderable", "SafeHtml", "escapeHtml", "escapeAttribute", "Url"] },
   { label: "lang.interop.js", detail: "Typed JS/native facades", items: ["fetch", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "querySelector", "querySelectorAll", "Request", "Response", "Element", "Event", "TimerHandle"] },
@@ -12345,23 +12345,23 @@ var SYSTEM_MODULES = [
 ];
 connection.onCompletion((_params) => {
   const items = [];
-  for (const fn of LOOM_BUILTINS) {
+  for (const fn of LOUP_BUILTINS) {
     items.push({ label: fn, kind: import_node.CompletionItemKind.Function, detail: "Built-in" });
   }
-  for (const dunder of LOOM_DUNDERS) {
+  for (const dunder of LOUP_DUNDERS) {
     items.push({ label: dunder, kind: import_node.CompletionItemKind.Constant, detail: "Built-in Dunder" });
   }
-  for (const kw of LOOM_KEYWORDS) {
+  for (const kw of LOUP_KEYWORDS) {
     items.push({ label: kw, kind: import_node.CompletionItemKind.Keyword });
   }
-  for (const mode of LOOM_MODES) {
+  for (const mode of LOUP_MODES) {
     items.push({
       label: mode,
       kind: import_node.CompletionItemKind.EnumMember,
       detail: "@mode(...) target"
     });
   }
-  for (const t of LOOM_TYPES) {
+  for (const t of LOUP_TYPES) {
     items.push({ label: t, kind: import_node.CompletionItemKind.Class });
   }
   for (const mod of SYSTEM_MODULES) {
@@ -12443,7 +12443,7 @@ connection.onHover((params) => {
   const sym = findSymbolAtPosition(symbols, pos.line, pos.character);
   if (!sym)
     return null;
-  const typeStr = sym.type ? `\`\`\`loom
+  const typeStr = sym.type ? `\`\`\`loup
 ${sym.type}
 \`\`\`` : "";
   const kindStr = sym.kind.toString();

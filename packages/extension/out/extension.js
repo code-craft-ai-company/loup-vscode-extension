@@ -65,7 +65,7 @@ var PortalBreakpointsProvider = class {
     );
     item.contextValue = element.enabled ? "portalActive" : "portalInactive";
     item.command = {
-      command: "loom.togglePortalBreakpoint",
+      command: "loup.togglePortalBreakpoint",
       title: "Toggle Portal Breakpoint",
       arguments: [element]
     };
@@ -172,7 +172,7 @@ var TimeTravelManager = class {
     const text = new TextDecoder().decode(content);
     const data = JSON.parse(text);
     const session = {
-      id: path.basename(filePath, ".loom-trace"),
+      id: path.basename(filePath, ".loup-trace"),
       startTime: data.startTime || 0,
       endTime: data.endTime,
       events: data.events || [],
@@ -243,12 +243,12 @@ var TimelinePanel = class _TimelinePanel {
         switch (message.command) {
           case "selectEvent":
             if (message.index !== void 0) {
-              vscode3.commands.executeCommand("loom.navigateToEvent", message.index);
+              vscode3.commands.executeCommand("loup.navigateToEvent", message.index);
             }
             break;
           case "filterPortal":
             if (message.portal !== void 0) {
-              vscode3.commands.executeCommand("loom.filterTimeline", message.portal);
+              vscode3.commands.executeCommand("loup.filterTimeline", message.portal);
             }
             break;
         }
@@ -264,8 +264,8 @@ var TimelinePanel = class _TimelinePanel {
       return _TimelinePanel.currentPanel;
     }
     const panel = vscode3.window.createWebviewPanel(
-      "loomTimeline",
-      "Loom Timeline",
+      "loupTimeline",
+      "Loup Timeline",
       column,
       {
         enableScripts: true,
@@ -311,7 +311,7 @@ var TimelinePanel = class _TimelinePanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loom Timeline</title>
+  <title>Loup Timeline</title>
   <style>
     :root {
       --bg: var(--vscode-editor-background);
@@ -478,14 +478,14 @@ var TimelinePanel = class _TimelinePanel {
 </head>
 <body>
   <div class="header">
-    <h2 id="title">Loom Timeline</h2>
+    <h2 id="title">Loup Timeline</h2>
     <span class="stats" id="stats"></span>
   </div>
   <div class="controls" id="controls"></div>
   <div class="timeline-container" id="timeline">
     <div class="empty-state">
       <div class="icon">\u23F1</div>
-      <div>No trace loaded.<br>Start a time-travel capture or open a .loom-trace file.</div>
+      <div>No trace loaded.<br>Start a time-travel capture or open a .loup-trace file.</div>
     </div>
   </div>
 
@@ -609,8 +609,8 @@ var TaskGroupPanel = class _TaskGroupPanel {
       return _TaskGroupPanel.currentPanel;
     }
     const panel = vscode4.window.createWebviewPanel(
-      "loomTaskGroup",
-      "Loom Task Groups",
+      "loupTaskGroup",
+      "Loup Task Groups",
       vscode4.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
@@ -639,7 +639,7 @@ var TaskGroupPanel = class _TaskGroupPanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loom Task Groups</title>
+  <title>Loup Task Groups</title>
   <style>
     :root {
       --bg: var(--vscode-editor-background);
@@ -771,11 +771,11 @@ var TaskGroupPanel = class _TaskGroupPanel {
 // src/taskProvider.ts
 var vscode5 = __toESM(require("vscode"));
 var path2 = __toESM(require("path"));
-var LoomTaskProvider = class _LoomTaskProvider {
-  static type = "loom";
+var LoupTaskProvider = class _LoupTaskProvider {
+  static type = "loup";
   async provideTasks() {
     const tasks2 = [];
-    const pkgFiles = await vscode5.workspace.findFiles("**/loom.pkg", "**/node_modules/**");
+    const pkgFiles = await vscode5.workspace.findFiles("**/loup.pkg", "**/node_modules/**");
     for (const pkgUri of pkgFiles) {
       const content = new TextDecoder().decode(await vscode5.workspace.fs.readFile(pkgUri));
       const dir = path2.dirname(pkgUri.fsPath);
@@ -820,7 +820,7 @@ var LoomTaskProvider = class _LoomTaskProvider {
   }
   resolveTask(task) {
     const definition = task.definition;
-    if (definition.type === _LoomTaskProvider.type && definition.command) {
+    if (definition.type === _LoupTaskProvider.type && definition.command) {
       return this.createTask(
         definition.command,
         task.name,
@@ -832,19 +832,19 @@ var LoomTaskProvider = class _LoomTaskProvider {
   }
   createTask(command, label, cwd, args) {
     const definition = {
-      type: _LoomTaskProvider.type,
+      type: _LoupTaskProvider.type,
       command,
       cwd,
       args
     };
-    const execution = new vscode5.ShellExecution("loom", args, { cwd });
+    const execution = new vscode5.ShellExecution("loup", args, { cwd });
     const task = new vscode5.Task(
       definition,
       vscode5.TaskScope.Workspace,
       label,
-      "Loom",
+      "Loup",
       execution,
-      "$loom"
+      "$loup"
       // problem matcher
     );
     task.group = command === "test" ? vscode5.TaskGroup.Test : command === "build" ? vscode5.TaskGroup.Build : void 0;
@@ -924,7 +924,7 @@ var DependencyTreeProvider = class {
   }
   async loadDependencies() {
     this.dependencies = [];
-    const pkgFiles = await vscode6.workspace.findFiles("**/loom.pkg", "**/node_modules/**", 1);
+    const pkgFiles = await vscode6.workspace.findFiles("**/loup.pkg", "**/node_modules/**", 1);
     if (pkgFiles.length === 0)
       return;
     const content = new TextDecoder().decode(
@@ -998,17 +998,17 @@ var DependencyTreeProvider = class {
 // src/extension.ts
 var client;
 function activate(context) {
-  console.log("Loom Language extension is now active.");
+  console.log("Loup Language extension is now active.");
   const statusBarItem = vscode7.window.createStatusBarItem(
     vscode7.StatusBarAlignment.Right,
     100
   );
-  statusBarItem.text = "$(symbol-event) Loom";
-  statusBarItem.tooltip = "Loom Language v0.4";
+  statusBarItem.text = "$(symbol-event) Loup";
+  statusBarItem.tooltip = "Loup Language v0.4";
   context.subscriptions.push(statusBarItem);
   const updateStatusBar = () => {
     const editor = vscode7.window.activeTextEditor;
-    if (editor && (editor.document.languageId === "loom" || editor.document.languageId === "loom-pkg")) {
+    if (editor && (editor.document.languageId === "loup" || editor.document.languageId === "loup-pkg")) {
       statusBarItem.show();
     } else {
       statusBarItem.hide();
@@ -1031,16 +1031,16 @@ function activate(context) {
   };
   const clientOptions = {
     documentSelector: [
-      { scheme: "file", language: "loom" },
-      { scheme: "file", language: "loom-pkg" }
+      { scheme: "file", language: "loup" },
+      { scheme: "file", language: "loup-pkg" }
     ],
     synchronize: {
-      fileEvents: vscode7.workspace.createFileSystemWatcher("**/*.loom")
+      fileEvents: vscode7.workspace.createFileSystemWatcher("**/*.loup")
     }
   };
   client = new import_node.LanguageClient(
-    "loomLanguageServer",
-    "Loom Language Server",
+    "loupLanguageServer",
+    "Loup Language Server",
     serverOptions,
     clientOptions
   );
@@ -1057,20 +1057,20 @@ function activate(context) {
   );
   const factory = new DebugAdapterExecutableFactory(debugAdapterPath);
   context.subscriptions.push(
-    vscode7.debug.registerDebugAdapterDescriptorFactory("loom", factory)
+    vscode7.debug.registerDebugAdapterDescriptorFactory("loup", factory)
   );
   const portalProvider = new PortalBreakpointsProvider();
   context.subscriptions.push(
-    vscode7.window.registerTreeDataProvider("loomPortalBreakpoints", portalProvider)
+    vscode7.window.registerTreeDataProvider("loupPortalBreakpoints", portalProvider)
   );
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loom.togglePortalBreakpoint", (item) => {
+    vscode7.commands.registerCommand("loup.togglePortalBreakpoint", (item) => {
       const nowEnabled = portalProvider.togglePortal(item.name);
       vscode7.window.showInformationMessage(
         `Portal "${item.name}" ${nowEnabled ? "activated" : "deactivated"}`
       );
     }),
-    vscode7.commands.registerCommand("loom.addPortalBreakpoint", async () => {
+    vscode7.commands.registerCommand("loup.addPortalBreakpoint", async () => {
       const name = await vscode7.window.showInputBox({
         prompt: "Enter portal name",
         placeHolder: "e.g. request_start"
@@ -1080,49 +1080,49 @@ function activate(context) {
         vscode7.window.showInformationMessage(`Portal breakpoint "${name}" added`);
       }
     }),
-    vscode7.commands.registerCommand("loom.removePortalBreakpoint", (item) => {
+    vscode7.commands.registerCommand("loup.removePortalBreakpoint", (item) => {
       portalProvider.removePortal(item.name);
     }),
-    vscode7.commands.registerCommand("loom.clearPortalBreakpoints", () => {
+    vscode7.commands.registerCommand("loup.clearPortalBreakpoints", () => {
       portalProvider.clear();
     })
   );
   const timeTravel = new TimeTravelManager();
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loom.startCapture", () => {
+    vscode7.commands.registerCommand("loup.startCapture", () => {
       const session = timeTravel.startCapture();
       vscode7.window.showInformationMessage(`Time-travel capture started (${session.id})`);
-      statusBarItem.text = "$(record) Loom (Recording)";
+      statusBarItem.text = "$(record) Loup (Recording)";
       statusBarItem.backgroundColor = new vscode7.ThemeColor("statusBarItem.warningBackground");
     }),
-    vscode7.commands.registerCommand("loom.stopCapture", () => {
+    vscode7.commands.registerCommand("loup.stopCapture", () => {
       const session = timeTravel.stopCapture();
       if (session) {
         vscode7.window.showInformationMessage(
           `Capture stopped: ${session.events.length} events recorded`
         );
-        statusBarItem.text = "$(symbol-event) Loom";
+        statusBarItem.text = "$(symbol-event) Loup";
         statusBarItem.backgroundColor = void 0;
         const panel = TimelinePanel.createOrShow(context.extensionUri);
         panel.updateSession(session);
       }
     }),
-    vscode7.commands.registerCommand("loom.showTimeline", () => {
+    vscode7.commands.registerCommand("loup.showTimeline", () => {
       const session = timeTravel.getActiveSession() || timeTravel.getAllSessions()[0];
       if (session) {
         const panel = TimelinePanel.createOrShow(context.extensionUri);
         panel.updateSession(session);
       } else {
         vscode7.window.showInformationMessage(
-          "No trace session available. Start a capture or open a .loom-trace file."
+          "No trace session available. Start a capture or open a .loup-trace file."
         );
       }
     }),
-    vscode7.commands.registerCommand("loom.openTraceFile", async () => {
+    vscode7.commands.registerCommand("loup.openTraceFile", async () => {
       const files = await vscode7.window.showOpenDialog({
         canSelectFiles: true,
         canSelectFolders: false,
-        filters: { "Loom Trace": ["loom-trace", "json"] }
+        filters: { "Loup Trace": ["loup-trace", "json"] }
       });
       if (files && files[0]) {
         const session = await timeTravel.loadTraceFile(files[0].fsPath);
@@ -1133,7 +1133,7 @@ function activate(context) {
         );
       }
     }),
-    vscode7.commands.registerCommand("loom.saveTrace", async () => {
+    vscode7.commands.registerCommand("loup.saveTrace", async () => {
       const sessions = timeTravel.getAllSessions();
       if (sessions.length === 0) {
         vscode7.window.showWarningMessage("No capture session to save.");
@@ -1141,15 +1141,15 @@ function activate(context) {
       }
       const session = sessions[sessions.length - 1];
       const uri = await vscode7.window.showSaveDialog({
-        defaultUri: vscode7.Uri.file(`${session.id}.loom-trace`),
-        filters: { "Loom Trace": ["loom-trace"] }
+        defaultUri: vscode7.Uri.file(`${session.id}.loup-trace`),
+        filters: { "Loup Trace": ["loup-trace"] }
       });
       if (uri) {
         await timeTravel.saveTraceFile(session.id, uri.fsPath);
         vscode7.window.showInformationMessage(`Trace saved to ${uri.fsPath}`);
       }
     }),
-    vscode7.commands.registerCommand("loom.navigateToEvent", (index) => {
+    vscode7.commands.registerCommand("loup.navigateToEvent", (index) => {
       const sessions = timeTravel.getAllSessions();
       const session = sessions[sessions.length - 1];
       if (!session)
@@ -1167,26 +1167,26 @@ function activate(context) {
         });
       }
     }),
-    vscode7.commands.registerCommand("loom.showTaskGroups", () => {
+    vscode7.commands.registerCommand("loup.showTaskGroups", () => {
       TaskGroupPanel.createOrShow();
     })
   );
-  const taskProvider = new LoomTaskProvider();
+  const taskProvider = new LoupTaskProvider();
   context.subscriptions.push(
-    vscode7.tasks.registerTaskProvider(LoomTaskProvider.type, taskProvider)
+    vscode7.tasks.registerTaskProvider(LoupTaskProvider.type, taskProvider)
   );
   const depTree = new DependencyTreeProvider();
   context.subscriptions.push(
-    vscode7.window.registerTreeDataProvider("loomDependencies", depTree)
+    vscode7.window.registerTreeDataProvider("loupDependencies", depTree)
   );
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loom.refreshDependencies", () => depTree.refresh())
+    vscode7.commands.registerCommand("loup.refreshDependencies", () => depTree.refresh())
   );
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loom.openRepl", () => {
+    vscode7.commands.registerCommand("loup.openRepl", () => {
       const terminal = vscode7.window.createTerminal({
-        name: "Loom REPL",
-        shellPath: "loom",
+        name: "Loup REPL",
+        shellPath: "loup",
         shellArgs: ["repl"],
         iconPath: new vscode7.ThemeIcon("terminal")
       });

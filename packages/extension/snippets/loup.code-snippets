@@ -6,7 +6,7 @@
       "  $0",
       "}"
     ],
-    "description": "Loom function declaration"
+    "description": "Loup function declaration"
   },
   "Function with Requires Clause": {
     "prefix": "funcreq",
@@ -33,7 +33,7 @@
       "  $0",
       "}"
     ],
-    "description": "Loom async function declaration"
+    "description": "Loup async function declaration"
   },
   "Generator Function": {
     "prefix": "gfunc",
@@ -88,7 +88,7 @@
       "  ${3:Variant2},",
       "}"
     ],
-    "description": "Loom enum (sum type) declaration"
+    "description": "Loup enum (sum type) declaration"
   },
   "Enum with Payload": {
     "prefix": "enump",
@@ -98,7 +98,7 @@
       "  ${5:Variant2},",
       "}"
     ],
-    "description": "Loom enum with payload variant"
+    "description": "Loup enum with payload variant"
   },
   "Class Declaration": {
     "prefix": "class",
@@ -107,7 +107,7 @@
       "  $0",
       "}"
     ],
-    "description": "Loom class declaration"
+    "description": "Loup class declaration"
   },
   "Dynamic Class": {
     "prefix": "dclass",
@@ -116,7 +116,7 @@
       "  $0",
       "}"
     ],
-    "description": "Loom dynamic class (opt-in dynamic fields)"
+    "description": "Loup dynamic class (opt-in dynamic fields)"
   },
   "Unique Class": {
     "prefix": "uclass",
@@ -286,7 +286,7 @@
       "  $0",
       "}"
     ],
-    "description": "Loom struct declaration (value type)"
+    "description": "Loup struct declaration (value type)"
   },
   "Struct with Implements": {
     "prefix": "structi",
@@ -299,7 +299,7 @@
       "  }",
       "}"
     ],
-    "description": "Loom struct implementing an interface"
+    "description": "Loup struct implementing an interface"
   },
   "Interface Declaration": {
     "prefix": "interface",
@@ -308,7 +308,7 @@
       "  func ${2:method}(${3:params}): ${4:void};",
       "}"
     ],
-    "description": "Loom interface declaration"
+    "description": "Loup interface declaration"
   },
   "Type Alias": {
     "prefix": "type",
@@ -643,7 +643,7 @@
       "  $0",
       "}"
     ],
-    "description": "Export a Loom function to JavaScript"
+    "description": "Export a Loup function to JavaScript"
   },
   "JS Export Async": {
     "prefix": "jsexporta",
@@ -653,7 +653,7 @@
       "  $0",
       "}"
     ],
-    "description": "Export an async Loom function to JavaScript"
+    "description": "Export an async Loup function to JavaScript"
   },
   "Mode Directive": {
     "prefix": "mode",
@@ -710,12 +710,12 @@
     ],
     "description": "Lambda with capture list (weak/unowned)"
   },
-  "Loom Package Manifest": {
-    "prefix": "loompkg",
+  "Loup Package Manifest": {
+    "prefix": "louppkg",
     "body": [
       "package              ${1:my-app}",
       "version              ${2:0.1.0}",
-      "loom                 \">=1.18\"",
+      "loup                 \">=1.18\"",
       "shared_abi_version   ${3:1}",
       "",
       "[deps]",
@@ -731,7 +731,7 @@
       "${8:include io.fs}",
       "${9:include io.proc}"
     ],
-    "description": "Loom package manifest scaffold with shared_abi_version (v1.18 §13.3, §13.5b)"
+    "description": "Loup package manifest scaffold with shared_abi_version (v1.18 §13.3, §13.5b)"
   },
   "Unique Binding": {
     "prefix": "ulet",
@@ -846,7 +846,7 @@
       "  $0",
       "````"
     ],
-    "description": "4-backtick template fence for Loom-in-Loom generation (v0.7)"
+    "description": "4-backtick template fence for Loup-in-Loup generation (v0.7)"
   },
   "State Serializer": {
     "prefix": "stateserializer",
@@ -857,25 +857,25 @@
     "description": "SSR state serializer with optional integrity hash (v0.7)"
   },
   "Browser Bootstrap HTML": {
-    "prefix": "loomhtml",
+    "prefix": "louphtml",
     "body": [
       "<!DOCTYPE html>",
       "<html lang=\"${1:en}\">",
       "<head>",
       "  <meta charset=\"UTF-8\">",
       "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
-      "  <title>${2:Loom App}</title>",
+      "  <title>${2:Loup App}</title>",
       "  <meta",
       "    http-equiv=\"Content-Security-Policy\"",
       "    content=\"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'\"",
       "  >",
-      "  <script type=\"module\" src=\"loom-rt.js\"></script>",
+      "  <script type=\"module\" src=\"loup-rt.js\"></script>",
       "</head>",
       "<body>",
       "  <div id=\"root\"></div>",
       "</body>",
       "</html>"
     ],
-    "description": "Minimal browser bootstrap HTML template for Loom (v0.7 §27.6)"
+    "description": "Minimal browser bootstrap HTML template for Loup (v0.7 §27.6)"
   }
 }

@@ -1,4 +1,4 @@
-// Loom v1.12 New Syntax Test file
+// Loup v1.12 New Syntax Test file
 
 @compiled
 @unsafe("sendable: manually synchronized")

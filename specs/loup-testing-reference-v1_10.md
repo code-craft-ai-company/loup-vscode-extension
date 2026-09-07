@@ -1,4 +1,4 @@
-# Loom Testing Module Reference v1.10
+# Loup Testing Module Reference v1.10
 
 **Status:** Draft
 **Version:** 1.10.0
@@ -8,8 +8,8 @@
   constraints, tandem validators, diagnostics, debugging, configuration, and CLI.
 
 **Related documents:**
-- [Loom Language Reference v1.10](loom-language-reference-v1_10.md)
-- [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
+- [Loup Language Reference v1.10](loup-language-reference-v1_10.md)
+- [Loup Standard Library Reference v1.10](loup-stdlib-reference-v1_10.md)
 - [testing module requirements](3-stdlib-5-test/requirements.md)
 - [core.waiting design](3-stdlib-2-core-waiting/design.md)
 
@@ -39,14 +39,14 @@
 - [§20 Test Run Timeout](#20-test-run-timeout)
 - [§21 Debugging Support](#21-debugging-support)
 - [§22 Configuration](#22-configuration)
-- [§23 CLI Integration (loom test)](#23-cli-integration-loom-test)
+- [§23 CLI Integration (loup test)](#23-cli-integration-loup-test)
 - [§24 Extension Points (Integration Package)](#24-extension-points-integration-package)
 
 ---
 
 ## §1 Overview and Architecture
 
-The `testing` module is Loom's foundation test framework, shipping with the runtime as part of the standard library. It provides everything needed to write, discover, execute, and report on tests without any external packages.
+The `testing` module is Loup's foundation test framework, shipping with the runtime as part of the standard library. It provides everything needed to write, discover, execute, and report on tests without any external packages.
 
 ### §1.1 Design Principles
 
@@ -100,7 +100,7 @@ The `testing` module depends on the following stdlib modules:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     loom test CLI                        │
+│                     loup test CLI                        │
 ├─────────────────────────────────────────────────────────┤
 │                      TestJob                             │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────────┐  │
@@ -128,13 +128,13 @@ The `testing` module depends on the following stdlib modules:
 
 ## §2 Test Discovery and Collection
 
-The discovery system scans directories for `.loom` test files, imports modules, identifies test functions, applies filters, and builds a hierarchical test tree.
+The discovery system scans directories for `.loup` test files, imports modules, identifies test functions, applies filters, and builds a hierarchical test tree.
 
 ### §2.1 TestCollector
 
 `TestCollector` is the central orchestrator for test discovery.
 
-```loom
+```loup
 pub class TestCollector : Any {
     let root: string;
     let excludes: list[string];
@@ -175,7 +175,7 @@ pub class TestCollector : Any {
 **Discovery algorithm:**
 
 1. Parse the include expression via `parseTestIncludeExpression`.
-2. Scan the root directory for `.loom` files matching the package/module expressions.
+2. Scan the root directory for `.loup` files matching the package/module expressions.
 3. Import each module, inspect exported functions, and collect those whose names start with `methodPrefix`.
 4. Create a `TestRef` for each matching function.
 5. Merge results into the internal reference dictionary.
@@ -185,7 +185,7 @@ pub class TestCollector : Any {
 
 A lightweight reference to a test function that delays instantiation of test runtime state until execution time.
 
-```loom
+```loup
 pub class TestRef : Any {
     pub let func_ref: func;
     pub let name: string;
@@ -217,7 +217,7 @@ pub class TestRef : Any {
 
 A hierarchical grouping node in the test tree, mirroring the source code module structure.
 
-```loom
+```loup
 pub class TestGroup : Any {
     pub let name: string;
     pub let package_name: string?;
@@ -239,11 +239,11 @@ The test tree root is always a `TestGroup` named `"<session>"`. Intermediate gro
 
 ### §2.4 Test Root Discovery
 
-Test roots are directories containing a `__testroot__.loom` marker file. The framework walks up from a module's location to find this marker.
+Test roots are directories containing a `__testroot__.loup` marker file. The framework walks up from a module's location to find this marker.
 
-```loom
+```loup
 pub func findTestModuleRoot(modulePath: string): string;
-// Walks up the directory tree looking for __testroot__.loom.
+// Walks up the directory tree looking for __testroot__.loup.
 // Throws ConfigurationError if the filesystem root is reached.
 
 pub func findTestModuleFullName(modulePath: string, testRoot: string? = none): string;
@@ -252,7 +252,7 @@ pub func findTestModuleFullName(modulePath: string, testRoot: string? = none): s
 
 ### §2.5 Platform Support Filtering
 
-Directories containing a `__platforms__.loom` file are conditionally included based on platform support. If the file raises `UnsupportedPlatformError` when executed, the directory and its subdirectories are skipped.
+Directories containing a `__platforms__.loup` file are conditionally included based on platform support. If the file raises `UnsupportedPlatformError` when executed, the directory and its subdirectories are skipped.
 
 ### §2.6 Import Error Tracking
 
@@ -280,7 +280,7 @@ Delimiter precedence (right to left): `#` → `@` → `.`
 
 ### §3.2 Parser API
 
-```loom
+```loup
 pub func parseTestIncludeExpression(
     expression: string,
     testModule: Any? = none,
@@ -315,7 +315,7 @@ The DI system manages resolution, instantiation, and lifecycle of injectable res
 
 The singleton registry managing all registered sources, origins, and the scope tree.
 
-```loom
+```loup
 pub class InjectionRegistry : Any {
     // Singleton
     static var _instance: InjectionRegistry?;
@@ -352,7 +352,7 @@ pub class InjectionRegistry : Any {
 
 A node in the hierarchical scope tree containing parameter and validator originations.
 
-```loom
+```loup
 pub class InjectionScope : Any {
     let name: string;
     var _children: dict[string, InjectionScope];
@@ -369,7 +369,7 @@ pub class InjectionScope : Any {
 
 ### §4.3 ResourceLifespan
 
-```loom
+```loup
 pub enum ResourceLifespan {
     Session;   // Lives for the entire test session
     Package;   // Lives within a module hierarchy
@@ -392,7 +392,7 @@ Parameters are resolved by walking the scope tree from root to the injection mom
 
 Represents a point in the execution flow where injection occurs.
 
-```loom
+```loup
 pub class InjectionMoment : Any {
     pub let func_ref: func;
     pub let monikers: list[string];
@@ -417,7 +417,7 @@ Annotations (decorators) for declaring test parameters, resource factories, and 
 
 Registers a generator function as a resource factory in the injection registry.
 
-```loom
+```loup
 @resourceFactory(lifespan = ResourceLifespan.Package)
 gen func provideDatabase(): Iterable[DatabaseConnection] {
     let conn = DatabaseConnection.connect("test.db");
@@ -436,7 +436,7 @@ gen func provideDatabase(): Iterable[DatabaseConnection] {
 
 Attaches a resource parameter to a specific test function with `Test` lifespan.
 
-```loom
+```loup
 @parameter(source = provideDatabase, identifier = "db")
 func test_query(db: DatabaseConnection): void {
     let result = db.query("SELECT 1");
@@ -453,7 +453,7 @@ func test_query(db: DatabaseConnection): void {
 
 Attaches a validator to a specific test function.
 
-```loom
+```loup
 @validation(source = provideLogValidator, suffix = "log_check")
 func test_operation(logValidator: LogValidator): void {
     performOperation();
@@ -463,7 +463,7 @@ func test_operation(logValidator: LogValidator): void {
 
 ### §5.4 @integrationFactory / @configurationFactory / @validatorFactory
 
-```loom
+```loup
 // Integration factory — yields an IntegrationCoupling subclass
 @integrationFactory(constraints = deviceConstraints)
 gen func provideDevice(): Iterable[DeviceIntegration] {
@@ -490,7 +490,7 @@ func provideLogValidator(): LogValidator {
 
 For resources shared across multiple tests at package or session scope:
 
-```loom
+```loup
 // At module level — creates a Package-scoped parameter
 from testing.injection import parameter, ResourceLifespan;
 
@@ -514,7 +514,7 @@ The constraints system passes configuration parameters and feature requirements 
 
 ### §6.1 Constraints Type
 
-```loom
+```loup
 pub class Constraints : Any implements IReadableMap[string, Any] {
     // Dictionary-like container for key-value constraint pairs
     pub static func new(**kwargs: Any): Constraints;
@@ -529,7 +529,7 @@ pub class Constraints : Any implements IReadableMap[string, Any] {
 
 Singleton registry for constraint lookup with priority-based resolution.
 
-```loom
+```loup
 pub class ConstraintsCatalog : Any {
     static var _instance: ConstraintsCatalog?;
     pub static func instance(): ConstraintsCatalog;
@@ -553,7 +553,7 @@ pub class ConstraintsCatalog : Any {
 
 ### §6.3 ConstraintsOrigin
 
-```loom
+```loup
 pub enum ConstraintsOrigin {
     SiteParameter;      // Default constraints from site configuration (lower priority)
     OverrideParameter;  // Runtime overrides (higher priority)
@@ -562,7 +562,7 @@ pub enum ConstraintsOrigin {
 
 ### §6.4 FeatureConstraints
 
-```loom
+```loup
 pub class FeatureConstraints : FeatureMask {
     pub let checkout: bool;
 
@@ -577,7 +577,7 @@ pub class FeatureConstraints : FeatureMask {
 
 ### §6.5 Constraint Merging
 
-```loom
+```loup
 pub func mergeConstraints(...constraints: Constraints | dict[string, Any]): Constraints;
 // Merges multiple constraint sets. Last value wins for duplicate keys.
 ```
@@ -590,7 +590,7 @@ Annotations for tagging tests with categories, keywords, and priority, plus filt
 
 ### §7.1 Marker Annotations
 
-```loom
+```loup
 @markCategories(categories = ["smoke", "regression"])
 @markKeywords(keywords = ["login", "auth"])
 @markPriority(priority = 1)
@@ -603,7 +603,7 @@ func test_user_login(): void {
 
 Applied at module scope, propagating to all tests in the module:
 
-```loom
+```loup
 from testing.markers import markDescendentCategories, markDescendentKeywords;
 
 markDescendentCategories(categories = ["integration"]);
@@ -622,7 +622,7 @@ Each filter has an `include` flag (`+` for include mode, `-` for exclude mode).
 
 ### §7.4 Marker Expression Parsing
 
-```loom
+```loup
 pub func parseMarkerExpression(expression: string): MetaFilter;
 ```
 
@@ -648,7 +648,7 @@ A hierarchical, type-safe mechanism for categorizing and filtering objects based
 
 ### §8.1 FeatureTag
 
-```loom
+```loup
 pub class FeatureTag : Any {
     pub static let ID: string;  // Auto-generated from class hierarchy
 
@@ -673,7 +673,7 @@ class DeviceFeatures {
 
 Mixin that adds feature tag support to any type.
 
-```loom
+```loup
 pub class FeatureAttachedObject : Any {
     var _featureTags: list[string];  // Sorted for efficient lookup
 
@@ -687,7 +687,7 @@ pub class FeatureAttachedObject : Any {
 
 ### §8.3 FeatureMask and FeatureFilter
 
-```loom
+```loup
 pub class FeatureMask : Any {
     pub let requiredFeatures: list[FeatureTag | string]?;
     pub let excludedFeatures: list[FeatureTag | string]?;
@@ -710,7 +710,7 @@ The sequencer is the central state machine that orchestrates test execution thro
 
 ### §9.1 TestSequencer
 
-```loom
+```loup
 pub enum SequencerPhase {
     Initial;
     Discovery;
@@ -787,7 +787,7 @@ SessionScope          ← Root scope, entire test run
 
 ### §9.3 SequencerSessionScope
 
-```loom
+```loup
 pub class SequencerSessionScope : Any implements Scoped[SequencerSessionScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -808,7 +808,7 @@ pub class SequencerSessionScope : Any implements Scoped[SequencerSessionScope] {
 
 ### §9.4 SequencerModuleScope
 
-```loom
+```loup
 pub class SequencerModuleScope : Any implements Scoped[SequencerModuleScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -829,7 +829,7 @@ pub class SequencerModuleScope : Any implements Scoped[SequencerModuleScope] {
 
 ### §9.5 SequencerTestSetupScope
 
-```loom
+```loup
 pub class SequencerTestSetupScope : Any implements Scoped[SequencerTestSetupScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -845,7 +845,7 @@ pub class SequencerTestSetupScope : Any implements Scoped[SequencerTestSetupScop
 
 ### §9.6 SequencerTestScope
 
-```loom
+```loup
 pub class SequencerTestScope : Any implements Scoped[SequencerTestScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -900,7 +900,7 @@ When notables have a `moniker` property, that value is used. Otherwise, `str(not
 
 Records timing information for operations within a test scope.
 
-```loom
+```loup
 pub class TestActivity : Any implements Scoped[TestActivity] {
     pub let activityName: string;
     pub let target: string;
@@ -920,7 +920,7 @@ pub class TestActivity : Any implements Scoped[TestActivity] {
 
 ## §10 Sequence Document Generation
 
-The sequencer generates an executable Loom source file (the "sequence document") that encodes the test execution order, parameter provisioning, and scope management. This document is then compiled and executed via `runtime.compile()`.
+The sequencer generates an executable Loup source file (the "sequence document") that encodes the test execution order, parameter provisioning, and scope management. This document is then compiled and executed via `runtime.compile()`.
 
 ### §10.1 Generation Process
 
@@ -932,7 +932,7 @@ The sequencer generates an executable Loom source file (the "sequence document")
 
 The generated document contains:
 
-```loom
+```loup
 // Code-generated test sequence document — do not edit manually.
 
 from testing.constraints import ConstraintsCatalog;
@@ -973,7 +973,7 @@ func scope_tests_unit(sequencer: TestSequencer, param: SomeType): void {
 
 ### §10.3 Key Differences from Python automojo-testbase
 
-| Aspect | automojo-testbase (Python) | Loom testing |
+| Aspect | automojo-testbase (Python) | Loup testing |
 |---|---|---|
 | Module loading | `import_file()` | `runtime.compile()` |
 | Signature introspection | `inspect.signature` | `core.reflect.signatureOf` |
@@ -995,7 +995,7 @@ This ensures parent scopes are defined before child scopes in the output file.
 
 When a factory function's signature includes a `constraints` parameter:
 
-```loom
+```loup
 let constraints = constraintsCatalog.lookupConstraints("scope:identifier");
 if (constraints == none) {
     throw RuntimeError("Constraints not found for key: scope:identifier");
@@ -1009,7 +1009,7 @@ for (resource in factory(constraints = constraints)) {
 
 Validators are integrated into test scope code with try/finally blocks:
 
-```loom
+```loup
 with (tscope = sequencer.enterTestScopeContext(testScopeName)) {
     let validator = validatorFactory();
     try {
@@ -1032,7 +1032,7 @@ with (tscope = sequencer.enterTestScopeContext(testScopeName)) {
 
 The foundation `TestJob` implementation. No integration metadata, no build/pipeline/job info.
 
-```loom
+```loup
 pub class SimpleTestJob : Any implements Scoped[SimpleTestJob] {
     pub let title: string;
     pub let testRoot: string;
@@ -1111,7 +1111,7 @@ The factory protocol enables `testing.integration` to substitute an enhanced `Te
 
 ### §12.1 TestJobFactory Interface
 
-```loom
+```loup
 pub interface TestJobFactory {
     func createTestJob(config: TestJobConfig): SimpleTestJob;
 }
@@ -1129,7 +1129,7 @@ pub struct TestJobConfig {
 
 ### §12.2 Default Factory
 
-```loom
+```loup
 pub class DefaultTestJobFactory : Any implements TestJobFactory {
     pub func createTestJob(config: TestJobConfig): SimpleTestJob {
         return SimpleTestJob.new(
@@ -1147,7 +1147,7 @@ pub class DefaultTestJobFactory : Any implements TestJobFactory {
 
 ### §12.3 Factory Registration
 
-```loom
+```loup
 // In testing.factories module
 var _currentFactory: TestJobFactory = DefaultTestJobFactory();
 
@@ -1159,7 +1159,7 @@ pub func getTestJobFactory(): TestJobFactory;
 
 The `testing.integration` package (Tier 2) provides:
 
-```loom
+```loup
 // In testing.integration (separate package, not in stdlib)
 pub class IntegratedTestJobFactory : Any implements TestJobFactory {
     pub func createTestJob(config: TestJobConfig): SimpleTestJob {

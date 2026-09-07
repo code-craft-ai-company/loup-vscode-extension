@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Loom",
-  "scopeName": "source.loom",
-  "fileTypes": ["loom"],
+  "name": "Loup",
+  "scopeName": "source.loup",
+  "fileTypes": ["loup"],
   "patterns": [
     { "include": "#shebang" },
     { "include": "#comments" },
@@ -60,25 +60,25 @@
   "repository": {
 
     "shebang": {
-      "name": "comment.line.shebang.loom",
+      "name": "comment.line.shebang.loup",
       "match": "\\A(#!).*$",
       "captures": {
-        "1": { "name": "punctuation.definition.comment.shebang.loom" }
+        "1": { "name": "punctuation.definition.comment.shebang.loup" }
       }
     },
 
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.documentation.loom",
+          "name": "comment.line.documentation.loup",
           "match": "///.*$"
         },
         {
-          "name": "comment.line.double-slash.loom",
+          "name": "comment.line.double-slash.loup",
           "match": "//.*$"
         },
         {
-          "name": "comment.block.loom",
+          "name": "comment.block.loup",
           "begin": "/\\*",
           "end": "\\*/",
           "patterns": [
@@ -90,23 +90,23 @@
 
     "mode-directive": {
       "comment": "File-level @mode(...) directive (v1.18 §2.5.1). Dotted mode names: web.scripted, web.compiled, host.scripted, host.dual, host.native, freestanding, plus family wildcards web.*, host.*, *.scripted, *.compiled.",
-      "name": "meta.directive.mode.loom",
+      "name": "meta.directive.mode.loup",
       "match": "^\\s*(@mode)\\s*(\\()\\s*((?:web|host|\\*)\\.(?:scripted|compiled|native|dual|\\*)|freestanding)\\s*(\\))",
       "captures": {
-        "1": { "name": "storage.modifier.mode.loom" },
-        "2": { "name": "punctuation.section.parens.begin.loom" },
-        "3": { "name": "constant.language.mode.loom" },
-        "4": { "name": "punctuation.section.parens.end.loom" }
+        "1": { "name": "storage.modifier.mode.loup" },
+        "2": { "name": "punctuation.section.parens.begin.loup" },
+        "3": { "name": "constant.language.mode.loup" },
+        "4": { "name": "punctuation.section.parens.end.loup" }
       }
     },
 
     "namespace-declaration": {
       "comment": "Namespace declaration: namespace pkg.module; (§13.0)",
-      "name": "meta.namespace.loom",
+      "name": "meta.namespace.loup",
       "match": "^\\s*(namespace)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)",
       "captures": {
-        "1": { "name": "keyword.control.namespace.loom" },
-        "2": { "name": "entity.name.namespace.loom" }
+        "1": { "name": "keyword.control.namespace.loup" },
+        "2": { "name": "entity.name.namespace.loup" }
       }
     },
 
@@ -114,20 +114,20 @@
       "patterns": [
         {
           "comment": "Known serialization annotations (v1.18 §32)",
-          "name": "meta.annotation.serialization.loom",
+          "name": "meta.annotation.serialization.loup",
           "match": "(@)(serializationId|polymorphic|tagged|sealed|serialField|alias|skip|skipIfDefault|sensitive|serialVia|migrateFrom|optional|open|strictSchema)\\b",
           "captures": {
-            "1": { "name": "punctuation.definition.annotation.loom" },
-            "2": { "name": "storage.type.annotation.serialization.loom" }
+            "1": { "name": "punctuation.definition.annotation.loup" },
+            "2": { "name": "storage.type.annotation.serialization.loup" }
           }
         },
         {
           "comment": "Annotations with optional arguments: @name or @name(...)",
-          "name": "meta.annotation.loom",
+          "name": "meta.annotation.loup",
           "match": "(@)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "punctuation.definition.annotation.loom" },
-            "2": { "name": "storage.type.annotation.loom" }
+            "1": { "name": "punctuation.definition.annotation.loup" },
+            "2": { "name": "storage.type.annotation.loup" }
           }
         }
       ]
@@ -136,84 +136,84 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.flow.loom",
+          "name": "keyword.control.flow.loup",
           "match": "\\b(if|else|for|while|do|match|break|continue|return|throw|try|catch|finally|await|spawn|yield|suspend|group)\\b"
         },
         {
-          "name": "keyword.control.import.loom",
+          "name": "keyword.control.import.loup",
           "match": "\\b(from|import|as|prefer|compiled)\\b"
         },
         {
-          "name": "keyword.control.namespace.loom",
+          "name": "keyword.control.namespace.loup",
           "match": "\\b(namespace)\\b"
         },
         {
-          "name": "keyword.control.defer.loom",
+          "name": "keyword.control.defer.loup",
           "match": "\\b(defer)\\b"
         },
         {
-          "name": "keyword.control.with.loom",
+          "name": "keyword.control.with.loup",
           "match": "\\b(with)\\b"
         },
         {
-          "name": "keyword.control.portal.loom",
+          "name": "keyword.control.portal.loup",
           "match": "\\b(portal)\\b"
         },
         {
-          "name": "keyword.control.del.loom",
+          "name": "keyword.control.del.loup",
           "match": "\\b(del)\\b"
         },
         {
-          "name": "keyword.control.atomic.loom",
+          "name": "keyword.control.atomic.loup",
           "match": "\\b(atomic)\\b"
         },
         {
-          "name": "keyword.control.safe.loom",
+          "name": "keyword.control.safe.loup",
           "match": "\\b(safe)\\b"
         },
         {
-          "name": "keyword.control.unsafe.loom",
+          "name": "keyword.control.unsafe.loup",
           "match": "\\b(unsafe)\\b"
         },
         {
-          "name": "keyword.control.requires.loom",
+          "name": "keyword.control.requires.loup",
           "match": "\\b(requires)\\b"
         },
         {
-          "name": "keyword.operator.expression.loom",
+          "name": "keyword.operator.expression.loup",
           "match": "\\b(in|is|not|and|or|bnot|instanceof|typeof)\\b"
         },
         {
-          "name": "keyword.operator.cast.loom",
+          "name": "keyword.operator.cast.loup",
           "match": "\\bas\\?"
         },
         {
-          "name": "keyword.operator.box.loom",
+          "name": "keyword.operator.box.loup",
           "match": "\\b(box)\\b"
         },
         {
-          "name": "keyword.operator.consume.loom",
+          "name": "keyword.operator.consume.loup",
           "match": "\\b(consume)\\b"
         },
         {
           "comment": "shared T(args) / shared(arena) T(args) — shared-constructor expression (v1.18 §17b)",
-          "name": "keyword.operator.shared.loom",
+          "name": "keyword.operator.shared.loup",
           "match": "\\bshared\\b(?=\\s*(?:\\(|[A-Z]))"
         },
         {
-          "name": "keyword.operator.layout.loom",
+          "name": "keyword.operator.layout.loup",
           "match": "\\b(size_of|align_of|reinterpret|reinterpretChecked)\\b"
         },
         {
-          "name": "keyword.other.ownership.loom",
+          "name": "keyword.other.ownership.loup",
           "match": "\\b(reads|edits|takes|shares|distinct)\\b"
         },
         {
-          "name": "keyword.other.loom",
+          "name": "keyword.other.loup",
           "match": "\\b(pub|static|new|abstract|implements|global|nonlocal|super|this|Self)\\b"
         },
         {
-          "name": "keyword.reserved.loom",
+          "name": "keyword.reserved.loup",
           "match": "\\b(final|module|override|package|sealed|trait|volatile|where)\\b"
         }
       ]
@@ -222,11 +222,11 @@
     "storage": {
       "patterns": [
         {
-          "name": "storage.type.loom",
+          "name": "storage.type.loup",
           "match": "\\b(let|var|fun|func|async|gen|class|dynamic|interface|enum|struct|extern|type|macro|modifier)\\b"
         },
         {
-          "name": "storage.modifier.loom",
+          "name": "storage.modifier.loup",
           "match": "\\b(pub|static|abstract|operator|weak|unowned|borrow|noescape|lifetime|excl|unique|arc|synchronized|safe|local|shared)\\b"
         }
       ]
@@ -236,22 +236,22 @@
       "patterns": [
         {
           "comment": "Built-in primitive types (lowercase)",
-          "name": "support.type.primitive.loom",
+          "name": "support.type.primitive.loup",
           "match": "\\b(int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|bigint|float|float32|float64|decimal|bool|char|string|bytes|void)\\b"
         },
         {
           "comment": "Built-in generic collection types (lowercase)",
-          "name": "support.type.collection.loom",
+          "name": "support.type.collection.loup",
           "match": "\\b(list|dict|set|tuple|fn)\\b"
         },
         {
           "comment": "Built-in box / special types (PascalCase)",
-          "name": "support.type.class.loom",
+          "name": "support.type.class.loup",
           "match": "\\b(AcceleratorBuffer|AcceleratorDevice|AcceleratorFeatures|AcceleratorKind|ActorContext|Actor|AdamOptimizer|AdamWOptimizer|Add|Alignment|AlignmentError|Animal|Any|AppError|ArcLet|AssertionError|AsyncIterable|AsyncIterator|AsyncScoped|Atomic|AutodiffError|Axis|Backend|BaseException|BaseExceptionGroup|BigInt|BitAnd|BitNot|BitOr|BitXor|BlockingTimeoutError|Bluetooth|Bool|BorrowedHandle|Box|Bytes|Callable|CancellationToken|Char|Circle|ClassName|Closeable|Codec|Comparable|CompileOptions|ComponentRegistry|ComputeGraph|Config|Connection|Connectivity|Constraints|ConstraintsCatalog|ConstraintsOrigin|Container|Contains|Copyable|Counter|CounterElement|CounterMsg|CudaDevice|CudaHostBuffer|CudaStream|CustomOp|DType|DebugFrame|DebugRuntime|DefaultTestJobFactory|DeserializationError|Deserializable|DeviceFeatures|DevicePool|DeviceRegistry|Display|Div|DmaBuffer|DmaTransfer|Dog|Duration|Dynamic|EffectHandle|Element|Encoder|Equatable|Err|Error|Event|EventCounter|Exception|ExceptionGroup|ExecutorConfig|FeatureAttachedObject|FeatureConstraints|FeatureFilter|FeatureMask|FeatureTag|Finalizable|Float|FloorDiv|FormatDriver|FreestandingDebugFrame|From|GeneratorExit|GpuBuffer|GpuCompileError|GpuDispatchError|GpuKernel|GpuKernelBinding|GpuProfiler|GradScaler|HDR|HasArea|Hashable|HttpClient|IMutableMap|IReadableMap|ImageFit|Index|IndexSet|InjectionMoment|InjectionRegistry|InjectionScope|Instant|Int|IntegratedTestJobFactory|Integer|InterruptFrame|InterruptGuard|Iterable|Iterator|KeyLookup|KeyboardInterrupt|LifetimeErrorKind|LocalState|Match|MathUtils|MaybeUninit|Menu|MenuBar|MenuItem|Mod|Module|ModuleLoadError|MountHandle|MountTarget|Mul|Mutex|MutexGuard|Name|NativeHandle|Neg|Node|None|NotFoundError|Numeric|Ok|Optimizer|Option|Ordering|OwnedHandle|PanicSource|PartialInit|PinnedRef|Point|PortalActivation|Pow|RMSpropOptimizer|Range|RangeIterator|Readable|Regex|RemoteException|RenderContext|Renderable|Request|ResourceLifespan|Response|Result|Runtime|RuntimeConfig|RwLock|RwLockReadGuard|RwLockWriteGuard|SafeHtml|Scoped|ScriptWorker|Self|Sendable|SequencerModuleScope|SequencerPhase|SequencerSessionScope|SequencerTestScope|SequencerTestSetupScope|Serializable|SerializationAdapter|SerializationError|SgdOptimizer|Shape|Shareable|SharedArena|SharedArray|SharedBarrier|SharedBuffer|SharedCondVar|SharedMutex|SharedQueue|SharedRef|SharedRwLock|SharedSemaphore|SharedStack|SharedWeakRef|Shl|Shr|Signal|SimpleTestJob|Sized|Sliceable|Some|SortedList|Source|StackFrame|StateSerializer|String|StyleSheet|Sub|SystemExit|T|Task|TaskGroup|TaskLocal|Template|TemporalKind|Tensor|TensorBackendError|TensorDTypeError|TensorShapeError|TestActivity|TestCollector|TestGroup|TestJobFactory|TestRef|TestSequencer|Thread|ThreadHandle|ThreadLocal|ThreadPool|ThreadSafeHandle|TimerHandle|Token|TpuBuffer|TpuCompileError|TpuDevice|TpuDispatchError|TpuKernel|TpuPlatform|TpuProgram|TpuProgramFormat|TpuStream|TpuTopology|TpuUnavailableError|TraceEvent|TraceEventKind|TraceHook|TraceLevel|TransactionManager|Tray|Tree|TreeNode|Type|TypeError|UiRuntime|UnknownEnumVariant|Url|UrlError|User|Value|ValueKind|Variable|VendorId|View|Volatile|WeakRef|WebComponentLifecycle|WiFi|Window|WindowConfig|WorkerChannel|WorkerPanicError|WorkerTerminatedError|WorkerTransferError|Writable)\\b"
         },
         {
           "comment": "Top-level standard library namespace roots",
-          "name": "support.type.namespace.loom",
+          "name": "support.type.namespace.loup",
           "match": "\\b(core|io|net|data|web|sync|lang|debug|structures|ui|runtime|native|concurrent|system)\\b"
         }
       ]
@@ -260,11 +260,11 @@
     "constants": {
       "patterns": [
         {
-          "name": "constant.language.boolean.loom",
+          "name": "constant.language.boolean.loup",
           "match": "\\b(true|false)\\b"
         },
         {
-          "name": "constant.language.null.loom",
+          "name": "constant.language.null.loup",
           "match": "\\b(None|none)\\b"
         }
       ]
@@ -274,29 +274,29 @@
       "patterns": [
         {
           "comment": "Hex literal with optional integer type suffix",
-          "name": "constant.numeric.hex.loom",
+          "name": "constant.numeric.hex.loup",
           "match": "\\b0[xX][0-9a-fA-F_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
-          "name": "constant.numeric.binary.loom",
+          "name": "constant.numeric.binary.loup",
           "match": "\\b0[bB][01_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
-          "name": "constant.numeric.octal.loom",
+          "name": "constant.numeric.octal.loup",
           "match": "\\b0[oO][0-7_]+(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         },
         {
           "comment": "Float with optional f32/f64/d suffix",
-          "name": "constant.numeric.float.loom",
+          "name": "constant.numeric.float.loup",
           "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9_]+)?(f32|f64|d)?\\b"
         },
         {
           "comment": "Float using exponent without decimal",
-          "name": "constant.numeric.float.loom",
+          "name": "constant.numeric.float.loup",
           "match": "\\b[0-9][0-9_]*[eE][+-]?[0-9_]+(f32|f64|d)?\\b"
         },
         {
-          "name": "constant.numeric.integer.loom",
+          "name": "constant.numeric.integer.loup",
           "match": "\\b[0-9][0-9_]*(i8|i16|i32|i64|u8|u16|u32|u64|n)?\\b"
         }
       ]
@@ -305,27 +305,27 @@
     "bytes-literal": {
       "patterns": [
         {
-          "name": "string.quoted.double.bytes.loom",
+          "name": "string.quoted.double.bytes.loup",
           "begin": "\\b(b)(\")",
           "end": "\"",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.bytes.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.bytes.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-escape" }
           ]
         },
         {
-          "name": "string.quoted.single.bytes.loom",
+          "name": "string.quoted.single.bytes.loup",
           "begin": "\\b(b)(')",
           "end": "'",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.bytes.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.bytes.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-escape" }
           ]
@@ -335,14 +335,14 @@
 
     "char-literal": {
       "comment": "Char literal: c'x' — single Unicode scalar value (§3.6)",
-      "name": "string.quoted.single.char.loom",
+      "name": "string.quoted.single.char.loup",
       "begin": "\\b(c)(')",
       "end": "'",
       "beginCaptures": {
-        "1": { "name": "storage.type.string.char.loom" },
-        "2": { "name": "punctuation.definition.string.begin.loom" }
+        "1": { "name": "storage.type.string.char.loup" },
+        "2": { "name": "punctuation.definition.string.begin.loup" }
       },
-      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
       "patterns": [
         { "include": "#string-escape" }
       ]
@@ -351,24 +351,24 @@
     "raw-string": {
       "patterns": [
         {
-          "name": "string.quoted.double.raw.loom",
+          "name": "string.quoted.double.raw.loup",
           "begin": "\\b(r)(\")",
           "end": "\"",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.raw.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.raw.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } }
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } }
         },
         {
-          "name": "string.quoted.single.raw.loom",
+          "name": "string.quoted.single.raw.loup",
           "begin": "\\b(r)(')",
           "end": "'",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.raw.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.raw.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } }
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } }
         }
       ]
     },
@@ -376,28 +376,28 @@
     "interpolated-strings": {
       "patterns": [
         {
-          "name": "string.quoted.double.interpolated.loom",
+          "name": "string.quoted.double.interpolated.loup",
           "begin": "\\b(i)(\")",
           "end": "\"",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.interpolated.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.interpolated.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-interpolation" },
             { "include": "#string-escape" }
           ]
         },
         {
-          "name": "string.quoted.single.interpolated.loom",
+          "name": "string.quoted.single.interpolated.loup",
           "begin": "\\b(i)(')",
           "end": "'",
           "beginCaptures": {
-            "1": { "name": "storage.type.string.interpolated.loom" },
-            "2": { "name": "punctuation.definition.string.begin.loom" }
+            "1": { "name": "storage.type.string.interpolated.loup" },
+            "2": { "name": "punctuation.definition.string.begin.loup" }
           },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-interpolation" },
             { "include": "#string-escape" }
@@ -409,21 +409,21 @@
     "strings": {
       "patterns": [
         {
-          "name": "string.quoted.double.loom",
+          "name": "string.quoted.double.loup",
           "begin": "\"",
           "end": "\"",
-          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loup" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-escape" }
           ]
         },
         {
-          "name": "string.quoted.single.loom",
+          "name": "string.quoted.single.loup",
           "begin": "'",
           "end": "'",
-          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loom" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.loup" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
           "patterns": [
             { "include": "#string-escape" }
           ]
@@ -432,30 +432,30 @@
     },
 
     "string-escape": {
-      "name": "constant.character.escape.loom",
+      "name": "constant.character.escape.loup",
       "match": "\\\\([\\\\'\"nrt0]|u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|\\{\\$|\\{%)"
     },
 
     "string-interpolation": {
-      "name": "meta.interpolation.loom",
+      "name": "meta.interpolation.loup",
       "begin": "\\{\\$-?",
       "end": "-?\\$\\}",
-      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.loom" } },
-      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loom" } },
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.loup" } },
+      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loup" } },
       "patterns": [
-        { "include": "source.loom" }
+        { "include": "source.loup" }
       ]
     },
 
     "multiline-string-double": {
-      "name": "string.quoted.triple.double.loom",
+      "name": "string.quoted.triple.double.loup",
       "begin": "\"\"\"(\\([^)]*\\))?",
       "end": "\"\"\"",
       "beginCaptures": {
-        "0": { "name": "punctuation.definition.string.begin.loom" },
-        "1": { "name": "meta.string.descriptor.loom" }
+        "0": { "name": "punctuation.definition.string.begin.loup" },
+        "1": { "name": "meta.string.descriptor.loup" }
       },
-      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
       "patterns": [
         { "include": "#string-interpolation" },
         { "include": "#string-escape" }
@@ -463,14 +463,14 @@
     },
 
     "multiline-string-single": {
-      "name": "string.quoted.triple.single.loom",
+      "name": "string.quoted.triple.single.loup",
       "begin": "'''(\\([^)]*\\))?",
       "end": "'''",
       "beginCaptures": {
-        "0": { "name": "punctuation.definition.string.begin.loom" },
-        "1": { "name": "meta.string.descriptor.loom" }
+        "0": { "name": "punctuation.definition.string.begin.loup" },
+        "1": { "name": "meta.string.descriptor.loup" }
       },
-      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loom" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.loup" } },
       "patterns": [
         { "include": "#string-interpolation" },
         { "include": "#string-escape" }
@@ -479,17 +479,17 @@
 
     "asm-block": {
       "comment": "Inline assembly block: asm { ... } (§24.7) — freestanding/native only",
-      "name": "meta.embedded.block.asm.loom",
+      "name": "meta.embedded.block.asm.loup",
       "begin": "\\b(asm)\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
-        "1": { "name": "storage.type.asm.loom" },
-        "2": { "name": "punctuation.section.block.begin.loom" }
+        "1": { "name": "storage.type.asm.loup" },
+        "2": { "name": "punctuation.section.block.begin.loup" }
       },
-      "endCaptures": { "0": { "name": "punctuation.section.block.end.loom" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.loup" } },
       "patterns": [
         {
-          "name": "keyword.other.asm-section.loom",
+          "name": "keyword.other.asm-section.loup",
           "match": "\\b(out|in|clobbers)\\s*:"
         },
         { "include": "#strings" },
@@ -518,18 +518,18 @@
     },
 
     "template-fence-html": {
-      "name": "meta.template.fence.html.loom",
+      "name": "meta.template.fence.html.loup",
       "begin": "(`{3,})(\\()(html)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.html",
       "patterns": [
@@ -540,19 +540,19 @@
     },
 
     "template-fence-ui": {
-      "comment": "Cross-platform UI fence — uses Loom component primitives (§19.6)",
-      "name": "meta.template.fence.ui.loom",
+      "comment": "Cross-platform UI fence — uses Loup component primitives (§19.6)",
+      "name": "meta.template.fence.ui.loup",
       "begin": "(`{3,})(\\()(ui)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.ui",
       "patterns": [
@@ -565,26 +565,26 @@
 
     "ui-component-tag": {
       "comment": "PascalCase component tags in ui fences: <Row>, <Column>, <Text>, etc.",
-      "name": "meta.tag.component.ui.loom",
+      "name": "meta.tag.component.ui.loup",
       "match": "</?([A-Z][a-zA-Z0-9]*)\\b",
       "captures": {
-        "1": { "name": "entity.name.tag.component.loom" }
+        "1": { "name": "entity.name.tag.component.loup" }
       }
     },
 
     "template-fence-javascript": {
-      "name": "meta.template.fence.javascript.loom",
+      "name": "meta.template.fence.javascript.loup",
       "begin": "(`{3,})(\\()(js)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.javascript",
       "patterns": [
@@ -595,18 +595,18 @@
     },
 
     "template-fence-typescript": {
-      "name": "meta.template.fence.typescript.loom",
+      "name": "meta.template.fence.typescript.loup",
       "begin": "(`{3,})(\\()(ts)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.typescript",
       "patterns": [
@@ -617,18 +617,18 @@
     },
 
     "template-fence-python": {
-      "name": "meta.template.fence.python.loom",
+      "name": "meta.template.fence.python.loup",
       "begin": "(`{3,})(\\()(py)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.python",
       "patterns": [
@@ -639,18 +639,18 @@
     },
 
     "template-fence-sql": {
-      "name": "meta.template.fence.sql.loom",
+      "name": "meta.template.fence.sql.loup",
       "begin": "(`{3,})(\\()(sql)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.sql",
       "patterns": [
@@ -661,18 +661,18 @@
     },
 
     "template-fence-css": {
-      "name": "meta.template.fence.css.loom",
+      "name": "meta.template.fence.css.loup",
       "begin": "(`{3,})(\\()(css)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.css",
       "patterns": [
@@ -683,18 +683,18 @@
     },
 
     "template-fence-json": {
-      "name": "meta.template.fence.json.loom",
+      "name": "meta.template.fence.json.loup",
       "begin": "(`{3,})(\\()(json)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.json",
       "patterns": [
@@ -705,18 +705,18 @@
     },
 
     "template-fence-markdown": {
-      "name": "meta.template.fence.markdown.loom",
+      "name": "meta.template.fence.markdown.loup",
       "begin": "(`{3,})(\\()(md)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.markdown",
       "patterns": [
@@ -727,18 +727,18 @@
     },
 
     "template-fence-shell": {
-      "name": "meta.template.fence.shell.loom",
+      "name": "meta.template.fence.shell.loup",
       "begin": "(`{3,})(\\()(sh)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.shell",
       "patterns": [
@@ -750,18 +750,18 @@
 
     "template-fence-wgsl": {
       "comment": "WebGPU shading language fence (§16.8.1)",
-      "name": "meta.template.fence.wgsl.loom",
+      "name": "meta.template.fence.wgsl.loup",
       "begin": "(`{3,})(\\()(wgsl)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.wgsl",
       "patterns": [
@@ -772,18 +772,18 @@
 
     "template-fence-metal": {
       "comment": "Metal shading language fence (§16.8.2)",
-      "name": "meta.template.fence.metal.loom",
+      "name": "meta.template.fence.metal.loup",
       "begin": "(`{3,})(\\()(metal)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.metal",
       "patterns": [
@@ -794,18 +794,18 @@
 
     "template-fence-glsl": {
       "comment": "OpenGL/Vulkan shading language fence (§16.8.3)",
-      "name": "meta.template.fence.glsl.loom",
+      "name": "meta.template.fence.glsl.loup",
       "begin": "(`{3,})(\\()(glsl)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
       "contentName": "meta.embedded.block.glsl",
       "patterns": [
@@ -816,20 +816,20 @@
 
     "template-fence-generic": {
       "comment": "Catch-all template fence for any language not specifically matched above",
-      "name": "meta.template.fence.loom",
+      "name": "meta.template.fence.loup",
       "begin": "(`{3,})(\\()([a-zA-Z][a-zA-Z0-9_]*)(\\))(:\\([^)]*\\))?",
       "end": "(\\1)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template.begin.loom" },
-        "2": { "name": "punctuation.definition.descriptor.begin.loom" },
-        "3": { "name": "entity.name.tag.template.language.loom" },
-        "4": { "name": "punctuation.definition.descriptor.end.loom" },
-        "5": { "name": "meta.template.descriptor.loom" }
+        "1": { "name": "punctuation.definition.template.begin.loup" },
+        "2": { "name": "punctuation.definition.descriptor.begin.loup" },
+        "3": { "name": "entity.name.tag.template.language.loup" },
+        "4": { "name": "punctuation.definition.descriptor.end.loup" },
+        "5": { "name": "meta.template.descriptor.loup" }
       },
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template.end.loom" }
+        "1": { "name": "punctuation.definition.template.end.loup" }
       },
-      "contentName": "string.unquoted.template.loom",
+      "contentName": "string.unquoted.template.loup",
       "patterns": [
         { "include": "#template-directives" },
         { "include": "#template-expressions" }
@@ -837,38 +837,38 @@
     },
 
     "template-directives": {
-      "name": "meta.template.directive.loom",
+      "name": "meta.template.directive.loup",
       "begin": "\\{%-?",
       "end": "-?%\\}",
-      "beginCaptures": { "0": { "name": "punctuation.section.directive.begin.loom" } },
-      "endCaptures": { "0": { "name": "punctuation.section.directive.end.loom" } },
+      "beginCaptures": { "0": { "name": "punctuation.section.directive.begin.loup" } },
+      "endCaptures": { "0": { "name": "punctuation.section.directive.end.loup" } },
       "patterns": [
         {
-          "name": "keyword.control.template.loom",
+          "name": "keyword.control.template.loup",
           "match": "\\b(if|elif|else|for|while|do|end|try|catch|finally|match|break|continue|let|var|outer|await|suspend)\\b"
         },
-        { "include": "source.loom" }
+        { "include": "source.loup" }
       ]
     },
 
     "template-expressions": {
-      "name": "meta.template.expression.loom",
+      "name": "meta.template.expression.loup",
       "begin": "\\{\\$-?",
       "end": "-?\\$\\}",
-      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.loom" } },
-      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loom" } },
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.loup" } },
+      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.loup" } },
       "patterns": [
         {
           "comment": "| raw filter for explicit unescaped output",
-          "name": "keyword.operator.filter.raw.loom",
+          "name": "keyword.operator.filter.raw.loup",
           "match": "\\|\\s*raw\\b"
         },
         {
           "comment": "Other pipe filters",
-          "name": "keyword.operator.filter.loom",
+          "name": "keyword.operator.filter.loup",
           "match": "\\|\\s*[a-zA-Z_][a-zA-Z0-9_]*"
         },
-        { "include": "source.loom" }
+        { "include": "source.loup" }
       ]
     },
 
@@ -876,37 +876,37 @@
       "patterns": [
         {
           "comment": "extern js func / extern js val",
-          "name": "meta.extern.js.loom",
+          "name": "meta.extern.js.loup",
           "match": "\\b(extern)\\s+(js)\\s+(func|fun|val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.extern.loom" },
-            "2": { "name": "storage.modifier.js.loom" },
-            "3": { "name": "storage.type.function.loom" },
-            "4": { "name": "entity.name.function.loom" }
+            "1": { "name": "storage.type.extern.loup" },
+            "2": { "name": "storage.modifier.js.loup" },
+            "3": { "name": "storage.type.function.loup" },
+            "4": { "name": "entity.name.function.loup" }
           }
         },
         {
           "comment": "extern native \"lib\" func",
-          "name": "meta.extern.native.loom",
+          "name": "meta.extern.native.loup",
           "match": "\\b(extern)\\s+(native)\\s+(\"[^\"]+\")\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.extern.loom" },
-            "2": { "name": "storage.modifier.native.loom" },
-            "3": { "name": "string.quoted.double.loom" },
-            "4": { "name": "storage.type.function.loom" },
-            "5": { "name": "entity.name.function.loom" }
+            "1": { "name": "storage.type.extern.loup" },
+            "2": { "name": "storage.modifier.native.loup" },
+            "3": { "name": "string.quoted.double.loup" },
+            "4": { "name": "storage.type.function.loup" },
+            "5": { "name": "entity.name.function.loup" }
           }
         },
         {
           "comment": "extern native \"lib\" val",
-          "name": "meta.extern.native.val.loom",
+          "name": "meta.extern.native.val.loup",
           "match": "\\b(extern)\\s+(native)\\s+(\"[^\"]+\")\\s+(val)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.extern.loom" },
-            "2": { "name": "storage.modifier.native.loom" },
-            "3": { "name": "string.quoted.double.loom" },
-            "4": { "name": "storage.type.loom" },
-            "5": { "name": "entity.name.function.loom" }
+            "1": { "name": "storage.type.extern.loup" },
+            "2": { "name": "storage.modifier.native.loup" },
+            "3": { "name": "string.quoted.double.loup" },
+            "4": { "name": "storage.type.loup" },
+            "5": { "name": "entity.name.function.loup" }
           }
         }
       ]
@@ -914,236 +914,236 @@
 
     "macro-declaration": {
       "comment": "macro name(params) { quote { ... } } — §25, §27.11",
-      "name": "meta.macro.loom",
+      "name": "meta.macro.loup",
       "match": "\\b(pub\\s+)?(macro)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.pub.loom" },
-        "2": { "name": "storage.type.macro.loom" },
-        "3": { "name": "entity.name.function.macro.loom" }
+        "1": { "name": "storage.modifier.pub.loup" },
+        "2": { "name": "storage.type.macro.loup" },
+        "3": { "name": "entity.name.function.macro.loup" }
       }
     },
 
     "macro-invocation": {
       "comment": "name!(...) — macro invocation distinguished by trailing !",
-      "name": "meta.macro.invocation.loom",
+      "name": "meta.macro.invocation.loup",
       "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)(!)(\\()",
       "captures": {
-        "1": { "name": "entity.name.function.macro.loom" },
-        "2": { "name": "keyword.operator.macro.loom" },
-        "3": { "name": "punctuation.section.parens.begin.loom" }
+        "1": { "name": "entity.name.function.macro.loup" },
+        "2": { "name": "keyword.operator.macro.loup" },
+        "3": { "name": "punctuation.section.parens.begin.loup" }
       }
     },
 
     "async-gen-function-declaration": {
       "comment": "async gen func name",
-      "name": "meta.function.async-gen.loom",
+      "name": "meta.function.async-gen.loup",
       "match": "\\b(async)\\s+(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.async.loom" },
-        "2": { "name": "storage.modifier.gen.loom" },
-        "3": { "name": "storage.type.function.loom" },
-        "4": { "name": "entity.name.function.loom" }
+        "1": { "name": "storage.modifier.async.loup" },
+        "2": { "name": "storage.modifier.gen.loup" },
+        "3": { "name": "storage.type.function.loup" },
+        "4": { "name": "entity.name.function.loup" }
       }
     },
 
     "gen-function-declaration": {
       "comment": "gen func name",
-      "name": "meta.function.gen.loom",
+      "name": "meta.function.gen.loup",
       "match": "\\b(gen)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.gen.loom" },
-        "2": { "name": "storage.type.function.loom" },
-        "3": { "name": "entity.name.function.loom" }
+        "1": { "name": "storage.modifier.gen.loup" },
+        "2": { "name": "storage.type.function.loup" },
+        "3": { "name": "entity.name.function.loup" }
       }
     },
 
     "async-function-declaration": {
-      "name": "meta.function.async.loom",
+      "name": "meta.function.async.loup",
       "match": "\\b(async)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.async.loom" },
-        "2": { "name": "storage.type.function.loom" },
-        "3": { "name": "entity.name.function.loom" }
+        "1": { "name": "storage.modifier.async.loup" },
+        "2": { "name": "storage.type.function.loup" },
+        "3": { "name": "entity.name.function.loup" }
       }
     },
 
     "safe-function-declaration": {
       "comment": "safe func name — safe context propagation (§23.4.12)",
-      "name": "meta.function.safe.loom",
+      "name": "meta.function.safe.loup",
       "match": "\\b(safe)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.safe.loom" },
-        "2": { "name": "storage.type.function.loom" },
-        "3": { "name": "entity.name.function.loom" }
+        "1": { "name": "storage.modifier.safe.loup" },
+        "2": { "name": "storage.type.function.loup" },
+        "3": { "name": "entity.name.function.loup" }
       }
     },
 
     "function-declaration": {
-      "name": "meta.function.loom",
+      "name": "meta.function.loup",
       "match": "\\b(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.function.loom" },
-        "2": { "name": "entity.name.function.loom" }
+        "1": { "name": "storage.type.function.loup" },
+        "2": { "name": "entity.name.function.loup" }
       }
     },
 
     "operator-method-declaration": {
       "comment": "operator func +/- etc.",
-      "name": "meta.function.operator.loom",
+      "name": "meta.function.operator.loup",
       "match": "\\b(operator)\\s+(func|fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*|\\+|-|\\*|/|//|%|\\*\\*|&|\\||\\^|~|<<|>>|\\[\\]|\\[\\]=|==|contains|\\(\\)|\\+=|-=|\\*=|/=|//=|%=|\\*\\*=|<<=|>>=|&=|\\|=|\\^=)",
       "captures": {
-        "1": { "name": "storage.modifier.operator.loom" },
-        "2": { "name": "storage.type.function.loom" },
-        "3": { "name": "entity.name.function.operator.loom" }
+        "1": { "name": "storage.modifier.operator.loup" },
+        "2": { "name": "storage.type.function.loup" },
+        "3": { "name": "entity.name.function.operator.loup" }
       }
     },
 
     "modifier-method-declaration": {
       "comment": "modifier name(...) — mutation contract method (§23.4.11)",
-      "name": "meta.function.modifier.loom",
+      "name": "meta.function.modifier.loup",
       "match": "\\b(modifier)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.modifier-method.loom" },
-        "2": { "name": "entity.name.function.modifier.loom" }
+        "1": { "name": "storage.type.modifier-method.loup" },
+        "2": { "name": "entity.name.function.modifier.loup" }
       }
     },
 
     "enum-declaration": {
-      "name": "meta.enum.loom",
+      "name": "meta.enum.loup",
       "match": "\\b(enum)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.enum.loom" },
-        "2": { "name": "entity.name.type.enum.loom" }
+        "1": { "name": "storage.type.enum.loup" },
+        "2": { "name": "entity.name.type.enum.loup" }
       }
     },
 
     "struct-declaration": {
       "comment": "struct Name { ... }",
-      "name": "meta.struct.loom",
+      "name": "meta.struct.loup",
       "match": "\\b(struct)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.struct.loom" },
-        "2": { "name": "entity.name.type.struct.loom" }
+        "1": { "name": "storage.type.struct.loup" },
+        "2": { "name": "entity.name.type.struct.loup" }
       }
     },
 
     "abstract-class-declaration": {
-      "name": "meta.class.abstract.loom",
+      "name": "meta.class.abstract.loup",
       "match": "\\b(abstract)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.abstract.loom" },
-        "2": { "name": "storage.type.class.loom" },
-        "3": { "name": "entity.name.type.class.loom" }
+        "1": { "name": "storage.modifier.abstract.loup" },
+        "2": { "name": "storage.type.class.loup" },
+        "3": { "name": "entity.name.type.class.loup" }
       }
     },
 
     "synchronized-class-declaration": {
       "comment": "synchronized [local|shared] [unique] [abstract] [dynamic] class — per-instance lock (§23.4.13, v1.18 §27.15)",
-      "name": "meta.class.synchronized.loom",
+      "name": "meta.class.synchronized.loup",
       "match": "\\b(synchronized)(?:\\s+(local|shared))?(?:\\s+(unique))?(?:\\s+(abstract))?(?:\\s+(dynamic))?\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.synchronized.loom" },
-        "2": { "name": "storage.modifier.memory-strategy.loom" },
-        "3": { "name": "storage.modifier.unique.loom" },
-        "4": { "name": "storage.modifier.abstract.loom" },
-        "5": { "name": "storage.modifier.dynamic.loom" },
-        "6": { "name": "storage.type.class.loom" },
-        "7": { "name": "entity.name.type.class.loom" }
+        "1": { "name": "storage.modifier.synchronized.loup" },
+        "2": { "name": "storage.modifier.memory-strategy.loup" },
+        "3": { "name": "storage.modifier.unique.loup" },
+        "4": { "name": "storage.modifier.abstract.loup" },
+        "5": { "name": "storage.modifier.dynamic.loup" },
+        "6": { "name": "storage.type.class.loup" },
+        "7": { "name": "entity.name.type.class.loup" }
       }
     },
 
     "shared-class-declaration": {
       "comment": "shared class — inter-thread shared memory class (v1.18 §8.1.1, §17b)",
-      "name": "meta.class.shared.loom",
+      "name": "meta.class.shared.loup",
       "match": "\\b(shared)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.memory-strategy.loom" },
-        "2": { "name": "storage.type.class.loom" },
-        "3": { "name": "entity.name.type.class.loom" }
+        "1": { "name": "storage.modifier.memory-strategy.loup" },
+        "2": { "name": "storage.type.class.loup" },
+        "3": { "name": "entity.name.type.class.loup" }
       }
     },
 
     "local-class-declaration": {
       "comment": "local class — explicit form of the default thread-local class (v1.18 §8.1.1)",
-      "name": "meta.class.local.loom",
+      "name": "meta.class.local.loup",
       "match": "\\b(local)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.memory-strategy.loom" },
-        "2": { "name": "storage.type.class.loom" },
-        "3": { "name": "entity.name.type.class.loom" }
+        "1": { "name": "storage.modifier.memory-strategy.loup" },
+        "2": { "name": "storage.type.class.loup" },
+        "3": { "name": "entity.name.type.class.loup" }
       }
     },
 
     "unique-class-declaration": {
       "comment": "unique class — single-owner, no ARC (§8.11, §23.4.7)",
-      "name": "meta.class.unique.loom",
+      "name": "meta.class.unique.loup",
       "match": "\\b(unique)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.modifier.unique.loom" },
-        "2": { "name": "storage.type.class.loom" },
-        "3": { "name": "entity.name.type.class.loom" }
+        "1": { "name": "storage.modifier.unique.loup" },
+        "2": { "name": "storage.type.class.loup" },
+        "3": { "name": "entity.name.type.class.loup" }
       }
     },
 
     "class-declaration": {
       "patterns": [
         {
-          "name": "meta.class.dynamic.loom",
+          "name": "meta.class.dynamic.loup",
           "match": "\\b(dynamic)\\s+(class)\\s+([A-Z][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.modifier.dynamic.loom" },
-            "2": { "name": "storage.type.class.loom" },
-            "3": { "name": "entity.name.type.class.loom" }
+            "1": { "name": "storage.modifier.dynamic.loup" },
+            "2": { "name": "storage.type.class.loup" },
+            "3": { "name": "entity.name.type.class.loup" }
           }
         },
         {
-          "name": "meta.class.loom",
+          "name": "meta.class.loup",
           "match": "\\b(class)\\s+([A-Z][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.class.loom" },
-            "2": { "name": "entity.name.type.class.loom" }
+            "1": { "name": "storage.type.class.loup" },
+            "2": { "name": "entity.name.type.class.loup" }
           }
         }
       ]
     },
 
     "interface-declaration": {
-      "name": "meta.interface.loom",
+      "name": "meta.interface.loup",
       "match": "\\b(interface)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.interface.loom" },
-        "2": { "name": "entity.name.type.interface.loom" }
+        "1": { "name": "storage.type.interface.loup" },
+        "2": { "name": "entity.name.type.interface.loup" }
       }
     },
 
     "type-alias-declaration": {
       "comment": "type Name = Type;",
-      "name": "meta.type-alias.loom",
+      "name": "meta.type-alias.loup",
       "match": "\\b(type)\\s+([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.alias.loom" },
-        "2": { "name": "entity.name.type.alias.loom" }
+        "1": { "name": "storage.type.alias.loup" },
+        "2": { "name": "entity.name.type.alias.loup" }
       }
     },
 
     "portal-statement": {
-      "name": "meta.portal.loom",
+      "name": "meta.portal.loup",
       "match": "\\b(portal)\\s+([a-zA-Z_][a-zA-Z0-9_.]*|\"[^\"]*\")",
       "captures": {
-        "1": { "name": "keyword.control.portal.loom" },
-        "2": { "name": "entity.name.tag.portal.loom" }
+        "1": { "name": "keyword.control.portal.loup" },
+        "2": { "name": "entity.name.tag.portal.loup" }
       }
     },
 
     "deferred-import-statement": {
       "comment": "from X defer import (...) — deferred type stubs for cycles (§13.10)",
-      "name": "meta.import.deferred.loom",
+      "name": "meta.import.deferred.loup",
       "match": "\\b(from)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)\\s+(defer)\\s+(import)\\b",
       "captures": {
-        "1": { "name": "keyword.control.import.loom" },
-        "2": { "name": "entity.name.namespace.loom" },
-        "3": { "name": "keyword.control.defer.loom" },
-        "4": { "name": "keyword.control.import.loom" }
+        "1": { "name": "keyword.control.import.loup" },
+        "2": { "name": "entity.name.namespace.loup" },
+        "3": { "name": "keyword.control.defer.loup" },
+        "4": { "name": "keyword.control.import.loup" }
       }
     },
 
@@ -1151,11 +1151,11 @@
       "patterns": [
         {
           "comment": "from ... import ...",
-          "name": "meta.import.loom",
+          "name": "meta.import.loup",
           "match": "\\b(from)\\s+([a-zA-Z_][a-zA-Z0-9_.]*|\\.[a-zA-Z0-9_.]*|\\.\\|[a-zA-Z0-9_.]*|\\.\\.\\.?[a-zA-Z0-9_.]*)",
           "captures": {
-            "1": { "name": "keyword.control.import.loom" },
-            "2": { "name": "entity.name.namespace.loom" }
+            "1": { "name": "keyword.control.import.loup" },
+            "2": { "name": "entity.name.namespace.loup" }
           }
         }
       ]
@@ -1163,30 +1163,30 @@
 
     "reexport-statement": {
       "comment": "pub from ... import (...) — re-export syntax (§13.2)",
-      "name": "meta.reexport.loom",
+      "name": "meta.reexport.loup",
       "match": "\\b(pub)\\s+(from)\\s+([a-zA-Z_][a-zA-Z0-9_.]*|\\.[a-zA-Z0-9_.]*)",
       "captures": {
-        "1": { "name": "keyword.other.pub.loom" },
-        "2": { "name": "keyword.control.import.loom" },
-        "3": { "name": "entity.name.namespace.loom" }
+        "1": { "name": "keyword.other.pub.loup" },
+        "2": { "name": "keyword.control.import.loup" },
+        "3": { "name": "entity.name.namespace.loup" }
       }
     },
 
     "lifetime-label": {
       "comment": "Lifetime labels: ~name (§3.4, §23.4.2). ~static is reserved.",
-      "name": "storage.modifier.lifetime.label.loom",
+      "name": "storage.modifier.lifetime.label.loup",
       "match": "~[a-z_][a-zA-Z0-9_]*\\b"
     },
 
     "dynamic-field-access": {
-      "name": "meta.dynamic-field.loom",
+      "name": "meta.dynamic-field.loup",
       "begin": "!\\{",
       "end": "\\}",
-      "beginCaptures": { "0": { "name": "punctuation.section.dynamic-field.begin.loom" } },
-      "endCaptures": { "0": { "name": "punctuation.section.dynamic-field.end.loom" } },
+      "beginCaptures": { "0": { "name": "punctuation.section.dynamic-field.begin.loup" } },
+      "endCaptures": { "0": { "name": "punctuation.section.dynamic-field.end.loup" } },
       "patterns": [
         {
-          "name": "variable.other.dynamic-field.loom",
+          "name": "variable.other.dynamic-field.loup",
           "match": "[a-zA-Z_][a-zA-Z0-9_]*"
         },
         {
@@ -1201,16 +1201,16 @@
         {
           "match": "\\b(unique|arc)\\s+(let|var)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.modifier.ownership.loom" },
-            "2": { "name": "storage.type.loom" },
-            "3": { "name": "variable.other.readwrite.loom" }
+            "1": { "name": "storage.modifier.ownership.loup" },
+            "2": { "name": "storage.type.loup" },
+            "3": { "name": "variable.other.readwrite.loup" }
           }
         },
         {
           "match": "\\b(let|var)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.loom" },
-            "2": { "name": "variable.other.readwrite.loom" }
+            "1": { "name": "storage.type.loup" },
+            "2": { "name": "variable.other.readwrite.loup" }
           }
         }
       ]
@@ -1220,8 +1220,8 @@
       "comment": "Colon followed by a type name — : Type or : list[Type]",
       "match": "(:\\s*)([A-Z][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "keyword.operator.type.annotation.loom" },
-        "2": { "name": "entity.name.type.loom" }
+        "1": { "name": "keyword.operator.type.annotation.loup" },
+        "2": { "name": "entity.name.type.loup" }
       }
     },
 
@@ -1229,7 +1229,7 @@
       "comment": "obj.method() — scopes the method name",
       "match": "(?<=\\.)([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
       "captures": {
-        "1": { "name": "support.function.method.loom" }
+        "1": { "name": "support.function.method.loup" }
       }
     },
 
@@ -1237,7 +1237,7 @@
       "comment": "name() — scopes function calls distinctly from declarations",
       "match": "\\b([a-z_][a-zA-Z0-9_]*)\\s*(?=\\()",
       "captures": {
-        "1": { "name": "support.function.loom" }
+        "1": { "name": "support.function.loup" }
       }
     },
 
@@ -1245,97 +1245,97 @@
       "patterns": [
         {
           "comment": "Optional chaining, null-safe indexing, and null coalescing",
-          "name": "keyword.operator.optional.loom",
+          "name": "keyword.operator.optional.loup",
           "match": "\\?\\.\\[|\\?\\.|\\.\\?|\\?\\?"
         },
         {
           "comment": "Arrow for match arms and lambdas",
-          "name": "keyword.operator.arrow.loom",
+          "name": "keyword.operator.arrow.loup",
           "match": "=>"
         },
         {
           "comment": "Exponentiation assignment",
-          "name": "keyword.operator.assignment.compound.loom",
+          "name": "keyword.operator.assignment.compound.loup",
           "match": "\\*\\*="
         },
         {
           "comment": "Shift assignment",
-          "name": "keyword.operator.assignment.compound.loom",
+          "name": "keyword.operator.assignment.compound.loup",
           "match": "(<<=|>>=)"
         },
         {
           "comment": "Floor-division assignment (§3.7)",
-          "name": "keyword.operator.assignment.compound.loom",
+          "name": "keyword.operator.assignment.compound.loup",
           "match": "//="
         },
         {
           "comment": "Compound assignment operators",
-          "name": "keyword.operator.assignment.compound.loom",
+          "name": "keyword.operator.assignment.compound.loup",
           "match": "(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=)"
         },
         {
           "comment": "Exponentiation",
-          "name": "keyword.operator.arithmetic.exponent.loom",
+          "name": "keyword.operator.arithmetic.exponent.loup",
           "match": "\\*\\*"
         },
         {
           "comment": "Floor division",
-          "name": "keyword.operator.arithmetic.floordiv.loom",
+          "name": "keyword.operator.arithmetic.floordiv.loup",
           "match": "//"
         },
         {
           "comment": "Shift operators",
-          "name": "keyword.operator.bitwise.shift.loom",
+          "name": "keyword.operator.bitwise.shift.loup",
           "match": "(<<|>>)"
         },
         {
           "comment": "Comparison and equality",
-          "name": "keyword.operator.comparison.loom",
+          "name": "keyword.operator.comparison.loup",
           "match": "==|!=|<=|>=|<|>"
         },
         {
           "comment": "Logical",
-          "name": "keyword.operator.logical.loom",
+          "name": "keyword.operator.logical.loup",
           "match": "&&|\\|\\||!"
         },
         {
           "comment": "Bitwise NOT",
-          "name": "keyword.operator.bitwise.not.loom",
+          "name": "keyword.operator.bitwise.not.loup",
           "match": "~"
         },
         {
           "comment": "Bitwise AND",
-          "name": "keyword.operator.bitwise.and.loom",
+          "name": "keyword.operator.bitwise.and.loup",
           "match": "&"
         },
         {
           "comment": "Bitwise XOR",
-          "name": "keyword.operator.bitwise.xor.loom",
+          "name": "keyword.operator.bitwise.xor.loup",
           "match": "\\^"
         },
         {
           "comment": "Arithmetic",
-          "name": "keyword.operator.arithmetic.loom",
+          "name": "keyword.operator.arithmetic.loup",
           "match": "\\+|-|\\*|/|%"
         },
         {
           "comment": "Assignment",
-          "name": "keyword.operator.assignment.loom",
+          "name": "keyword.operator.assignment.loup",
           "match": "="
         },
         {
           "comment": "Colon for type annotations and ternary",
-          "name": "keyword.operator.type.annotation.loom",
+          "name": "keyword.operator.type.annotation.loup",
           "match": ":"
         },
         {
           "comment": "Pipe (template filter / bitwise OR)",
-          "name": "keyword.operator.pipe.loom",
+          "name": "keyword.operator.pipe.loup",
           "match": "\\|"
         },
         {
           "comment": "Result propagation postfix ?",
-          "name": "keyword.operator.propagation.loom",
+          "name": "keyword.operator.propagation.loup",
           "match": "\\?"
         }
       ]
@@ -1343,15 +1343,15 @@
 
     "punctuation": {
       "patterns": [
-        { "name": "punctuation.separator.comma.loom", "match": "," },
-        { "name": "punctuation.terminator.statement.loom", "match": ";" },
-        { "name": "punctuation.section.block.begin.loom", "match": "\\{" },
-        { "name": "punctuation.section.block.end.loom", "match": "\\}" },
-        { "name": "punctuation.section.parens.begin.loom", "match": "\\(" },
-        { "name": "punctuation.section.parens.end.loom", "match": "\\)" },
-        { "name": "punctuation.section.brackets.begin.loom", "match": "\\[" },
-        { "name": "punctuation.section.brackets.end.loom", "match": "\\]" },
-        { "name": "punctuation.accessor.dot.loom", "match": "\\." }
+        { "name": "punctuation.separator.comma.loup", "match": "," },
+        { "name": "punctuation.terminator.statement.loup", "match": ";" },
+        { "name": "punctuation.section.block.begin.loup", "match": "\\{" },
+        { "name": "punctuation.section.block.end.loup", "match": "\\}" },
+        { "name": "punctuation.section.parens.begin.loup", "match": "\\(" },
+        { "name": "punctuation.section.parens.end.loup", "match": "\\)" },
+        { "name": "punctuation.section.brackets.begin.loup", "match": "\\[" },
+        { "name": "punctuation.section.brackets.end.loup", "match": "\\]" },
+        { "name": "punctuation.accessor.dot.loup", "match": "\\." }
       ]
     },
 
@@ -1359,32 +1359,32 @@
       "patterns": [
         {
           "comment": "Dunder identifiers for module introspection (§2.2)",
-          "name": "variable.language.dunder.loom",
+          "name": "variable.language.dunder.loup",
           "match": "\\b(__name__|__file__|__execmode__|__module__)\\b"
         },
         {
           "comment": "this / super / Self keywords",
-          "name": "variable.language.this.loom",
+          "name": "variable.language.this.loup",
           "match": "\\b(this|super|Self)\\b"
         },
         {
           "comment": "UPPER_CASE constants",
-          "name": "variable.other.constant.loom",
+          "name": "variable.other.constant.loup",
           "match": "\\b[A-Z][A-Z0-9_]+\\b"
         },
         {
           "comment": "PascalCase type reference",
-          "name": "entity.name.type.loom",
+          "name": "entity.name.type.loup",
           "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
         },
         {
           "comment": "property access: .name",
-          "name": "variable.other.property.loom",
+          "name": "variable.other.property.loup",
           "match": "(?<=\\.)[a-z_][a-zA-Z0-9_]*\\b"
         },
         {
           "comment": "Regular variables",
-          "name": "variable.other.loom",
+          "name": "variable.other.loup",
           "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
         }
       ]

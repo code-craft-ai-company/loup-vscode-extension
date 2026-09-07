@@ -1,5 +1,5 @@
 {
-  "name": "loom-vscode-extension",
+  "name": "loup-vscode-extension",
   "private": true,
   "workspaces": [
     "packages/*"

@@ -1,16 +1,16 @@
 // ============================================================================
-// Loom Task Provider — Auto-detect loom run/build/test tasks from loom.pkg
+// Loup Task Provider — Auto-detect loup run/build/test tasks from loup.pkg
 // ============================================================================
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-export class LoomTaskProvider implements vscode.TaskProvider {
-  static readonly type = 'loom';
+export class LoupTaskProvider implements vscode.TaskProvider {
+  static readonly type = 'loup';
 
   async provideTasks(): Promise<vscode.Task[]> {
     const tasks: vscode.Task[] = [];
-    const pkgFiles = await vscode.workspace.findFiles('**/loom.pkg', '**/node_modules/**');
+    const pkgFiles = await vscode.workspace.findFiles('**/loup.pkg', '**/node_modules/**');
 
     for (const pkgUri of pkgFiles) {
       const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(pkgUri));
@@ -65,7 +65,7 @@ export class LoomTaskProvider implements vscode.TaskProvider {
 
   resolveTask(task: vscode.Task): vscode.Task | undefined {
     const definition = task.definition;
-    if (definition.type === LoomTaskProvider.type && definition.command) {
+    if (definition.type === LoupTaskProvider.type && definition.command) {
       return this.createTask(
         definition.command,
         task.name,
@@ -78,21 +78,21 @@ export class LoomTaskProvider implements vscode.TaskProvider {
 
   private createTask(command: string, label: string, cwd: string, args: string[]): vscode.Task {
     const definition: vscode.TaskDefinition = {
-      type: LoomTaskProvider.type,
+      type: LoupTaskProvider.type,
       command,
       cwd,
       args,
     };
 
-    const execution = new vscode.ShellExecution('loom', args, { cwd });
+    const execution = new vscode.ShellExecution('loup', args, { cwd });
 
     const task = new vscode.Task(
       definition,
       vscode.TaskScope.Workspace,
       label,
-      'Loom',
+      'Loup',
       execution,
-      '$loom'  // problem matcher
+      '$loup'  // problem matcher
     );
 
     task.group = command === 'test'

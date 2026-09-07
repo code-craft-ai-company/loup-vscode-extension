@@ -34,8 +34,8 @@ export class TaskGroupPanel {
       return TaskGroupPanel.currentPanel;
     }
     const panel = vscode.window.createWebviewPanel(
-      'loomTaskGroup',
-      'Loom Task Groups',
+      'loupTaskGroup',
+      'Loup Task Groups',
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
@@ -67,7 +67,7 @@ export class TaskGroupPanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loom Task Groups</title>
+  <title>Loup Task Groups</title>
   <style>
     :root {
       --bg: var(--vscode-editor-background);

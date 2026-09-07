@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Language Server — LSP entry point with all providers
+// Loup Language Server — LSP entry point with all providers
 // ============================================================================
 
 import {
@@ -132,7 +132,7 @@ function validateDocument(document: TextDocument): void {
       end: { line: d.range.end.line, character: d.range.end.column },
     },
     message: d.message,
-    source: 'loom',
+    source: 'loup',
   }));
 
   connection.sendDiagnostics({ uri, diagnostics });
@@ -140,18 +140,18 @@ function validateDocument(document: TextDocument): void {
 
 // ---- Completions ----
 
-const LOOM_BUILTINS = [
+const LOUP_BUILTINS = [
   'print', 'println', 'len', 'assert', 'panic',
   'args', 'env', 'readBytes', 'readText', 'writeBytes', 'writeText', 'exec',
   'readBytesAsync', 'readTextAsync', 'writeBytesAsync', 'writeTextAsync', 'execAsync'
 ];
 
-const LOOM_DUNDERS = [
+const LOUP_DUNDERS = [
   '__name__', '__file__', '__execmode__', '__module__'
 ];
 
-// Strict keywords from Loom Language Reference v1.18 §3.4 (Appendix A)
-const LOOM_KEYWORDS = [
+// Strict keywords from Loup Language Reference v1.18 §3.4 (Appendix A)
+const LOUP_KEYWORDS = [
   'abstract', 'and', 'as', 'async', 'await', 'bnot', 'borrow',
   'break', 'catch', 'class', 'continue', 'defer', 'del',
   'do', 'dynamic', 'else', 'enum', 'extern', 'false',
@@ -179,14 +179,14 @@ const LOOM_KEYWORDS = [
 ];
 
 // Dotted file-mode names used in @mode(...) directives (v1.18 §2.5)
-const LOOM_MODES = [
+const LOUP_MODES = [
   'web.scripted', 'web.compiled',
   'host.scripted', 'host.dual', 'host.native',
   'freestanding',
 ];
 
-// Built-in types from Loom Language Reference v1.18 §4, §24, §32, Appendix C
-const LOOM_TYPES = [
+// Built-in types from Loup Language Reference v1.18 §4, §24, §32, Appendix C
+const LOUP_TYPES = [
   // Primitives (§4.1)
   'int', 'int8', 'int16', 'int32', 'int64',
   'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'bigint',
@@ -246,7 +246,7 @@ const LOOM_TYPES = [
   'From', 'Box', 'Vec',
 ];
 
-// Standard library namespaces — Loom v1.16 uses `core.*`, `io.*`, `net.*`,
+// Standard library namespaces — Loup v1.16 uses `core.*`, `io.*`, `net.*`,
 // `data.*`, `web.*`, `sync.*`, `lang.*`, `debug.*`, `structures.*`, `ui.*`
 // (see §21 and the §13.3 manifest example).
 const SYSTEM_MODULES = [
@@ -278,7 +278,7 @@ const SYSTEM_MODULES = [
   { label: 'ui.web', detail: 'Web-specific UI rendering and SSR', items: ['renderToString', 'hydrate', 'mount', 'StateSerializer', 'serializeState', 'deserializeState', 'render'] },
   { label: 'ui.desktop', detail: 'Desktop window management', items: ['Window', 'WindowConfig', 'Tray', 'showWindow', 'showDialog', 'showNotification'] },
   { label: 'web.dom', detail: 'DOM access', items: ['querySelector', 'querySelectorAll', 'Element', 'Event'] },
-  { label: 'web.css', detail: 'CSS-in-Loom styling', items: ['StyleSheet', 'ClassName', 'css', 'keyframes', 'media'] },
+  { label: 'web.css', detail: 'CSS-in-Loup styling', items: ['StyleSheet', 'ClassName', 'css', 'keyframes', 'media'] },
   { label: 'web.storage', detail: 'Browser storage', items: ['localStorage', 'sessionStorage'] },
   { label: 'lang.template', detail: 'Templates and rendering', items: ['Template', 'RenderContext', 'Renderable', 'SafeHtml', 'escapeHtml', 'escapeAttribute', 'Url'] },
   { label: 'lang.interop.js', detail: 'Typed JS/native facades', items: ['fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'querySelector', 'querySelectorAll', 'Request', 'Response', 'Element', 'Event', 'TimerHandle'] },
@@ -297,22 +297,22 @@ connection.onCompletion((_params: TextDocumentPositionParams): CompletionItem[] 
   const items: CompletionItem[] = [];
 
   // Built-ins
-  for (const fn of LOOM_BUILTINS) {
+  for (const fn of LOUP_BUILTINS) {
     items.push({ label: fn, kind: CompletionItemKind.Function, detail: 'Built-in' });
   }
 
   // Dunders
-  for (const dunder of LOOM_DUNDERS) {
+  for (const dunder of LOUP_DUNDERS) {
     items.push({ label: dunder, kind: CompletionItemKind.Constant, detail: 'Built-in Dunder' });
   }
 
   // Keywords
-  for (const kw of LOOM_KEYWORDS) {
+  for (const kw of LOUP_KEYWORDS) {
     items.push({ label: kw, kind: CompletionItemKind.Keyword });
   }
 
   // Dotted mode names (v1.18 §2.5) — useful inside @mode(...)
-  for (const mode of LOOM_MODES) {
+  for (const mode of LOUP_MODES) {
     items.push({
       label: mode,
       kind: CompletionItemKind.EnumMember,
@@ -321,7 +321,7 @@ connection.onCompletion((_params: TextDocumentPositionParams): CompletionItem[] 
   }
 
   // Types
-  for (const t of LOOM_TYPES) {
+  for (const t of LOUP_TYPES) {
     items.push({ label: t, kind: CompletionItemKind.Class });
   }
 
@@ -402,7 +402,7 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   const sym = findSymbolAtPosition(symbols, pos.line, pos.character);
   if (!sym) return null;
 
-  const typeStr = sym.type ? `\`\`\`loom\n${sym.type}\n\`\`\`` : '';
+  const typeStr = sym.type ? `\`\`\`loup\n${sym.type}\n\`\`\`` : '';
   const kindStr = sym.kind.toString();
 
   return {

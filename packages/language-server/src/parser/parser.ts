@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Parser — Recursive-descent, error-recovering parser for Loom v0.6
+// Loup Parser — Recursive-descent, error-recovering parser for Loup v0.6
 // ============================================================================
 
 import { Lexer, Token, TokenKind } from './lexer.js';

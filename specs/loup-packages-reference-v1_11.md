@@ -1,13 +1,13 @@
-# Loom Packages Reference v1.11
+# Loup Packages Reference v1.11
 
 **Status:** Release
 **Version:** 1.11.0
 **Date:** 2026-04-20
 **Supersedes:** 1.10.0
-**Scope:** Packages that require `loom install`, depend on external hardware
+**Scope:** Packages that require `loup install`, depend on external hardware
   backends compiled separately, or are maintained on a cadence independent of
-  the core language runtime: `loom.tensor`, `loom.autodiff`, `loom.tpu`,
-  `loom.ai`, `loom.db`, `loom.bench`, `loom.format`,
+  the core language runtime: `loup.tensor`, `loup.autodiff`, `loup.tpu`,
+  `loup.ai`, `loup.db`, `loup.bench`, `loup.format`,
   `native.gpu`, `native.tpu`, `native.hal`; package registry specification;
   hardware management tooling; hardware backend lifecycle.
 
@@ -17,7 +17,7 @@
   `shared class` declarations. Establishes the package-manifest ABI-version
   field, the cross-mode ABI compatibility matrix, and installation-time
   verification of `shared class` ABI compatibility.
-- **§21.28 `loom.tensor` note.** `Tensor` values now expose `asSharedArray()`
+- **§21.28 `loup.tensor` note.** `Tensor` values now expose `asSharedArray()`
   and `fromSharedArray()` zero-copy converters for interop with
   `SharedArray[T]` (Language Reference §17b.3) when the backend is CPU.
 - **Appendix C.** New v1.18 stdlib types (`SharedArena`, `SharedRef[T]`,
@@ -27,8 +27,8 @@
   packages — the appendix notes them with their stdlib section references.
 
 **Related documents:**
-- [Loom Language Reference v1.18](loom-language-reference-v1_18.md)
-- [Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md)
+- [Loup Language Reference v1.18](loup-language-reference-v1_18.md)
+- [Loup Standard Library Reference v1.18](loup-stdlib-reference-v1_18.md)
 
 ---
 
@@ -36,14 +36,14 @@
 
 - [§13.5 Package Registry](#135-package-registry)
 - [§13.5b Shared-Class ABI Versioning for Packages](#135b-shared-class-abi-versioning-for-packages)
-- [§13.8 Core Package Set (`loom.*`)](#138-core-package-set)
-- [§21.28 `loom.tensor` — High-Level Tensor Operations](#2128-loomtensor--high-level-tensor-operations)
+- [§13.8 Core Package Set (`loup.*`)](#138-core-package-set)
+- [§21.28 `loup.tensor` — High-Level Tensor Operations](#2128-louptensor--high-level-tensor-operations)
 - [§21.29 `native.webgpu` — WebGPU API Facade](#2129-nativewebgpu--webgpu-api-facade)
 - [§21.30 `native.gpu` — Low-Level GPU Kernel Dispatch](#2130-nativegpu--low-level-gpu-kernel-dispatch)
-- [§21.31 `loom.autodiff` — Automatic Differentiation](#2131-loomautodiff--automatic-differentiation)
+- [§21.31 `loup.autodiff` — Automatic Differentiation](#2131-loupautodiff--automatic-differentiation)
 - [§21.32 `native.hal` — Hardware Abstraction Layer](#2132-nativehal--hardware-abstraction-layer)
 - [§21.33 `native.tpu` — Low-Level TPU Dispatch](#2133-nativetpu--low-level-tpu-dispatch)
-- [§21.34 `loom.tpu` — High-Level TPU Integration](#2134-loomtpu--high-level-tpu-integration)
+- [§21.34 `loup.tpu` — High-Level TPU Integration](#2134-louptpu--high-level-tpu-integration)
 - [§27.9 Hardware Management Commands](#279-hardware-management-commands)
 - [§30 Hardware Backend Lifecycle](#30-hardware-backend-lifecycle)
 - [Appendix C: Package Type Index](#appendix-c-package-type-index)
@@ -52,53 +52,53 @@
 
 ### §13.5 Package Registry
 
-The Loom ecosystem defines a registry protocol for publishing, discovering, and fetching packages.
+The Loup ecosystem defines a registry protocol for publishing, discovering, and fetching packages.
 
-**Reference registry.** The canonical public registry is hosted at `https://registry.loom-lang.org`. The `loom add`, `loom install`, and `loom publish` commands use this registry by default. An alternative registry may be specified in `.lmpkg`:
+**Reference registry.** The canonical public registry is hosted at `https://registry.loup-lang.org`. The `loup add`, `loup install`, and `loup publish` commands use this registry by default. An alternative registry may be specified in `.lppkg`:
 
 ```toml
 [registry]
 url = "https://my-org-registry.example.com"
 ```
 
-Self-hosted registries must implement the Loom Registry Protocol (LRP), a REST API whose schema is published at `https://registry.loom-lang.org/schema/lrp/v1`. Both hosted and self-hosted instances are first-class — the toolchain does not privilege the reference registry.
+Self-hosted registries must implement the Loup Registry Protocol (LRP), a REST API whose schema is published at `https://registry.loup-lang.org/schema/lrp/v1`. Both hosted and self-hosted instances are first-class — the toolchain does not privilege the reference registry.
 
 **Package lifecycle:**
 
-- `loom publish` uploads a package tarball and its `loom.lock` to the registry. Publishing requires authentication via `loom auth login`.
-- `loom add <package>[@version]` resolves the package, adds it to `.lmpkg`, and updates `loom.lock`. After resolution, it runs `loom install` for the newly added package only.
-- `loom install` installs all dependencies from `loom.lock`, then precompiles each installed package's source to a cached Wasm artifact (see §27.7). Install is idempotent — packages whose cached artifacts are already up-to-date are not recompiled.
-- `loom install --no-precompile` installs source only, skipping Wasm precompilation. Useful in CI environments where startup latency is not a concern.
-- `loom install --offline` resolves only from the local package cache; fails if any required package is absent.
-- `loom install --locked` errors if `loom.lock` would need updating; intended for CI.
-- Yanking marks a version unavailable to new `loom add` resolutions but does not break existing `loom.lock` references.
-- Deprecation emits a warning on `loom install` without blocking installation.
+- `loup publish` uploads a package tarball and its `loup.lock` to the registry. Publishing requires authentication via `loup auth login`.
+- `loup add <package>[@version]` resolves the package, adds it to `.lppkg`, and updates `loup.lock`. After resolution, it runs `loup install` for the newly added package only.
+- `loup install` installs all dependencies from `loup.lock`, then precompiles each installed package's source to a cached Wasm artifact (see §27.7). Install is idempotent — packages whose cached artifacts are already up-to-date are not recompiled.
+- `loup install --no-precompile` installs source only, skipping Wasm precompilation. Useful in CI environments where startup latency is not a concern.
+- `loup install --offline` resolves only from the local package cache; fails if any required package is absent.
+- `loup install --locked` errors if `loup.lock` would need updating; intended for CI.
+- Yanking marks a version unavailable to new `loup add` resolutions but does not break existing `loup.lock` references.
+- Deprecation emits a warning on `loup install` without blocking installation.
 
 **Naming rules:**
 
 - Package names are lowercase, hyphen-separated identifiers: `my-package`, `json-schema`.
-- The `loom.` namespace prefix is reserved for first-party packages (see §13.8). User packages cannot use `loom.` as a prefix.
+- The `loup.` namespace prefix is reserved for first-party packages (see §13.8). User packages cannot use `loup.` as a prefix.
 - The stdlib namespaces (`core`, `io`, `data`, `net`, `sync`, `web`, `ui`, `native`, `lang`, `debug`) are reserved for the standard library (see §13.6).
 - Version constraints follow semantic versioning: `^` (compatible with MAJOR), `~` (compatible with MAJOR.MINOR), `>=`, `<=`, exact, or range.
-- A `loom.lock` lockfile records exact resolved versions of all transitive dependencies. The lockfile is committed to version control for applications and gitignored for libraries.
+- A `loup.lock` lockfile records exact resolved versions of all transitive dependencies. The lockfile is committed to version control for applications and gitignored for libraries.
 
 **Package signing and verification.**
 
 *(This subsection is normative.)*
 
-Loom packages use a dual-signature scheme to provide both publisher identity and content integrity guarantees.
+Loup packages use a dual-signature scheme to provide both publisher identity and content integrity guarantees.
 
-**Signing model.** Every package published to any Loom registry MUST carry two signatures:
+**Signing model.** Every package published to any Loup registry MUST carry two signatures:
 
 1. **Publisher signature** — an Ed25519 signature over the package tarball, made with the publisher's private key. Establishes authorship and non-repudiation.
 2. **Registry countersignature** — a second Ed25519 signature added by the registry over the package tarball plus the publisher signature. Establishes that the registry received and logged the exact artifact being installed.
 
-Both signatures are stored in a `.lmpkg.sig` sidecar alongside the package tarball in the registry. The sidecar format is:
+Both signatures are stored in a `.lppkg.sig` sidecar alongside the package tarball in the registry. The sidecar format is:
 
 ```
-# <package>-<version>.lmpkg.sig — JSON, UTF-8
+# <package>-<version>.lppkg.sig — JSON, UTF-8
 {
-  "package":              "loom.http",
+  "package":              "loup.http",
   "version":              "2.1.0",
   "tarball_sha256":       "<hex>",
   "publisher_key_id":     "<hex fingerprint of publisher Ed25519 public key>",
@@ -111,15 +111,15 @@ Both signatures are stored in a `.lmpkg.sig` sidecar alongside the package tarba
 
 **Key management.**
 
-- Publishers generate an Ed25519 keypair with `loom auth keygen`. The public key is uploaded to the registry during `loom auth login` and associated with the publisher account. A publisher may register multiple keys (e.g., one per machine or CI environment). Key rotation is performed with `loom auth keygen --rotate`.
+- Publishers generate an Ed25519 keypair with `loup auth keygen`. The public key is uploaded to the registry during `loup auth login` and associated with the publisher account. A publisher may register multiple keys (e.g., one per machine or CI environment). Key rotation is performed with `loup auth keygen --rotate`.
 - The registry maintains a transparency log of all published packages and their signatures. The log is append-only and publicly auditable.
-- Key revocation is performed through the registry API (web interface or `loom auth revoke-key <key-id>`). Revoked keys invalidate all signatures made after the revocation timestamp. Packages signed before revocation remain valid unless the registry operator explicitly yanks them.
+- Key revocation is performed through the registry API (web interface or `loup auth revoke-key <key-id>`). Revoked keys invalidate all signatures made after the revocation timestamp. Packages signed before revocation remain valid unless the registry operator explicitly yanks them.
 
 **Verification during install.**
 
-`loom install` performs the following checks for every package:
+`loup install` performs the following checks for every package:
 
-1. Download the package tarball and its `.lmpkg.sig` sidecar.
+1. Download the package tarball and its `.lppkg.sig` sidecar.
 2. Compute SHA-256 of the tarball; compare to `tarball_sha256` in the sidecar. Abort if mismatch.
 3. Fetch the publisher's Ed25519 public key from the registry (or local key cache). Verify `publisher_sig` over the tarball. Abort if invalid.
 4. Fetch the registry's Ed25519 public key (pinned in the toolchain distribution). Verify `registry_sig`. Abort if invalid.
@@ -127,9 +127,9 @@ Both signatures are stored in a `.lmpkg.sig` sidecar alongside the package tarba
 
 If any check fails, installation is aborted and an error is reported. There is no `--skip-verify` flag — signature verification is unconditional.
 
-**`loom install --trust-key <key-id>`** — Trust an additional publisher key for the duration of this install (useful for private registries that use a self-managed key not bundled with the toolchain). The key must be reachable from the configured registry.
+**`loup install --trust-key <key-id>`** — Trust an additional publisher key for the duration of this install (useful for private registries that use a self-managed key not bundled with the toolchain). The key must be reachable from the configured registry.
 
-**Pinning for self-hosted registries.** When using a private registry, operators configure the registry's public key in the project's `.lmpkg`:
+**Pinning for self-hosted registries.** When using a private registry, operators configure the registry's public key in the project's `.lppkg`:
 
 ```toml
 [registry]
@@ -137,16 +137,16 @@ url     = "https://my-org-registry.example.com"
 key_id  = "abc123..."   # hex fingerprint of the registry's Ed25519 public key
 ```
 
-`loom install` pins to this key for packages resolved from the configured registry URL. The key is verified against the registry's well-known endpoint (`/.well-known/loom-registry-key`) on first use and cached locally.
+`loup install` pins to this key for packages resolved from the configured registry URL. The key is verified against the registry's well-known endpoint (`/.well-known/loup-registry-key`) on first use and cached locally.
 
-**Local packages and `[dev-overrides]`.** Packages installed via `loom link` or `[dev-overrides]` are **not** signature-verified — they are local filesystem sources under the developer's direct control. The toolchain emits an advisory note when such packages are loaded.
+**Local packages and `[dev-overrides]`.** Packages installed via `loup link` or `[dev-overrides]` are **not** signature-verified — they are local filesystem sources under the developer's direct control. The toolchain emits an advisory note when such packages are loaded.
 
 
 ---
 
 ### §13.5b Shared-Class ABI Versioning for Packages
 
-*(This section is normative. Applies to any package — first-party `loom.*`
+*(This section is normative. Applies to any package — first-party `loup.*`
 or third-party — that exports `shared class` declarations in its public API.
 Language Reference §17b.7 specifies the cross-mode ABI contract itself;
 this section specifies how packages declare compliance and how the installer
@@ -177,29 +177,29 @@ header format, refcount protocol, and vtable conventions of every `shared
 class` (§17b.7). Because two compilers — the JIT (Wasm GC+EH) and the AOT
 (native) pipelines — must produce bit-identical representations of the same
 class, and because packages can be installed and consumed across major
-versions of the Loom toolchain, every package that exports a `shared class`
+versions of the Loup toolchain, every package that exports a `shared class`
 declares which ABI revision it was built against. The installer refuses to
 load a package whose ABI revision is incompatible with the current runtime
 toolchain.
 
-**Manifest declaration.** A package manifest (`.lmpkg`) that exports one or
+**Manifest declaration.** A package manifest (`.lppkg`) that exports one or
 more `shared class` declarations in its public API SHALL declare a
 `shared_abi_version` field in the `[package]` section:
 
 ```toml
 [package]
-name = "loom.graph-store"
+name = "loup.graph-store"
 version = "1.2.0"
 shared_abi_version = 1
 ```
 
 The `shared_abi_version` value matches the ABI version from the arena header
-(§17b.5): v1.18 defines ABI version 1. Future Loom major revisions may
+(§17b.5): v1.18 defines ABI version 1. Future Loup major revisions may
 introduce ABI version 2; packages carry over unmodified if they do not
 declare `shared_abi_version`, but are required to declare it if they export
 any `shared class`.
 
-**Installation check.** At `loom install` time, for each package declaring
+**Installation check.** At `loup install` time, for each package declaring
 a `shared_abi_version`:
 
 1. The installer reads the declared ABI version.
@@ -214,7 +214,7 @@ a `shared_abi_version`:
    preferred (newest) version, installation emits an advisory note recording
    that the package is being loaded at a legacy ABI version.
 
-**Determining the ABI version of a package.** The `loom publish` command
+**Determining the ABI version of a package.** The `loup publish` command
 invokes the compiler in an ABI-fingerprinting mode that:
 
 1. Enumerates all `shared class` declarations in the package's public API.
@@ -254,26 +254,26 @@ rebuilt against a single ABI version.
 - Removing a `shared class` from a public API is a major version change.
 
 **Hardware-backend packages.** Hardware-backend packages (`native.gpu`,
-`native.tpu`, `native.hal`, third-party `loom.backend.*`) may export
+`native.tpu`, `native.hal`, third-party `loup.backend.*`) may export
 `shared class` types for cross-mode buffer and device-handle interop. These
 packages are subject to the same ABI-version rules as general packages,
 with one addition: the hardware-backend ABI version is augmented by the
 hardware-driver version from `hardware.lock` (§21.32.6), such that a
-`shared class GpuBuffer` declared in `loom.backend.cuda` has a composite
+`shared class GpuBuffer` declared in `loup.backend.cuda` has a composite
 compatibility key of `(shared_abi_version, cuda_driver_version)`.
 
-**`loom.lock` recording.** The resolved `shared_abi_version` of each
-installed package is recorded in `loom.lock` for auditability:
+**`loup.lock` recording.** The resolved `shared_abi_version` of each
+installed package is recorded in `loup.lock` for auditability:
 
 ```
 [[package]]
-name = "loom.graph-store"
+name = "loup.graph-store"
 version = "1.2.0"
 shared_abi_version = 1
 checksum = "sha256:..."
 ```
 
-Subsequent `loom install --locked` runs verify that the lockfile's recorded
+Subsequent `loup install --locked` runs verify that the lockfile's recorded
 ABI version matches the installed package's declared version — detecting
 manifest tampering between lockfile generation and install.
 
@@ -284,7 +284,7 @@ manifest tampering between lockfile generation and install.
 | `E_SHARED_ABI_INCOMPATIBLE` | Package declares ABI version not supported by toolchain |
 | `E_SHARED_ABI_FINGERPRINT_MISMATCH` | Publishing detected a `shared class` whose layout doesn't match declared ABI version |
 | `E_SHARED_ABI_CROSS_PACKAGE` | Two packages with different ABI versions attempt to exchange `shared class` values |
-| `E_SHARED_ABI_LOCK_MISMATCH` | `loom install --locked` detected lockfile ABI version doesn't match manifest |
+| `E_SHARED_ABI_LOCK_MISMATCH` | `loup install --locked` detected lockfile ABI version doesn't match manifest |
 
 ---
 
@@ -292,12 +292,12 @@ manifest tampering between lockfile generation and install.
 
 *(This section is normative with respect to package naming and API contracts; implementations are non-normative.)*
 
-The **core package set** comprises first-party packages maintained by the Loom project under the reserved `loom.` namespace prefix. Core packages are available on the reference registry and are versioned independently of the toolchain. They are not built into the runtime (stdlib namespaces) but are stable, well-maintained, and officially supported.
+The **core package set** comprises first-party packages maintained by the Loup project under the reserved `loup.` namespace prefix. Core packages are available on the reference registry and are versioned independently of the toolchain. They are not built into the runtime (stdlib namespaces) but are stable, well-maintained, and officially supported.
 
-**`loom.cli`** — Command-line argument parsing. Available on `cli` and `native` targets.
+**`loup.cli`** — Command-line argument parsing. Available on `cli` and `native` targets.
 
-```loom
-from loom.cli import (Cli, Arg, Flag);
+```loup
+from loup.cli import (Cli, Arg, Flag);
 
 let cli = Cli.new("mytool", version="1.0.0")
   .arg(Arg.new("input").help("Input file path"))
@@ -309,10 +309,10 @@ let inputPath = matches.get("input");
 let verbose   = matches.flag("verbose");
 ```
 
-**`loom.crypto`** — Cryptographic primitives. Available on all targets.
+**`loup.crypto`** — Cryptographic primitives. Available on all targets.
 
-```loom
-from loom.crypto import (sha256, hmacSha256, randomBytes, constantTimeEqual);
+```loup
+from loup.crypto import (sha256, hmacSha256, randomBytes, constantTimeEqual);
 
 let hash    = sha256(data);                    // bytes → bytes
 let mac     = hmacSha256(key, message);        // bytes, bytes → bytes
@@ -322,10 +322,10 @@ let safe    = constantTimeEqual(a, b);         // bytes, bytes → bool (timing-
 
 Provides: `sha256`, `sha512`, `blake3` (hash functions); `hmacSha256`, `hmacSha512` (MACs); `randomBytes` (CSPRNG); `constantTimeEqual` (timing-safe comparison). Does not provide encryption or key exchange — those are out of scope for the core set.
 
-**`loom.db`** — Database abstraction. Available on `cli`, `service`, `native` targets.
+**`loup.db`** — Database abstraction. Available on `cli`, `service`, `native` targets.
 
-```loom
-from loom.db import (Pool);
+```loup
+from loup.db import (Pool);
 
 let pool = await Pool.connect("postgresql://localhost/mydb", maxSize=10);
 let rows = await pool.query(
@@ -337,28 +337,28 @@ for (row in rows) {
 }
 ```
 
-Provides a driver-agnostic query interface (`Pool.connect`, `pool.query`, `pool.execute`, `pool.transaction`). Driver implementations (`loom.db.postgres`, `loom.db.sqlite`, `loom.db.mysql`) are separate packages that plug into `loom.db` via the driver protocol.
+Provides a driver-agnostic query interface (`Pool.connect`, `pool.query`, `pool.execute`, `pool.transaction`). Driver implementations (`loup.db.postgres`, `loup.db.sqlite`, `loup.db.mysql`) are separate packages that plug into `loup.db` via the driver protocol.
 
 **Availability summary:**
 
 | Package | Targets | Compiled Mode |
 |---|---|---|
-| `loom.cli` | `cli`, `native` | Yes |
-| `loom.crypto` | All | Yes |
-| `loom.db` | `cli`, `service`, `native` | Yes |
-| `loom.ai` | All | Yes |
+| `loup.cli` | `cli`, `native` | Yes |
+| `loup.crypto` | All | Yes |
+| `loup.db` | `cli`, `service`, `native` | Yes |
+| `loup.ai` | All | Yes |
 
 
 
-**`loom.tensor`** — High-level typed tensor operations with automatic backend dispatch (CPU SIMD, WebGPU, CUDA via FFI, Metal via FFI). Available on all targets; GPU dispatch requires the relevant backend capability. See §21.28.
+**`loup.tensor`** — High-level typed tensor operations with automatic backend dispatch (CPU SIMD, WebGPU, CUDA via FFI, Metal via FFI). Available on all targets; GPU dispatch requires the relevant backend capability. See §21.28.
 
-**`loom.autodiff`** — Reverse-mode automatic differentiation over `loom.tensor` computation graphs. Available on all targets. See §21.31.
+**`loup.autodiff`** — Reverse-mode automatic differentiation over `loup.tensor` computation graphs. Available on all targets. See §21.31.
 
-**`loom.ai`** — LLM orchestration. Available on all targets.
+**`loup.ai`** — LLM orchestration. Available on all targets.
 
-```loom
-from loom.ai import (Client, Message, Role, Tool, ToolResult);
-from loom.ai.anthropic import (AnthropicProvider);
+```loup
+from loup.ai import (Client, Message, Role, Tool, ToolResult);
+from loup.ai.anthropic import (AnthropicProvider);
 
 let provider = AnthropicProvider.fromEnv();
 let client   = Client.new(provider);
@@ -377,21 +377,21 @@ let response = await client.complete(
 print(response.text);
 ```
 
-Key APIs: `Client.new(provider)`, `client.complete(...)` for single-turn completions, `client.stream(...)` returning `AsyncIterable[TextDelta]` for streaming, `client.completeWithTools(...)` for tool use, `StructuredOutput[T]` for typed structured outputs backed by JSON Schema. Provider sub-packages (`loom.ai.anthropic`, `loom.ai.openai`, `loom.ai.gemini`, `loom.ai.ollama`) implement the provider protocol and are installed as separate packages.
+Key APIs: `Client.new(provider)`, `client.complete(...)` for single-turn completions, `client.stream(...)` returning `AsyncIterable[TextDelta]` for streaming, `client.completeWithTools(...)` for tool use, `StructuredOutput[T]` for typed structured outputs backed by JSON Schema. Provider sub-packages (`loup.ai.anthropic`, `loup.ai.openai`, `loup.ai.gemini`, `loup.ai.ollama`) implement the provider protocol and are installed as separate packages.
 
-Core packages follow the same `prefer compiled` pattern as stdlib modules — they ship precompiled Wasm artifacts alongside their source in the registry, enabling zero-JIT-overhead imports when installed via `loom install`.
+Core packages follow the same `prefer compiled` pattern as stdlib modules — they ship precompiled Wasm artifacts alongside their source in the registry, enabling zero-JIT-overhead imports when installed via `loup install`.
 
 
 ---
 
-## §21.28 `loom.tensor` — High-Level Tensor Operations
+## §21.28 `loup.tensor` — High-Level Tensor Operations
 
 *(This section is normative. Available on all targets. GPU/TPU dispatch requires a capable backend; falls back to CPU SIMD if unavailable.)*
 
-`loom.tensor` provides a high-level, typed tensor abstraction over multi-dimensional numeric arrays. Operations are lazy — they build a computation graph that is dispatched to the best available backend at evaluation time. Users never write GPU or TPU kernels to use `loom.tensor`. The hardware abstraction layer (`native.hal`, §21.32) provides the device discovery and dispatch foundation.
+`loup.tensor` provides a high-level, typed tensor abstraction over multi-dimensional numeric arrays. Operations are lazy — they build a computation graph that is dispatched to the best available backend at evaluation time. Users never write GPU or TPU kernels to use `loup.tensor`. The hardware abstraction layer (`native.hal`, §21.32) provides the device discovery and dispatch foundation.
 
-```loom
-namespace loom.tensor;
+```loup
+namespace loup.tensor;
 
 // Backend enumeration — controls where evaluation is dispatched.
 // For brand-agnostic code, prefer Backend.Auto and let the HAL select the best
@@ -400,10 +400,10 @@ enum Backend {
   Auto;     // HAL selects best available: CUDA > Metal > Vulkan > TPU > WebGPU > SIMD > Scalar
   Cpu;      // force CPU (SIMD-optimised via native.simd)
   WebGpu;   // force WebGPU (browser or native with WebGPU support)
-  Cuda;     // force NVIDIA CUDA (requires loom.backend.cuda)
-  Metal;    // force Apple Metal (macOS/iOS only; requires loom.backend.metal)
-  Vulkan;   // force Vulkan compute (AMD/Intel/NVIDIA; requires loom.backend.vulkan)
-  Tpu;      // force TPU dispatch via PJRT (requires loom.backend.tpu.* variant)
+  Cuda;     // force NVIDIA CUDA (requires loup.backend.cuda)
+  Metal;    // force Apple Metal (macOS/iOS only; requires loup.backend.metal)
+  Vulkan;   // force Vulkan compute (AMD/Intel/NVIDIA; requires loup.backend.vulkan)
+  Tpu;      // force TPU dispatch via PJRT (requires loup.backend.tpu.* variant)
   PjRt;     // force generic PJRT plugin backend (covers non-Cloud TPU hardware)
   Device(id: string);  // target a specific device by HAL device ID (e.g. "accelerator:1")
 }
@@ -539,13 +539,13 @@ func broadcast(a: Tensor, b: Tensor): (Tensor, Tensor);   // broadcast to common
 
 **Multi-device tensors.** A `Tensor` carries a `device` field that identifies which accelerator holds its evaluated data. Tensors on different devices cannot be directly operated on — the programmer must move tensors to the same device first using `toDevice(device)`. Cross-device moves trigger an asynchronous memory transfer; `toDeviceAsync(device)` makes this explicit.
 
-**Zero-copy bridge to `native.gpu` / `native.tpu`.** `Tensor.rawBuffer()` returns the `AcceleratorBuffer[bytes]` backing the tensor's evaluated data without copying. This allows custom GPU or TPU kernels (§21.30, §21.33) to consume `loom.tensor` outputs directly. Calling `rawBuffer()` on an un-evaluated tensor triggers `eval()` first.
+**Zero-copy bridge to `native.gpu` / `native.tpu`.** `Tensor.rawBuffer()` returns the `AcceleratorBuffer[bytes]` backing the tensor's evaluated data without copying. This allows custom GPU or TPU kernels (§21.30, §21.33) to consume `loup.tensor` outputs directly. Calling `rawBuffer()` on an un-evaluated tensor triggers `eval()` first.
 
 **Pinned memory.** `Tensor.pin()` marks the tensor's host-side backing store as pinned (page-locked) memory, enabling faster DMA transfers to GPU/TPU. Pinned allocation is limited — use only for tensors that are frequently transferred. Pinned memory is a no-op on targets without GPU/TPU backends.
 
 **Mixed-precision helpers:**
 
-```loom
+```loup
 // Cast to BFloat16 for TPU training, Float16 for GPU inference
 let bf16Weights = weights.to(DType.BFloat16);
 let fp16Activations = activations.to(DType.Float16);
@@ -560,7 +560,7 @@ print(tpuTensor.device().descriptor().model);  // e.g. "Google TPU v4"
 
 **Error types.**
 
-```loom
+```loup
 class TensorShapeError : Exception { pub let expected: Shape; pub let actual: Shape; }
 class TensorDTypeError : Exception { pub let expected: DType; pub let actual: DType; }
 class TensorBackendError : Exception { pub let backend: Backend; pub let reason: string; }
@@ -574,17 +574,17 @@ class TensorBackendError : Exception { pub let backend: Backend; pub let reason:
 
 *(This section is normative. Available on all targets.)*
 
-`native.webgpu` provides typed Loom facades over the WebGPU API, enabling GPU-accelerated compute and rendering from both browser (Wasm) and native contexts. It is the lower-level WebGPU API layer beneath `native.gpu` and `loom.tensor`.
+`native.webgpu` provides typed Loup facades over the WebGPU API, enabling GPU-accelerated compute and rendering from both browser (Wasm) and native contexts. It is the lower-level WebGPU API layer beneath `native.gpu` and `loup.tensor`.
 
 ## Architecture
 
 ### WebGPU API Facade
 
-The module wraps the W3C WebGPU API with typed Loom classes and structs. On browser targets, these map directly to JavaScript WebGPU objects via `extern js`. On native targets, they wrap a native WebGPU implementation (e.g., wgpu-native, Dawn).
+The module wraps the W3C WebGPU API with typed Loup classes and structs. On browser targets, these map directly to JavaScript WebGPU objects via `extern js`. On native targets, they wrap a native WebGPU implementation (e.g., wgpu-native, Dawn).
 
 ### Core Types
 
-```loom
+```loup
 namespace native.webgpu;
 
 class GpuAdapter : Any {
@@ -658,7 +658,7 @@ class GpuComputePassEncoder : Any {
 ### Browser vs Native WebGPU Paths
 
 - **Browser:** Classes wrap JavaScript WebGPU objects via `extern js` bindings. `GpuDevice.request()` calls `navigator.gpu.requestAdapter()`.
-- **Native:** Classes wrap a native WebGPU implementation (wgpu-native or Dawn). The native library is linked at compile time via `loom build --feature webgpu`.
+- **Native:** Classes wrap a native WebGPU implementation (wgpu-native or Dawn). The native library is linked at compile time via `loup build --feature webgpu`.
 
 ### Buffer Management
 
@@ -684,7 +684,7 @@ Texture support enables vision ML preprocessing, generative image pipelines, and
 
 ### Error Types
 
-```loom
+```loup
 class GpuUnavailableError : Exception { pub let reason: string; }
 class GpuOutOfMemoryError  : Exception { pub let requested: int; }
 class GpuValidationError   : Exception { pub let source: string; }
@@ -709,9 +709,9 @@ class GpuTimestampError    : Exception { pub let reason: string; }
 
 *(This section is normative. Available on `@compiled --target native` only. Using on other targets is a compile-time error.)*
 
-`native.gpu` provides the runtime types for GPU compute fences (§16.8). It is the low-level layer beneath `loom.tensor` and is intended for programmers who need direct GPU kernel control. Most users should prefer `loom.tensor`.
+`native.gpu` provides the runtime types for GPU compute fences (§16.8). It is the low-level layer beneath `loup.tensor` and is intended for programmers who need direct GPU kernel control. Most users should prefer `loup.tensor`.
 
-```loom
+```loup
 namespace native.gpu;
 
 // The compiled product of a gpu compute fence (§16.8).
@@ -756,7 +756,7 @@ class GpuCompileError : Exception { pub let shaderSource: string; pub let log: s
 class GpuDispatchError : Exception { pub let kernel: string; }
 ```
 
-**Relationship to §21.29 and §21.32.** `native.gpu` uses `native.webgpu.GpuDevice` internally when the target backend is WebGPU (default). On CUDA targets it routes through the `loom.backend.cuda` binding (§30.2). On Metal targets it routes through `loom.backend.metal`. On Vulkan targets it routes through `loom.backend.vulkan`. The programmer selects the backend at compile time via `loom build --gpu-backend wgpu|cuda|metal|vulkan` (default: `wgpu`) **or** at runtime via `DeviceRegistry` (§21.32.4) for adaptive backend selection.
+**Relationship to §21.29 and §21.32.** `native.gpu` uses `native.webgpu.GpuDevice` internally when the target backend is WebGPU (default). On CUDA targets it routes through the `loup.backend.cuda` binding (§30.2). On Metal targets it routes through `loup.backend.metal`. On Vulkan targets it routes through `loup.backend.vulkan`. The programmer selects the backend at compile time via `loup build --gpu-backend wgpu|cuda|metal|vulkan` (default: `wgpu`) **or** at runtime via `DeviceRegistry` (§21.32.4) for adaptive backend selection.
 
 `GpuBuffer[T]` in `native.gpu` implements `AcceleratorBuffer[T]` (§21.32.2), making it interchangeable with `TpuBuffer[T]` at the HAL interface level. `native.webgpu.GpuBuffer` (unparameterized) is a lower-level WebGPU API object; obtain a `native.gpu.GpuBuffer[T]` view over it via `GpuBuffer.fromWebGpu(rawBuf, elementCount)`.
 
@@ -764,11 +764,11 @@ class GpuDispatchError : Exception { pub let kernel: string; }
 
 ### §21.30.1 CUDA Backend Specification
 
-*(This sub-section is normative for `loom build --gpu-backend cuda` on `--target native` only.)*
+*(This sub-section is normative for `loup build --gpu-backend cuda` on `--target native` only.)*
 
-The CUDA backend is provided by the `loom.backend.cuda` package (§30.2). It exposes the following surface, which the `native.gpu` API delegates to when CUDA is the selected backend:
+The CUDA backend is provided by the `loup.backend.cuda` package (§30.2). It exposes the following surface, which the `native.gpu` API delegates to when CUDA is the selected backend:
 
-```loom
+```loup
 namespace native.gpu.cuda;
 
 // CUDA stream — enables concurrent kernel execution and async memory copies.
@@ -848,7 +848,7 @@ async func copyDeviceToDevice[T](
 
 v1.6 dispatched kernels with `list[GpuBuffer[Any]]`, losing type safety at the call site. v1.7 introduces `GpuKernelBinding` to declare the expected buffer types up front:
 
-```loom
+```loup
 namespace native.gpu;
 
 // Declare the typed buffer layout for a kernel.
@@ -887,7 +887,7 @@ async func dispatch(
 
 **Example — typed dispatch:**
 
-```loom
+```loup
 @compiled
 from native.gpu import (GpuKernel, GpuBuffer, GpuKernelBinding, dispatchTyped);
 
@@ -920,7 +920,7 @@ await dispatchTyped(addKernel, binding, [n / WGSIZE], [outBuf, aBuf, bBuf]);
 
 ### §21.30.3 GPU Profiling API
 
-```loom
+```loup
 namespace native.gpu;
 
 struct GpuTimingResult {
@@ -948,7 +948,7 @@ class GpuProfiler : Any implements Closeable {
 
 **Example — profiling a kernel:**
 
-```loom
+```loup
 @compiled
 from native.gpu import (GpuProfiler);
 
@@ -961,9 +961,9 @@ print("Kernel took {$ timing.durationNs / 1_000_000 $} ms");
 
 ---
 
-### §21.30.4 `GpuBuffer` ↔ `loom.tensor.Tensor` Bridge
+### §21.30.4 `GpuBuffer` ↔ `loup.tensor.Tensor` Bridge
 
-```loom
+```loup
 namespace native.gpu;
 
 // Transfer ownership of a Tensor's underlying GPU allocation into a typed GpuBuffer[T].
@@ -975,33 +975,33 @@ namespace native.gpu;
 //
 // For a non-destructive scoped view (recommended), use withTensorBuffer or
 // withTensorBufferAsync below.
-func tensorToBuffer[T](t: loom.tensor.Tensor): GpuBuffer[T];
+func tensorToBuffer[T](t: loup.tensor.Tensor): GpuBuffer[T];
 
 // Execute `body` with a typed GpuBuffer[T] view over `t`'s GPU allocation.
 // `t` retains ownership of the device allocation for the duration of `body`.
 // The GpuBuffer is invalidated when `body` returns and must not be stored beyond it.
 // Preferred over tensorToBuffer when the Tensor is still needed after the view.
 func withTensorBuffer[T, R](
-  t: loom.tensor.Tensor,
+  t: loup.tensor.Tensor,
   body: fn(GpuBuffer[T]): R,
 ): R;
 async func withTensorBufferAsync[T, R](
-  t: loom.tensor.Tensor,
+  t: loup.tensor.Tensor,
   body: fn(GpuBuffer[T]): Task[R],
 ): Task[R];
 
-// Wrap a GpuBuffer[T] as a read-only loom.tensor.Tensor.
+// Wrap a GpuBuffer[T] as a read-only loup.tensor.Tensor.
 // shape must match the buffer element count.
 func bufferToTensor[T](
   buf: GpuBuffer[T],
-  shape: loom.tensor.Shape,
-  dtype: loom.tensor.DType,
-): loom.tensor.Tensor;
+  shape: loup.tensor.Shape,
+  dtype: loup.tensor.DType,
+): loup.tensor.Tensor;
 ```
 
 **Bridge to `native.webgpu.GpuBuffer`:**
 
-```loom
+```loup
 // Wrap a raw native.webgpu.GpuBuffer as a typed native.gpu.GpuBuffer[T].
 pub static func fromWebGpu[T](raw: native.webgpu.GpuBuffer, elementCount: int): GpuBuffer[T];
 
@@ -1014,24 +1014,24 @@ pub func toWebGpu(): native.webgpu.GpuBuffer;
 
 ---
 
-## §21.31 `loom.autodiff` — Automatic Differentiation
+## §21.31 `loup.autodiff` — Automatic Differentiation
 
-*(This section is normative. Available on all targets. GPU dispatch for gradient computation uses `loom.tensor` backend dispatch.)*
+*(This section is normative. Available on all targets. GPU dispatch for gradient computation uses `loup.tensor` backend dispatch.)*
 
-`loom.autodiff` provides reverse-mode automatic differentiation (backpropagation) over `loom.tensor` computation graphs. It is designed for machine learning model training. Users who only need inference should use `loom.tensor` directly without `loom.autodiff`.
+`loup.autodiff` provides reverse-mode automatic differentiation (backpropagation) over `loup.tensor` computation graphs. It is designed for machine learning model training. Users who only need inference should use `loup.tensor` directly without `loup.autodiff`.
 
-```loom
-namespace loom.autodiff;
+```loup
+namespace loup.autodiff;
 
 // A parameter tensor that participates in gradient computation.
 // Wraps a Tensor and records operations in the computation graph.
 class Variable : Any {
-  pub let data: loom.tensor.Tensor;
-  pub var grad: loom.tensor.Tensor?;    // populated after backward() is called
+  pub let data: loup.tensor.Tensor;
+  pub var grad: loup.tensor.Tensor?;    // populated after backward() is called
   pub let requiresGrad: bool;
 
   pub static func new(
-    data: loom.tensor.Tensor,
+    data: loup.tensor.Tensor,
     requiresGrad: bool = true,
     label: string = "",
   ): Variable;
@@ -1048,7 +1048,7 @@ class Variable : Any {
   pub func softmax(axis: int = -1): Variable;
   pub func sum(axis: int? = None, keepDims: bool = false): Variable;
   pub func mean(axis: int? = None, keepDims: bool = false): Variable;
-  pub func reshape(shape: loom.tensor.Shape): Variable;
+  pub func reshape(shape: loup.tensor.Shape): Variable;
 
   // Backward pass — computes gradients for all Variables with requiresGrad=true
   // that contributed to this Variable. Must be called on a scalar Variable
@@ -1062,7 +1062,7 @@ class Variable : Any {
   pub func zeroGrad(): void;
 
   // Detach from the computation graph — produces a plain Tensor copy
-  pub func detach(): loom.tensor.Tensor;
+  pub func detach(): loup.tensor.Tensor;
 }
 
 // Higher-order gradient function — computes the gradient of a scalar-valued function
@@ -1077,7 +1077,7 @@ class Variable : Any {
 func grad(
   fn: fn(list[Variable]): Variable,
   argnums: list[int]? = None,     // which arguments to differentiate; None = all
-): fn(list[Variable]): list[loom.tensor.Tensor];
+): fn(list[Variable]): list[loup.tensor.Tensor];
 
 // Optimisers — update Variable parameters in-place using accumulated gradients
 class Optimizer : Any {
@@ -1096,7 +1096,7 @@ class AdamOptimizer : Optimizer {
 
 // Loss functions (return scalar Variable)
 func mseLoss(pred: Variable, target: Variable): Variable;
-func crossEntropyLoss(logits: Variable, labels: loom.tensor.Tensor): Variable;
+func crossEntropyLoss(logits: Variable, labels: loup.tensor.Tensor): Variable;
 func binaryCrossEntropyLoss(pred: Variable, target: Variable): Variable;
 
 // Differentiability contract. An operation is differentiable if it is expressed
@@ -1104,11 +1104,11 @@ func binaryCrossEntropyLoss(pred: Variable, target: Variable): Variable;
 // forward function and a backward function (the vector-Jacobian product).
 class CustomOp : Any {
   // Override to implement the forward pass.
-  pub func forward(inputs: list[loom.tensor.Tensor]): loom.tensor.Tensor;
+  pub func forward(inputs: list[loup.tensor.Tensor]): loup.tensor.Tensor;
 
   // Override to implement the backward pass (VJP).
   // grad_output is the upstream gradient; return one gradient per input.
-  pub func backward(grad_output: loom.tensor.Tensor): list[loom.tensor.Tensor];
+  pub func backward(grad_output: loup.tensor.Tensor): list[loup.tensor.Tensor];
 
   // Apply this operation to Variable inputs, registering it in the graph.
   pub func apply(inputs: list[Variable]): Variable;
@@ -1168,11 +1168,11 @@ async func checkpointAsync(fn: fn(list[Variable]): Task[Variable], inputs: list[
 func checkpointWithRng(
   fn: fn(list[Variable]): Variable,
   inputs: list[Variable],
-  rngState: loom.tensor.Tensor,    // opaque RNG state tensor; obtain via captureRngState()
+  rngState: loup.tensor.Tensor,    // opaque RNG state tensor; obtain via captureRngState()
 ): Variable;
 
-func captureRngState(backend: loom.tensor.Backend = loom.tensor.Backend.Auto): loom.tensor.Tensor;
-func restoreRngState(state: loom.tensor.Tensor): void;
+func captureRngState(backend: loup.tensor.Backend = loup.tensor.Backend.Auto): loup.tensor.Tensor;
+func restoreRngState(state: loup.tensor.Tensor): void;
 
 // ── Automatic Mixed Precision (AMP) ─────────────────────────────────────────
 
@@ -1212,8 +1212,8 @@ class GradScaler : Any {
 
 // ── Mixed-precision training example ────────────────────────────────────────
 //
-// from loom.tensor  import (Tensor, DType, Backend);
-// from loom.autodiff import (Variable, AdamWOptimizer, crossEntropyLoss, GradScaler,
+// from loup.tensor  import (Tensor, DType, Backend);
+// from loup.autodiff import (Variable, AdamWOptimizer, crossEntropyLoss, GradScaler,
 //                            withNoGradAsync, checkpoint);
 //
 // let scaler = GradScaler.new();
@@ -1242,9 +1242,9 @@ class GradScaler : Any {
 
 **Example — two-layer MLP forward and backward pass:**
 
-```loom
-from loom.tensor  import (Tensor, DType);
-from loom.autodiff import (Variable, AdamOptimizer, crossEntropyLoss);
+```loup
+from loup.tensor  import (Tensor, DType);
+from loup.autodiff import (Variable, AdamOptimizer, crossEntropyLoss);
 
 let w1 = Variable.new(Tensor.randn([784, 128]));
 let w2 = Variable.new(Tensor.randn([128, 10]));
@@ -1275,15 +1275,15 @@ async func trainStep(xBatch: Tensor, yBatch: Tensor): Task[float] {
 
 *(This section is normative. Available on all targets that support `@compiled --target native`. On Wasm/browser targets, the HAL exposes only `Backend.WebGpu` and `Backend.Cpu` devices.)*
 
-`native.hal` is the hardware abstraction layer for accelerator-agnostic compute. It provides a unified interface over GPUs (all vendors and APIs), TPUs, and other accelerators. Code written against `native.hal` is brand-agnostic: the same Loom program runs on NVIDIA, AMD, Apple, Intel, and Google TPU hardware without modification. Backend-specific capabilities are accessible via feature flags (§21.32.3) without breaking the abstraction.
+`native.hal` is the hardware abstraction layer for accelerator-agnostic compute. It provides a unified interface over GPUs (all vendors and APIs), TPUs, and other accelerators. Code written against `native.hal` is brand-agnostic: the same Loup program runs on NVIDIA, AMD, Apple, Intel, and Google TPU hardware without modification. Backend-specific capabilities are accessible via feature flags (§21.32.3) without breaking the abstraction.
 
-```loom
+```loup
 namespace native.hal;
 
 // An opaque representation of a tensor computation graph submitted to an accelerator.
-// `ComputeGraph` values are produced internally by `loom.tensor` when operations are
+// `ComputeGraph` values are produced internally by `loup.tensor` when operations are
 // enqueued on a device-backed Tensor. Users do not construct `ComputeGraph` values
-// directly — they are produced by `loom.tensor` and consumed by `AcceleratorDevice`.
+// directly — they are produced by `loup.tensor` and consumed by `AcceleratorDevice`.
 class ComputeGraph : Any {
   pub let opCount: int;            // number of operations in the graph
   pub let inputCount: int;         // number of input buffers required
@@ -1298,7 +1298,7 @@ class ComputeGraph : Any {
 
 `AcceleratorDevice` is the universal handle for any compute accelerator. Both `native.webgpu.GpuDevice` and `native.tpu.TpuDevice` implement this interface.
 
-```loom
+```loup
 namespace native.hal;
 
 // Universal handle for a compute accelerator (GPU or TPU).
@@ -1313,7 +1313,7 @@ interface AcceleratorDevice {
   func memoryInfo(): AcceleratorMemoryInfo;
 
   // Submit a tensor computation graph to this device.
-  // loom.tensor uses this interface internally.
+  // loup.tensor uses this interface internally.
   func submitGraph(graph: ComputeGraph): Task[void];
 
   // Whether this device is currently available (not lost/disconnected).
@@ -1326,7 +1326,7 @@ interface AcceleratorDevice {
 // Backed by native.webgpu.GpuDevice, native.tpu.TpuDevice, or a CPU emulation.
 // native.webgpu.GpuDevice and native.tpu.TpuDevice both explicitly declare
 // `implements AcceleratorDevice` in their respective sections (§21.29, §21.32.1).
-// Interface satisfaction in Loom is always nominal — there is no implicit or
+// Interface satisfaction in Loup is always nominal — there is no implicit or
 // structural satisfaction. See §11.1.
 ```
 
@@ -1336,7 +1336,7 @@ interface AcceleratorDevice {
 
 `AcceleratorBuffer[T]` is the unified buffer type. `native.gpu.GpuBuffer[T]` and `native.tpu.TpuBuffer[T]` both implement it.
 
-```loom
+```loup
 namespace native.hal;
 
 interface AcceleratorBuffer[T] : Closeable {
@@ -1376,7 +1376,7 @@ interface AcceleratorBuffer[T] : Closeable {
 
 `AcceleratorFeatures` provides a structured, brand-agnostic API for inspecting hardware capabilities. Feature names are standardised across vendors; vendor-specific features use a namespaced string form.
 
-```loom
+```loup
 namespace native.hal;
 
 class AcceleratorFeatures : Any {
@@ -1416,7 +1416,7 @@ class AcceleratorFeatures : Any {
 
 `DeviceDescriptor` is the read-only metadata struct for an accelerator. `DeviceRegistry` is the runtime database of all installed and detected hardware.
 
-```loom
+```loup
 namespace native.hal;
 
 // Hardware kind
@@ -1441,7 +1441,7 @@ struct AcceleratorDescriptor {
   model: string;           // human-readable model name: "NVIDIA GeForce RTX 4090"
   driverVersion: string;   // vendor driver version string
   deviceMemoryBytes: int;  // VRAM / HBM / unified memory size
-  backendPackage: string;  // e.g. "loom.backend.cuda", "loom.backend.tpu.cloud"
+  backendPackage: string;  // e.g. "loup.backend.cuda", "loup.backend.tpu.cloud"
   backendVersion: string;  // installed backend package version
   computeUnits: int;       // SM count (GPU) or core count (TPU/CPU)
   clockRateKhz: int;       // peak clock rate (advisory)
@@ -1471,16 +1471,16 @@ class DeviceRegistry : Any {
 
   // Return the highest-priority device for a given backend hint.
   // If backend is Backend.Auto, applies HAL priority order.
-  pub func preferredDevice(backend: loom.tensor.Backend = loom.tensor.Backend.Auto): AcceleratorDevice;
+  pub func preferredDevice(backend: loup.tensor.Backend = loup.tensor.Backend.Auto): AcceleratorDevice;
 
   // Return the preferred device for the given tensor dtype.
   // e.g. preferredDeviceForDtype(DType.BFloat16) returns a TPU or Ampere+ GPU.
-  pub func preferredDeviceForDtype(dtype: loom.tensor.DType): AcceleratorDevice;
+  pub func preferredDeviceForDtype(dtype: loup.tensor.DType): AcceleratorDevice;
 
   // True if any device with the given backend is available.
-  pub func hasBackend(backend: loom.tensor.Backend): bool;
+  pub func hasBackend(backend: loup.tensor.Backend): bool;
 
-  // Re-scan hardware.lock. Call after loom hardware detect / loom hardware compile.
+  // Re-scan hardware.lock. Call after loup hardware detect / loup hardware compile.
   pub func refresh(): void;
 
   // Descriptors for all registered devices.
@@ -1490,9 +1490,9 @@ class DeviceRegistry : Any {
 
 **Example — brand-agnostic device selection:**
 
-```loom
+```loup
 from native.hal import (DeviceRegistry);
-from loom.tensor import (Tensor, DType, Backend);
+from loup.tensor import (Tensor, DType, Backend);
 
 let registry = DeviceRegistry.default();
 
@@ -1517,7 +1517,7 @@ let z = x.matmul(y).eval();
 
 `DevicePool` manages a set of devices for data-parallel workloads. It does not automatically shard tensors — that is the programmer's responsibility. It provides a structured way to submit independent work items to multiple devices concurrently.
 
-```loom
+```loup
 namespace native.hal;
 
 class DevicePool : Any {
@@ -1550,7 +1550,7 @@ class DevicePool : Any {
 
 **Example — data-parallel inference across all GPUs:**
 
-```loom
+```loup
 from native.hal import (DevicePool);
 
 let pool = DevicePool.allGpus();
@@ -1571,14 +1571,14 @@ let combined = concat(results, axis=0);
 
 ### §21.32.6 `hardware.lock` File Format
 
-`hardware.lock` is a TOML file written by `loom hardware detect` (§27.9) and read by `DeviceRegistry.default()`. It records the currently compiled hardware backends and their associated device metadata. It is committed to version control **only** for reproducible CI environments; most projects should `.gitignore` it and regenerate on each machine.
+`hardware.lock` is a TOML file written by `loup hardware detect` (§27.9) and read by `DeviceRegistry.default()`. It records the currently compiled hardware backends and their associated device metadata. It is committed to version control **only** for reproducible CI environments; most projects should `.gitignore` it and regenerate on each machine.
 
 ```toml
-# hardware.lock — generated by `loom hardware detect`
+# hardware.lock — generated by `loup hardware detect`
 # DO NOT edit manually.
 
 schema_version = "1.0"
-loom_version   = "1.9.0"
+loup_version   = "1.9.0"
 detected_at    = "2026-04-08T12:00:00Z"
 
 [[devices]]
@@ -1588,7 +1588,7 @@ vendor          = "Nvidia"
 model           = "NVIDIA GeForce RTX 4090"
 driver_version  = "545.29.06"
 device_memory_bytes = 25769803776
-backend_package = "loom.backend.cuda"
+backend_package = "loup.backend.cuda"
 backend_version = "12.3.1"
 compiled_at     = "2026-04-08T12:00:00Z"
 compute_units   = 128
@@ -1603,7 +1603,7 @@ vendor          = "Amd"
 model           = "AMD Radeon RX 7900 XTX"
 driver_version  = "23.40.2"
 device_memory_bytes = 25769803776
-backend_package = "loom.backend.vulkan"
+backend_package = "loup.backend.vulkan"
 backend_version = "1.3.0"
 compiled_at     = "2026-04-08T12:01:00Z"
 compute_units   = 96
@@ -1618,7 +1618,7 @@ vendor          = "Google"
 model           = "Google TPU v4"
 driver_version  = "libtpu-1.10.0"
 device_memory_bytes = 34359738368
-backend_package = "loom.backend.tpu.cloud"
+backend_package = "loup.backend.tpu.cloud"
 backend_version = "0.4.2"
 compiled_at     = "2026-04-08T12:02:00Z"
 compute_units   = 2          # MegaCore count
@@ -1627,11 +1627,11 @@ features        = ["bf16", "int8", "tpu.megacore", "tpu.hbm2", "tpu.ici"]
 ```
 
 **Stale detection.** `DeviceRegistry` considers a backend stale and emits a warning when:
-- `loom_version` in `hardware.lock` differs from the running Loom version.
-- The `backend_package` version does not match the installed package version in `loom.lock`.
+- `loup_version` in `hardware.lock` differs from the running Loup version.
+- The `backend_package` version does not match the installed package version in `loup.lock`.
 - The device listed in `hardware.lock` is no longer physically present (detected via driver probe).
 
-Run `loom hardware compile --force` to regenerate stale entries.
+Run `loup hardware compile --force` to regenerate stale entries.
 
 ---
 
@@ -1640,11 +1640,11 @@ Run `loom hardware compile --force` to regenerate stale entries.
 
 ## §21.33 `native.tpu` — Low-Level TPU Dispatch
 
-*(This section is normative. Available on `@compiled --target native` only. Requires `loom.backend.tpu.*` to be installed (§30.3).)*
+*(This section is normative. Available on `@compiled --target native` only. Requires `loup.backend.tpu.*` to be installed (§30.3).)*
 
-`native.tpu` provides typed Loom facades for direct TPU kernel authoring and device management. Most users should use `loom.tensor` with `Backend.Tpu` instead. Use `native.tpu` when you need direct XLA/StableHLO control, custom TPU kernels, or explicit TPU memory management.
+`native.tpu` provides typed Loup facades for direct TPU kernel authoring and device management. Most users should use `loup.tensor` with `Backend.Tpu` instead. Use `native.tpu` when you need direct XLA/StableHLO control, custom TPU kernels, or explicit TPU memory management.
 
-```loom
+```loup
 namespace native.tpu;
 ```
 
@@ -1654,7 +1654,7 @@ namespace native.tpu;
 
 `TpuDevice` implements `native.hal.AcceleratorDevice` and represents a single logical TPU device (which may be a Cloud TPU slice, an Edge TPU chip, or a PJRT device).
 
-```loom
+```loup
 namespace native.tpu;
 
 class TpuDevice : Any implements native.hal.AcceleratorDevice {
@@ -1702,7 +1702,7 @@ enum TpuPlatform {
 
 `TpuBuffer[T]` implements `native.hal.AcceleratorBuffer[T]` and represents a typed tensor allocated in TPU HBM (or Edge TPU SRAM).
 
-```loom
+```loup
 namespace native.tpu;
 
 class TpuBuffer[T] : Any implements native.hal.AcceleratorBuffer[T] {
@@ -1722,12 +1722,12 @@ class TpuBuffer[T] : Any implements native.hal.AcceleratorBuffer[T] {
   // Allocate and fill from host data.
   pub static func fromList(data: list[T], device: TpuDevice): Task[TpuBuffer[T]];
 
-  // Wrap a loom.tensor.Tensor's evaluated TPU buffer without copying.
+  // Wrap a loup.tensor.Tensor's evaluated TPU buffer without copying.
   // The Tensor must already be evaluated on `device`.
-  pub static func fromTensor(t: loom.tensor.Tensor): TpuBuffer[T];
+  pub static func fromTensor(t: loup.tensor.Tensor): TpuBuffer[T];
 
-  // Create a loom.tensor view over this buffer.
-  pub func toTensor(shape: loom.tensor.Shape, dtype: loom.tensor.DType): loom.tensor.Tensor;
+  // Create a loup.tensor view over this buffer.
+  pub func toTensor(shape: loup.tensor.Shape, dtype: loup.tensor.DType): loup.tensor.Tensor;
 }
 ```
 
@@ -1737,7 +1737,7 @@ class TpuBuffer[T] : Any implements native.hal.AcceleratorBuffer[T] {
 
 TPU kernels are compiled from StableHLO (the stable serialisation format for XLA computations) or from its predecessor HLO text format.
 
-```loom
+```loup
 namespace native.tpu;
 
 // A pre-compiled TPU executable — the result of TpuDevice.compile().
@@ -1780,9 +1780,9 @@ class TpuUnavailableError : Exception {
 }
 ```
 
-**`stablehlo` and `hlo` fence descriptors.** Two GPU-compute-fence-style descriptors are provided for authoring TPU programs inline in Loom source. These produce `TpuProgram` values rather than `string` templates.
+**`stablehlo` and `hlo` fence descriptors.** Two GPU-compute-fence-style descriptors are provided for authoring TPU programs inline in Loup source. These produce `TpuProgram` values rather than `string` templates.
 
-```loom
+```loup
 // stablehlo fence — produces a TpuProgram value directly (format=StableHlo).
 // Assign directly; do NOT wrap in TpuProgram.fromStableHlo() — that constructor
 // accepts a string, but the fence already evaluates to a TpuProgram.
@@ -1804,7 +1804,7 @@ let result = await kernel.run([aBuffer, bBuffer]);
 **Rules for StableHLO fences:**
 - Only compile-time constant `int`, `float32`, and `bool` expressions are valid in `{$ expr $}` interpolations.
 - Fence bodies must be valid StableHLO (v1.7+ uses StableHLO 1.0 serialisation).
-- Syntax errors in the fence body are reported at `loom build --check` time; runtime compilation failure throws `TpuCompileError`.
+- Syntax errors in the fence body are reported at `loup build --check` time; runtime compilation failure throws `TpuCompileError`.
 - The `hlo` descriptor follows the same rules but accepts the older HLO text format.
 
 ---
@@ -1813,7 +1813,7 @@ let result = await kernel.run([aBuffer, bBuffer]);
 
 `TpuStream` sequences TPU operations to enable pipelining between compute and memory transfer, equivalent to a CUDA stream on TPU.
 
-```loom
+```loup
 namespace native.tpu;
 
 class TpuStream : Any implements Closeable {
@@ -1838,9 +1838,9 @@ class TpuStream : Any implements Closeable {
 
 | Variant | `TpuPlatform` | Backend package | Notes |
 |---|---|---|---|
-| Google Cloud TPU v2/v3/v4/v5 | `CloudV2`–`CloudV5` | `loom.backend.tpu.cloud` | Requires `libtpu` or TPU PJRT plugin; available on GCP |
-| Google Coral Edge TPU | `CoralEdge` | `loom.backend.tpu.coral` | USB/PCIe; requires `libedgetpu`; 4 TOPS; Int8 only |
-| Generic PJRT device | `PjRt` | `loom.backend.tpu.pjrt` | Third-party TPU-like accelerators via the PJRT C API |
+| Google Cloud TPU v2/v3/v4/v5 | `CloudV2`–`CloudV5` | `loup.backend.tpu.cloud` | Requires `libtpu` or TPU PJRT plugin; available on GCP |
+| Google Coral Edge TPU | `CoralEdge` | `loup.backend.tpu.coral` | USB/PCIe; requires `libedgetpu`; 4 TOPS; Int8 only |
+| Generic PJRT device | `PjRt` | `loup.backend.tpu.pjrt` | Third-party TPU-like accelerators via the PJRT C API |
 
 **Edge TPU constraint.** `CoralEdge` devices only support `DType.Int8` and `DType.UInt8` inference. Attempting to dispatch `Float32` or `BFloat16` operations to a Coral device produces a `TpuDispatchError` at runtime (or a compile-time warning if the dtype is statically known).
 
@@ -1849,18 +1849,18 @@ class TpuStream : Any implements Closeable {
 
 ---
 
-## §21.34 `loom.tpu` — High-Level TPU Integration
+## §21.34 `loup.tpu` — High-Level TPU Integration
 
-*(This section is normative. Available on all targets; TPU dispatch requires `loom.backend.tpu.*`.)*
+*(This section is normative. Available on all targets; TPU dispatch requires `loup.backend.tpu.*`.)*
 
-`loom.tpu` integrates the `loom.tensor` / `loom.autodiff` pipeline with TPU hardware via `native.tpu`. Its primary purpose is to make `loom.tensor` operations run on TPUs transparently — most users need only set `Backend.Tpu` and call `eval()`. Direct `loom.tpu` imports are only needed for advanced TPU-specific control (multi-slice topology, TPU-specific dtypes, PJRT plugin management).
+`loup.tpu` integrates the `loup.tensor` / `loup.autodiff` pipeline with TPU hardware via `native.tpu`. Its primary purpose is to make `loup.tensor` operations run on TPUs transparently — most users need only set `Backend.Tpu` and call `eval()`. Direct `loup.tpu` imports are only needed for advanced TPU-specific control (multi-slice topology, TPU-specific dtypes, PJRT plugin management).
 
-```loom
-namespace loom.tpu;
+```loup
+namespace loup.tpu;
 
 // ── Backend integration ──────────────────────────────────────────────────────
 
-// Ensure the TPU backend is initialised. Called automatically by loom.tensor
+// Ensure the TPU backend is initialised. Called automatically by loup.tensor
 // when Backend.Tpu is first used; exposed here for explicit lifecycle control.
 func init(platform: native.tpu.TpuPlatform = native.tpu.TpuPlatform.PjRt): void;
 
@@ -1889,14 +1889,14 @@ func listPjRtPlugins(): list[string];   // paths of loaded plugins
 // BFloat16 is the native dtype for TPU and should be preferred over Float16
 // for training workloads. This helper casts a tensor to BFloat16 and ensures
 // it is placed on a TPU-capable device.
-func toBf16OnTpu(t: loom.tensor.Tensor, device: native.hal.AcceleratorDevice? = None): loom.tensor.Tensor;
+func toBf16OnTpu(t: loup.tensor.Tensor, device: native.hal.AcceleratorDevice? = None): loup.tensor.Tensor;
 ```
 
-**TPU-first training example using `loom.tensor` + `loom.autodiff`:**
+**TPU-first training example using `loup.tensor` + `loup.autodiff`:**
 
-```loom
-from loom.tensor  import (Tensor, DType, Backend);
-from loom.autodiff import (Variable, AdamWOptimizer, crossEntropyLoss, GradScaler);
+```loup
+from loup.tensor  import (Tensor, DType, Backend);
+from loup.autodiff import (Variable, AdamWOptimizer, crossEntropyLoss, GradScaler);
 from native.hal   import (DeviceRegistry);
 
 // ── Device selection — brand-agnostic ──────────────────────────────────────
@@ -1943,12 +1943,12 @@ async func trainStep(xBatch: Tensor, yBatch: Tensor): Task[float] {
 
 *(This section is non-normative.)*
 
-The `loom hardware` command group manages accelerator backend detection, compilation, and registration. These commands are run on the developer's machine (or in a CI/CD environment with physical hardware) to build the native backend binaries that `DeviceRegistry` loads at runtime.
+The `loup hardware` command group manages accelerator backend detection, compilation, and registration. These commands are run on the developer's machine (or in a CI/CD environment with physical hardware) to build the native backend binaries that `DeviceRegistry` loads at runtime.
 
 ```
-loom hardware detect
+loup hardware detect
 ```
-Scans the system for installed GPUs and TPUs. Updates `hardware.lock` with all detected devices and their available backend packages. Does not compile any backends — run `loom hardware compile` after detection to build them.
+Scans the system for installed GPUs and TPUs. Updates `hardware.lock` with all detected devices and their available backend packages. Does not compile any backends — run `loup hardware compile` after detection to build them.
 
 Internally, detection:
 1. Probes the CUDA driver (`libcuda.so`) for NVIDIA devices.
@@ -1962,14 +1962,14 @@ Internally, detection:
 ---
 
 ```
-loom hardware list
+loup hardware list
 ```
 Display all devices in `hardware.lock` with their compilation status:
 
 ```
-accelerator:0  GPU  NVIDIA  RTX 4090       loom.backend.cuda    12.3.1  ✓ compiled
-accelerator:1  GPU  AMD     RX 7900 XTX    loom.backend.vulkan  1.3.0   ✓ compiled
-accelerator:2  TPU  Google  Cloud TPU v4   loom.backend.tpu.cloud 0.4.2 ✓ compiled
+accelerator:0  GPU  NVIDIA  RTX 4090       loup.backend.cuda    12.3.1  ✓ compiled
+accelerator:1  GPU  AMD     RX 7900 XTX    loup.backend.vulkan  1.3.0   ✓ compiled
+accelerator:2  TPU  Google  Cloud TPU v4   loup.backend.tpu.cloud 0.4.2 ✓ compiled
 ```
 
 `!` marks a stale backend (backend package version changed since `hardware.lock` was written).
@@ -1978,51 +1978,51 @@ accelerator:2  TPU  Google  Cloud TPU v4   loom.backend.tpu.cloud 0.4.2 ✓ comp
 ---
 
 ```
-loom hardware compile [--device <id>] [--force] [--backend <package>]
+loup hardware compile [--device <id>] [--force] [--backend <package>]
 ```
 Compile backend binaries for all detected devices (or a specific device by `hardware.lock` id).
 
 - `--device accelerator:0` — compile only the named device.
 - `--force` — recompile even if the compiled artifact is already up-to-date.
-- `--backend loom.backend.cuda` — compile the named backend package specifically.
+- `--backend loup.backend.cuda` — compile the named backend package specifically.
 - `--jobs N` — parallel compilation (default: number of CPU cores).
 
 Compilation:
 1. Reads `hardware.lock` to find which backend package applies to each device.
 2. Fetches the backend package from the registry if not installed.
-3. Runs the backend package's `build.loom` script (§30.2), which invokes the vendor SDK (CUDA Toolkit, Vulkan SDK, etc.) to produce `.so`/`.dylib`/`.dll` artifacts.
+3. Runs the backend package's `build.loup` script (§30.2), which invokes the vendor SDK (CUDA Toolkit, Vulkan SDK, etc.) to produce `.so`/`.dylib`/`.dll` artifacts.
 4. Validates the artifacts by probing `DeviceRegistry` against them.
 5. Updates `hardware.lock` with the new `compiled_at` timestamp and `backend_version`.
 
 ---
 
 ```
-loom hardware add <backend-package>[@version]
+loup hardware add <backend-package>[@version]
 ```
-Manually install a specific backend package without requiring `loom hardware detect`. Useful for installing a backend for hardware that is not physically present (e.g. preparing a Docker image for deployment to a TPU host).
+Manually install a specific backend package without requiring `loup hardware detect`. Useful for installing a backend for hardware that is not physically present (e.g. preparing a Docker image for deployment to a TPU host).
 
 ```sh
-loom hardware add loom.backend.tpu.cloud@0.4.2
-loom hardware add loom.backend.cuda@12.3.1
-loom hardware add loom.backend.tpu.coral
+loup hardware add loup.backend.tpu.cloud@0.4.2
+loup hardware add loup.backend.cuda@12.3.1
+loup hardware add loup.backend.tpu.coral
 ```
 
-After `add`, run `loom hardware compile --backend <package>` to build the artifacts.
+After `add`, run `loup hardware compile --backend <package>` to build the artifacts.
 
 ---
 
 ```
-loom hardware remove <backend-package>
+loup hardware remove <backend-package>
 ```
 Uninstall a backend package and remove its entries from `hardware.lock`.
 
 ---
 
 ```
-loom hardware status
+loup hardware status
 ```
 Print a diagnostic summary:
-- Loom version and `hardware.lock` schema version.
+- Loup version and `hardware.lock` schema version.
 - Total devices detected, compiled, and stale.
 - Whether `DeviceRegistry.default()` will succeed.
 - Any devices present in the system that are not in `hardware.lock` (hint to run `detect`).
@@ -2033,11 +2033,11 @@ Print a diagnostic summary:
 
 | Variable | Effect |
 |---|---|
-| `LOOM_HARDWARE_LOCK` | Override path to `hardware.lock` (default: `.loom/hardware.lock`) |
+| `LOUP_HARDWARE_LOCK` | Override path to `hardware.lock` (default: `.loup/hardware.lock`) |
 | `PJRT_PLUGIN_PATH` | Colon-separated paths to PJRT C API plugin shared libraries |
-| `LOOM_GPU_BACKEND` | Override default GPU backend: `wgpu`, `cuda`, `metal`, `vulkan` |
-| `LOOM_TPU_BACKEND` | Override TPU backend: `cloud`, `coral`, `pjrt` |
-| `LOOM_ACCELERATOR_DISABLE` | Comma-separated device IDs to exclude from `DeviceRegistry` |
+| `LOUP_GPU_BACKEND` | Override default GPU backend: `wgpu`, `cuda`, `metal`, `vulkan` |
+| `LOUP_TPU_BACKEND` | Override TPU backend: `cloud`, `coral`, `pjrt` |
+| `LOUP_ACCELERATOR_DISABLE` | Comma-separated device IDs to exclude from `DeviceRegistry` |
 
 
 ---
@@ -2049,18 +2049,18 @@ Print a diagnostic summary:
 
 *(This section is non-normative.)*
 
-This section describes how Loom discovers, compiles, and manages hardware accelerator backends across installation, development, and deployment. The goal is that developers write brand-agnostic compute code using `loom.tensor`, `native.hal`, and `DeviceRegistry` — and the toolchain handles everything below that API boundary.
+This section describes how Loup discovers, compiles, and manages hardware accelerator backends across installation, development, and deployment. The goal is that developers write brand-agnostic compute code using `loup.tensor`, `native.hal`, and `DeviceRegistry` — and the toolchain handles everything below that API boundary.
 
 ---
 
 ### §30.1 Overview
 
-Loom separates two concerns:
+Loup separates two concerns:
 
-1. **The language spec** (`native.hal`, `native.gpu`, `native.tpu`, `loom.tensor`) — vendor-neutral interfaces defined in this document.
-2. **Backend packages** (`loom.backend.*`) — first-party packages, each wrapping a vendor SDK, that are compiled after install to produce native shared libraries.
+1. **The language spec** (`native.hal`, `native.gpu`, `native.tpu`, `loup.tensor`) — vendor-neutral interfaces defined in this document.
+2. **Backend packages** (`loup.backend.*`) — first-party packages, each wrapping a vendor SDK, that are compiled after install to produce native shared libraries.
 
-This separation means the Loom compiler itself has no CUDA, Metal, Vulkan, or TPU dependency. Backend packages are ordinary Loom packages that happen to contain a `build.loom` build script and vendor-specific bindings. They are installed via `loom add` and compiled via `loom hardware compile`.
+This separation means the Loup compiler itself has no CUDA, Metal, Vulkan, or TPU dependency. Backend packages are ordinary Loup packages that happen to contain a `build.loup` build script and vendor-specific bindings. They are installed via `loup add` and compiled via `loup hardware compile`.
 
 ---
 
@@ -2069,25 +2069,25 @@ This separation means the Loom compiler itself has no CUDA, Metal, Vulkan, or TP
 Each backend package follows this layout:
 
 ```
-loom.backend.cuda/
-  loom.backend.cuda.lmpkg       # package manifest
-  build.loom                    # hardware compilation script (see §30.3)
+loup.backend.cuda/
+  loup.backend.cuda.lppkg       # package manifest
+  build.loup                    # hardware compilation script (see §30.3)
   src/
-    bindings.loom               # @compiled Loom bindings over the CUDA C API
-    device.loom                 # CudaDevice, CudaStream, etc.
+    bindings.loup               # @compiled Loup bindings over the CUDA C API
+    device.loup                 # CudaDevice, CudaStream, etc.
   lib/
     prebuilt/                   # prebuilt artifacts for common platforms (optional)
       linux_x86_64/
-        libloom_backend_cuda.so
+        libloup_backend_cuda.so
       linux_aarch64/
-        libloom_backend_cuda.so
+        libloup_backend_cuda.so
 ```
 
-The `loom.backend.cuda.lmpkg` manifest includes a `[hardware]` section:
+The `loup.backend.cuda.lppkg` manifest includes a `[hardware]` section:
 
 ```toml
 [package]
-name    = "loom.backend.cuda"
+name    = "loup.backend.cuda"
 version = "12.3.1"
 
 [hardware]
@@ -2098,36 +2098,36 @@ probe   = "nvidia-smi --query-gpu=name --format=csv,noheader"
 # SDK requirement: minimum CUDA Toolkit version.
 sdk_min = "12.0"
 sdk_env = "CUDA_HOME"         # environment variable pointing to SDK root
-build_requires = ["nvcc"]     # tools required on PATH for build.loom
+build_requires = ["nvcc"]     # tools required on PATH for build.loup
 ```
 
 ---
 
-### §30.3 `build.loom` — Backend Compilation Script
+### §30.3 `build.loup` — Backend Compilation Script
 
-`build.loom` is a standard Loom script (§2.1 scripted mode) invoked by `loom hardware compile`. It has access to the `loom.cli` script prelude and the `loom.build` module (a future first-party package providing compilation helpers).
+`build.loup` is a standard Loup script (§2.1 scripted mode) invoked by `loup hardware compile`. It has access to the `loup.cli` script prelude and the `loup.build` module (a future first-party package providing compilation helpers).
 
-```loom
-#!/usr/bin/env loom
-// build.loom for loom.backend.cuda
+```loup
+#!/usr/bin/env loup
+// build.loup for loup.backend.cuda
 
-from loom.build import (cc, nvcc, link, outDir, sdkPath);
-from loom.cli   import (exec, env, args, print);
+from loup.build import (cc, nvcc, link, outDir, sdkPath);
+from loup.cli   import (exec, env, args, print);
 
 let cudaHome = sdkPath("CUDA_HOME") ?? "/usr/local/cuda";
 let outPath  = outDir();
 
 // Compile the CUDA helper object
 nvcc(
-  src: "src/loom_cuda_helpers.cu",
-  out: i"{$ outPath $}/loom_cuda_helpers.o",
+  src: "src/loup_cuda_helpers.cu",
+  out: i"{$ outPath $}/loup_cuda_helpers.o",
   flags: ["-O3", "-arch=sm_80", "--ptxas-options=-v"],
   includeDirs: [i"{$ cudaHome $}/include"],
 );
 
-// Compile the Loom binding source to native
+// Compile the Loup binding source to native
 cc(
-  src: "src/bindings.loom",
+  src: "src/bindings.loup",
   out: i"{$ outPath $}/bindings.o",
   flags: ["--target", "native", "@compiled"],
 );
@@ -2135,18 +2135,18 @@ cc(
 // Link into a shared library
 link(
   objects: [
-    i"{$ outPath $}/loom_cuda_helpers.o",
+    i"{$ outPath $}/loup_cuda_helpers.o",
     i"{$ outPath $}/bindings.o",
   ],
-  out: i"{$ outPath $}/libloom_backend_cuda.so",
+  out: i"{$ outPath $}/libloup_backend_cuda.so",
   libs: ["cudart", "cublas", "cufft"],
   libDirs: [i"{$ cudaHome $}/lib64"],
 );
 
-print(i"loom.backend.cuda compiled successfully → {$ outPath $}/libloom_backend_cuda.so");
+print(i"loup.backend.cuda compiled successfully → {$ outPath $}/libloup_backend_cuda.so");
 ```
 
-`loom hardware compile` executes `build.loom` in a sandboxed subprocess with access only to the filesystem paths declared in the `[hardware]` section's `sdk_env`. The resulting shared library path is recorded in `hardware.lock`.
+`loup hardware compile` executes `build.loup` in a sandboxed subprocess with access only to the filesystem paths declared in the `[hardware]` section's `sdk_env`. The resulting shared library path is recorded in `hardware.lock`.
 
 ---
 
@@ -2155,41 +2155,41 @@ print(i"loom.backend.cuda compiled successfully → {$ outPath $}/libloom_backen
 Standard installation on a machine with a CUDA GPU:
 
 ```sh
-# 1. Install the Loom project dependencies (language packages, not hardware backends)
-loom install
+# 1. Install the Loup project dependencies (language packages, not hardware backends)
+loup install
 
 # 2. Detect installed hardware and update hardware.lock
-loom hardware detect
+loup hardware detect
 
 # 3. Compile backends for all detected hardware
-loom hardware compile
+loup hardware compile
 
 # 4. Verify
-loom hardware status
-# accelerator:0  GPU  NVIDIA  RTX 4090  loom.backend.cuda  12.3.1  ✓ compiled
+loup hardware status
+# accelerator:0  GPU  NVIDIA  RTX 4090  loup.backend.cuda  12.3.1  ✓ compiled
 ```
 
-Backends for hardware not present on the machine are skipped. Backend packages are added to `loom.lock` only if `loom add loom.backend.cuda` is called explicitly, or if a project's `.lmpkg` declares them as dev-dependencies:
+Backends for hardware not present on the machine are skipped. Backend packages are added to `loup.lock` only if `loup add loup.backend.cuda` is called explicitly, or if a project's `.lppkg` declares them as dev-dependencies:
 
 ```toml
 [dev-dependencies]
-"loom.backend.cuda"  = "^12"
-"loom.backend.vulkan" = "^1.3"
-"loom.backend.tpu.cloud" = "^0.4"
+"loup.backend.cuda"  = "^12"
+"loup.backend.vulkan" = "^1.3"
+"loup.backend.tpu.cloud" = "^0.4"
 ```
 
-When `dev-dependencies` include backend packages, `loom install` downloads their source. `loom hardware compile` then builds them if the corresponding hardware is present.
+When `dev-dependencies` include backend packages, `loup install` downloads their source. `loup hardware compile` then builds them if the corresponding hardware is present.
 
 ---
 
 ### §30.5 Recompilation Triggers
 
-`loom hardware compile` should be re-run when:
+`loup hardware compile` should be re-run when:
 
-- **New hardware is added** — a new GPU is installed in the system; run `loom hardware detect` then `loom hardware compile`.
-- **Backend package is updated** — `loom update loom.backend.cuda` updates the source; `loom hardware compile` rebuilds.
-- **Loom toolchain is updated** — ABI version bumps in the Loom runtime may require backend recompilation. The toolchain emits a warning at startup if `hardware.lock` was produced by a different Loom version.
-- **SDK is updated** — a CUDA Toolkit or libtpu update may expose new features; manual `loom hardware compile --force` is recommended after SDK upgrades.
+- **New hardware is added** — a new GPU is installed in the system; run `loup hardware detect` then `loup hardware compile`.
+- **Backend package is updated** — `loup update loup.backend.cuda` updates the source; `loup hardware compile` rebuilds.
+- **Loup toolchain is updated** — ABI version bumps in the Loup runtime may require backend recompilation. The toolchain emits a warning at startup if `hardware.lock` was produced by a different Loup version.
+- **SDK is updated** — a CUDA Toolkit or libtpu update may expose new features; manual `loup hardware compile --force` is recommended after SDK upgrades.
 
 `DeviceRegistry.default()` logs a warning (not an error) when `hardware.lock` is stale. The stale backend continues to function unless the ABI has changed, in which case `DeviceRegistry` marks the device as `!stale` and excludes it from `AcceleratorDevice` dispatch.
 
@@ -2197,7 +2197,7 @@ When `dev-dependencies` include backend packages, `loom install` downloads their
 
 ### §30.6 Multi-Backend Coexistence
 
-A single Loom installation can have multiple GPU backends compiled simultaneously. The `DeviceRegistry` exposes all of them. The HAL priority order (CUDA → Metal → Vulkan → TPU → WebGPU → SIMD) is the default `Backend.Auto` tie-breaking rule; it can be overridden per-tensor via `Backend.Device(id)`.
+A single Loup installation can have multiple GPU backends compiled simultaneously. The `DeviceRegistry` exposes all of them. The HAL priority order (CUDA → Metal → Vulkan → TPU → WebGPU → SIMD) is the default `Backend.Auto` tie-breaking rule; it can be overridden per-tensor via `Backend.Device(id)`.
 
 Example `hardware.lock` for a heterogeneous workstation:
 
@@ -2205,25 +2205,25 @@ Example `hardware.lock` for a heterogeneous workstation:
 [[devices]]
 id = "accelerator:0"
 kind = "Gpu"; vendor = "Nvidia"; model = "RTX 4090"
-backend_package = "loom.backend.cuda"
+backend_package = "loup.backend.cuda"
 features = ["fp16", "bf16", "int8", "tensor_cores"]
 
 [[devices]]
 id = "accelerator:1"
 kind = "Gpu"; vendor = "Amd"; model = "RX 7900 XTX"
-backend_package = "loom.backend.vulkan"
+backend_package = "loup.backend.vulkan"
 features = ["fp16", "bf16", "int8"]
 
 [[devices]]
 id = "accelerator:2"
 kind = "Tpu"; vendor = "Google"; model = "Coral Edge TPU"
-backend_package = "loom.backend.tpu.coral"
+backend_package = "loup.backend.tpu.coral"
 features = ["int8"]
 ```
 
-```loom
+```loup
 from native.hal import (DeviceRegistry, VendorId);
-from loom.tensor import (DType, Backend);
+from loup.tensor import (DType, Backend);
 
 let registry = DeviceRegistry.default();
 
@@ -2241,26 +2241,26 @@ let output    = quantised.matmul(int8Weights).eval();
 
 ### §30.7 CI / Containerised Environments
 
-In CI environments without physical GPU hardware, backend packages can be installed without compilation (`loom install --no-hardware`), and `DeviceRegistry.default()` will return only a CPU backend. This allows CI to run tests that use `loom.tensor` via CPU fallback without requiring GPU hardware in the CI runner.
+In CI environments without physical GPU hardware, backend packages can be installed without compilation (`loup install --no-hardware`), and `DeviceRegistry.default()` will return only a CPU backend. This allows CI to run tests that use `loup.tensor` via CPU fallback without requiring GPU hardware in the CI runner.
 
 For GPU CI (e.g. GitHub Actions with NVIDIA-hosted runners, Google Cloud Build with TPU workers):
 
 ```yaml
 # .github/workflows/gpu.yml (example — non-normative)
-- run: loom install
-- run: loom hardware detect
-- run: loom hardware compile
-- run: loom test --gpu
+- run: loup install
+- run: loup hardware detect
+- run: loup hardware compile
+- run: loup test --gpu
 ```
 
 For Docker images intended for GPU deployment, the backend can be pre-compiled and baked into the image:
 
 ```dockerfile
-FROM loom-runtime:1.7
-RUN loom add loom.backend.cuda@12.3 &&     loom hardware add loom.backend.cuda &&     loom hardware compile --backend loom.backend.cuda
+FROM loup-runtime:1.7
+RUN loup add loup.backend.cuda@12.3 &&     loup hardware add loup.backend.cuda &&     loup hardware compile --backend loup.backend.cuda
 ```
 
-The resulting image contains the compiled `libloom_backend_cuda.so` and a `hardware.lock` with a placeholder device entry (no real device detected, but the compiled artifact is present). `DeviceRegistry` will detect the actual CUDA GPU at container runtime and activate the compiled backend.
+The resulting image contains the compiled `libloup_backend_cuda.so` and a `hardware.lock` with a placeholder device entry (no real device detected, but the compiled artifact is present). `DeviceRegistry` will detect the actual CUDA GPU at container runtime and activate the compiled backend.
 
 
 ---
@@ -2270,15 +2270,15 @@ The resulting image contains the compiled `libloom_backend_cuda.so` and a `hardw
 
 ## Appendix C: Package Type Index
 
-Types defined in packages that require `loom install`.
+Types defined in packages that require `loup install`.
 
 ### Standard Library Types
 
 |---|---|---|
-| `Tensor` | `loom.tensor` | §21.28 |
-| `DType` | `loom.tensor` | §21.28 |
-| `Backend` | `loom.tensor` | §21.28 |
-| `TensorShapeError` | `loom.tensor` | §21.28 |
+| `Tensor` | `loup.tensor` | §21.28 |
+| `DType` | `loup.tensor` | §21.28 |
+| `Backend` | `loup.tensor` | §21.28 |
+| `TensorShapeError` | `loup.tensor` | §21.28 |
 | `AcceleratorDevice` | `native.hal` | §21.32.1 |
 | `AcceleratorBuffer[T]` | `native.hal` | §21.32.2 |
 | `AcceleratorFeatures` | `native.hal` | §21.32.3 |
@@ -2305,12 +2305,12 @@ Types defined in packages that require `loom install`.
 | `GpuKernelBinding` | `native.gpu` | §21.30.2 |
 | `CudaDevice` | `native.gpu.cuda` | §21.30.1 |
 | `CudaStream` | `native.gpu.cuda` | §21.30.1 |
-| `GradScaler` | `loom.autodiff` | §21.31 |
-| `AutodiffError` | `loom.autodiff` | §21.31 |
-| `AdamWOptimizer` | `loom.autodiff` | §21.31 |
-| `RMSpropOptimizer` | `loom.autodiff` | §21.31 |
-| `TpuTopology` | `loom.tpu` | §21.34 |
-| `TensorBackendError` | `loom.tensor` | §21.28 |
+| `GradScaler` | `loup.autodiff` | §21.31 |
+| `AutodiffError` | `loup.autodiff` | §21.31 |
+| `AdamWOptimizer` | `loup.autodiff` | §21.31 |
+| `RMSpropOptimizer` | `loup.autodiff` | §21.31 |
+| `TpuTopology` | `loup.tpu` | §21.34 |
+| `TensorBackendError` | `loup.tensor` | §21.28 |
 | `GpuDevice` | `native.webgpu` | §21.29 |
 | `GpuBuffer` | `native.webgpu` / `native.gpu` | §21.29, §21.30 |
 | `GpuKernel` | `native.gpu` | §21.30 |
@@ -2318,19 +2318,19 @@ Types defined in packages that require `loom install`.
 | `GpuCommandEncoder` | `native.webgpu` | §21.29 |
 | `GpuCompileError` | `native.gpu` | §21.30 |
 | `GpuUnavailableError` | `native.webgpu` | §21.29 |
-| `Variable` | `loom.autodiff` | §21.31 |
-| `Optimizer` | `loom.autodiff` | §21.31 |
+| `Variable` | `loup.autodiff` | §21.31 |
+| `Optimizer` | `loup.autodiff` | §21.31 |
 | `ComputeGraph` | `native.hal` | §21.32 |
-| `AdamOptimizer` | `loom.autodiff` | §21.31 |
-| `SgdOptimizer` | `loom.autodiff` | §21.31 |
-| `CustomOp` | `loom.autodiff` | §21.31 |
+| `AdamOptimizer` | `loup.autodiff` | §21.31 |
+| `SgdOptimizer` | `loup.autodiff` | §21.31 |
+| `CustomOp` | `loup.autodiff` | §21.31 |
 
 ### v1.18 Standard-Library Types (Cross-Reference)
 
-The following types live in the standard library (no `loom install` required)
+The following types live in the standard library (no `loup install` required)
 but are listed here for cross-reference convenience since packages frequently
 export types using them. Full specifications are in the
-[Loom Standard Library Reference v1.18](loom-stdlib-reference-v1_18.md).
+[Loup Standard Library Reference v1.18](loup-stdlib-reference-v1_18.md).
 
 | Type | Namespace | Stdlib Reference |
 |---|---|---|

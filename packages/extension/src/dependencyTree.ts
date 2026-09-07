@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Dependency Tree — Tree view for loom.pkg dependencies
+// Loup Dependency Tree — Tree view for loup.pkg dependencies
 // ============================================================================
 
 import * as vscode from 'vscode';
@@ -62,7 +62,7 @@ export class DependencyTreeProvider implements vscode.TreeDataProvider<Dependenc
 
   private async loadDependencies(): Promise<void> {
     this.dependencies = [];
-    const pkgFiles = await vscode.workspace.findFiles('**/loom.pkg', '**/node_modules/**', 1);
+    const pkgFiles = await vscode.workspace.findFiles('**/loup.pkg', '**/node_modules/**', 1);
     if (pkgFiles.length === 0) return;
 
     const content = new TextDecoder().decode(

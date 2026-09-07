@@ -1,11 +1,11 @@
 // ============================================================================
-// Loom Runtime Interface — Bridge between DAP and the Loom CLI/runtime
+// Loup Runtime Interface — Bridge between DAP and the Loup CLI/runtime
 // ============================================================================
 
 import { EventEmitter } from 'events';
 import { ChildProcess, spawn } from 'child_process';
 
-export interface LoomBreakpoint {
+export interface LoupBreakpoint {
   id: number;
   line: number;
   column?: number;
@@ -13,7 +13,7 @@ export interface LoomBreakpoint {
   source: string;
 }
 
-export interface LoomStackFrame {
+export interface LoupStackFrame {
   id: number;
   name: string;
   source: string;
@@ -26,7 +26,7 @@ export interface LoomStackFrame {
   portalCondition?: string;
 }
 
-export interface LoomVariable {
+export interface LoupVariable {
   name: string;
   value: string;
   type: string;
@@ -35,7 +35,7 @@ export interface LoomVariable {
   indexedVariables?: number;
 }
 
-export interface LoomScope {
+export interface LoupScope {
   name: string;
   variablesReference: number;
   expensive: boolean;
@@ -47,48 +47,48 @@ export interface RuntimeEvents {
   stopOnBreakpoint: (threadId: number, reason: StopReason) => void;
   stopOnStep: (threadId: number) => void;
   stopOnException: (threadId: number, message: string) => void;
-  breakpointValidated: (bp: LoomBreakpoint) => void;
+  breakpointValidated: (bp: LoupBreakpoint) => void;
   output: (category: string, text: string, source?: string, line?: number) => void;
   end: () => void;
   error: (message: string) => void;
 }
 
 /**
- * LoomRuntime manages the lifecycle of a Loom process and translates
- * between the DAP protocol and the Loom runtime debug API.
+ * LoupRuntime manages the lifecycle of a Loup process and translates
+ * between the DAP protocol and the Loup runtime debug API.
  *
- * Communication with the Loom process uses a JSON-line protocol over stderr:
+ * Communication with the Loup process uses a JSON-line protocol over stderr:
  *   <- {"event": "stopped", "reason": "breakpoint", "threadId": 1, ...}
  *   -> {"command": "continue", "threadId": 1}
  */
-export class LoomRuntime extends EventEmitter {
+export class LoupRuntime extends EventEmitter {
   private process: ChildProcess | null = null;
-  private breakpoints = new Map<string, LoomBreakpoint[]>();
+  private breakpoints = new Map<string, LoupBreakpoint[]>();
   private breakpointIdCounter = 1;
-  private stackFrames: LoomStackFrame[] = [];
-  private variables = new Map<number, LoomVariable[]>();
+  private stackFrames: LoupStackFrame[] = [];
+  private variables = new Map<number, LoupVariable[]>();
   private nextVarRef = 1000;
   private running = false;
 
   // ---- Lifecycle ----
 
   async launch(program: string, args: string[], target: string, env: Record<string, string>, enableTimeTravel: boolean, traceLevel?: string): Promise<void> {
-    const loomArgs = ['run', program, '--target', target];
+    const loupArgs = ['run', program, '--target', target];
     if (enableTimeTravel) {
-      loomArgs.push('--enable-time-travel');
+      loupArgs.push('--enable-time-travel');
     }
     if (traceLevel && traceLevel !== 'off') {
-      loomArgs.push('--trace-level', traceLevel);
+      loupArgs.push('--trace-level', traceLevel);
     }
     if (args.length > 0) {
-      loomArgs.push('--', ...args);
+      loupArgs.push('--', ...args);
     }
 
-    const loomPath = process.env['LOOM_PATH'] || 'loom';
+    const loupPath = process.env['LOUP_PATH'] || 'loup';
 
-    this.process = spawn(loomPath, loomArgs, {
+    this.process = spawn(loupPath, loupArgs, {
       cwd: this.workingDir(program),
-      env: { ...process.env, ...env, LOOM_DEBUG: '1' },
+      env: { ...process.env, ...env, LOUP_DEBUG: '1' },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -126,13 +126,13 @@ export class LoomRuntime extends EventEmitter {
 
     this.process.on('error', (err) => {
       this.running = false;
-      this.emit('error', `Failed to launch Loom: ${err.message}`);
+      this.emit('error', `Failed to launch Loup: ${err.message}`);
       this.emit('end');
     });
   }
 
   async attach(host: string, port: number): Promise<void> {
-    // Future: connect to a running Loom process debug server
+    // Future: connect to a running Loup process debug server
     this.emit('output', 'console', `Attaching to ${host}:${port}...\n`);
     this.emit('error', 'Attach mode is not yet implemented. Use launch mode.');
     this.emit('end');
@@ -149,8 +149,8 @@ export class LoomRuntime extends EventEmitter {
 
   // ---- Breakpoints ----
 
-  setBreakpoints(source: string, lines: number[]): LoomBreakpoint[] {
-    const bps: LoomBreakpoint[] = lines.map(line => ({
+  setBreakpoints(source: string, lines: number[]): LoupBreakpoint[] {
+    const bps: LoupBreakpoint[] = lines.map(line => ({
       id: this.breakpointIdCounter++,
       line,
       verified: true,
@@ -199,18 +199,18 @@ export class LoomRuntime extends EventEmitter {
 
   // ---- Stack & variables ----
 
-  getStackTrace(_threadId: number): LoomStackFrame[] {
+  getStackTrace(_threadId: number): LoupStackFrame[] {
     return this.stackFrames;
   }
 
-  getScopes(frameId: number): LoomScope[] {
+  getScopes(frameId: number): LoupScope[] {
     return [
       { name: 'Locals', variablesReference: frameId * 10 + 1, expensive: false },
       { name: 'Globals', variablesReference: frameId * 10 + 2, expensive: true },
     ];
   }
 
-  getVariables(variablesReference: number): LoomVariable[] {
+  getVariables(variablesReference: number): LoupVariable[] {
     return this.variables.get(variablesReference) || [];
   }
 
@@ -262,8 +262,8 @@ export class LoomRuntime extends EventEmitter {
             source: String(f['source'] || ''),
             line: Number(f['line'] || 0),
             column: Number(f['column'] || 0),
-            execMode: (f['execMode'] as LoomStackFrame['execMode']) || 'interpreted',
-            traceLevel: (f['traceLevel'] as LoomStackFrame['traceLevel']) || 'off',
+            execMode: (f['execMode'] as LoupStackFrame['execMode']) || 'interpreted',
+            traceLevel: (f['traceLevel'] as LoupStackFrame['traceLevel']) || 'off',
             isPortal: Boolean(f['isPortal']),
             portalName: f['portalName'] as string | undefined,
             portalCondition: f['portalCondition'] as string | undefined,
@@ -272,7 +272,7 @@ export class LoomRuntime extends EventEmitter {
 
         // Update variables
         if (msg['locals'] && typeof msg['locals'] === 'object') {
-          const locals: LoomVariable[] = [];
+          const locals: LoupVariable[] = [];
           for (const [name, info] of Object.entries(msg['locals'] as Record<string, Record<string, unknown>>)) {
             locals.push({
               name,
@@ -299,7 +299,7 @@ export class LoomRuntime extends EventEmitter {
       }
 
       case 'breakpointValidated': {
-        const bp: LoomBreakpoint = {
+        const bp: LoupBreakpoint = {
           id: msg['id'] as number,
           line: msg['line'] as number,
           verified: msg['verified'] as boolean,

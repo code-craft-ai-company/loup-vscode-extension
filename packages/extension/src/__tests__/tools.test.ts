@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { manifestPackageName, taskArgs } from '../loupTasks';
 import { parseManifest, stripComment } from '../loupManifest';
+import { LOUP_MANIFEST_LANGUAGE, LOUP_SOURCE_LANGUAGES } from '../languages';
 
 test('taskArgs: build and test need no file', () => {
   assert.deepEqual(taskArgs({ task: 'build' }), ['build']);
@@ -100,4 +101,27 @@ test('every contributed command is unique and palette entries name real commands
   for (const k of manifest.contributes.keybindings) assert.ok(ids.includes(k.command), k.command);
   const views = manifest.contributes.customEditors.map((e: { viewType: string }) => e.viewType);
   assert.equal(new Set(views).size, views.length);
+});
+
+test('each Loup file extension is its own language with its own icon, grammar and snippets', () => {
+  const dir = join(__dirname, '..', 'packages', 'extension');
+  const c = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).contributes;
+  const ids: string[] = c.languages.map((l: { id: string }) => l.id);
+  assert.deepEqual(ids, [...LOUP_SOURCE_LANGUAGES, LOUP_MANIFEST_LANGUAGE]);
+
+  const exts = c.languages.flatMap((l: { extensions: string[] }) => l.extensions);
+  assert.deepEqual(exts, ['.loup', '.lpscr', '.lpfree', '.lpweb', '.lphc', '.lppkg']);
+  assert.equal(new Set(exts).size, exts.length);
+
+  const icons = c.languages.map((l: { icon: { light: string; dark: string } }) => l.icon.dark);
+  assert.equal(new Set(icons).size, icons.length, 'every language has a different icon');
+
+  for (const id of LOUP_SOURCE_LANGUAGES) {
+    const grammar = c.grammars.find((g: { language: string }) => g.language === id);
+    assert.equal(grammar?.scopeName, 'source.loup', id);
+    assert.equal(grammar?.path, './syntaxes/loup.tmLanguage.json', id);
+    assert.ok(grammar?.embeddedLanguages, id);
+    assert.ok(c.snippets.some((s: { language: string }) => s.language === id), `snippets for ${id}`);
+    assert.ok(c.debuggers[0].languages.includes(id), `run for ${id}`);
+  }
 });

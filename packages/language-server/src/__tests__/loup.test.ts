@@ -18,11 +18,16 @@ describe('Loup VSCode Extension Manifest & Grammars', () => {
       fs.readFileSync(path.join(ROOT, 'packages/extension/package.json'), 'utf8')
     );
     assert.equal(extPkg.name, 'loup-lang');
-    assert.equal(extPkg.version, '1.20.0');
+    assert.equal(extPkg.version, '1.21.0');
 
     const loupLang = extPkg.contributes.languages.find((l: { id: string }) => l.id === 'loup');
     assert.ok(loupLang);
-    assert.deepEqual(loupLang.extensions, ['.loup', '.lpscr', '.lpfree', '.lpweb', '.lphc']);
+    assert.deepEqual(loupLang.extensions, ['.loup']);
+    // Each mode-flavored extension is its own language id, so each has its own file icon.
+    const sourceExts = extPkg.contributes.languages
+      .filter((l: { id: string }) => l.id !== 'loup-pkg')
+      .flatMap((l: { extensions: string[] }) => l.extensions);
+    assert.deepEqual(sourceExts, ['.loup', '.lpscr', '.lpfree', '.lpweb', '.lphc']);
 
     const pkgLang = extPkg.contributes.languages.find((l: { id: string }) => l.id === 'loup-pkg');
     assert.ok(pkgLang);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.21.0
+
+- New extension icon, and a separate file icon for each Loup file type (`.loup`, `.lpscr`, `.lpfree`, `.lpweb`,
+  `.lphc`, `.lppkg`). Each source extension is now its own language id.
+- Marketplace publisher is `code-craft-ai-company`.
+
 ## 1.20.0
 
 First Marketplace release (preview).

@@ -1,6 +1,6 @@
 {
   "name": "loup-vscode-extension",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "private": true,
   "description": "VSCode extension for the Loup programming language (v1.20)",
   "author": "Code Craft AI LLC",

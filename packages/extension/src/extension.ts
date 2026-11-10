@@ -16,6 +16,7 @@ import { TraceEditorProvider, TraceViewerPanel, openTraceViewer } from './traceV
 import { LoupTaskProvider } from './taskProvider';
 import { DependencyTreeProvider } from './dependencyTree';
 import { loupExecutable } from './toolchain';
+import { LOUP_MANIFEST_LANGUAGE, LOUP_SOURCE_LANGUAGES, isLoupSource } from './languages';
 
 let client: LanguageClient | undefined;
 
@@ -64,10 +65,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const updateStatusBar = (editor: vscode.TextEditor | undefined) => {
     if (
       editor &&
-      (editor.document.languageId === 'loup' ||
-        editor.document.languageId === 'loup-pkg')
+      (isLoupSource(editor.document.languageId) ||
+        editor.document.languageId === LOUP_MANIFEST_LANGUAGE)
     ) {
-      if (editor.document.languageId === 'loup-pkg') {
+      if (editor.document.languageId === LOUP_MANIFEST_LANGUAGE) {
         statusBarItem.text = '$(package) Loup Manifest';
         statusBarItem.tooltip = 'Loup Package Manifest (.lppkg) — v1.20';
       } else {
@@ -182,7 +183,7 @@ class LoupDebugConfigurationProvider implements vscode.DebugConfigurationProvide
     // F5 with no launch.json: run the open Loup file.
     if (!config.type && !config.request && !config.name) {
       const editor = vscode.window.activeTextEditor;
-      if (editor && editor.document.languageId === 'loup') {
+      if (editor && isLoupSource(editor.document.languageId)) {
         config.type = 'loup';
         config.name = 'Run Loup File';
         config.request = 'launch';
@@ -226,7 +227,7 @@ function startLanguageClient(
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
-      { scheme: 'file', language: 'loup' },
+      ...LOUP_SOURCE_LANGUAGES.map((language) => ({ scheme: 'file', language })),
       { scheme: 'file', language: 'loup-pkg' },
     ],
     synchronize: {

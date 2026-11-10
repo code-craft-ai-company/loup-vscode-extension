@@ -1,0 +1,35 @@
+<svg width="16" height="16" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="scr_left" x1="16" y1="12" x2="70" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/>
+      <stop offset="55%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="scr_right" x1="58" y1="12" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="50%" stop-color="#0D9488"/>
+      <stop offset="100%" stop-color="#064E3B"/>
+    </linearGradient>
+  </defs>
+  <!-- Left Ear -->
+  <polygon points="24,10 55,35 20,57" fill="#A7F3D0"/>
+  <polygon points="28,18 46,34 26,48" fill="#064E3B" fill-opacity="0.7"/>
+  <!-- Right Ear -->
+  <polygon points="104,10 73,35 108,57" fill="url(#scr_right)"/>
+  <polygon points="100,18 82,34 102,48" fill="#022C22" fill-opacity="0.75"/>
+  <!-- Left & Right Cheeks -->
+  <polygon points="20,56 54,34 65,48 49,98 14,76" fill="url(#scr_left)"/>
+  <polygon points="108,56 74,34 63,48 79,98 114,76" fill="url(#scr_right)"/>
+  <!-- Right Snout Shadow -->
+  <polygon points="63,44 80,50 80,96 63,96" fill="#064E3B"/>
+  <!-- L Snout Bridge -->
+  <polygon points="48,50 64,44 64,94 80,94 76,105 48,105" fill="#ECFDF5"/>
+  <!-- High-Voltage Golden Lightning Bolt Over Forehead & Snout -->
+  <polygon points="68,18 46,58 63,58 53,98 84,50 66,50" fill="#FACC15"/>
+  <!-- Nose & Jaw Tip -->
+  <polygon points="48,105 76,105 64,120" fill="#022C22"/>
+  <polygon points="54,101 72,101 64,112" fill="#34D399"/>
+  <!-- Glowing Eyes -->
+  <polygon points="33,61 50,66 39,72" fill="#FEF08A"/>
+  <polygon points="95,61 78,66 89,72" fill="#FEF08A"/>
+</svg>

@@ -2,8 +2,8 @@
   "name": "loup-lang",
   "displayName": "Loup Language",
   "description": "Language support for the Loup programming language (v1.20)",
-  "version": "1.20.0",
-  "publisher": "code-craft-ai",
+  "version": "1.21.0",
+  "publisher": "code-craft-ai-company",
   "author": {
     "name": "Code Craft AI LLC"
   },
@@ -50,16 +50,68 @@
           "loup"
         ],
         "extensions": [
-          ".loup",
-          ".lpscr",
-          ".lpfree",
-          ".lpweb",
+          ".loup"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/file-loup.svg",
+          "dark": "./icons/file-loup.svg"
+        }
+      },
+      {
+        "id": "loup-script",
+        "aliases": [
+          "Loup (host-script)"
+        ],
+        "extensions": [
+          ".lpscr"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/file-lpscr.svg",
+          "dark": "./icons/file-lpscr.svg"
+        }
+      },
+      {
+        "id": "loup-freestanding",
+        "aliases": [
+          "Loup (freestanding)"
+        ],
+        "extensions": [
+          ".lpfree"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/file-lpfree.svg",
+          "dark": "./icons/file-lpfree.svg"
+        }
+      },
+      {
+        "id": "loup-web",
+        "aliases": [
+          "Loup (web)"
+        ],
+        "extensions": [
+          ".lpweb"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/file-lpweb.svg",
+          "dark": "./icons/file-lpweb.svg"
+        }
+      },
+      {
+        "id": "loup-native",
+        "aliases": [
+          "Loup (host-compiled)"
+        ],
+        "extensions": [
           ".lphc"
         ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "./icons/loup-light.svg",
-          "dark": "./icons/loup-dark.svg"
+          "light": "./icons/file-lphc.svg",
+          "dark": "./icons/file-lphc.svg"
         }
       },
       {
@@ -75,12 +127,80 @@
         "extensions": [
           ".lppkg"
         ],
-        "configuration": "./loup-pkg-language-configuration.json"
+        "configuration": "./loup-pkg-language-configuration.json",
+        "icon": {
+          "light": "./icons/file-lppkg.svg",
+          "dark": "./icons/file-lppkg.svg"
+        }
       }
     ],
     "grammars": [
       {
         "language": "loup",
+        "scopeName": "source.loup",
+        "path": "./syntaxes/loup.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.shellscript": "shellscript"
+        }
+      },
+      {
+        "language": "loup-script",
+        "scopeName": "source.loup",
+        "path": "./syntaxes/loup.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.shellscript": "shellscript"
+        }
+      },
+      {
+        "language": "loup-freestanding",
+        "scopeName": "source.loup",
+        "path": "./syntaxes/loup.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.shellscript": "shellscript"
+        }
+      },
+      {
+        "language": "loup-web",
+        "scopeName": "source.loup",
+        "path": "./syntaxes/loup.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html": "html",
+          "meta.embedded.block.css": "css",
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.python": "python",
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.markdown": "markdown",
+          "meta.embedded.block.shellscript": "shellscript"
+        }
+      },
+      {
+        "language": "loup-native",
         "scopeName": "source.loup",
         "path": "./syntaxes/loup.tmLanguage.json",
         "embeddedLanguages": {
@@ -105,6 +225,22 @@
       {
         "language": "loup",
         "path": "./snippets/loup.code-snippets"
+      },
+      {
+        "language": "loup-script",
+        "path": "./snippets/loup.code-snippets"
+      },
+      {
+        "language": "loup-freestanding",
+        "path": "./snippets/loup.code-snippets"
+      },
+      {
+        "language": "loup-web",
+        "path": "./snippets/loup.code-snippets"
+      },
+      {
+        "language": "loup-native",
+        "path": "./snippets/loup.code-snippets"
       }
     ],
     "debuggers": [
@@ -114,7 +250,11 @@
         "program": "./out/debugAdapter.js",
         "runtime": "node",
         "languages": [
-          "loup"
+          "loup",
+          "loup-script",
+          "loup-freestanding",
+          "loup-web",
+          "loup-native"
         ],
         "configurationAttributes": {
           "launch": {

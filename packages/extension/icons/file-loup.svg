@@ -1,0 +1,40 @@
+<svg width="16" height="16" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="loup_amber" x1="16" y1="12" x2="72" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="55%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+    <linearGradient id="loup_indigo" x1="56" y1="12" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="50%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <linearGradient id="loup_ear" x1="24" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Left Ear -->
+  <polygon points="24,10 55,35 20,57" fill="url(#loup_ear)"/>
+  <polygon points="28,18 46,34 26,48" fill="#1E1B4B" fill-opacity="0.7"/>
+  <!-- Right Ear -->
+  <polygon points="104,10 73,35 108,57" fill="url(#loup_indigo)"/>
+  <polygon points="100,18 82,34 102,48" fill="#0F172A" fill-opacity="0.75"/>
+  <!-- Left Cheek & Brow (Warm Amber) -->
+  <polygon points="20,56 54,34 65,48 49,98 14,76" fill="url(#loup_amber)"/>
+  <!-- Right Cheek & Brow (Indigo) -->
+  <polygon points="108,56 74,34 63,48 79,98 114,76" fill="url(#loup_indigo)"/>
+  <!-- Forehead Diamond -->
+  <polygon points="54,34 64,24 74,34 64,52" fill="#F59E0B"/>
+  <!-- Right Snout Shadow Plane -->
+  <polygon points="63,44 80,50 80,96 63,96" fill="#312E81"/>
+  <!-- Snout Bridge forming stylized L -->
+  <polygon points="48,50 64,44 64,94 80,94 76,105 48,105" fill="#FEF3C7"/>
+  <!-- Nose & Jaw Tip -->
+  <polygon points="48,105 76,105 64,120" fill="#0F172A"/>
+  <polygon points="54,101 72,101 64,112" fill="#38BDF8"/>
+  <!-- Glowing Cyber Eyes -->
+  <polygon points="33,61 50,66 39,72" fill="#38BDF8"/>
+  <polygon points="95,61 78,66 89,72" fill="#38BDF8"/>
+</svg>

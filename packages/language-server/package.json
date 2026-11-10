@@ -1,6 +1,6 @@
 {
   "name": "loup-language-server",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "description": "Language Server Protocol implementation for the Loup programming language",
   "private": true,
   "main": "./out/server.js",

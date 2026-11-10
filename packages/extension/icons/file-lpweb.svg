@@ -1,0 +1,33 @@
+<svg width="16" height="16" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="web_left" x1="16" y1="12" x2="70" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F472B6"/>
+      <stop offset="55%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#9D174D"/>
+    </linearGradient>
+    <linearGradient id="web_right" x1="58" y1="12" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+  </defs>
+  <!-- Left & Right Ears -->
+  <polygon points="24,10 55,35 20,57" fill="#F9A8D4"/>
+  <polygon points="28,18 46,34 26,48" fill="#500724" fill-opacity="0.7"/>
+  <polygon points="104,10 73,35 108,57" fill="url(#web_right)"/>
+  <polygon points="100,18 82,34 102,48" fill="#2E1065" fill-opacity="0.75"/>
+  <!-- Left & Right Cheeks (Magenta & Wasm Violet) -->
+  <polygon points="20,56 54,34 65,48 49,98 14,76" fill="url(#web_left)"/>
+  <polygon points="108,56 74,34 63,48 79,98 114,76" fill="url(#web_right)"/>
+  <!-- Web Cyan Forehead Diamond -->
+  <polygon points="54,34 64,24 74,34 64,52" fill="#38BDF8"/>
+  <polygon points="63,44 80,50 80,96 63,96" fill="#3B0764"/>
+  <!-- L Snout Bridge -->
+  <polygon points="48,50 64,44 64,94 80,94 76,105 48,105" fill="#FDF4FF"/>
+  <!-- Nose & Jaw Tip -->
+  <polygon points="48,105 76,105 64,120" fill="#2E1065"/>
+  <polygon points="54,101 72,101 64,112" fill="#38BDF8"/>
+  <!-- Glowing Cyan Eyes -->
+  <polygon points="33,61 50,66 39,72" fill="#38BDF8"/>
+  <polygon points="95,61 78,66 89,72" fill="#38BDF8"/>
+</svg>

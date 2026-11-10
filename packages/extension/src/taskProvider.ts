@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { LoupTaskDefinition, manifestPackageName, taskArgs } from './loupTasks';
 import { loupExecutable } from './toolchain';
+import { isLoupSource } from './languages';
 
 const MANIFEST_NAMES = ['package.lppkg', 'loup.pkg'];
 
@@ -25,7 +26,7 @@ export class LoupTaskProvider implements vscode.TaskProvider {
     }
 
     const doc = vscode.window.activeTextEditor?.document;
-    if (doc && doc.languageId === 'loup' && doc.uri.scheme === 'file') {
+    if (doc && isLoupSource(doc.languageId) && doc.uri.scheme === 'file') {
       const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
       const def: LoupTaskDefinition = { type: LoupTaskProvider.type, task: 'run', file: doc.uri.fsPath };
       tasks.push(

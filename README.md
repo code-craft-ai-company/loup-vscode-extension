@@ -17,6 +17,11 @@ Loup v1.20 defines five mode-flavored source file extensions (§1-13.0.0) plus t
 | `.lphc` | Host-compiled native source file | `host.native`, `host.dual`, or omitted | `@mode(host.native)` |
 | `.lppkg` | Package manifest (`package.lppkg` / `loup.pkg`) | — | — |
 
+Each extension has its own file icon. VS Code assigns file icons by language, so each extension is registered as its
+own language id (`loup`, `loup-script`, `loup-freestanding`, `loup-web`, `loup-native`, and `loup-pkg` for manifests).
+All five source languages share one grammar, one language server and one set of snippets; a per-language setting such
+as `"[loup]": { … }` applies to `.loup` files only.
+
 ## Features
 
 - **Syntax Highlighting**: Complete TextMate grammar for Loup v1.20:

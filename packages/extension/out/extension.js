@@ -19174,6 +19174,13 @@ function manifestPackageName(content) {
   return name === "unnamed" ? void 0 : name;
 }
 
+// src/languages.ts
+var LOUP_SOURCE_LANGUAGES = ["loup", "loup-script", "loup-freestanding", "loup-web", "loup-native"];
+var LOUP_MANIFEST_LANGUAGE = "loup-pkg";
+function isLoupSource(languageId) {
+  return LOUP_SOURCE_LANGUAGES.includes(languageId);
+}
+
 // src/taskProvider.ts
 var MANIFEST_NAMES = ["package.lppkg", "loup.pkg"];
 var LoupTaskProvider = class _LoupTaskProvider {
@@ -19189,7 +19196,7 @@ var LoupTaskProvider = class _LoupTaskProvider {
       tasks2.push(this.make({ type: _LoupTaskProvider.type, task: "test" }, folder, `test ${label}`, folder.uri.fsPath));
     }
     const doc = vscode3.window.activeTextEditor?.document;
-    if (doc && doc.languageId === "loup" && doc.uri.scheme === "file") {
+    if (doc && isLoupSource(doc.languageId) && doc.uri.scheme === "file") {
       const folder = vscode3.workspace.getWorkspaceFolder(doc.uri);
       const def = { type: _LoupTaskProvider.type, task: "run", file: doc.uri.fsPath };
       tasks2.push(
@@ -19409,8 +19416,8 @@ function activate(context) {
   statusBarItem.tooltip = "Loup Language v1.20";
   context.subscriptions.push(statusBarItem);
   const updateStatusBar = (editor) => {
-    if (editor && (editor.document.languageId === "loup" || editor.document.languageId === "loup-pkg")) {
-      if (editor.document.languageId === "loup-pkg") {
+    if (editor && (isLoupSource(editor.document.languageId) || editor.document.languageId === LOUP_MANIFEST_LANGUAGE)) {
+      if (editor.document.languageId === LOUP_MANIFEST_LANGUAGE) {
         statusBarItem.text = "$(package) Loup Manifest";
         statusBarItem.tooltip = "Loup Package Manifest (.lppkg) \u2014 v1.20";
       } else {
@@ -19504,7 +19511,7 @@ var LoupDebugConfigurationProvider = class {
   resolveDebugConfiguration(_folder, config, _token) {
     if (!config.type && !config.request && !config.name) {
       const editor = vscode5.window.activeTextEditor;
-      if (editor && editor.document.languageId === "loup") {
+      if (editor && isLoupSource(editor.document.languageId)) {
         config.type = "loup";
         config.name = "Run Loup File";
         config.request = "launch";
@@ -19536,7 +19543,7 @@ function startLanguageClient(context, outputChannel) {
   };
   const clientOptions = {
     documentSelector: [
-      { scheme: "file", language: "loup" },
+      ...LOUP_SOURCE_LANGUAGES.map((language) => ({ scheme: "file", language })),
       { scheme: "file", language: "loup-pkg" }
     ],
     synchronize: {

@@ -11,7 +11,7 @@
     "build": "npm run build --workspaces && node scripts/bundle.mjs",
     "package": "npm run build && cd packages/extension && npx --yes @vscode/vsce package --no-dependencies --out ../../.vsix/",
     "watch": "npm run watch --workspaces --if-present",
-    "test": "esbuild packages/language-server/src/__tests__/loup.test.ts packages/extension/src/__tests__/traceView.test.ts --bundle --platform=node --outdir=.test-out --entry-names=[name] --out-extension:.js=.cjs && node --test .test-out/loup.test.cjs .test-out/traceView.test.cjs",
+    "test": "npm run build && rm -rf .test-out && esbuild packages/*/src/__tests__/*.test.ts --bundle --platform=node --outdir=.test-out --entry-names=[name] --external:vscode-textmate --external:vscode-oniguruma --out-extension:.js=.cjs --log-level=warning && node --test .test-out/*.cjs",
     "test:watch": "vitest",
     "lint": "eslint packages/*/src/**/*.ts",
     "clean": "npm run clean --workspaces --if-present",
@@ -21,6 +21,8 @@
     "@types/node": "^20.11.0",
     "esbuild": "^0.20.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "vitest": "^1.2.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
   }
 }

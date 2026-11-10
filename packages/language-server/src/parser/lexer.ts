@@ -29,12 +29,13 @@ export enum TokenKind {
   Identifier = 'Identifier',
   TypeIdentifier = 'TypeIdentifier',
   LifetimeLabel = 'LifetimeLabel',           // ~name or ~static
+  MacroSplice = 'MacroSplice',               // ${name} inside a macro quote body
 
   // Keywords
   Let = 'let',
   Var = 'var',
   Const = 'const',
-  Fun = 'fun',       // covers both `func` and `fun`
+  Fun = 'func',
   Gen = 'gen',
   Macro = 'macro',
   Quote = 'quote',
@@ -115,6 +116,8 @@ export enum TokenKind {
   Borrow = 'borrow',
   Excl = 'excl',
   Unique = 'unique',
+  Local = 'local',
+  Shared = 'shared',
   Onstack = 'onstack',
   Lifetime = 'lifetime',
   Noescape = 'noescape',
@@ -223,13 +226,18 @@ export interface Token {
   line: number;
   column: number;
   length: number;
+  /** Line of the position just past the token (differs from `line` for multi-line tokens). */
+  endLine: number;
+  /** Column (UTF-16 code units) of the position just past the token. */
+  endColumn: number;
+  /** Set on a string, template fence or block comment that reaches end of line/file unclosed. */
+  unterminated?: boolean;
 }
 
-const KEYWORDS: Record<string, TokenKind> = {
+const KEYWORD_TABLE: Record<string, TokenKind> = {
   let: TokenKind.Let,
   var: TokenKind.Var,
   const: TokenKind.Const,
-  fun: TokenKind.Fun,
   func: TokenKind.Fun,
   gen: TokenKind.Gen,
   macro: TokenKind.Macro,
@@ -301,7 +309,6 @@ const KEYWORDS: Record<string, TokenKind> = {
   true: TokenKind.True,
   false: TokenKind.False,
   None: TokenKind.None,
-  none: TokenKind.None,
   this: TokenKind.This,
   Self: TokenKind.Self,
   super: TokenKind.Super,
@@ -314,6 +321,8 @@ const KEYWORDS: Record<string, TokenKind> = {
   borrow: TokenKind.Borrow,
   excl: TokenKind.Excl,
   unique: TokenKind.Unique,
+  local: TokenKind.Local,
+  shared: TokenKind.Shared,
   onstack: TokenKind.Onstack,
   lifetime: TokenKind.Lifetime,
   noescape: TokenKind.Noescape,
@@ -348,6 +357,86 @@ const KEYWORDS: Record<string, TokenKind> = {
   set: TokenKind.Set,
 };
 
+// A Map, not a plain object: `text in {...}` is also true for every name on
+// Object.prototype, which turned `constructor`, `toString`, `valueOf`, ... into
+// tokens whose kind was a function.
+const KEYWORDS: ReadonlyMap<string, TokenKind> = new Map(Object.entries(KEYWORD_TABLE));
+
+const KEYWORD_KINDS: ReadonlySet<TokenKind> = new Set(KEYWORDS.values());
+
+/**
+ * The reserved words: the list of §1-3.4, plus `local` and `shared`, which the
+ * Appendix A keyword index lists and both compilers reject as names (§1-3.4's
+ * own list omits them). Only these are keywords everywhere. Every other spelling
+ * in KEYWORD_TABLE is contextual: it has a token kind so the parser can recognise
+ * it in its one position, and is an ordinary identifier anywhere else
+ * (`d.get(k)`, `let group = 1`, `var part: int`).
+ */
+const RESERVED_WORDS: ReadonlySet<string> = new Set([
+  'abstract', 'and', 'as', 'async', 'attempt', 'await', 'bnot', 'borrow',
+  'break', 'catch', 'class', 'const', 'continue', 'defer', 'del',
+  'do', 'dynamic', 'else', 'enum', 'extern', 'false',
+  'final', 'finally', 'fn', 'for', 'from', 'func', 'gen',
+  'global', 'if', 'implements', 'import', 'in',
+  'instanceof', 'interface', 'is', 'let', 'lifetime', 'macro', 'match', 'new',
+  'namespace', 'noescape', 'nonlocal', 'not', 'onstack', 'or', 'override',
+  'portal', 'prefer', 'pub', 'return', 'sealed', 'static', 'super',
+  'struct', 'suspend', 'throw', 'true', 'try', 'type', 'Self',
+  'this', 'typeof', 'unique', 'var', 'volatile', 'where', 'while', 'with', 'yield', 'consume',
+  'reads', 'edits', 'takes', 'shares', 'modifier', 'safe',
+  'synchronized', 'unsafe', 'requires', 'atomic',
+  'unreachable',
+  'local', 'shared',
+]);
+
+/** Is `text` one of the reserved words of §1-3.4 (as opposed to a contextual keyword)? */
+export function isReservedWord(text: string): boolean {
+  return RESERVED_WORDS.has(text);
+}
+
+/** The reserved words (§1-3.4 and Appendix A). */
+export const RESERVED_WORD_SPELLINGS: readonly string[] = [...RESERVED_WORDS];
+
+/** True for every token the lexer produced from a keyword spelling. */
+export function isKeywordKind(kind: TokenKind): boolean {
+  return KEYWORD_KINDS.has(kind);
+}
+
+/** The keyword spellings the lexer recognises (for completion and highlighting). */
+export const KEYWORD_SPELLINGS: readonly string[] = [...KEYWORDS.keys()];
+
+
+const SINGLE_CHAR_TOKENS: ReadonlyMap<string, TokenKind> = new Map([
+  ['+', TokenKind.Plus],
+  ['-', TokenKind.Minus],
+  ['*', TokenKind.Star],
+  ['/', TokenKind.Slash],
+  ['%', TokenKind.Percent],
+  ['=', TokenKind.Assign],
+  ['<', TokenKind.LessThan],
+  ['>', TokenKind.GreaterThan],
+  ['!', TokenKind.Bang],
+  ['&', TokenKind.Ampersand],
+  ['^', TokenKind.Caret],
+  ['~', TokenKind.Tilde],
+  ['?', TokenKind.Question],
+  ['|', TokenKind.Pipe],
+  ['.', TokenKind.Dot],
+  [':', TokenKind.Colon],
+  [';', TokenKind.Semicolon],
+  [',', TokenKind.Comma],
+  ['@', TokenKind.At],
+  ['(', TokenKind.LeftParen],
+  [')', TokenKind.RightParen],
+  ['{', TokenKind.LeftBrace],
+  ['}', TokenKind.RightBrace],
+  ['[', TokenKind.LeftBracket],
+  [']', TokenKind.RightBracket],
+]);
+
+const UNICODE_LETTER = /^\p{L}$/u;
+const UNICODE_DIGIT = /^\p{Nd}$/u;
+
 export class Lexer {
   private source: string;
   private pos = 0;
@@ -378,6 +467,8 @@ export class Lexer {
       line: this.line,
       column: this.column,
       length: 0,
+      endLine: this.line,
+      endColumn: this.column,
     });
 
     return this.tokens;
@@ -422,6 +513,8 @@ export class Lexer {
       line: startLine,
       column: startCol,
       length: this.pos - startOffset,
+      endLine: this.line,
+      endColumn: this.column,
     };
   }
 
@@ -484,8 +577,19 @@ export class Lexer {
       return this.readIdentifier(startOffset, startLine, startCol);
     }
 
-    // Dynamic field access: !{
-    if (ch === '!' && this.peek(1) === '{') {
+    // Macro splice inside a quote body: ${name}
+    if (ch === '$' && this.peek(1) === '{') {
+      let i = 2;
+      while (this.isIdentContinue(this.peek(i))) i++;
+      if (i > 2 && this.peek(i) === '}') {
+        this.advance(i + 1);
+        return this.makeToken(TokenKind.MacroSplice, startOffset, startLine, startCol);
+      }
+    }
+
+    // Dynamic field access: obj!{name} or obj!{"name"}. Anything else that starts
+    // with `!{` is a force-unwrap followed by a block (`match opt! { ... }`).
+    if (ch === '!' && this.peek(1) === '{' && this.isDynamicFieldAhead()) {
       this.advance(2);
       return this.makeToken(TokenKind.BangLeftBrace, startOffset, startLine, startCol);
     }
@@ -594,37 +698,11 @@ export class Lexer {
     }
 
     // Single-char operators & punctuation
-    const singleCharMap: Record<string, TokenKind> = {
-      '+': TokenKind.Plus,
-      '-': TokenKind.Minus,
-      '*': TokenKind.Star,
-      '/': TokenKind.Slash,
-      '%': TokenKind.Percent,
-      '=': TokenKind.Assign,
-      '<': TokenKind.LessThan,
-      '>': TokenKind.GreaterThan,
-      '!': TokenKind.Bang,
-      '&': TokenKind.Ampersand,
-      '^': TokenKind.Caret,
-      '~': TokenKind.Tilde,
-      '?': TokenKind.Question,
-      '|': TokenKind.Pipe,
-      '.': TokenKind.Dot,
-      ':': TokenKind.Colon,
-      ';': TokenKind.Semicolon,
-      ',': TokenKind.Comma,
-      '@': TokenKind.At,
-      '(': TokenKind.LeftParen,
-      ')': TokenKind.RightParen,
-      '{': TokenKind.LeftBrace,
-      '}': TokenKind.RightBrace,
-      '[': TokenKind.LeftBracket,
-      ']': TokenKind.RightBracket,
-    };
 
-    if (ch in singleCharMap) {
+    const single = SINGLE_CHAR_TOKENS.get(ch);
+    if (single !== undefined) {
       this.advance();
-      return this.makeToken(singleCharMap[ch], startOffset, startLine, startCol);
+      return this.makeToken(single, startOffset, startLine, startCol);
     }
 
     // Unknown character — error token
@@ -648,40 +726,120 @@ export class Lexer {
     return this.makeToken(TokenKind.LineComment, startOffset, startLine, startCol);
   }
 
-  private readBlockComment(startOffset: number, startLine: number, startCol: number): Token {
-    this.advance(2); // skip /*
-    while (this.pos < this.source.length) {
-      if (this.peek() === '*' && this.peek(1) === '/') {
-        this.advance(2);
-        break;
+  /** At `!{`: is this `!{ name }` / `!{ "name" }` (a dynamic field access)? */
+  private isDynamicFieldAhead(): boolean {
+    let i = this.pos + 2;
+    const src = this.source;
+    while (src[i] === ' ' || src[i] === '\t') i++;
+    const first = src[i] ?? '';
+    if (first === '"' || first === "'") {
+      i++;
+      while (i < src.length && src[i] !== first && src[i] !== '\n') {
+        if (src[i] === '\\') i++;
+        i++;
       }
-      this.advance();
+      if (src[i] !== first) return false;
+      i++;
+    } else if (this.isIdentStart(first)) {
+      while (this.isIdentContinue(src[i] ?? '')) i++;
+    } else {
+      return false;
     }
-    return this.makeToken(TokenKind.BlockComment, startOffset, startLine, startCol);
+    while (src[i] === ' ' || src[i] === '\t') i++;
+    return src[i] === '}';
+  }
+
+  /** Advance to `index` in one step (the text skipped holds no token boundary). */
+  private advanceTo(index: number): void {
+    const end = Math.min(index, this.source.length);
+    for (let i = this.pos; i < end; i++) {
+      if (this.source.charCodeAt(i) === 10) {
+        this.line++;
+        this.column = 0;
+      } else {
+        this.column++;
+      }
+    }
+    this.pos = end;
+  }
+
+  private readBlockComment(startOffset: number, startLine: number, startCol: number): Token {
+    // Block comments do not nest: the first `*/` closes the comment.
+    const close = this.source.indexOf('*/', this.pos + 2);
+    this.advanceTo(close < 0 ? this.source.length : close + 2);
+    const token = this.makeToken(TokenKind.BlockComment, startOffset, startLine, startCol);
+    if (close < 0) token.unterminated = true;
+    return token;
   }
 
   private readTemplateFence(startOffset: number, startLine: number, startCol: number): Token {
-    this.advance(3); // skip ```
-    // Read descriptor and content until closing ```
-    while (this.pos < this.source.length) {
-      if (this.peek() === '`' && this.peek(1) === '`' && this.peek(2) === '`') {
-        this.advance(3);
+    // A fence opens with a run of N >= 3 backticks and closes with a run of exactly N,
+    // so a longer fence can carry shorter runs in its body.
+    const src = this.source;
+    let i = this.pos;
+    while (src[i] === '`') i++;
+    const fenceLength = i - this.pos;
+    let closed = false;
+    while (i < src.length) {
+      const tick = src.indexOf('`', i);
+      if (tick < 0) {
+        i = src.length;
         break;
+      }
+      let runEnd = tick;
+      while (src[runEnd] === '`') runEnd++;
+      i = runEnd;
+      if (runEnd - tick === fenceLength) {
+        closed = true;
+        break;
+      }
+    }
+    this.advanceTo(i);
+    const token = this.makeToken(TokenKind.TemplateFenceOpen, startOffset, startLine, startCol);
+    if (!closed) token.unterminated = true;
+    return token;
+  }
+
+  /**
+   * At `{$` inside an interpolated string: skip the inline expression up to and
+   * including its `$}`. The expression may hold string literals of its own
+   * (`i"{$ d["key"] $}"`), which must not end the outer string.
+   */
+  private skipInlineExpr(multiline: boolean): void {
+    this.advance(2); // {$
+    while (this.pos < this.source.length) {
+      const ch = this.peek();
+      if (ch === '$' && this.peek(1) === '}') {
+        this.advance(2);
+        return;
+      }
+      if (ch === '\n' && !multiline) return;
+      if (ch === '"' || ch === "'") {
+        this.advance();
+        while (this.pos < this.source.length && this.peek() !== ch && this.peek() !== '\n') {
+          if (this.peek() === '\\') this.advance();
+          this.advance();
+        }
+        if (this.peek() === ch) this.advance();
+        continue;
       }
       this.advance();
     }
-    return this.makeToken(TokenKind.TemplateFenceOpen, startOffset, startLine, startCol);
   }
 
   private readMultilineString(startOffset: number, startLine: number, startCol: number, quote: string, prefix: string): Token {
     this.advance(3); // skip """ or '''
+    let closed = false;
     while (this.pos < this.source.length) {
       if (this.peek() === quote && this.peek(1) === quote && this.peek(2) === quote) {
         this.advance(3);
+        closed = true;
         break;
       }
       if (prefix !== 'r' && this.peek() === '\\') {
         this.advance(2); // skip escape
+      } else if (prefix === 'i' && this.peek() === '{' && this.peek(1) === '$') {
+        this.skipInlineExpr(true);
       } else {
         this.advance();
       }
@@ -689,29 +847,43 @@ export class Lexer {
     const kind = prefix === 'r' ? TokenKind.RawStringLiteral
       : prefix === 'i' ? TokenKind.InterpolatedStringLiteral
       : TokenKind.MultilineStringLiteral;
-    return this.makeToken(kind, startOffset, startLine, startCol);
+    const token = this.makeToken(kind, startOffset, startLine, startCol);
+    if (!closed) token.unterminated = true;
+    return token;
   }
 
   private readString(startOffset: number, startLine: number, startCol: number, quote: string, kind: TokenKind = TokenKind.StringLiteral): Token {
     this.advance(); // skip opening quote
     const isRaw = kind === TokenKind.RawStringLiteral;
+    const isInterpolated = kind === TokenKind.InterpolatedStringLiteral;
+    let closed = false;
 
     while (this.pos < this.source.length) {
       const ch = this.peek();
+      if (ch === '\n' || ch === '\r') {
+        // Unterminated string: stop at the end of the line
+        break;
+      }
       if (!isRaw && ch === '\\') {
+        if (this.peek(1) === '\n' || this.peek(1) === '\r') {
+          this.advance();
+          break;
+        }
         this.advance(2); // skip escape
       } else if (ch === quote) {
         this.advance(); // skip closing quote
+        closed = true;
         break;
-      } else if (ch === '\n') {
-        // Unterminated string on newline
-        break;
+      } else if (isInterpolated && ch === '{' && this.peek(1) === '$') {
+        this.skipInlineExpr(false);
       } else {
         this.advance();
       }
     }
 
-    return this.makeToken(kind, startOffset, startLine, startCol);
+    const token = this.makeToken(kind, startOffset, startLine, startCol);
+    if (!closed) token.unterminated = true;
+    return token;
   }
 
   private readNumber(startOffset: number, startLine: number, startCol: number): Token {
@@ -761,7 +933,7 @@ export class Lexer {
     }
 
     // Exponent
-    if (this.peek() === 'e' || this.peek() === 'E') {
+    if ((this.peek() === 'e' || this.peek() === 'E') && this.isExponentAhead()) {
       isFloat = true;
       this.advance();
       if (this.peek() === '+' || this.peek() === '-') {
@@ -785,6 +957,13 @@ export class Lexer {
       startLine,
       startCol
     );
+  }
+
+  /** At `e`/`E` after digits: do exponent digits follow (`1e5`, `1e-3`)? */
+  private isExponentAhead(): boolean {
+    const next = this.peek(1);
+    if (this.isDigit(next)) return true;
+    return (next === '+' || next === '-') && this.isDigit(this.peek(2));
   }
 
   private readIntTypeSuffix(): boolean {
@@ -843,8 +1022,9 @@ export class Lexer {
     const text = this.source.slice(startOffset, this.pos);
 
     // Check keywords
-    if (text in KEYWORDS) {
-      return this.makeToken(KEYWORDS[text], startOffset, startLine, startCol);
+    const keyword = KEYWORDS.get(text);
+    if (keyword !== undefined) {
+      return this.makeToken(keyword, startOffset, startLine, startCol);
     }
 
     // Type identifiers start with uppercase
@@ -869,14 +1049,21 @@ export class Lexer {
   }
 
   private isIdentStart(ch: string): boolean {
-    return (
+    if (
       (ch >= 'a' && ch <= 'z') ||
       (ch >= 'A' && ch <= 'Z') ||
       ch === '_'
-    );
+    ) {
+      return true;
+    }
+    // §1-19.1: IdentStart ::= UNICODE_LETTER | "_". (Letters outside the BMP reach
+    // here as a lone surrogate and are not matched.)
+    return ch > '\x7f' && UNICODE_LETTER.test(ch);
   }
 
   private isIdentContinue(ch: string): boolean {
-    return this.isIdentStart(ch) || this.isDigit(ch);
+    if (this.isIdentStart(ch) || this.isDigit(ch)) return true;
+    // §1-19.1: IdentContinue ::= UNICODE_LETTER | UNICODE_DIGIT | "_"
+    return ch > '\x7f' && UNICODE_DIGIT.test(ch);
   }
 }

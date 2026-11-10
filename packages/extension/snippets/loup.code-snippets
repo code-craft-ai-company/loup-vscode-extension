@@ -219,7 +219,7 @@
     "prefix": "tplfound",
     "body": [
       "template foundation ${1:Name} {",
-      "  part ${2:PartName} {",
+      "  part func ${2:name}(): ${3:void} {",
       "    $0",
       "  }",
       "}"
@@ -230,7 +230,7 @@
     "prefix": "tplover",
     "body": [
       "template overlay ${1:OverlayName} onto ${2:FoundationName} {",
-      "  part ${3:PartName} {",
+      "  part func ${3:name}(): ${4:void} {",
       "    $0",
       "  }",
       "}"
@@ -489,8 +489,7 @@
       "[dev-deps]",
       "",
       "[delivery.cli]",
-      "include io.fs",
-      "include io.proc"
+      "include = [\"io.fs\", \"io.proc\"]"
     ],
     "description": "Scaffold a package.lppkg manifest (§1-13.3)"
   }

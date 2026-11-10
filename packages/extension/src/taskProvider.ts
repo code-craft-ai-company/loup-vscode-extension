@@ -1,129 +1,75 @@
 // ============================================================================
-// Loup Task Provider — Auto-detect tasks from package.lppkg / loup.pkg
+// Loup Task Provider — `loup build` / `loup test` for a package folder,
+// `loup run` for the open file, and tasks written in tasks.json.
 // ============================================================================
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
+import { LoupTaskDefinition, manifestPackageName, taskArgs } from './loupTasks';
+import { loupExecutable } from './toolchain';
+
+const MANIFEST_NAMES = ['package.lppkg', 'loup.pkg'];
 
 export class LoupTaskProvider implements vscode.TaskProvider {
   static readonly type = 'loup';
 
   async provideTasks(): Promise<vscode.Task[]> {
-    const tasks: vscode.Task[] = [];
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) return tasks;
+    const tasks: (vscode.Task | undefined)[] = [];
 
-    for (const folder of workspaceFolders) {
-      const manifestPath = this.findManifest(folder.uri.fsPath);
-      if (manifestPath) {
-        const pkgContent = fs.readFileSync(manifestPath, 'utf-8');
-        const pkgName = this.parsePackageName(pkgContent) || folder.name;
-
-        // Standard tasks: run, build, test, fmt, check
-        tasks.push(this.createTask('run', `loup run`, folder, pkgName, vscode.TaskGroup.Build));
-        tasks.push(this.createTask('build', `loup build`, folder, pkgName, vscode.TaskGroup.Build));
-        tasks.push(this.createTask('test', `loup test`, folder, pkgName, vscode.TaskGroup.Test));
-        tasks.push(this.createTask('fmt', `loup fmt`, folder, pkgName));
-        tasks.push(this.createTask('check', `loup check`, folder, pkgName, vscode.TaskGroup.Build));
-
-        // Delivery target-specific build tasks
-        const targets = this.parseTargets(pkgContent);
-        for (const target of targets) {
-          tasks.push(
-            this.createTask(
-              `build:${target}`,
-              `loup build --target ${target}`,
-              folder,
-              pkgName,
-              vscode.TaskGroup.Build
-            )
-          );
-        }
-      }
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      const pkgName = await this.packageName(folder);
+      if (pkgName === undefined) continue;
+      const label = pkgName.length > 0 ? pkgName : folder.name;
+      tasks.push(this.make({ type: LoupTaskProvider.type, task: 'build' }, folder, `build ${label}`, folder.uri.fsPath));
+      tasks.push(this.make({ type: LoupTaskProvider.type, task: 'test' }, folder, `test ${label}`, folder.uri.fsPath));
     }
 
-    return tasks;
+    const doc = vscode.window.activeTextEditor?.document;
+    if (doc && doc.languageId === 'loup' && doc.uri.scheme === 'file') {
+      const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
+      const def: LoupTaskDefinition = { type: LoupTaskProvider.type, task: 'run', file: doc.uri.fsPath };
+      tasks.push(
+        this.make(def, folder ?? vscode.TaskScope.Workspace, `run ${path.basename(doc.uri.fsPath)}`, path.dirname(doc.uri.fsPath))
+      );
+    }
+
+    return tasks.filter((t): t is vscode.Task => t !== undefined);
   }
 
   resolveTask(task: vscode.Task): vscode.Task | undefined {
-    const definition = task.definition;
-    if (definition.type === LoupTaskProvider.type && definition.command) {
-      const execution = new vscode.ShellExecution(definition.command);
-      return new vscode.Task(
-        definition,
-        task.scope ?? vscode.TaskScope.Workspace,
-        definition.task || definition.command,
-        'loup',
-        execution,
-        '$loup'
-      );
+    const def = task.definition as LoupTaskDefinition;
+    if (def.type !== LoupTaskProvider.type) return undefined;
+    const scope = task.scope ?? vscode.TaskScope.Workspace;
+    const cwd =
+      typeof scope === 'object' ? scope.uri.fsPath : vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return this.make(def, scope, task.name, cwd);
+  }
+
+  /** The folder's package name ('' when the manifest names none), or undefined without a manifest. */
+  private async packageName(folder: vscode.WorkspaceFolder): Promise<string | undefined> {
+    for (const name of MANIFEST_NAMES) {
+      try {
+        const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(folder.uri, name));
+        return manifestPackageName(Buffer.from(bytes).toString('utf-8')) ?? '';
+      } catch {
+        // No such manifest (or unreadable): try the next name.
+      }
     }
     return undefined;
   }
 
-  private findManifest(dir: string): string | undefined {
-    const candidates = ['package.lppkg', 'loup.pkg'];
-    for (const candidate of candidates) {
-      const fullPath = path.join(dir, candidate);
-      if (fs.existsSync(fullPath)) {
-        return fullPath;
-      }
-    }
-    try {
-      const entries = fs.readdirSync(dir);
-      const lppkg = entries.find(e => e.endsWith('.lppkg'));
-      if (lppkg) {
-        return path.join(dir, lppkg);
-      }
-    } catch {
-      // Ignore read errors
-    }
-    return undefined;
-  }
-
-  private createTask(
+  private make(
+    def: LoupTaskDefinition,
+    scope: vscode.WorkspaceFolder | vscode.TaskScope,
     name: string,
-    command: string,
-    folder: vscode.WorkspaceFolder,
-    pkgName: string,
-    group?: vscode.TaskGroup
-  ): vscode.Task {
-    const definition: vscode.TaskDefinition = {
-      type: LoupTaskProvider.type,
-      task: name,
-      command,
-    };
-
-    const execution = new vscode.ShellExecution(command, { cwd: folder.uri.fsPath });
-    const task = new vscode.Task(
-      definition,
-      folder,
-      `${pkgName}: ${name}`,
-      'loup',
-      execution,
-      '$loup'
-    );
-
-    if (group) {
-      task.group = group;
-    }
-
+    cwd: string | undefined
+  ): vscode.Task | undefined {
+    const args = taskArgs(def);
+    if (!args) return undefined;
+    const execution = new vscode.ProcessExecution(loupExecutable(), args, cwd ? { cwd } : undefined);
+    const task = new vscode.Task(def, scope, name, 'loup', execution, '$loup');
+    if (def.task === 'build') task.group = vscode.TaskGroup.Build;
+    if (def.task === 'test') task.group = vscode.TaskGroup.Test;
     return task;
-  }
-
-  private parsePackageName(content: string): string | undefined {
-    const pkgMatch = content.match(/^(?:package|name)\s+(?:=\s*)?"?([^\s"]+)"?/m);
-    return pkgMatch?.[1];
-  }
-
-  private parseTargets(content: string): string[] {
-    const targets: string[] = [];
-    const regex = /\[(?:delivery|target)\.([a-zA-Z0-9_-]+)\]/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      targets.push(match[1]);
-    }
-    return targets;
   }
 }

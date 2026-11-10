@@ -21,7 +21,6 @@ import {
   SymbolKind as LspSymbolKind,
   Location,
   FoldingRange,
-  FoldingRangeKind,
   TextDocumentPositionParams,
   DocumentSymbolParams,
   FoldingRangeParams,
@@ -43,34 +42,35 @@ import {
 } from 'vscode-languageserver/node.js';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Parser } from './parser/parser.js';
-import { Lexer, TokenKind } from './parser/lexer.js';
-import * as AST from './parser/ast.js';
-import { SymbolTable, SymbolInfo, SymbolKind } from './symbols/symbolTable.js';
+import { KEYWORD_SPELLINGS } from './parser/lexer.js';
+import { SymbolInfo, SymbolKind } from './symbols/symbolTable.js';
+import {
+  Analysis,
+  analyze,
+  getWordAtOffset,
+  importInsertLine,
+  isManifestUri,
+  splitTopLevel,
+  toPlainRange,
+} from './analysis.js';
+import { computeFoldingRanges } from './folding.js';
+import { formatSource } from './formatting.js';
+import { classifyTokens, PRIMITIVE_TYPES, TOKEN_MODIFIERS, TOKEN_TYPES } from './semanticTokens.js';
 
 // ---- Server setup ----
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 
-// Cache parsed ASTs and symbol tables per document URI
-const astCache = new Map<string, AST.Program>();
-const symbolCache = new Map<string, SymbolInfo[]>();
-const scopeCache = new Map<string, SymbolTable>();
+// One analysis per open document, tagged with the version it was computed from.
+// Handlers go through getAnalysis(), which re-parses when the text has moved on,
+// so a request never answers from a stale tree; the entry is dropped on close.
+const analysisCache = new Map<string, { version: number; analysis: Analysis }>();
 
 // ---- Initialization ----
 
-// Semantic token types and modifiers
-const tokenTypes = [
-  'keyword', 'type', 'class', 'enum', 'enumMember', 'interface',
-  'struct', 'typeParameter',
-  'function', 'method', 'macro', 'variable', 'parameter', 'property',
-  'decorator', 'namespace', 'string', 'number', 'operator', 'comment',
-];
-const tokenModifiers = [
-  'declaration', 'definition', 'readonly', 'static', 'async',
-  'modification', 'documentation', 'defaultLibrary',
-];
+const tokenTypes: string[] = [...TOKEN_TYPES];
+const tokenModifiers: string[] = [...TOKEN_MODIFIERS];
 
 const semanticTokensLegend: SemanticTokensLegend = {
   tokenTypes,
@@ -107,68 +107,83 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
 
 // ---- Document validation (Diagnostics) ----
 
+/** Delay between the last edit and re-validation: one parse per pause, not per keystroke. */
+const VALIDATION_DELAY_MS = 200;
+
+const pendingValidation = new Map<string, ReturnType<typeof setTimeout>>();
+
+function getAnalysis(document: TextDocument): Analysis {
+  const cached = analysisCache.get(document.uri);
+  if (cached && cached.version === document.version) return cached.analysis;
+  const analysis = analyze(document.getText());
+  analysisCache.set(document.uri, { version: document.version, analysis });
+  return analysis;
+}
+
+/** The symbols of an open Loup document; none for a manifest or a closed document. */
+function getSymbols(uri: string): SymbolInfo[] {
+  const document = documents.get(uri);
+  if (!document || isManifestUri(uri)) return [];
+  return getAnalysis(document).symbols;
+}
+
 documents.onDidChangeContent((change) => {
-  validateDocument(change.document);
+  const uri = change.document.uri;
+  const pending = pendingValidation.get(uri);
+  if (pending !== undefined) clearTimeout(pending);
+  pendingValidation.set(uri, setTimeout(() => {
+    pendingValidation.delete(uri);
+    // The document may have closed while the timer ran.
+    const current = documents.get(uri);
+    if (!current) return;
+    try {
+      validateDocument(current);
+    } catch (err) {
+      // A timer callback has no caller to report to: an escaped exception would end the server.
+      connection.console.error(`loup: validation of ${uri} failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+    }
+  }, VALIDATION_DELAY_MS));
+});
+
+documents.onDidClose((event) => {
+  const uri = event.document.uri;
+  const pending = pendingValidation.get(uri);
+  if (pending !== undefined) clearTimeout(pending);
+  pendingValidation.delete(uri);
+  analysisCache.delete(uri);
+  // Diagnostics belong to the open buffer; without this they stay in the Problems panel.
+  connection.sendDiagnostics({ uri, diagnostics: [] });
 });
 
 function validateDocument(textDocument: TextDocument): void {
-  const text = textDocument.getText();
   const uri = textDocument.uri;
 
-  // Skip package manifests (.lppkg / loup.pkg) for AST parsing
-  if (uri.endsWith('.lppkg') || uri.endsWith('loup.pkg') || uri.endsWith('.pkg')) {
+  // Package manifests (.lppkg / loup.pkg) are TOML, not Loup source
+  if (isManifestUri(uri)) {
     connection.sendDiagnostics({ uri, diagnostics: [] });
     return;
   }
 
-  const parser = new Parser();
-  const { program, diagnostics: parseDiags } = parser.parse(text);
-
-  // Cache AST and symbols
-  astCache.set(uri, program);
-  const symTable = new SymbolTable();
-  const symbols = symTable.build(program);
-  symbolCache.set(uri, symbols);
-  scopeCache.set(uri, symTable);
-
-  // Convert parse diagnostics to LSP diagnostics
-  const lspDiagnostics: Diagnostic[] = parseDiags.map(d => ({
+  const { diagnostics } = getAnalysis(textDocument);
+  const lspDiagnostics: Diagnostic[] = diagnostics.map(d => ({
     severity: d.severity === 'error'
       ? DiagnosticSeverity.Error
       : d.severity === 'warning'
         ? DiagnosticSeverity.Warning
         : DiagnosticSeverity.Information,
-    range: {
-      start: { line: d.range.start.line, character: d.range.start.column },
-      end: { line: d.range.end.line, character: d.range.end.column },
-    },
+    range: d.range,
     message: d.message,
     source: 'loup',
   }));
 
-  connection.sendDiagnostics({ uri, diagnostics: lspDiagnostics });
+  connection.sendDiagnostics({ uri, version: textDocument.version, diagnostics: lspDiagnostics });
 }
 
 // ---- Completions ----
 
-const LOUP_KEYWORDS = [
-  'let', 'var', 'const', 'func', 'fun', 'gen', 'macro', 'quote', 'return', 'yield', 'suspend',
-  'if', 'else', 'for', 'while', 'do', 'match', 'break', 'continue', 'defer', 'with',
-  'portal', 'async', 'await', 'spawn', 'group', 'concurrent', 'try', 'catch', 'finally', 'throw',
-  'attempt', 'unreachable',
-  'from', 'import', 'as', 'in', 'is', 'instanceof', 'typeof', 'not', 'and', 'or', 'bnot',
-  'del', 'global', 'nonlocal', 'pub', 'static', 'override', 'final', 'sealed',
-  'class', 'struct', 'abstract', 'dynamic', 'interface', 'implements', 'enum', 'type', 'namespace',
-  'template', 'foundation', 'overlay', 'onto', 'part',
-  'extern', 'js', 'native', 'val', 'new', 'box', 'true', 'false', 'None', 'this', 'Self', 'super',
-  'fn', 'once', 'operator',
-  'weak', 'unowned', 'arc', 'borrow', 'excl', 'unique', 'onstack', 'lifetime', 'noescape', 'consume',
-  'noreturn', 'impossible',
-  'prefer', 'compiled', 'scripted', 'dual', 'freestanding', 'portable',
-  'reads', 'edits', 'takes', 'shares', 'modifier', 'safe', 'synchronized', 'unsafe',
-  'requires', 'distinct', 'atomic', 'asm', 'volatile', 'where',
-  'size_of', 'align_of', 'reinterpret', 'reinterpretChecked', 'get', 'set',
-];
+// Every spelling the lexer knows: the reserved words of §1-3.4 and the contextual
+// keywords (`get`, `group`, `part`, ...), plus the contextual `self`.
+const LOUP_KEYWORDS: readonly string[] = [...KEYWORD_SPELLINGS, 'self'];
 
 const LOUP_MODES = [
   { label: '@mode(host.scripted)', detail: 'Host JIT mode (default for .loup / .lpscr)', doc: 'Write-and-run scripting on the host environment.' },
@@ -181,12 +196,7 @@ const LOUP_MODES = [
 ];
 
 const LOUP_TYPES = [
-  'int', 'int8', 'int16', 'int32', 'int64',
-  'uint8', 'uint16', 'uint32', 'uint64', 'bigint',
-  'float', 'float32', 'float64', 'decimal',
-  'complex', 'complex32', 'complex64', 'fixed',
-  'bool', 'char', 'string', 'bytes', 'void', 'noreturn', 'impossible',
-  'list', 'dict', 'set', 'tuple', 'fn', 'buffer', 'array',
+  ...PRIMITIVE_TYPES, 'fn',
   'Any', 'Self', 'Task', 'TaskGroup', 'Option', 'Result', 'Some', 'None', 'Ok', 'Err',
   'Signal', 'ReadonlySignal', 'View', 'Template', 'Scoped', 'AsyncScoped',
   'Channel', 'WaitGroup', 'Semaphore', 'Barrier', 'Mutex', 'RwLock',
@@ -206,7 +216,7 @@ const LOUP_TYPES = [
   'Encoding', 'Charset', 'Endianness', 'Sign', 'Padding', 'Justify', 'PriorityQueue', 'Mark',
 ];
 
-const STDLIB_MODULES: Record<string, { label: string; detail: string; exports: string[] }> = {
+const STDLIB_MODULE_TABLE: Record<string, { label: string; detail: string; exports: string[] }> = {
   'core.text': {
     label: 'core.text',
     detail: 'String manipulation, formatting, and regex (§21.1)',
@@ -215,7 +225,7 @@ const STDLIB_MODULES: Record<string, { label: string; detail: string; exports: s
   'core.math': {
     label: 'core.math',
     detail: 'Mathematical constants and functions (§21.2)',
-    exports: ['PI', 'E', 'TAU', 'INF', 'NAN', 'abs', 'min', 'max', 'clamp', 'floor', 'ceil', 'round', 'trunc', 'sqrt', 'cbrt', 'pow', 'exp', 'log', 'log2', 'log10', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'hypot', 'sign', ' isNan', 'isInf', 'isFinite'],
+    exports: ['PI', 'E', 'TAU', 'INF', 'NAN', 'abs', 'min', 'max', 'clamp', 'floor', 'ceil', 'round', 'trunc', 'sqrt', 'cbrt', 'pow', 'exp', 'log', 'log2', 'log10', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'hypot', 'sign', 'isNan', 'isInf', 'isFinite'],
   },
   'core.complex': {
     label: 'core.complex',
@@ -515,7 +525,7 @@ const STDLIB_MODULES: Record<string, { label: string; detail: string; exports: s
   'loup.autodiff': {
     label: 'loup.autodiff',
     detail: 'Reverse- and forward-mode automatic differentiation',
-    exports: ['grad', 'valueAndGrad', 'jvp', 'vjp', ' Dual'],
+    exports: ['grad', 'valueAndGrad', 'jvp', 'vjp', 'Dual'],
   },
   'loup.tpu': {
     label: 'loup.tpu',
@@ -539,19 +549,25 @@ const STDLIB_MODULES: Record<string, { label: string; detail: string; exports: s
   },
 };
 
+// A Map: a module name typed by the user (`from constructor import (`) must not
+// resolve to a member of Object.prototype.
+const STDLIB_MODULES: ReadonlyMap<string, { label: string; detail: string; exports: string[] }> =
+  new Map(Object.entries(STDLIB_MODULE_TABLE));
+
 connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return [];
+  if (!document || isManifestUri(params.textDocument.uri)) return [];
 
-  const text = document.getText();
-  const offset = document.offsetAt(params.position);
-  const lineText = text.split('\n')[params.position.line] || '';
-  const linePrefix = lineText.slice(0, params.position.character);
+  // Only the text of the current line up to the cursor is needed.
+  const linePrefix = document.getText({
+    start: { line: params.position.line, character: 0 },
+    end: params.position,
+  });
 
   const items: CompletionItem[] = [];
 
-  // Check if we're in an @mode or annotation context
-  if (linePrefix.trimStart().startsWith('@')) {
+  // Check if we're completing an annotation name: `@`, `@mo`
+  if (/(^|[\s(,])@[A-Za-z_]*$/.test(linePrefix)) {
     for (const m of LOUP_MODES) {
       items.push({
         label: m.label,
@@ -606,7 +622,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   // Check if we're in a `from <module>` context
   const fromMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]*)$/);
   if (fromMatch) {
-    for (const mod of Object.values(STDLIB_MODULES)) {
+    for (const mod of STDLIB_MODULES.values()) {
       items.push({
         label: mod.label,
         kind: CompletionItemKind.Module,
@@ -620,7 +636,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   const importMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]+)\s+(?:defer\s+)?import\s*\([^)]*$/);
   if (importMatch) {
     const modName = importMatch[1];
-    const mod = STDLIB_MODULES[modName];
+    const mod = STDLIB_MODULES.get(modName);
     if (mod) {
       for (const exp of mod.exports) {
         items.push({
@@ -637,7 +653,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   const nsDotMatch = linePrefix.match(/\b(core|io|net|data|sync|structures|ui|debug|native|loup)\.\s*([a-zA-Z0-9_]*)$/);
   if (nsDotMatch) {
     const prefix = `${nsDotMatch[1]}.`;
-    for (const [key, mod] of Object.entries(STDLIB_MODULES)) {
+    for (const [key, mod] of STDLIB_MODULES) {
       if (key.startsWith(prefix)) {
         const subName = key.slice(prefix.length);
         items.push({
@@ -650,9 +666,11 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   }
 
   // Check if completing after `<module>.` (e.g., `core.text.`)
-  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-    const escaped = modName.replace('.', '\\.');
-    if (new RegExp(`\\b${escaped}\\.\\s*$`).test(linePrefix)) {
+  const moduleDot = linePrefix.match(/(?:^|[^A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\.\s*$/);
+  if (moduleDot) {
+    const modName = moduleDot[1];
+    const mod = STDLIB_MODULES.get(modName);
+    if (mod) {
       for (const exp of mod.exports) {
         items.push({
           label: exp.trim(),
@@ -663,6 +681,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
       return items;
     }
   }
+  if (items.length > 0) return items;
 
   // Check if completing after `runtime.`
   if (/\bruntime\.\s*$/.test(linePrefix)) {
@@ -687,8 +706,9 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   }
 
   // Document symbols in scope
-  const symbols = symbolCache.get(params.textDocument.uri) || [];
+  const symbols = getAnalysis(document).symbols;
   for (const sym of symbols) {
+    if (sym.name === '') continue;
     items.push({
       label: sym.name,
       kind: symbolKindToCompletionKind(sym.kind),
@@ -713,7 +733,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
   }
 
   // Stdlib modules
-  for (const mod of Object.values(STDLIB_MODULES)) {
+  for (const mod of STDLIB_MODULES.values()) {
     items.push({
       label: mod.label,
       kind: CompletionItemKind.Module,
@@ -759,12 +779,14 @@ function symbolKindToCompletionKind(kind: SymbolKind): CompletionItemKind {
       return CompletionItemKind.Event;
     case SymbolKind.Import:
       return CompletionItemKind.Reference;
+    case SymbolKind.Namespace:
+      return CompletionItemKind.Module;
   }
 }
 
 // ---- Hover ----
 
-const KEYWORD_DOCS: Record<string, string> = {
+const KEYWORD_DOC_TABLE: Record<string, string> = {
   portal: '**`portal`** — Named diagnostic and debug observation point (§2-6).\n\nZero cost when inactive; can be activated at runtime or in the debugger with optional conditions.',
   defer: '**`defer`** — Schedules a call or block to execute when the enclosing scope exits (§1-6.5).',
   with: '**`with`** — Scoped resource management (`Scoped[T]` / `AsyncScoped[T]`, §1-6.6). Automatically closes the resource on scope exit.',
@@ -809,9 +831,13 @@ const KEYWORD_DOCS: Record<string, string> = {
   reinterpretChecked: '**`reinterpretChecked[T, U](expr)`** — Safe bit-cast with runtime alignment check returning `Result[U, AlignmentError]` (§3-3.18).',
 };
 
+// A Map: hovering a word such as `constructor` or `toString` must not find a
+// member of Object.prototype and send it as the hover text.
+const KEYWORD_DOCS: ReadonlyMap<string, string> = new Map(Object.entries(KEYWORD_DOC_TABLE));
+
 connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return null;
+  if (!document || isManifestUri(params.textDocument.uri)) return null;
 
   const text = document.getText();
   const offset = document.offsetAt(params.position);
@@ -819,35 +845,33 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   if (!word) return null;
 
   // Check keyword docs
-  if (word in KEYWORD_DOCS) {
+  const keywordDoc = KEYWORD_DOCS.get(word);
+  if (keywordDoc !== undefined) {
     return {
       contents: {
         kind: MarkupKind.Markdown,
-        value: KEYWORD_DOCS[word],
+        value: keywordDoc,
       },
     };
   }
 
   // Check symbols in the current document
-  const symTable = scopeCache.get(params.textDocument.uri);
-  if (symTable) {
-    const sym = symTable.findSymbol(word);
-    if (sym) {
-      const codeBlock = sym.type
-        ? `\`\`\`loup\n${sym.name}: ${sym.type}\n\`\`\``
-        : `\`\`\`loup\n(${sym.kind}) ${sym.name}\n\`\`\``;
-      return {
-        contents: {
-          kind: MarkupKind.Markdown,
-          value: codeBlock,
-        },
-      };
-    }
+  const sym = getAnalysis(document).symbolTable.findSymbol(word);
+  if (sym) {
+    const codeBlock = sym.type
+      ? `\`\`\`loup\n${sym.name}: ${sym.type}\n\`\`\``
+      : `\`\`\`loup\n(${sym.kind}) ${sym.name}\n\`\`\``;
+    return {
+      contents: {
+        kind: MarkupKind.Markdown,
+        value: codeBlock,
+      },
+    };
   }
 
   // Check stdlib modules
-  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-    if (mod.exports.map(e => e.trim()).includes(word)) {
+  for (const [modName, mod] of STDLIB_MODULES) {
+    if (mod.exports.includes(word)) {
       return {
         contents: {
           kind: MarkupKind.Markdown,
@@ -863,23 +887,17 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
 // ---- Document Symbols (Outline) ----
 
 connection.onDocumentSymbol((params: DocumentSymbolParams): DocumentSymbol[] => {
-  const symbols = symbolCache.get(params.textDocument.uri) || [];
-  return symbols.map(sym => symbolInfoToDocumentSymbol(sym));
+  return getSymbols(params.textDocument.uri).map(sym => symbolInfoToDocumentSymbol(sym));
 });
 
 function symbolInfoToDocumentSymbol(sym: SymbolInfo): DocumentSymbol {
   return {
-    name: sym.name,
+    // The client rejects the whole outline if any name is empty.
+    name: sym.name === '' ? '_' : sym.name,
     detail: sym.type,
     kind: symbolKindToLspKind(sym.kind),
-    range: {
-      start: { line: sym.range.start.line, character: sym.range.start.column },
-      end: { line: sym.range.end.line, character: sym.range.end.column },
-    },
-    selectionRange: {
-      start: { line: sym.selectionRange.start.line, character: sym.selectionRange.start.column },
-      end: { line: sym.selectionRange.end.line, character: sym.selectionRange.end.column },
-    },
+    range: toPlainRange(sym.range),
+    selectionRange: toPlainRange(sym.selectionRange),
     children: sym.children?.map(c => symbolInfoToDocumentSymbol(c)),
   };
 }
@@ -919,6 +937,8 @@ function symbolKindToLspKind(kind: SymbolKind): LspSymbolKind {
       return LspSymbolKind.Event;
     case SymbolKind.Import:
       return LspSymbolKind.Package;
+    case SymbolKind.Namespace:
+      return LspSymbolKind.Namespace;
   }
 }
 
@@ -926,15 +946,14 @@ function symbolKindToLspKind(kind: SymbolKind): LspSymbolKind {
 
 connection.onDefinition((params: DefinitionParams): Location | null => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return null;
+  if (!document || isManifestUri(params.textDocument.uri)) return null;
 
   const text = document.getText();
   const offset = document.offsetAt(params.position);
   const word = getWordAtOffset(text, offset);
   if (!word) return null;
 
-  const symTable = scopeCache.get(params.textDocument.uri);
-  if (!symTable) return null;
+  const symTable = getAnalysis(document).symbolTable;
 
   // Search for symbol (also check portal: prefix)
   const sym = symTable.findSymbol(word) || symTable.findSymbol(`portal:${word}`);
@@ -942,10 +961,7 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
 
   return {
     uri: params.textDocument.uri,
-    range: {
-      start: { line: sym.range.start.line, character: sym.range.start.column },
-      end: { line: sym.range.end.line, character: sym.range.end.column },
-    },
+    range: toPlainRange(sym.selectionRange),
   };
 });
 
@@ -953,83 +969,9 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
 
 connection.onFoldingRanges((params: FoldingRangeParams): FoldingRange[] => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return [];
-
-  const ranges: FoldingRange[] = [];
-  const text = document.getText();
-  const lines = text.split('\n');
-
-  // Brace-based folding, template fences, multiline strings, block comments
-  const stack: { line: number; kind?: FoldingRangeKind }[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-
-    // Block comment start
-    if (line.startsWith('/*') && !line.includes('*/')) {
-      stack.push({ line: i, kind: FoldingRangeKind.Comment });
-      continue;
-    }
-    if (line.includes('*/') && stack.length > 0 && stack[stack.length - 1].kind === FoldingRangeKind.Comment) {
-      const start = stack.pop()!;
-      ranges.push({ startLine: start.line, endLine: i, kind: FoldingRangeKind.Comment });
-      continue;
-    }
-
-    // Template fence
-    if (line.startsWith('```') && stack.length > 0 && stack[stack.length - 1].kind === FoldingRangeKind.Region) {
-      const start = stack.pop()!;
-      ranges.push({ startLine: start.line, endLine: i, kind: FoldingRangeKind.Region });
-      continue;
-    }
-    if (line.startsWith('```')) {
-      stack.push({ line: i, kind: FoldingRangeKind.Region });
-      continue;
-    }
-
-    // Multiline strings
-    if ((line.includes('"""') || line.includes("'''"))) {
-      if (stack.length > 0 && stack[stack.length - 1].kind === FoldingRangeKind.Region) {
-        const start = stack.pop()!;
-        ranges.push({ startLine: start.line, endLine: i, kind: FoldingRangeKind.Region });
-      } else {
-        stack.push({ line: i, kind: FoldingRangeKind.Region });
-      }
-      continue;
-    }
-
-    // Braces
-    for (const ch of line) {
-      if (ch === '{') {
-        stack.push({ line: i });
-      } else if (ch === '}' && stack.length > 0) {
-        const start = stack.pop()!;
-        if (i > start.line) {
-          ranges.push({ startLine: start.line, endLine: i, kind: start.kind });
-        }
-      }
-    }
-  }
-
-  return ranges;
+  if (!document || isManifestUri(params.textDocument.uri)) return [];
+  return computeFoldingRanges(document.getText());
 });
-
-// ---- Helpers ----
-
-function getWordAtOffset(text: string, offset: number): string | null {
-  let start = offset;
-  let end = offset;
-
-  while (start > 0 && /[a-zA-Z0-9_]/.test(text[start - 1])) {
-    start--;
-  }
-  while (end < text.length && /[a-zA-Z0-9_]/.test(text[end])) {
-    end++;
-  }
-
-  const word = text.slice(start, end);
-  return word.length > 0 ? word : null;
-}
 
 // ============================================================================
 // P4 Providers: Semantic Tokens, Formatting, Code Actions, Signature Help,
@@ -1046,154 +988,16 @@ tokenModifiers.forEach((m, i) => tokenModMap.set(m, 1 << i));
 
 connection.languages.semanticTokens.on((params: SemanticTokensParams): SemanticTokens => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return { data: [] };
+  if (!document || isManifestUri(params.textDocument.uri)) return { data: [] };
 
-  const text = document.getText();
-  const lexer = new Lexer(text);
-  const tokens = lexer.tokenize();
   const builder = new SemanticTokensBuilder();
-
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
-    if (tok.kind === TokenKind.EOF) continue;
-    // Skip multi-line tokens (template fences, multiline strings, block comments)
-    if (tok.text.includes('\n')) continue;
-
-    let typeIdx: number | undefined;
+  for (const tok of classifyTokens(document.getText())) {
+    const typeIdx = tokenTypeMap.get(tok.type);
+    if (typeIdx === undefined) continue;
     let modBits = 0;
-
-    switch (tok.kind) {
-      // Comments
-      case TokenKind.LineComment:
-      case TokenKind.BlockComment:
-        typeIdx = tokenTypeMap.get('comment');
-        break;
-      case TokenKind.DocComment:
-        typeIdx = tokenTypeMap.get('comment');
-        modBits |= tokenModMap.get('documentation') || 0;
-        break;
-
-      // Strings
-      case TokenKind.StringLiteral:
-      case TokenKind.CharLiteral:
-      case TokenKind.InterpolatedStringLiteral:
-      case TokenKind.RawStringLiteral:
-      case TokenKind.BytesLiteral:
-        typeIdx = tokenTypeMap.get('string');
-        break;
-
-      // Numbers
-      case TokenKind.IntLiteral:
-      case TokenKind.FloatLiteral:
-        typeIdx = tokenTypeMap.get('number');
-        break;
-
-      // Annotations: @jsexport, @unsafe, @mode, etc.
-      case TokenKind.At: {
-        typeIdx = tokenTypeMap.get('decorator');
-        if (tokens[i + 1]?.kind === TokenKind.Identifier) {
-          builder.push(tok.line, tok.column, tok.length + tokens[i + 1].length, typeIdx!, 0);
-          i++; // skip annotation name
-          continue;
-        }
-        break;
-      }
-
-      // Portal keyword + name
-      case TokenKind.Portal:
-        typeIdx = tokenTypeMap.get('keyword');
-        break;
-
-      // Async modifier
-      case TokenKind.Async:
-        typeIdx = tokenTypeMap.get('keyword');
-        modBits |= tokenModMap.get('async') || 0;
-        break;
-
-      // Static / pub modifiers
-      case TokenKind.Static:
-        typeIdx = tokenTypeMap.get('keyword');
-        modBits |= tokenModMap.get('static') || 0;
-        break;
-
-      // Declaration keywords
-      case TokenKind.Let:
-      case TokenKind.Const:
-        typeIdx = tokenTypeMap.get('keyword');
-        modBits |= tokenModMap.get('readonly') || 0;
-        break;
-
-      case TokenKind.Var:
-        typeIdx = tokenTypeMap.get('keyword');
-        modBits |= tokenModMap.get('modification') || 0;
-        break;
-
-      // Type identifiers
-      case TokenKind.TypeIdentifier:
-        if (LOUP_TYPES.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get('type');
-          modBits |= tokenModMap.get('defaultLibrary') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Class) {
-          typeIdx = tokenTypeMap.get('class');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Struct) {
-          typeIdx = tokenTypeMap.get('struct');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Enum) {
-          typeIdx = tokenTypeMap.get('enum');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Interface) {
-          typeIdx = tokenTypeMap.get('interface');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Type) {
-          typeIdx = tokenTypeMap.get('type');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else {
-          typeIdx = tokenTypeMap.get('type');
-        }
-        break;
-
-      // Regular identifiers — classify by context
-      case TokenKind.Identifier:
-        if (LOUP_TYPES.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get('type');
-          modBits |= tokenModMap.get('defaultLibrary') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Fun) {
-          typeIdx = tokenTypeMap.get('function');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i - 1]?.kind === TokenKind.Macro) {
-          typeIdx = tokenTypeMap.get('macro');
-          modBits |= tokenModMap.get('declaration') || 0;
-        } else if (tokens[i + 1]?.kind === TokenKind.Bang && tokens[i + 2]?.kind === TokenKind.LeftParen) {
-          typeIdx = tokenTypeMap.get('macro');
-        } else if (tokens[i + 1]?.kind === TokenKind.LeftParen) {
-          typeIdx = tokenTypeMap.get('function');
-        } else if (tokens[i - 1]?.kind === TokenKind.Dot || tokens[i - 1]?.kind === TokenKind.QuestionDot) {
-          typeIdx = tokens[i + 1]?.kind === TokenKind.LeftParen
-            ? tokenTypeMap.get('method')
-            : tokenTypeMap.get('property');
-        } else if (tokens[i - 1]?.kind === TokenKind.Let || tokens[i - 1]?.kind === TokenKind.Const) {
-          typeIdx = tokenTypeMap.get('variable');
-          modBits |= (tokenModMap.get('declaration') || 0) | (tokenModMap.get('readonly') || 0);
-        } else if (tokens[i - 1]?.kind === TokenKind.Var) {
-          typeIdx = tokenTypeMap.get('variable');
-          modBits |= (tokenModMap.get('declaration') || 0) | (tokenModMap.get('modification') || 0);
-        }
-        break;
-
-      default:
-        // All other keywords
-        if (LOUP_KEYWORDS.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get('keyword');
-        }
-        break;
-    }
-
-    if (typeIdx !== undefined) {
-      builder.push(tok.line, tok.column, tok.length, typeIdx, modBits);
-    }
+    for (const modifier of tok.modifiers) modBits |= tokenModMap.get(modifier) ?? 0;
+    builder.push(tok.line, tok.character, tok.length, typeIdx, modBits);
   }
-
   return builder.build();
 });
 
@@ -1201,84 +1005,22 @@ connection.languages.semanticTokens.on((params: SemanticTokensParams): SemanticT
 
 connection.onDocumentFormatting((params: DocumentFormattingParams): TextEdit[] => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return [];
+  // A manifest is TOML: bracket-depth indentation would wreck it.
+  if (!document || isManifestUri(params.textDocument.uri)) return [];
 
   const text = document.getText();
-  const lines = text.split('\n');
   const indentUnit = params.options.insertSpaces
     ? ' '.repeat(params.options.tabSize || 2)
     : '\t';
 
-  let indentLevel = 0;
-  let inTemplateFence = false;
-  let inMultilineString = false;
-  const formattedLines: string[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    const trimmed = raw.trim();
-
-    // Preserve empty lines as empty
-    if (trimmed.length === 0) {
-      formattedLines.push('');
-      continue;
-    }
-
-    // Track template fences & multiline strings — preserve inner indentation
-    if (trimmed.startsWith('```')) {
-      if (inTemplateFence) {
-        inTemplateFence = false;
-        indentLevel = Math.max(0, indentLevel - 1);
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        continue;
-      } else {
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        inTemplateFence = true;
-        indentLevel++;
-        continue;
-      }
-    }
-
-    if (inTemplateFence || inMultilineString) {
-      if (trimmed.startsWith('"""') || trimmed.startsWith("'''")) {
-        inMultilineString = false;
-        indentLevel = Math.max(0, indentLevel - 1);
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        continue;
-      }
-      formattedLines.push(raw); // Keep original indentation inside fences/MLS
-      continue;
-    }
-
-    if ((trimmed.includes('"""') || trimmed.includes("'''")) && !trimmed.endsWith('"""') && !trimmed.endsWith("'''")) {
-      formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-      inMultilineString = true;
-      indentLevel++;
-      continue;
-    }
-
-    // Decrease indent before closing brackets
-    if (/^[}\])]/.test(trimmed)) {
-      indentLevel = Math.max(0, indentLevel - 1);
-    }
-
-    formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-
-    // Increase indent after opening brackets at end of line (ignoring # comments)
-    const withoutComment = trimmed.replace(/#.*$/, '').trim();
-    if (/[{[(]\s*$/.test(withoutComment)) {
-      indentLevel++;
-    }
-  }
-
-  const formatted = formattedLines.join('\n');
+  const formatted = formatSource(text, indentUnit);
   if (formatted === text) return [];
 
   return [
     TextEdit.replace(
       {
         start: { line: 0, character: 0 },
-        end: { line: lines.length, character: 0 },
+        end: document.positionAt(text.length),
       },
       formatted
     ),
@@ -1289,7 +1031,7 @@ connection.onDocumentFormatting((params: DocumentFormattingParams): TextEdit[] =
 
 connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
   const document = documents.get(params.textDocument.uri);
-  if (!document) return [];
+  if (!document || isManifestUri(params.textDocument.uri)) return [];
 
   const actions: CodeAction[] = [];
   const text = document.getText();
@@ -1300,8 +1042,8 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
     // Quick fix: auto-import stdlib function
     const word = getWordAtOffset(text, document.offsetAt(diag.range.start));
     if (word) {
-      for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-        if (mod.exports.map(e => e.trim()).includes(word)) {
+      for (const [modName, mod] of STDLIB_MODULES) {
+        if (mod.exports.includes(word)) {
           if (!text.includes(`from ${modName}`)) {
             actions.push({
               title: `Import '${word}' from ${modName}`,
@@ -1311,7 +1053,8 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
                 changes: {
                   [uri]: [
                     TextEdit.insert(
-                      { line: 0, character: 0 },
+                      // below `@mode(...)` and `namespace`, which must stay first
+                      { line: importInsertLine(text), character: 0 },
                       `from ${modName} import (${word});\n`
                     ),
                   ],
@@ -1351,9 +1094,9 @@ connection.onCodeAction((params: CodeActionParams): CodeAction[] => {
 
 connection.onSignatureHelp((params: TextDocumentPositionParams): SignatureHelp | null => {
   const uri = params.textDocument.uri;
-  const symbols = symbolCache.get(uri) || [];
   const document = documents.get(uri);
-  if (!document) return null;
+  if (!document || isManifestUri(uri)) return null;
+  const symbols = getAnalysis(document).symbols;
 
   // Find function call context
   const text = document.getText();
@@ -1387,12 +1130,13 @@ connection.onSignatureHelp((params: TextDocumentPositionParams): SignatureHelp |
   if (!sym || !sym.type) return null;
 
   // Parse signature from type string
-  const sigMatch = sym.type.match(/^(?:async )?(?:func|fun)\((.*)\)(.*)$/);
+  const sigMatch = sym.type.match(/^(?:async )?(?:gen )?func\((.*)\)(.*)$/);
   if (!sigMatch) return null;
 
   const paramsStr = sigMatch[1];
   const returnType = sigMatch[2] || '';
-  const paramList = paramsStr ? paramsStr.split(',').map((p: string) => p.trim()) : [];
+  // `dict[K, V]` holds a comma that separates nothing
+  const paramList = splitTopLevel(paramsStr);
 
   const sig: SignatureInformation = {
     label: `${funcName}(${paramsStr})${returnType}`,
@@ -1404,7 +1148,7 @@ connection.onSignatureHelp((params: TextDocumentPositionParams): SignatureHelp |
   return {
     signatures: [sig],
     activeSignature: 0,
-    activeParameter: commaCount,
+    activeParameter: Math.min(commaCount, Math.max(0, paramList.length - 1)),
   };
 });
 
@@ -1425,18 +1169,17 @@ connection.onWorkspaceSymbol((_params: WorkspaceSymbolParams): WorkspaceSymbol[]
   const results: WorkspaceSymbol[] = [];
   const query = (_params.query || '').toLowerCase();
 
-  for (const [uri, symbols] of symbolCache) {
-    for (const sym of symbols) {
+  for (const document of documents.all()) {
+    const uri = document.uri;
+    if (isManifestUri(uri)) continue;
+    for (const sym of getAnalysis(document).symbols) {
       if (query && !sym.name.toLowerCase().includes(query)) continue;
       results.push({
         name: sym.name,
         kind: symbolKindToLspKind(sym.kind),
         location: {
           uri,
-          range: {
-            start: { line: sym.range.start.line, character: sym.range.start.column },
-            end: { line: sym.range.end.line, character: sym.range.end.column },
-          },
+          range: toPlainRange(sym.selectionRange),
         },
       });
       // Include children
@@ -1449,10 +1192,7 @@ connection.onWorkspaceSymbol((_params: WorkspaceSymbolParams): WorkspaceSymbol[]
             containerName: sym.name,
             location: {
               uri,
-              range: {
-                start: { line: child.range.start.line, character: child.range.start.column },
-                end: { line: child.range.end.line, character: child.range.end.column },
-              },
+              range: toPlainRange(child.selectionRange),
             },
           });
         }

@@ -1,6 +1,8 @@
 # Loup for Visual Studio Code
 
-First-class language support for the **Loup programming language (v1.20)**, including syntax highlighting across all execution-mode file extensions, an out-of-process Language Server (LSP), a Debug Adapter (DAP), portal breakpoints, and a viewer for time-travel recordings.
+First-class language support for the **Loup programming language (v1.20)**, including syntax highlighting across all execution-mode file extensions, an out-of-process Language Server (LSP), a viewer for time-travel recordings, tasks, and Run from the editor. Free and open source (MIT).
+
+> **Preview.** The extension needs the Loup toolchain (`loup`) for everything except highlighting, snippets and the language server. Breakpoint debugging is not available yet: see [What is not here yet](#what-is-not-here-yet).
 
 ## Supported File Extensions
 
@@ -25,9 +27,10 @@ Loup v1.20 defines five mode-flavored source file extensions (§1-13.0.0) plus t
   - Compile-time evaluation & architecture templates: `const`, `const func`, `if const`, `template foundation`, `template overlay ... onto ...`, `part`
   - Strings & templates: `i"..."` interpolated strings (`{$ $}`), `r"..."` raw strings, `b"..."` bytes literals, `c"..."` char literals, multiline strings (`"""` / `'''`), and template fences with embedded language injection (HTML, CSS, JS, TS, Python, SQL, JSON, Markdown, Shell)
   - Comments: `#` single-line comments, `##` documentation comments, `/* ... */` block comments (`//` is floor division)
-- **Package Manifests (`.lppkg`)**: Syntax highlighting, dependency tree view, and task auto-detection for `package.lppkg` and `loup.pkg`
+- **Package Manifests (`.lppkg`)**: Syntax highlighting and a dependency tree view (the Loup icon in the activity bar) for `package.lppkg` and `loup.pkg`
 - **Language Server (LSP)**: Diagnostics, context-aware completions (`@mode`, annotations, `core.*` / `io.*` / `net.*` / `data.*` / `sync.*` / `structures.*` / `ui.*` / `debug.*` / `native.*` / `loup.*` stdlib & packages), hover docs, outline symbols, go-to-definition, folding, semantic tokens, formatting, quick-fix code actions, and signature help
-- **Debugging (DAP)**: Launch/attach debugging, portal breakpoints, and a structured concurrency task group visualizer
+- **Run (F5)**: runs the open Loup file with `loup run` and shows its output in the Debug Console. Launch options: `program`, `args`, `runArgs` (for example `["--allow-fs"]`), `cwd`, `env`
+- **Tasks**: `loup build` and `loup test` for a folder with a package manifest, `loup run` for the open file, and `loup` tasks in `tasks.json` (`task`: `run` / `build` / `test` / `fmt` / `check`, with `file` and `args`); compiler diagnostics land in the Problems panel
 - **Trace viewer**: opens a Loup time-travel recording (`.ltrace`) — see below
 
 ## Trace viewer
@@ -74,8 +77,15 @@ The Loup toolchain reads the file; the extension never parses `.ltrace` bytes. U
 folder may).
 
 To try it: open [`samples/traces/demo.ltrace`](samples/traces/demo.ltrace). Without a toolchain,
-`samples/traces/demo.ltrace.view.json` is the same trace already exported: right-click it, **Open With…**, **Loup
-Trace Viewer (exported view)**. Queries need the `.ltrace` itself.
+`samples/traces/demo.ltrace.view.json` is the same trace already exported; it opens in the viewer too. Queries need
+the `.ltrace` itself.
+
+## What is not here yet
+
+- **Breakpoints, stepping, variables.** The Loup toolchain has no debugger that VS Code can drive yet. Run (F5) runs
+  the program to the end; breakpoints cannot be set in Loup files.
+- **Locals and the call stack in the trace viewer**, which need the replay engine.
+- **`loup debug` in the toolchain.** Until it ships, the trace viewer needs `loup.toolchainRoot` (see Setup above).
 
 ## Development
 
@@ -89,8 +99,11 @@ npm run build
 # Watch mode
 npm run watch
 
-# Run tests
+# Build and run tests
 npm test
+
+# Build the VSIX into .vsix/
+npm run package
 ```
 
 Press **F5** in VSCode to launch the Extension Development Host and open [`samples/showcase.loup`](samples/showcase.loup) or [`samples/package.lppkg`](samples/package.lppkg) to verify.
@@ -101,7 +114,7 @@ Press **F5** in VSCode to launch the Extension Development Host and open [`sampl
 |---|---|
 | `packages/extension` | VSCode extension client (activation, grammar, snippets, status bar, commands, views) |
 | `packages/language-server` | LSP server (lexer, parser, symbol table, diagnostics, completions, hover, navigation) |
-| `packages/debug-adapter` | DAP server (breakpoints, stepping, portal breakpoints). It speaks a provisional protocol and is not yet connected to the Loup debug wire. |
+| `packages/debug-adapter` | Debug adapter that runs a program with `loup run` and reports its output and exit code. It sets no breakpoints. |
 
 ## Publisher
 

@@ -1,6 +1,6 @@
 // ============================================================================
 // Loup Language Extension for Visual Studio Code
-// Entry point — P0–P5: Grammar, LSP, DAP, Portals, Trace viewer, Tasks, Deps
+// Entry point — grammar, language server, trace viewer, run, tasks, dependencies
 // ============================================================================
 
 import * as path from 'path';
@@ -12,21 +12,12 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node';
 
-import {
-  PortalBreakpointManager,
-  PortalBreakpointsTreeProvider,
-  PortalCodeLensProvider,
-  PortalBreakpointItem,
-} from './portalBreakpoints';
 import { TraceEditorProvider, TraceViewerPanel, openTraceViewer } from './traceViewerPanel';
-import { TaskGroupPanel } from './taskGroupPanel';
 import { LoupTaskProvider } from './taskProvider';
 import { DependencyTreeProvider } from './dependencyTree';
+import { loupExecutable } from './toolchain';
 
 let client: LanguageClient | undefined;
-let portalManager: PortalBreakpointManager;
-let taskGroupPanel: TaskGroupPanel;
-let depTreeProvider: DependencyTreeProvider;
 
 const EXTENSION_MODE_INFO: Record<string, { label: string; defaultMode: string; description: string }> = {
   '.loup': {
@@ -58,7 +49,8 @@ const EXTENSION_MODE_INFO: Record<string, { label: string; defaultMode: string; 
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel('Loup Language');
-  outputChannel.appendLine('Loup Language extension v1.20.0 activated.');
+  context.subscriptions.push(outputChannel);
+  outputChannel.appendLine(`Loup Language extension v${context.extension.packageJSON.version} activated.`);
 
   // ---- Status bar item ----
   const statusBarItem = vscode.window.createStatusBarItem(
@@ -111,50 +103,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.debug.registerDebugConfigurationProvider('loup', new LoupDebugConfigurationProvider())
   );
 
-  // ---- P3: Portal Breakpoints ----
-  portalManager = new PortalBreakpointManager(context);
-  const portalTreeProvider = new PortalBreakpointsTreeProvider(portalManager);
-  const portalCodeLens = new PortalCodeLensProvider(portalManager);
-
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('loupPortalBreakpoints', portalTreeProvider),
-    vscode.languages.registerCodeLensProvider({ language: 'loup' }, portalCodeLens)
-  );
-
-  // Portal commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand('loup.portal.toggle', (name: string) => {
-      portalManager.toggle(name);
-    }),
-    vscode.commands.registerCommand('loup.portal.add', async () => {
-      const name = await vscode.window.showInputBox({
-        prompt: 'Enter portal name to break on',
-        placeHolder: 'e.g., request_start or checkout.enter',
-      });
-      if (!name) return;
-
-      const condition = await vscode.window.showInputBox({
-        prompt: 'Optional condition expression (leave empty for unconditional)',
-        placeHolder: 'e.g., user.id == 42',
-      });
-
-      const oncePick = await vscode.window.showQuickPick(['Every time', 'Once only'], {
-        placeHolder: 'Break every time or only once?',
-      });
-
-      portalManager.add(name, condition || undefined, oncePick === 'Once only');
-    }),
-    vscode.commands.registerCommand('loup.portal.remove', (item: PortalBreakpointItem) => {
-      if (item?.portal?.name) {
-        portalManager.remove(item.portal.name);
-      }
-    }),
-    vscode.commands.registerCommand('loup.portal.clearAll', () => {
-      portalManager.clear();
-    })
-  );
-
-  // ---- P3: Time travel — the trace viewer ----
+  // ---- The trace viewer ----
   //
   // A `.ltrace` file opens in the trace viewer (a custom editor). The Loup
   // toolchain reads the file; the viewer moves over what it holds.
@@ -202,53 +151,24 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('loup.trace.reload', withViewer((v) => v.reload()))
   );
 
-  // ---- P4: Task Group Visualizer ----
-  taskGroupPanel = new TaskGroupPanel(context);
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('loup.showTaskGroups', () => {
-      taskGroupPanel.show();
-    })
-  );
-
-  // ---- P5: Toolchain Integration ----
-  // Task provider for loup run/build/test/fmt/check
+  // ---- Tasks: loup run / build / test / fmt ----
   context.subscriptions.push(
     vscode.tasks.registerTaskProvider(LoupTaskProvider.type, new LoupTaskProvider())
   );
 
-  // Dependency tree view
-  depTreeProvider = new DependencyTreeProvider();
+  // ---- Package dependency view ----
+  const depTreeProvider = new DependencyTreeProvider();
+  const manifestWatcher = vscode.workspace.createFileSystemWatcher('**/{*.lppkg,loup.pkg}');
+  const refreshDeps = () => void depTreeProvider.refresh();
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('loupDependencies', depTreeProvider),
-    vscode.commands.registerCommand('loup.refreshDependencies', () => {
-      depTreeProvider.refresh();
-    })
+    vscode.commands.registerCommand('loup.refreshDependencies', refreshDeps),
+    manifestWatcher,
+    manifestWatcher.onDidChange(refreshDeps),
+    manifestWatcher.onDidCreate(refreshDeps),
+    manifestWatcher.onDidDelete(refreshDeps),
+    vscode.workspace.onDidChangeWorkspaceFolders(refreshDeps)
   );
-
-  // REPL terminal profile
-  context.subscriptions.push(
-    vscode.window.registerTerminalProfileProvider('loup.repl', {
-      provideTerminalProfile(): vscode.ProviderResult<vscode.TerminalProfile> {
-        return new vscode.TerminalProfile({
-          name: 'Loup REPL',
-          shellPath: process.env['LOUP_PATH'] || 'loup',
-          shellArgs: ['repl'],
-          iconPath: new vscode.ThemeIcon('terminal'),
-        });
-      },
-    }),
-    vscode.commands.registerCommand('loup.openRepl', () => {
-      const terminal = vscode.window.createTerminal({
-        name: 'Loup REPL',
-        shellPath: process.env['LOUP_PATH'] || 'loup',
-        shellArgs: ['repl'],
-      });
-      terminal.show();
-    })
-  );
-
-  outputChannel.appendLine('All P0–P5 features registered.');
 }
 
 // ---- Debug Configuration Provider ----
@@ -259,6 +179,7 @@ class LoupDebugConfigurationProvider implements vscode.DebugConfigurationProvide
     config: vscode.DebugConfiguration,
     _token?: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
+    // F5 with no launch.json: run the open Loup file.
     if (!config.type && !config.request && !config.name) {
       const editor = vscode.window.activeTextEditor;
       if (editor && editor.document.languageId === 'loup') {
@@ -266,24 +187,17 @@ class LoupDebugConfigurationProvider implements vscode.DebugConfigurationProvide
         config.name = 'Run Loup File';
         config.request = 'launch';
         config.program = '${file}';
-        config.target = 'cli';
       }
     }
 
     if (!config.program) {
-      return vscode.window.showInformationMessage('Cannot find a Loup program to debug').then(_ => {
-        return undefined;
-      });
+      return vscode.window
+        .showInformationMessage('Open a Loup file to run, or set "program" in the launch configuration.')
+        .then(() => undefined);
     }
 
-    // Inject active portal breakpoints into launch config
-    if (portalManager) {
-      const activePortals = portalManager.getEnabled().map(p => p.name);
-      if (activePortals.length > 0 && !config.portalBreakpoints) {
-        config.portalBreakpoints = activePortals;
-      }
-    }
-
+    // The adapter is a separate process: hand it the configured executable.
+    if (!config.loupExecutable) config.loupExecutable = loupExecutable();
     return config;
   }
 }
@@ -316,7 +230,7 @@ function startLanguageClient(
       { scheme: 'file', language: 'loup-pkg' },
     ],
     synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{loup,lpscr,lpfree,lpweb,lphc,lppkg}'),
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/{*.loup,*.lpscr,*.lpfree,*.lpweb,*.lphc,*.lppkg,loup.pkg}'),
     },
     outputChannel,
   };
@@ -337,18 +251,10 @@ function startLanguageClient(
     }
   );
 
-  context.subscriptions.push({
-    dispose: () => {
-      if (client) {
-        client.stop();
-      }
-    },
-  });
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  if (client) {
-    return client.stop();
-  }
-  return undefined;
+  const running = client;
+  client = undefined;
+  return running?.isRunning() ? running.stop() : undefined;
 }

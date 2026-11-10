@@ -3,171 +3,39 @@
 // ============================================================================
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 
-export interface PackageDep {
-  name: string;
-  version: string;
-  isDev: boolean;
-  isOverride?: boolean;
-  path?: string;
-  git?: string;
-}
-
-export interface TargetProfile {
-  name: string;
-  includes: string[];
-  excludes: string[];
-}
-
-export interface ParsedManifest {
-  packageName: string;
-  version: string;
-  loupVersion?: string;
-  sharedAbiVersion?: string;
-  mode?: string;
-  deps: PackageDep[];
-  devDeps: PackageDep[];
-  devOverrides: PackageDep[];
-  targets: TargetProfile[];
-}
+import { ParsedManifest, parseManifest } from './loupManifest';
 
 export class DependencyTreeProvider implements vscode.TreeDataProvider<DepTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<DepTreeItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private manifest: ParsedManifest | null = null;
 
+  private loads = 0;
+
   constructor() {
-    this.reload();
+    void this.refresh();
   }
 
-  refresh(): void {
-    this.reload();
-    this._onDidChangeTreeData.fire(undefined);
-  }
-
-  private async reload(): Promise<void> {
-    const pkgFiles = await vscode.workspace.findFiles('**/*.{lppkg,pkg}', '**/node_modules/**', 5);
-    const loupPkg = pkgFiles.find(u =>
-      u.fsPath.endsWith('.lppkg') || path.basename(u.fsPath) === 'loup.pkg'
-    );
-    if (!loupPkg) {
-      this.manifest = null;
-      return;
-    }
-
+  /** Read the workspace's manifest again and redraw. */
+  async refresh(): Promise<void> {
+    const load = ++this.loads;
+    let manifest: ParsedManifest | null = null;
     try {
-      const content = fs.readFileSync(loupPkg.fsPath, 'utf-8');
-      this.manifest = this.parse(content);
-      this._onDidChangeTreeData.fire(undefined);
+      // The root manifest first; findFiles gives no order, so pick the shallowest.
+      const found = await vscode.workspace.findFiles('**/{*.lppkg,loup.pkg}', '**/node_modules/**', 50);
+      const depth = (u: vscode.Uri) => u.path.split('/').length;
+      const first = found.sort((x, y) => depth(x) - depth(y) || x.path.localeCompare(y.path))[0];
+      if (first) {
+        const bytes = await vscode.workspace.fs.readFile(first);
+        manifest = parseManifest(Buffer.from(bytes).toString('utf-8'));
+      }
     } catch {
-      this.manifest = null;
+      manifest = null;
     }
-  }
-
-  private parse(content: string): ParsedManifest {
-    const result: ParsedManifest = {
-      packageName: 'unnamed',
-      version: '0.0.0',
-      deps: [],
-      devDeps: [],
-      devOverrides: [],
-      targets: [],
-    };
-
-    let currentSection = '';
-    let currentTarget: TargetProfile | null = null;
-
-    for (const rawLine of content.split('\n')) {
-      const line = rawLine.replace(/(#|\/\/).*$/, '').trim();
-      if (!line) continue;
-
-      // Section header
-      const secMatch = line.match(/^\[([^\]]+)\]$/);
-      if (secMatch) {
-        if (currentTarget) {
-          result.targets.push(currentTarget);
-          currentTarget = null;
-        }
-        currentSection = secMatch[1].trim();
-        if (currentSection.startsWith('target.') || currentSection.startsWith('delivery.')) {
-          currentTarget = {
-            name: currentSection.replace(/^(target|delivery)\./, ''),
-            includes: [],
-            excludes: [],
-          };
-        }
-        continue;
-      }
-
-      // Top-level keys (both `package my-app` and `name = "my-app"` syntax)
-      if (!currentSection) {
-        const pkgMatch = line.match(/^(?:package|name)\s+(?:=\s*)?"?([^\s"]+)"?/);
-        if (pkgMatch) { result.packageName = pkgMatch[1]; continue; }
-        const verMatch = line.match(/^version\s+(?:=\s*)?"?([^\s"]+)"?/);
-        if (verMatch) { result.version = verMatch[1]; continue; }
-        const loupMatch = line.match(/^loup\s+(?:=\s*)?"?([^"]+)"?/);
-        if (loupMatch) { result.loupVersion = loupMatch[1].trim(); continue; }
-        const abiMatch = line.match(/^shared_abi_version\s+(?:=\s*)?(\S+)/);
-        if (abiMatch) { result.sharedAbiVersion = abiMatch[1]; continue; }
-      }
-
-      if (currentSection === 'build') {
-        const modeMatch = line.match(/^mode\s*=\s*"([^"]+)"/);
-        if (modeMatch) { result.mode = modeMatch[1]; continue; }
-      }
-
-      // Deps (`[deps]` or `[dependencies]`)
-      if (currentSection === 'deps' || currentSection === 'dependencies') {
-        const dep = this.parseDep(line, false);
-        if (dep) result.deps.push(dep);
-      } else if (currentSection === 'dev-deps' || currentSection === 'dev-dependencies') {
-        const dep = this.parseDep(line, true);
-        if (dep) result.devDeps.push(dep);
-      } else if (currentSection === 'dev-overrides') {
-        const dep = this.parseDep(line, true);
-        if (dep) {
-          dep.isOverride = true;
-          result.devOverrides.push(dep);
-        }
-      } else if (currentTarget) {
-        const incMatch = line.match(/^include\s+(\S+)/);
-        if (incMatch) currentTarget.includes.push(incMatch[1]);
-        const excMatch = line.match(/^exclude\s+(\S+)/);
-        if (excMatch) currentTarget.excludes.push(excMatch[1]);
-      }
-    }
-
-    if (currentTarget) {
-      result.targets.push(currentTarget);
-    }
-
-    return result;
-  }
-
-  private parseDep(line: string, isDev: boolean): PackageDep | null {
-    // Simple: name = "^1.0"
-    const simpleMatch = line.match(/^([a-zA-Z0-9_.-]+)\s*=\s*"([^"]+)"/);
-    if (simpleMatch) {
-      return { name: simpleMatch[1], version: simpleMatch[2], isDev };
-    }
-    // Table: name = { path = "...", git = "..." }
-    const tableMatch = line.match(/^([a-zA-Z0-9_.-]+)\s*=\s*\{(.+)\}/);
-    if (tableMatch) {
-      const inner = tableMatch[2];
-      const pathMatch = inner.match(/path\s*=\s*"([^"]+)"/);
-      const gitMatch = inner.match(/git\s*=\s*"([^"]+)"/);
-      const verMatch = inner.match(/version\s*=\s*"([^"]+)"/);
-      return {
-        name: tableMatch[1],
-        version: verMatch?.[1] || (pathMatch ? `path:${pathMatch[1]}` : gitMatch ? `git:${gitMatch[1]}` : '*'),
-        isDev,
-        path: pathMatch?.[1],
-        git: gitMatch?.[1],
-      };
-    }
-    return null;
+    if (load !== this.loads) return; // a later refresh has taken over
+    this.manifest = manifest;
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   getTreeItem(element: DepTreeItem): vscode.TreeItem {
@@ -224,7 +92,7 @@ export class DependencyTreeProvider implements vscode.TreeDataProvider<DepTreeIt
             'Dev Overrides',
             `${this.manifest.devOverrides.length}`,
             vscode.TreeItemCollapsibleState.Collapsed,
-            new vscode.ThemeIcon('DebugStepOver'),
+            new vscode.ThemeIcon('debug-step-over'),
             'dev-overrides'
           )
         );

@@ -16,6 +16,13 @@
     "url": "https://github.com/code-craft-ai-company/loup-vscode-extension/issues"
   },
   "license": "MIT",
+  "pricing": "Free",
+  "icon": "icons/loup.png",
+  "preview": true,
+  "galleryBanner": {
+    "color": "#1b1f2a",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -29,12 +36,10 @@
     "loup",
     "loup-lang",
     "programming-language",
-    "debug",
+    "trace",
     "time-travel"
   ],
-  "activationEvents": [
-    "onDebugResolve:loup"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
@@ -102,15 +107,10 @@
         "path": "./snippets/loup.code-snippets"
       }
     ],
-    "breakpoints": [
-      {
-        "language": "loup"
-      }
-    ],
     "debuggers": [
       {
         "type": "loup",
-        "label": "Loup Debug",
+        "label": "Loup",
         "program": "./out/debugAdapter.js",
         "runtime": "node",
         "languages": [
@@ -124,77 +124,36 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Path to the Loup source file to run (.loup, .lpscr, .lpfree, .lpweb, .lphc).",
+                "description": "The Loup source file to run (.loup, .lpscr, .lpweb, .lphc).",
                 "default": "${file}"
               },
               "args": {
                 "type": "array",
-                "description": "Command-line arguments passed to the Loup program.",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Arguments passed to the Loup program.",
                 "default": []
               },
-              "target": {
-                "type": "string",
-                "enum": [
-                  "cli",
-                  "browser",
-                  "wasm",
-                  "node",
-                  "bun",
-                  "deno",
-                  "service",
-                  "desktop",
-                  "native",
-                  "freestanding"
-                ],
-                "description": "Delivery target profile.",
-                "default": "cli"
-              },
-              "enableTimeTravel": {
-                "type": "boolean",
-                "description": "Start time-travel capture server on launch (debug.recording).",
-                "default": false
-              },
-              "traceLevel": {
-                "type": "string",
-                "enum": [
-                  "off",
-                  "minimal",
-                  "full"
-                ],
-                "description": "Diagnostic instrumentation level for AOT compiled code (--trace-level).",
-                "default": "off"
-              },
-              "portalBreakpoints": {
+              "runArgs": {
                 "type": "array",
                 "items": {
                   "type": "string"
                 },
-                "description": "Portal names to activate at launch.",
+                "description": "Options passed to `loup run` before the program, such as `--allow-fs` or `--allow-all`.",
                 "default": []
               },
-              "stopOnEntry": {
-                "type": "boolean",
-                "description": "Automatically stop after launch at the first line.",
-                "default": false
+              "cwd": {
+                "type": "string",
+                "description": "Working directory. Defaults to the folder of the program."
               },
               "env": {
                 "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
                 "description": "Environment variables passed to the program.",
                 "default": {}
-              }
-            }
-          },
-          "attach": {
-            "properties": {
-              "host": {
-                "type": "string",
-                "description": "Hostname of the running Loup debug server.",
-                "default": "localhost"
-              },
-              "port": {
-                "type": "number",
-                "description": "Port of the running Loup debug server.",
-                "default": 9229
               }
             }
           }
@@ -203,21 +162,20 @@
           {
             "type": "loup",
             "request": "launch",
-            "name": "Run Loup Script",
-            "program": "${file}",
-            "target": "cli"
+            "name": "Run Loup File",
+            "program": "${file}"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Loup: Launch Script",
-            "description": "Run a Loup file with debugging",
+            "label": "Loup: Run File",
+            "description": "Run a Loup file and show its output in the Debug Console",
             "body": {
               "type": "loup",
               "request": "launch",
-              "name": "Run ${1:Loup Script}",
+              "name": "Run ${1:Loup File}",
               "program": "^\"\\${file}\"",
-              "target": "${2|cli,browser,wasm,node,bun,deno,service,desktop,native,freestanding|}"
+              "runArgs": []
             }
           }
         ]
@@ -226,18 +184,14 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "loup-debug",
+          "id": "loup",
           "title": "Loup",
-          "icon": "$(debug-alt)"
+          "icon": "$(package)"
         }
       ]
     },
     "views": {
-      "loup-debug": [
-        {
-          "id": "loupPortalBreakpoints",
-          "name": "Portal Breakpoints"
-        },
+      "loup": [
         {
           "id": "loupDependencies",
           "name": "Package Dependencies",
@@ -246,29 +200,6 @@
       ]
     },
     "commands": [
-      {
-        "command": "loup.portal.toggle",
-        "title": "Toggle Portal Breakpoint",
-        "category": "Loup"
-      },
-      {
-        "command": "loup.portal.add",
-        "title": "Add Portal Breakpoint",
-        "category": "Loup",
-        "icon": "$(add)"
-      },
-      {
-        "command": "loup.portal.remove",
-        "title": "Remove Portal Breakpoint",
-        "category": "Loup",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "loup.portal.clearAll",
-        "title": "Clear All Portal Breakpoints",
-        "category": "Loup",
-        "icon": "$(clear-all)"
-      },
       {
         "command": "loup.trace.open",
         "title": "Open Trace",
@@ -324,47 +255,18 @@
         "category": "Loup"
       },
       {
-        "command": "loup.showTaskGroups",
-        "title": "Show Task Group Visualizer",
-        "category": "Loup",
-        "icon": "$(type-hierarchy)"
-      },
-      {
         "command": "loup.refreshDependencies",
         "title": "Refresh Package Dependencies",
         "category": "Loup",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "loup.openRepl",
-        "title": "Open Loup REPL",
-        "category": "Loup",
-        "icon": "$(terminal)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "loup.portal.add",
-          "when": "view == loupPortalBreakpoints",
-          "group": "navigation"
-        },
-        {
-          "command": "loup.portal.clearAll",
-          "when": "view == loupPortalBreakpoints",
-          "group": "navigation"
-        },
-        {
           "command": "loup.refreshDependencies",
           "when": "view == loupDependencies",
           "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "loup.portal.remove",
-          "when": "view == loupPortalBreakpoints",
-          "group": "inline"
         }
       ],
       "explorer/context": [
@@ -422,11 +324,25 @@
         "properties": {
           "task": {
             "type": "string",
-            "description": "The Loup command to run (run, build, test, fmt, check)."
+            "enum": [
+              "run",
+              "build",
+              "test",
+              "fmt",
+              "check"
+            ],
+            "description": "The loup command to run."
           },
-          "target": {
+          "file": {
             "type": "string",
-            "description": "Target profile (cli, browser, wasm, node, bun, deno, service, desktop, native, freestanding)."
+            "description": "The file or directory the command is given (required for run and fmt)."
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Further arguments for the command."
           }
         }
       }
@@ -436,29 +352,22 @@
         "name": "loup",
         "owner": "loup",
         "label": "Loup Compiler",
+        "source": "loup",
         "fileLocation": [
-          "relative",
+          "autoDetect",
           "${workspaceFolder}"
         ],
         "pattern": {
-          "regexp": "^(.+):(\\d+):(\\d+):\\s+(error|warning|info):\\s+(.+)$",
+          "regexp": "^(.+?):(\\d+):(\\d+):\\s+(error|warning|info|note)(?:\\[([A-Za-z]\\w*)\\])?:\\s+(.+)$",
           "file": 1,
           "line": 2,
           "column": 3,
           "severity": 4,
-          "message": 5
+          "code": 5,
+          "message": 6
         }
       }
     ],
-    "terminal": {
-      "profiles": [
-        {
-          "id": "loup.repl",
-          "title": "Loup REPL",
-          "icon": "$(terminal)"
-        }
-      ]
-    },
     "customEditors": [
       {
         "viewType": "loup.traceViewer",
@@ -466,19 +375,12 @@
         "selector": [
           {
             "filenamePattern": "*.ltrace"
-          }
-        ],
-        "priority": "default"
-      },
-      {
-        "viewType": "loup.traceViewer",
-        "displayName": "Loup Trace Viewer (exported view)",
-        "selector": [
+          },
           {
             "filenamePattern": "*.ltrace.view.json"
           }
         ],
-        "priority": "option"
+        "priority": "default"
       }
     ],
     "configuration": {
@@ -487,7 +389,7 @@
         "loup.executable": {
           "type": "string",
           "default": "",
-          "markdownDescription": "The `loup` executable. Empty means `loup` on `PATH` (or `$LOUP_PATH`)."
+          "markdownDescription": "The `loup` executable, used by the trace viewer, tasks and Run. Empty means `$LOUP_PATH`, or else `loup` on `PATH`."
         },
         "loup.toolchainRoot": {
           "type": "string",

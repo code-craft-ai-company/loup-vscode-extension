@@ -3104,7 +3104,7 @@ var require_main = __commonJS({
     exports2.createMessageConnection = exports2.createServerSocketTransport = exports2.createClientSocketTransport = exports2.createServerPipeTransport = exports2.createClientPipeTransport = exports2.generateRandomPipeName = exports2.StreamMessageWriter = exports2.StreamMessageReader = exports2.SocketMessageWriter = exports2.SocketMessageReader = exports2.PortMessageWriter = exports2.PortMessageReader = exports2.IPCMessageWriter = exports2.IPCMessageReader = void 0;
     var ril_1 = require_ril();
     ril_1.default.install();
-    var path6 = require("path");
+    var path5 = require("path");
     var os = require("os");
     var crypto_1 = require("crypto");
     var net_1 = require("net");
@@ -3240,9 +3240,9 @@ var require_main = __commonJS({
       }
       let result;
       if (XDG_RUNTIME_DIR) {
-        result = path6.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
+        result = path5.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
       } else {
-        result = path6.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
+        result = path5.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
       }
       const limit = safeIpcPathLengths.get(process.platform);
       if (limit !== void 0 && result.length > limit) {
@@ -3413,8 +3413,8 @@ var require_main2 = __commonJS({
         }
         Position3.is = is;
       })(Position2 || (exports3.Position = Position2 = {}));
-      var Range4;
-      (function(Range5) {
+      var Range3;
+      (function(Range4) {
         function create(one, two, three, four) {
           if (Is.uinteger(one) && Is.uinteger(two) && Is.uinteger(three) && Is.uinteger(four)) {
             return { start: Position2.create(one, two), end: Position2.create(three, four) };
@@ -3424,13 +3424,13 @@ var require_main2 = __commonJS({
             throw new Error("Range#create called with invalid arguments[".concat(one, ", ").concat(two, ", ").concat(three, ", ").concat(four, "]"));
           }
         }
-        Range5.create = create;
+        Range4.create = create;
         function is(value) {
           var candidate = value;
           return Is.objectLiteral(candidate) && Position2.is(candidate.start) && Position2.is(candidate.end);
         }
-        Range5.is = is;
-      })(Range4 || (exports3.Range = Range4 = {}));
+        Range4.is = is;
+      })(Range3 || (exports3.Range = Range3 = {}));
       var Location;
       (function(Location2) {
         function create(uri, range) {
@@ -3439,7 +3439,7 @@ var require_main2 = __commonJS({
         Location2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && Range4.is(candidate.range) && (Is.string(candidate.uri) || Is.undefined(candidate.uri));
+          return Is.objectLiteral(candidate) && Range3.is(candidate.range) && (Is.string(candidate.uri) || Is.undefined(candidate.uri));
         }
         Location2.is = is;
       })(Location || (exports3.Location = Location = {}));
@@ -3451,7 +3451,7 @@ var require_main2 = __commonJS({
         LocationLink2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && Range4.is(candidate.targetRange) && Is.string(candidate.targetUri) && Range4.is(candidate.targetSelectionRange) && (Range4.is(candidate.originSelectionRange) || Is.undefined(candidate.originSelectionRange));
+          return Is.objectLiteral(candidate) && Range3.is(candidate.targetRange) && Is.string(candidate.targetUri) && Range3.is(candidate.targetSelectionRange) && (Range3.is(candidate.originSelectionRange) || Is.undefined(candidate.originSelectionRange));
         }
         LocationLink2.is = is;
       })(LocationLink || (exports3.LocationLink = LocationLink = {}));
@@ -3483,7 +3483,7 @@ var require_main2 = __commonJS({
         ColorInformation2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && Range4.is(candidate.range) && Color.is(candidate.color);
+          return Is.objectLiteral(candidate) && Range3.is(candidate.range) && Color.is(candidate.color);
         }
         ColorInformation2.is = is;
       })(ColorInformation || (exports3.ColorInformation = ColorInformation = {}));
@@ -3594,7 +3594,7 @@ var require_main2 = __commonJS({
         function is(value) {
           var _a;
           var candidate = value;
-          return Is.defined(candidate) && Range4.is(candidate.range) && Is.string(candidate.message) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
+          return Is.defined(candidate) && Range3.is(candidate.range) && Is.string(candidate.message) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
         }
         Diagnostic2.is = is;
       })(Diagnostic || (exports3.Diagnostic = Diagnostic = {}));
@@ -3634,7 +3634,7 @@ var require_main2 = __commonJS({
         TextEdit2.del = del;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && Is.string(candidate.newText) && Range4.is(candidate.range);
+          return Is.objectLiteral(candidate) && Is.string(candidate.newText) && Range3.is(candidate.range);
         }
         TextEdit2.is = is;
       })(TextEdit || (exports3.TextEdit = TextEdit = {}));
@@ -4178,7 +4178,7 @@ var require_main2 = __commonJS({
         InsertReplaceEdit2.create = create;
         function is(value) {
           var candidate = value;
-          return candidate && Is.string(candidate.newText) && Range4.is(candidate.insert) && Range4.is(candidate.replace);
+          return candidate && Is.string(candidate.newText) && Range3.is(candidate.insert) && Range3.is(candidate.replace);
         }
         InsertReplaceEdit2.is = is;
       })(InsertReplaceEdit || (exports3.InsertReplaceEdit = InsertReplaceEdit = {}));
@@ -4225,7 +4225,7 @@ var require_main2 = __commonJS({
       (function(Hover2) {
         function is(value) {
           var candidate = value;
-          return !!candidate && Is.objectLiteral(candidate) && (MarkupContent.is(candidate.contents) || MarkedString.is(candidate.contents) || Is.typedArray(candidate.contents, MarkedString.is)) && (value.range === void 0 || Range4.is(value.range));
+          return !!candidate && Is.objectLiteral(candidate) && (MarkupContent.is(candidate.contents) || MarkedString.is(candidate.contents) || Is.typedArray(candidate.contents, MarkedString.is)) && (value.range === void 0 || Range3.is(value.range));
         }
         Hover2.is = is;
       })(Hover || (exports3.Hover = Hover = {}));
@@ -4346,7 +4346,7 @@ var require_main2 = __commonJS({
         DocumentSymbol2.create = create;
         function is(value) {
           var candidate = value;
-          return candidate && Is.string(candidate.name) && Is.number(candidate.kind) && Range4.is(candidate.range) && Range4.is(candidate.selectionRange) && (candidate.detail === void 0 || Is.string(candidate.detail)) && (candidate.deprecated === void 0 || Is.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
+          return candidate && Is.string(candidate.name) && Is.number(candidate.kind) && Range3.is(candidate.range) && Range3.is(candidate.selectionRange) && (candidate.detail === void 0 || Is.string(candidate.detail)) && (candidate.deprecated === void 0 || Is.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
         }
         DocumentSymbol2.is = is;
       })(DocumentSymbol || (exports3.DocumentSymbol = DocumentSymbol = {}));
@@ -4411,8 +4411,8 @@ var require_main2 = __commonJS({
         }
         CodeAction2.is = is;
       })(CodeAction || (exports3.CodeAction = CodeAction = {}));
-      var CodeLens2;
-      (function(CodeLens3) {
+      var CodeLens;
+      (function(CodeLens2) {
         function create(range, data) {
           var result = { range };
           if (Is.defined(data)) {
@@ -4420,13 +4420,13 @@ var require_main2 = __commonJS({
           }
           return result;
         }
-        CodeLens3.create = create;
+        CodeLens2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.defined(candidate) && Range4.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
+          return Is.defined(candidate) && Range3.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
         }
-        CodeLens3.is = is;
-      })(CodeLens2 || (exports3.CodeLens = CodeLens2 = {}));
+        CodeLens2.is = is;
+      })(CodeLens || (exports3.CodeLens = CodeLens = {}));
       var FormattingOptions;
       (function(FormattingOptions2) {
         function create(tabSize, insertSpaces) {
@@ -4447,7 +4447,7 @@ var require_main2 = __commonJS({
         DocumentLink2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.defined(candidate) && Range4.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
+          return Is.defined(candidate) && Range3.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
         }
         DocumentLink2.is = is;
       })(DocumentLink || (exports3.DocumentLink = DocumentLink = {}));
@@ -4459,7 +4459,7 @@ var require_main2 = __commonJS({
         SelectionRange2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && Range4.is(candidate.range) && (candidate.parent === void 0 || SelectionRange2.is(candidate.parent));
+          return Is.objectLiteral(candidate) && Range3.is(candidate.range) && (candidate.parent === void 0 || SelectionRange2.is(candidate.parent));
         }
         SelectionRange2.is = is;
       })(SelectionRange || (exports3.SelectionRange = SelectionRange = {}));
@@ -4518,7 +4518,7 @@ var require_main2 = __commonJS({
         InlineValueText2.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range4.is(candidate.range) && Is.string(candidate.text);
+          return candidate !== void 0 && candidate !== null && Range3.is(candidate.range) && Is.string(candidate.text);
         }
         InlineValueText2.is = is;
       })(InlineValueText || (exports3.InlineValueText = InlineValueText = {}));
@@ -4530,7 +4530,7 @@ var require_main2 = __commonJS({
         InlineValueVariableLookup2.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range4.is(candidate.range) && Is.boolean(candidate.caseSensitiveLookup) && (Is.string(candidate.variableName) || candidate.variableName === void 0);
+          return candidate !== void 0 && candidate !== null && Range3.is(candidate.range) && Is.boolean(candidate.caseSensitiveLookup) && (Is.string(candidate.variableName) || candidate.variableName === void 0);
         }
         InlineValueVariableLookup2.is = is;
       })(InlineValueVariableLookup || (exports3.InlineValueVariableLookup = InlineValueVariableLookup = {}));
@@ -4542,7 +4542,7 @@ var require_main2 = __commonJS({
         InlineValueEvaluatableExpression2.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range4.is(candidate.range) && (Is.string(candidate.expression) || candidate.expression === void 0);
+          return candidate !== void 0 && candidate !== null && Range3.is(candidate.range) && (Is.string(candidate.expression) || candidate.expression === void 0);
         }
         InlineValueEvaluatableExpression2.is = is;
       })(InlineValueEvaluatableExpression || (exports3.InlineValueEvaluatableExpression = InlineValueEvaluatableExpression = {}));
@@ -4554,7 +4554,7 @@ var require_main2 = __commonJS({
         InlineValueContext2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.defined(candidate) && Range4.is(value.stoppedLocation);
+          return Is.defined(candidate) && Range3.is(value.stoppedLocation);
         }
         InlineValueContext2.is = is;
       })(InlineValueContext || (exports3.InlineValueContext = InlineValueContext = {}));
@@ -6697,8 +6697,8 @@ var require_protocolCodeAction = __commonJS({
   "../../node_modules/vscode-languageclient/lib/common/protocolCodeAction.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var vscode7 = require("vscode");
-    var ProtocolCodeAction = class extends vscode7.CodeAction {
+    var vscode6 = require("vscode");
+    var ProtocolCodeAction = class extends vscode6.CodeAction {
       constructor(title, data) {
         super(title);
         this.data = data;
@@ -6714,7 +6714,7 @@ var require_protocolDiagnostic = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ProtocolDiagnostic = exports2.DiagnosticCode = void 0;
-    var vscode7 = require("vscode");
+    var vscode6 = require("vscode");
     var Is = require_is();
     var DiagnosticCode;
     (function(DiagnosticCode2) {
@@ -6724,7 +6724,7 @@ var require_protocolDiagnostic = __commonJS({
       }
       DiagnosticCode2.is = is;
     })(DiagnosticCode || (exports2.DiagnosticCode = DiagnosticCode = {}));
-    var ProtocolDiagnostic = class extends vscode7.Diagnostic {
+    var ProtocolDiagnostic = class extends vscode6.Diagnostic {
       constructor(range, message, severity, data) {
         super(range, message, severity);
         this.data = data;
@@ -9435,8 +9435,8 @@ var require_minimatch = __commonJS({
       return new Minimatch(pattern, options).match(p);
     };
     module2.exports = minimatch;
-    var path6 = require_path();
-    minimatch.sep = path6.sep;
+    var path5 = require_path();
+    minimatch.sep = path5.sep;
     var GLOBSTAR = Symbol("globstar **");
     minimatch.GLOBSTAR = GLOBSTAR;
     var expand = require_brace_expansion();
@@ -10054,8 +10054,8 @@ var require_minimatch = __commonJS({
         if (f === "/" && partial)
           return true;
         const options = this.options;
-        if (path6.sep !== "/") {
-          f = f.split(path6.sep).join("/");
+        if (path5.sep !== "/") {
+          f = f.split(path5.sep).join("/");
         }
         f = f.split(slashSplit);
         this.debug(this.pattern, "split", f);
@@ -10843,7 +10843,7 @@ var require_notebook = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.NotebookDocumentSyncFeature = void 0;
-    var vscode7 = require("vscode");
+    var vscode6 = require("vscode");
     var minimatch = require_minimatch();
     var proto = require_main3();
     var UUID = require_uuid();
@@ -10898,9 +10898,9 @@ var require_notebook = __commonJS({
         c2p2.asNotebookCell = asNotebookCell;
         function asNotebookCellKind(kind) {
           switch (kind) {
-            case vscode7.NotebookCellKind.Markup:
+            case vscode6.NotebookCellKind.Markup:
               return proto.NotebookCellKind.Markup;
-            case vscode7.NotebookCellKind.Code:
+            case vscode6.NotebookCellKind.Code:
               return proto.NotebookCellKind.Code;
           }
         }
@@ -11151,25 +11151,25 @@ var require_notebook = __commonJS({
         this.notebookDidOpen = /* @__PURE__ */ new Set();
         this.disposables = [];
         this.selector = client2.protocol2CodeConverter.asDocumentSelector($NotebookDocumentSyncOptions.asDocumentSelector(options));
-        vscode7.workspace.onDidOpenNotebookDocument((notebookDocument) => {
+        vscode6.workspace.onDidOpenNotebookDocument((notebookDocument) => {
           this.notebookDidOpen.add(notebookDocument.uri.toString());
           this.didOpen(notebookDocument);
         }, void 0, this.disposables);
-        for (const notebookDocument of vscode7.workspace.notebookDocuments) {
+        for (const notebookDocument of vscode6.workspace.notebookDocuments) {
           this.notebookDidOpen.add(notebookDocument.uri.toString());
           this.didOpen(notebookDocument);
         }
-        vscode7.workspace.onDidChangeNotebookDocument((event) => this.didChangeNotebookDocument(event), void 0, this.disposables);
+        vscode6.workspace.onDidChangeNotebookDocument((event) => this.didChangeNotebookDocument(event), void 0, this.disposables);
         if (this.options.save === true) {
-          vscode7.workspace.onDidSaveNotebookDocument((notebookDocument) => this.didSave(notebookDocument), void 0, this.disposables);
+          vscode6.workspace.onDidSaveNotebookDocument((notebookDocument) => this.didSave(notebookDocument), void 0, this.disposables);
         }
-        vscode7.workspace.onDidCloseNotebookDocument((notebookDocument) => {
+        vscode6.workspace.onDidCloseNotebookDocument((notebookDocument) => {
           this.didClose(notebookDocument);
           this.notebookDidOpen.delete(notebookDocument.uri.toString());
         }, void 0, this.disposables);
       }
       getState() {
-        for (const notebook of vscode7.workspace.notebookDocuments) {
+        for (const notebook of vscode6.workspace.notebookDocuments) {
           const matchingCells = this.getMatchingCells(notebook);
           if (matchingCells !== void 0) {
             return { kind: "document", id: "$internal", registrations: true, matches: true };
@@ -11181,10 +11181,10 @@ var require_notebook = __commonJS({
         return "notebook";
       }
       handles(textDocument) {
-        return vscode7.languages.match(this.selector, textDocument) > 0;
+        return vscode6.languages.match(this.selector, textDocument) > 0;
       }
       didOpenNotebookCellTextDocument(notebookDocument, cell) {
-        if (vscode7.languages.match(this.selector, cell.document) === 0) {
+        if (vscode6.languages.match(this.selector, cell.document) === 0) {
           return;
         }
         if (!this.notebookDidOpen.has(notebookDocument.uri.toString())) {
@@ -11215,7 +11215,7 @@ var require_notebook = __commonJS({
         }
       }
       didChangeNotebookCellTextDocument(notebookDocument, event) {
-        if (vscode7.languages.match(this.selector, event.document) === 0) {
+        if (vscode6.languages.match(this.selector, event.document) === 0) {
           return;
         }
         this.doSendChange({
@@ -11488,7 +11488,7 @@ var require_notebook = __commonJS({
         this.client = client2;
         this.registrations = /* @__PURE__ */ new Map();
         this.registrationType = proto.NotebookDocumentSyncRegistrationType.type;
-        vscode7.workspace.onDidOpenTextDocument((textDocument) => {
+        vscode6.workspace.onDidOpenTextDocument((textDocument) => {
           if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
             return;
           }
@@ -11502,7 +11502,7 @@ var require_notebook = __commonJS({
             }
           }
         });
-        vscode7.workspace.onDidChangeTextDocument((event) => {
+        vscode6.workspace.onDidChangeTextDocument((event) => {
           if (event.contentChanges.length === 0) {
             return;
           }
@@ -11520,7 +11520,7 @@ var require_notebook = __commonJS({
             }
           }
         });
-        vscode7.workspace.onDidCloseTextDocument((textDocument) => {
+        vscode6.workspace.onDidCloseTextDocument((textDocument) => {
           if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
             return;
           }
@@ -11585,7 +11585,7 @@ var require_notebook = __commonJS({
         if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
           return false;
         }
-        if (this.dedicatedChannel !== void 0 && vscode7.languages.match(this.dedicatedChannel, textDocument) > 0) {
+        if (this.dedicatedChannel !== void 0 && vscode6.languages.match(this.dedicatedChannel, textDocument) > 0) {
           return true;
         }
         for (const provider of this.registrations.values()) {
@@ -11605,7 +11605,7 @@ var require_notebook = __commonJS({
       }
       findNotebookDocumentAndCell(textDocument) {
         const uri = textDocument.uri.toString();
-        for (const notebookDocument of vscode7.workspace.notebookDocuments) {
+        for (const notebookDocument of vscode6.workspace.notebookDocuments) {
           for (const cell of notebookDocument.getCells()) {
             if (cell.document.uri.toString() === uri) {
               return [notebookDocument, cell];
@@ -11783,13 +11783,13 @@ var require_configuration = __commonJS({
         });
       }
       extractSettingsInformation(keys) {
-        function ensurePath(config, path6) {
+        function ensurePath(config, path5) {
           let current = config;
-          for (let i = 0; i < path6.length - 1; i++) {
-            let obj = current[path6[i]];
+          for (let i = 0; i < path5.length - 1; i++) {
+            let obj = current[path5[i]];
             if (!obj) {
               obj = /* @__PURE__ */ Object.create(null);
-              current[path6[i]] = obj;
+              current[path5[i]] = obj;
             }
             current = obj;
           }
@@ -11807,8 +11807,8 @@ var require_configuration = __commonJS({
             config = vscode_1.workspace.getConfiguration(void 0, resource).get(key);
           }
           if (config) {
-            let path6 = keys[i].split(".");
-            ensurePath(result, path6)[path6[path6.length - 1]] = toJSONObject(config);
+            let path5 = keys[i].split(".");
+            ensurePath(result, path5)[path5[path5.length - 1]] = toJSONObject(config);
           }
         }
         return result;
@@ -14121,7 +14121,7 @@ var require_semanticTokens = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SemanticTokensFeature = void 0;
-    var vscode7 = require("vscode");
+    var vscode6 = require("vscode");
     var vscode_languageserver_protocol_1 = require_main3();
     var features_1 = require_features();
     var Is = require_is();
@@ -14199,7 +14199,7 @@ var require_semanticTokens = __commonJS({
         const selector = options.documentSelector;
         const fullProvider = Is.boolean(options.full) ? options.full : options.full !== void 0;
         const hasEditProvider = options.full !== void 0 && typeof options.full !== "boolean" && options.full.delta === true;
-        const eventEmitter = new vscode7.EventEmitter();
+        const eventEmitter = new vscode6.EventEmitter();
         const documentProvider = fullProvider ? {
           onDidChangeSemanticTokens: eventEmitter.event,
           provideDocumentSemanticTokens: (document, token) => {
@@ -14271,12 +14271,12 @@ var require_semanticTokens = __commonJS({
         const legend = client2.protocol2CodeConverter.asSemanticTokensLegend(options.legend);
         const documentSelector = client2.protocol2CodeConverter.asDocumentSelector(selector);
         if (documentProvider !== void 0) {
-          disposables.push(vscode7.languages.registerDocumentSemanticTokensProvider(documentSelector, documentProvider, legend));
+          disposables.push(vscode6.languages.registerDocumentSemanticTokensProvider(documentSelector, documentProvider, legend));
         }
         if (rangeProvider !== void 0) {
-          disposables.push(vscode7.languages.registerDocumentRangeSemanticTokensProvider(documentSelector, rangeProvider, legend));
+          disposables.push(vscode6.languages.registerDocumentRangeSemanticTokensProvider(documentSelector, rangeProvider, legend));
         }
-        return [new vscode7.Disposable(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
+        return [new vscode6.Disposable(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
       }
     };
     exports2.SemanticTokensFeature = SemanticTokensFeature;
@@ -14375,13 +14375,13 @@ var require_fileOperations = __commonJS({
       async filter(event, prop) {
         const fileMatches = await Promise.all(event.files.map(async (item) => {
           const uri = prop(item);
-          const path6 = uri.fsPath.replace(/\\/g, "/");
+          const path5 = uri.fsPath.replace(/\\/g, "/");
           for (const filters of this._filters.values()) {
             for (const filter of filters) {
               if (filter.scheme !== void 0 && filter.scheme !== uri.scheme) {
                 continue;
               }
-              if (filter.matcher.match(path6)) {
+              if (filter.matcher.match(path5)) {
                 if (filter.kind === void 0) {
                   return true;
                 }
@@ -14395,7 +14395,7 @@ var require_fileOperations = __commonJS({
                 }
               } else if (filter.kind === proto.FileOperationPatternKind.folder) {
                 const fileType = await _FileOperationFeature.getFileType(uri);
-                if (fileType === code.FileType.Directory && filter.matcher.match(`${path6}/`)) {
+                if (fileType === code.FileType.Directory && filter.matcher.match(`${path5}/`)) {
                   return true;
                 }
               }
@@ -17123,12 +17123,12 @@ var require_comparator = __commonJS({
           if (this.value === "") {
             return true;
           }
-          return new Range4(comp.value, options).test(this.value);
+          return new Range3(comp.value, options).test(this.value);
         } else if (comp.operator === "") {
           if (comp.value === "") {
             return true;
           }
-          return new Range4(this.value, options).test(comp.semver);
+          return new Range3(this.value, options).test(comp.semver);
         }
         options = parseOptions(options);
         if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
@@ -17161,7 +17161,7 @@ var require_comparator = __commonJS({
     var cmp = require_cmp();
     var debug2 = require_debug();
     var SemVer = require_semver();
-    var Range4 = require_range();
+    var Range3 = require_range();
   }
 });
 
@@ -17170,7 +17170,7 @@ var require_range = __commonJS({
   "../../node_modules/semver/classes/range.js"(exports2, module2) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
-    var Range4 = class _Range {
+    var Range3 = class _Range {
       constructor(range, options) {
         options = parseOptions(options);
         if (range instanceof _Range) {
@@ -17308,7 +17308,7 @@ var require_range = __commonJS({
         return false;
       }
     };
-    module2.exports = Range4;
+    module2.exports = Range3;
     var LRU = require_lrucache();
     var cache = new LRU();
     var parseOptions = require_parse_options();
@@ -17546,10 +17546,10 @@ var require_range = __commonJS({
 var require_satisfies = __commonJS({
   "../../node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
-    var Range4 = require_range();
+    var Range3 = require_range();
     var satisfies = (version, range, options) => {
       try {
-        range = new Range4(range, options);
+        range = new Range3(range, options);
       } catch (er) {
         return false;
       }
@@ -17625,8 +17625,8 @@ var require_main4 = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SettingMonitor = exports2.LanguageClient = exports2.TransportKind = void 0;
     var cp = require("child_process");
-    var fs4 = require("fs");
-    var path6 = require("path");
+    var fs2 = require("fs");
+    var path5 = require("path");
     var vscode_1 = require("vscode");
     var Is = require_is();
     var client_1 = require_client();
@@ -18044,19 +18044,19 @@ var require_main4 = __commonJS({
         });
       }
       _getRuntimePath(runtime, serverWorkingDirectory) {
-        if (path6.isAbsolute(runtime)) {
+        if (path5.isAbsolute(runtime)) {
           return runtime;
         }
         const mainRootPath = this._mainGetRootPath();
         if (mainRootPath !== void 0) {
-          const result = path6.join(mainRootPath, runtime);
-          if (fs4.existsSync(result)) {
+          const result = path5.join(mainRootPath, runtime);
+          if (fs2.existsSync(result)) {
             return result;
           }
         }
         if (serverWorkingDirectory !== void 0) {
-          const result = path6.join(serverWorkingDirectory, runtime);
-          if (fs4.existsSync(result)) {
+          const result = path5.join(serverWorkingDirectory, runtime);
+          if (fs2.existsSync(result)) {
             return result;
           }
         }
@@ -18080,7 +18080,7 @@ var require_main4 = __commonJS({
         }
         if (cwd) {
           return new Promise((s) => {
-            fs4.lstat(cwd, (err, stats) => {
+            fs2.lstat(cwd, (err, stats) => {
               s(!err && stats.isDirectory() ? cwd : void 0);
             });
           });
@@ -18146,139 +18146,21 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var path5 = __toESM(require("path"));
-var vscode6 = __toESM(require("vscode"));
+var path4 = __toESM(require("path"));
+var vscode5 = __toESM(require("vscode"));
 var import_node = __toESM(require_node3());
-
-// src/portalBreakpoints.ts
-var vscode = __toESM(require("vscode"));
-var PortalBreakpointManager = class {
-  constructor(context) {
-    this.context = context;
-    const saved = context.workspaceState.get("loup.portalBreakpoints", []);
-    for (const bp of saved) {
-      this.portals.set(bp.name, bp);
-    }
-  }
-  portals = /* @__PURE__ */ new Map();
-  _onDidChange = new vscode.EventEmitter();
-  onDidChange = this._onDidChange.event;
-  getAll() {
-    return Array.from(this.portals.values());
-  }
-  getEnabled() {
-    return this.getAll().filter((p) => p.enabled);
-  }
-  add(name, condition, once = false) {
-    this.portals.set(name, { name, condition, once, enabled: true });
-    this.save();
-    this._onDidChange.fire();
-  }
-  remove(name) {
-    this.portals.delete(name);
-    this.save();
-    this._onDidChange.fire();
-  }
-  toggle(name) {
-    const existing = this.portals.get(name);
-    if (existing) {
-      existing.enabled = !existing.enabled;
-    } else {
-      this.portals.set(name, { name, once: false, enabled: true });
-    }
-    this.save();
-    this._onDidChange.fire();
-  }
-  setCondition(name, condition) {
-    const bp = this.portals.get(name);
-    if (bp) {
-      bp.condition = condition;
-      this.save();
-      this._onDidChange.fire();
-    }
-  }
-  clear() {
-    this.portals.clear();
-    this.save();
-    this._onDidChange.fire();
-  }
-  save() {
-    this.context.workspaceState.update("loup.portalBreakpoints", this.getAll());
-  }
-};
-var PortalBreakpointsTreeProvider = class {
-  constructor(manager) {
-    this.manager = manager;
-    manager.onDidChange(() => this._onDidChangeTreeData.fire(void 0));
-  }
-  _onDidChangeTreeData = new vscode.EventEmitter();
-  onDidChangeTreeData = this._onDidChangeTreeData.event;
-  getTreeItem(element) {
-    return element;
-  }
-  getChildren() {
-    return this.manager.getAll().map((bp) => new PortalBreakpointItem(bp));
-  }
-};
-var PortalBreakpointItem = class extends vscode.TreeItem {
-  constructor(portal) {
-    super(portal.name, vscode.TreeItemCollapsibleState.None);
-    this.portal = portal;
-    this.description = [
-      portal.enabled ? "\u25CF" : "\u25CB",
-      portal.condition ? `when: ${portal.condition}` : "",
-      portal.once ? "(once)" : ""
-    ].filter(Boolean).join(" ");
-    this.tooltip = `Portal: ${portal.name}
-Enabled: ${portal.enabled}${portal.condition ? `
-Condition: ${portal.condition}` : ""}${portal.once ? "\nTriggers once" : ""}`;
-    this.contextValue = "portalBreakpoint";
-    this.iconPath = new vscode.ThemeIcon(
-      portal.enabled ? "debug-breakpoint" : "debug-breakpoint-disabled"
-    );
-    this.command = {
-      command: "loup.portal.toggle",
-      title: "Toggle Portal Breakpoint",
-      arguments: [portal.name]
-    };
-  }
-};
-var PortalCodeLensProvider = class {
-  constructor(manager) {
-    this.manager = manager;
-    manager.onDidChange(() => this._onDidChangeCodeLenses.fire());
-  }
-  _onDidChangeCodeLenses = new vscode.EventEmitter();
-  onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
-  provideCodeLenses(document) {
-    if (document.languageId !== "loup")
-      return [];
-    const lenses = [];
-    const text = document.getText();
-    const portalRegex = /\bportal\s+(?:([a-zA-Z_][a-zA-Z0-9_]*)|"([^"]+)"|'([^']+)')\s*\{/g;
-    let match;
-    while ((match = portalRegex.exec(text)) !== null) {
-      const portalName = match[1] || match[2] || match[3];
-      const pos = document.positionAt(match.index);
-      const range = new vscode.Range(pos, pos);
-      const active = this.manager.getAll().find((p) => p.name === portalName && p.enabled);
-      lenses.push(
-        new vscode.CodeLens(range, {
-          title: active ? `\u{1F534} Breakpoint Active (${portalName})` : `\u26AA Activate Portal (${portalName})`,
-          command: "loup.portal.toggle",
-          arguments: [portalName],
-          tooltip: active ? `Click to deactivate portal breakpoint "${portalName}"` : `Click to break when portal "${portalName}" is entered`
-        })
-      );
-    }
-    return lenses;
-  }
-};
 
 // src/traceViewerPanel.ts
 var fs = __toESM(require("fs"));
 var path2 = __toESM(require("path"));
 var vscode2 = __toESM(require("vscode"));
+
+// src/toolchain.ts
+var vscode = __toESM(require("vscode"));
+function loupExecutable() {
+  const set = vscode.workspace.getConfiguration("loup").get("executable", "").trim();
+  return set || process.env["LOUP_PATH"] || "loup";
+}
 
 // src/traceTool.ts
 var import_child_process = require("child_process");
@@ -18764,7 +18646,7 @@ async function queryTrace(settings, file, query, limit) {
 function traceToolSettings() {
   const cfg = vscode2.workspace.getConfiguration("loup");
   return {
-    executable: cfg.get("executable", "") || process.env["LOUP_PATH"] || "loup",
+    executable: loupExecutable(),
     toolchainRoot: cfg.get("toolchainRoot", ""),
     toolCommand: cfg.get("trace.toolCommand", []),
     timeoutMs: cfg.get("trace.timeoutMs", 6e4)
@@ -19139,409 +19021,252 @@ async function openTraceViewer(uri) {
   await vscode2.commands.executeCommand("vscode.openWith", uri, TraceEditorProvider.viewType, vscode2.ViewColumn.Beside);
 }
 
-// src/taskGroupPanel.ts
+// src/taskProvider.ts
 var vscode3 = __toESM(require("vscode"));
-var TaskGroupPanel = class _TaskGroupPanel {
-  constructor(context) {
-    this.context = context;
-  }
-  static viewType = "loup.taskGroups";
-  panel;
-  tasks = [];
-  updateTasks(tasks2) {
-    this.tasks = tasks2;
-    this.updateWebview();
-  }
-  show() {
-    if (this.panel) {
-      this.panel.reveal(vscode3.ViewColumn.Beside);
-      return;
+var path3 = __toESM(require("path"));
+
+// src/loupManifest.ts
+function stripComment(line) {
+  let quote = "";
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quote) {
+      if (ch === "\\")
+        i++;
+      else if (ch === quote)
+        quote = "";
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "#") {
+      return line.slice(0, i);
     }
-    this.panel = vscode3.window.createWebviewPanel(
-      _TaskGroupPanel.viewType,
-      "Loup Task Groups",
-      vscode3.ViewColumn.Beside,
-      { enableScripts: true }
-    );
-    this.updateWebview();
-    this.panel.onDidDispose(() => {
-      this.panel = void 0;
-    });
   }
-  updateWebview() {
-    if (!this.panel)
-      return;
-    this.panel.webview.html = this.getHtml();
-  }
-  renderTaskTree(nodes, depth = 0) {
-    if (nodes.length === 0) {
-      return '<div class="empty">No active task groups. Start debugging an async Loup program using <code>await group</code> to see task trees here.</div>';
+  return line;
+}
+function parseManifest(content) {
+  const result = {
+    packageName: "unnamed",
+    version: "0.0.0",
+    deps: [],
+    devDeps: [],
+    devOverrides: [],
+    targets: []
+  };
+  let currentSection = "";
+  let currentTarget = null;
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = stripComment(rawLine).trim();
+    if (!line)
+      continue;
+    const secMatch = line.match(/^\[([^\]]+)\]$/);
+    if (secMatch) {
+      if (currentTarget) {
+        result.targets.push(currentTarget);
+        currentTarget = null;
+      }
+      currentSection = secMatch[1].trim();
+      if (currentSection.startsWith("target.") || currentSection.startsWith("delivery.")) {
+        currentTarget = {
+          name: currentSection.replace(/^(target|delivery)\./, ""),
+          includes: [],
+          excludes: []
+        };
+      }
+      continue;
     }
-    const stateIcons = {
-      running: "\u{1F7E2}",
-      suspended: "\u{1F7E1}",
-      completed: "\u2705",
-      failed: "\u274C",
-      cancelled: "\u{1F6AB}"
+    if (!currentSection) {
+      const pkgMatch = line.match(/^(?:package|name)\s*(?:=\s*|\s)"?([^\s"]+)"?/);
+      if (pkgMatch) {
+        result.packageName = pkgMatch[1];
+        continue;
+      }
+      const verMatch = line.match(/^version\s*(?:=\s*|\s)"?([^\s"]+)"?/);
+      if (verMatch) {
+        result.version = verMatch[1];
+        continue;
+      }
+      const loupMatch = line.match(/^loup\s*(?:=\s*|\s)"?([^"]+)"?/);
+      if (loupMatch) {
+        result.loupVersion = loupMatch[1].trim();
+        continue;
+      }
+      const abiMatch = line.match(/^shared_abi_version\s*(?:=\s*|\s)(\S+)/);
+      if (abiMatch) {
+        result.sharedAbiVersion = abiMatch[1];
+        continue;
+      }
+    }
+    if (currentSection === "build") {
+      const modeMatch = line.match(/^mode\s*=\s*"([^"]+)"/);
+      if (modeMatch) {
+        result.mode = modeMatch[1];
+        continue;
+      }
+    }
+    if (currentSection === "deps" || currentSection === "dependencies") {
+      const dep = parseDep(line, false);
+      if (dep)
+        result.deps.push(dep);
+    } else if (currentSection === "dev-deps" || currentSection === "dev-dependencies") {
+      const dep = parseDep(line, true);
+      if (dep)
+        result.devDeps.push(dep);
+    } else if (currentSection === "dev-overrides") {
+      const dep = parseDep(line, true);
+      if (dep) {
+        dep.isOverride = true;
+        result.devOverrides.push(dep);
+      }
+    } else if (currentTarget) {
+      const listMatch = line.match(/^(include|exclude)\s*=\s*\[(.*)\]\s*$/);
+      const bareMatch = line.match(/^(include|exclude)\s+([A-Za-z0-9_.]+)\s*$/);
+      const names = listMatch ? Array.from(listMatch[2].matchAll(/"([^"]*)"|'([^']*)'/g), (q) => q[1] ?? q[2]) : bareMatch ? [bareMatch[2]] : [];
+      const kind = listMatch?.[1] ?? bareMatch?.[1];
+      if (kind === "include")
+        currentTarget.includes.push(...names);
+      if (kind === "exclude")
+        currentTarget.excludes.push(...names);
+    }
+  }
+  if (currentTarget) {
+    result.targets.push(currentTarget);
+  }
+  return result;
+}
+function parseDep(line, isDev) {
+  const simpleMatch = line.match(/^"?([a-zA-Z0-9_.-]+)"?\s*=\s*"([^"]+)"/);
+  if (simpleMatch) {
+    return { name: simpleMatch[1], version: simpleMatch[2], isDev };
+  }
+  const tableMatch = line.match(/^"?([a-zA-Z0-9_.-]+)"?\s*=\s*\{(.+)\}/);
+  if (tableMatch) {
+    const inner = tableMatch[2];
+    const pathMatch = inner.match(/path\s*=\s*"([^"]+)"/);
+    const gitMatch = inner.match(/git\s*=\s*"([^"]+)"/);
+    const verMatch = inner.match(/version\s*=\s*"([^"]+)"/);
+    return {
+      name: tableMatch[1],
+      version: verMatch?.[1] || (pathMatch ? `path:${pathMatch[1]}` : gitMatch ? `git:${gitMatch[1]}` : "*"),
+      isDev,
+      path: pathMatch?.[1],
+      git: gitMatch?.[1]
     };
-    const stateColors = {
-      running: "#4ade80",
-      suspended: "#facc15",
-      completed: "#60a5fa",
-      failed: "#f87171",
-      cancelled: "#9ca3af"
-    };
-    return nodes.map((node) => {
-      const icon = stateIcons[node.state] || "\u26AA";
-      const color = stateColors[node.state] || "#fff";
-      const duration = node.endTime ? `${node.endTime - node.startTime}ms` : "running...";
-      const childrenHtml = node.children.length > 0 ? `<div class="children">${this.renderTaskTree(node.children, depth + 1)}</div>` : "";
-      return `
-        <div class="task-node" style="margin-left: ${depth * 20}px">
-          <div class="task-header">
-            <span class="icon">${icon}</span>
-            <span class="name">${node.name}</span>
-            <span class="badge" style="color: ${color}; border-color: ${color}">${node.state}</span>
-            <span class="duration">${duration}</span>
-          </div>
-          ${node.result ? `<div class="detail">Result: ${node.result}</div>` : ""}
-          ${node.error ? `<div class="detail error">Error: ${node.error}</div>` : ""}
-          ${childrenHtml}
-        </div>
-      `;
-    }).join("");
   }
-  getHtml() {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Loup Task Groups</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family, sans-serif);
-      font-size: var(--vscode-font-size, 13px);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-      margin: 0;
-      padding: 12px;
-    }
-    h2 {
-      font-size: 14px;
-      margin: 0 0 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .task-node {
-      border-left: 2px solid var(--vscode-panel-border);
-      padding: 6px 0 6px 12px;
-      margin: 4px 0;
-    }
-    .task-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .name {
-      font-weight: 600;
-      font-family: var(--vscode-editor-font-family, monospace);
-    }
-    .badge {
-      font-size: 10px;
-      padding: 1px 6px;
-      border: 1px solid;
-      border-radius: 8px;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    .duration {
-      font-size: 11px;
-      opacity: 0.6;
-      margin-left: auto;
-    }
-    .detail {
-      font-size: 11px;
-      opacity: 0.8;
-      margin-top: 2px;
-      padding-left: 24px;
-      font-family: var(--vscode-editor-font-family, monospace);
-    }
-    .detail.error {
-      color: #f87171;
-    }
-    .empty {
-      text-align: center;
-      padding: 40px 16px;
-      opacity: 0.5;
-    }
-    code {
-      background: var(--vscode-badge-background);
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
-  </style>
-</head>
-<body>
-  <h2>\u26A1 Structured Concurrency \u2014 Task Groups</h2>
-  ${this.renderTaskTree(this.tasks)}
-</body>
-</html>`;
-  }
-};
+  return null;
+}
+
+// src/loupTasks.ts
+var LOUP_TASK_COMMANDS = ["run", "build", "test", "fmt", "check"];
+function taskNeedsFile(task) {
+  return task === "run" || task === "fmt";
+}
+function taskArgs(def) {
+  if (!LOUP_TASK_COMMANDS.includes(def.task))
+    return void 0;
+  const file = typeof def.file === "string" ? def.file.trim() : "";
+  if (taskNeedsFile(def.task) && file.length === 0)
+    return void 0;
+  const extra = Array.isArray(def.args) ? def.args.filter((a) => typeof a === "string") : [];
+  return [def.task, ...file.length > 0 ? [file] : [], ...extra];
+}
+function manifestPackageName(content) {
+  const name = parseManifest(content).packageName;
+  return name === "unnamed" ? void 0 : name;
+}
 
 // src/taskProvider.ts
-var vscode4 = __toESM(require("vscode"));
-var fs2 = __toESM(require("fs"));
-var path3 = __toESM(require("path"));
+var MANIFEST_NAMES = ["package.lppkg", "loup.pkg"];
 var LoupTaskProvider = class _LoupTaskProvider {
   static type = "loup";
   async provideTasks() {
     const tasks2 = [];
-    const workspaceFolders = vscode4.workspace.workspaceFolders;
-    if (!workspaceFolders)
-      return tasks2;
-    for (const folder of workspaceFolders) {
-      const manifestPath = this.findManifest(folder.uri.fsPath);
-      if (manifestPath) {
-        const pkgContent = fs2.readFileSync(manifestPath, "utf-8");
-        const pkgName = this.parsePackageName(pkgContent) || folder.name;
-        tasks2.push(this.createTask("run", `loup run`, folder, pkgName, vscode4.TaskGroup.Build));
-        tasks2.push(this.createTask("build", `loup build`, folder, pkgName, vscode4.TaskGroup.Build));
-        tasks2.push(this.createTask("test", `loup test`, folder, pkgName, vscode4.TaskGroup.Test));
-        tasks2.push(this.createTask("fmt", `loup fmt`, folder, pkgName));
-        tasks2.push(this.createTask("check", `loup check`, folder, pkgName, vscode4.TaskGroup.Build));
-        const targets = this.parseTargets(pkgContent);
-        for (const target of targets) {
-          tasks2.push(
-            this.createTask(
-              `build:${target}`,
-              `loup build --target ${target}`,
-              folder,
-              pkgName,
-              vscode4.TaskGroup.Build
-            )
-          );
-        }
-      }
+    for (const folder of vscode3.workspace.workspaceFolders ?? []) {
+      const pkgName = await this.packageName(folder);
+      if (pkgName === void 0)
+        continue;
+      const label = pkgName.length > 0 ? pkgName : folder.name;
+      tasks2.push(this.make({ type: _LoupTaskProvider.type, task: "build" }, folder, `build ${label}`, folder.uri.fsPath));
+      tasks2.push(this.make({ type: _LoupTaskProvider.type, task: "test" }, folder, `test ${label}`, folder.uri.fsPath));
     }
-    return tasks2;
-  }
-  resolveTask(task) {
-    const definition = task.definition;
-    if (definition.type === _LoupTaskProvider.type && definition.command) {
-      const execution = new vscode4.ShellExecution(definition.command);
-      return new vscode4.Task(
-        definition,
-        task.scope ?? vscode4.TaskScope.Workspace,
-        definition.task || definition.command,
-        "loup",
-        execution,
-        "$loup"
+    const doc = vscode3.window.activeTextEditor?.document;
+    if (doc && doc.languageId === "loup" && doc.uri.scheme === "file") {
+      const folder = vscode3.workspace.getWorkspaceFolder(doc.uri);
+      const def = { type: _LoupTaskProvider.type, task: "run", file: doc.uri.fsPath };
+      tasks2.push(
+        this.make(def, folder ?? vscode3.TaskScope.Workspace, `run ${path3.basename(doc.uri.fsPath)}`, path3.dirname(doc.uri.fsPath))
       );
     }
-    return void 0;
+    return tasks2.filter((t) => t !== void 0);
   }
-  findManifest(dir) {
-    const candidates = ["package.lppkg", "loup.pkg"];
-    for (const candidate of candidates) {
-      const fullPath = path3.join(dir, candidate);
-      if (fs2.existsSync(fullPath)) {
-        return fullPath;
+  resolveTask(task) {
+    const def = task.definition;
+    if (def.type !== _LoupTaskProvider.type)
+      return void 0;
+    const scope = task.scope ?? vscode3.TaskScope.Workspace;
+    const cwd = typeof scope === "object" ? scope.uri.fsPath : vscode3.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return this.make(def, scope, task.name, cwd);
+  }
+  /** The folder's package name ('' when the manifest names none), or undefined without a manifest. */
+  async packageName(folder) {
+    for (const name of MANIFEST_NAMES) {
+      try {
+        const bytes = await vscode3.workspace.fs.readFile(vscode3.Uri.joinPath(folder.uri, name));
+        return manifestPackageName(Buffer.from(bytes).toString("utf-8")) ?? "";
+      } catch {
       }
     }
-    try {
-      const entries = fs2.readdirSync(dir);
-      const lppkg = entries.find((e) => e.endsWith(".lppkg"));
-      if (lppkg) {
-        return path3.join(dir, lppkg);
-      }
-    } catch {
-    }
     return void 0;
   }
-  createTask(name, command, folder, pkgName, group) {
-    const definition = {
-      type: _LoupTaskProvider.type,
-      task: name,
-      command
-    };
-    const execution = new vscode4.ShellExecution(command, { cwd: folder.uri.fsPath });
-    const task = new vscode4.Task(
-      definition,
-      folder,
-      `${pkgName}: ${name}`,
-      "loup",
-      execution,
-      "$loup"
-    );
-    if (group) {
-      task.group = group;
-    }
+  make(def, scope, name, cwd) {
+    const args = taskArgs(def);
+    if (!args)
+      return void 0;
+    const execution = new vscode3.ProcessExecution(loupExecutable(), args, cwd ? { cwd } : void 0);
+    const task = new vscode3.Task(def, scope, name, "loup", execution, "$loup");
+    if (def.task === "build")
+      task.group = vscode3.TaskGroup.Build;
+    if (def.task === "test")
+      task.group = vscode3.TaskGroup.Test;
     return task;
-  }
-  parsePackageName(content) {
-    const pkgMatch = content.match(/^(?:package|name)\s+(?:=\s*)?"?([^\s"]+)"?/m);
-    return pkgMatch?.[1];
-  }
-  parseTargets(content) {
-    const targets = [];
-    const regex = /\[(?:delivery|target)\.([a-zA-Z0-9_-]+)\]/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      targets.push(match[1]);
-    }
-    return targets;
   }
 };
 
 // src/dependencyTree.ts
-var vscode5 = __toESM(require("vscode"));
-var fs3 = __toESM(require("fs"));
-var path4 = __toESM(require("path"));
+var vscode4 = __toESM(require("vscode"));
 var DependencyTreeProvider = class {
-  _onDidChangeTreeData = new vscode5.EventEmitter();
+  _onDidChangeTreeData = new vscode4.EventEmitter();
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   manifest = null;
+  loads = 0;
   constructor() {
-    this.reload();
+    void this.refresh();
   }
-  refresh() {
-    this.reload();
-    this._onDidChangeTreeData.fire(void 0);
-  }
-  async reload() {
-    const pkgFiles = await vscode5.workspace.findFiles("**/*.{lppkg,pkg}", "**/node_modules/**", 5);
-    const loupPkg = pkgFiles.find(
-      (u) => u.fsPath.endsWith(".lppkg") || path4.basename(u.fsPath) === "loup.pkg"
-    );
-    if (!loupPkg) {
-      this.manifest = null;
-      return;
-    }
+  /** Read the workspace's manifest again and redraw. */
+  async refresh() {
+    const load = ++this.loads;
+    let manifest = null;
     try {
-      const content = fs3.readFileSync(loupPkg.fsPath, "utf-8");
-      this.manifest = this.parse(content);
-      this._onDidChangeTreeData.fire(void 0);
+      const found = await vscode4.workspace.findFiles("**/{*.lppkg,loup.pkg}", "**/node_modules/**", 50);
+      const depth = (u) => u.path.split("/").length;
+      const first = found.sort((x, y) => depth(x) - depth(y) || x.path.localeCompare(y.path))[0];
+      if (first) {
+        const bytes = await vscode4.workspace.fs.readFile(first);
+        manifest = parseManifest(Buffer.from(bytes).toString("utf-8"));
+      }
     } catch {
-      this.manifest = null;
+      manifest = null;
     }
-  }
-  parse(content) {
-    const result = {
-      packageName: "unnamed",
-      version: "0.0.0",
-      deps: [],
-      devDeps: [],
-      devOverrides: [],
-      targets: []
-    };
-    let currentSection = "";
-    let currentTarget = null;
-    for (const rawLine of content.split("\n")) {
-      const line = rawLine.replace(/(#|\/\/).*$/, "").trim();
-      if (!line)
-        continue;
-      const secMatch = line.match(/^\[([^\]]+)\]$/);
-      if (secMatch) {
-        if (currentTarget) {
-          result.targets.push(currentTarget);
-          currentTarget = null;
-        }
-        currentSection = secMatch[1].trim();
-        if (currentSection.startsWith("target.") || currentSection.startsWith("delivery.")) {
-          currentTarget = {
-            name: currentSection.replace(/^(target|delivery)\./, ""),
-            includes: [],
-            excludes: []
-          };
-        }
-        continue;
-      }
-      if (!currentSection) {
-        const pkgMatch = line.match(/^(?:package|name)\s+(?:=\s*)?"?([^\s"]+)"?/);
-        if (pkgMatch) {
-          result.packageName = pkgMatch[1];
-          continue;
-        }
-        const verMatch = line.match(/^version\s+(?:=\s*)?"?([^\s"]+)"?/);
-        if (verMatch) {
-          result.version = verMatch[1];
-          continue;
-        }
-        const loupMatch = line.match(/^loup\s+(?:=\s*)?"?([^"]+)"?/);
-        if (loupMatch) {
-          result.loupVersion = loupMatch[1].trim();
-          continue;
-        }
-        const abiMatch = line.match(/^shared_abi_version\s+(?:=\s*)?(\S+)/);
-        if (abiMatch) {
-          result.sharedAbiVersion = abiMatch[1];
-          continue;
-        }
-      }
-      if (currentSection === "build") {
-        const modeMatch = line.match(/^mode\s*=\s*"([^"]+)"/);
-        if (modeMatch) {
-          result.mode = modeMatch[1];
-          continue;
-        }
-      }
-      if (currentSection === "deps" || currentSection === "dependencies") {
-        const dep = this.parseDep(line, false);
-        if (dep)
-          result.deps.push(dep);
-      } else if (currentSection === "dev-deps" || currentSection === "dev-dependencies") {
-        const dep = this.parseDep(line, true);
-        if (dep)
-          result.devDeps.push(dep);
-      } else if (currentSection === "dev-overrides") {
-        const dep = this.parseDep(line, true);
-        if (dep) {
-          dep.isOverride = true;
-          result.devOverrides.push(dep);
-        }
-      } else if (currentTarget) {
-        const incMatch = line.match(/^include\s+(\S+)/);
-        if (incMatch)
-          currentTarget.includes.push(incMatch[1]);
-        const excMatch = line.match(/^exclude\s+(\S+)/);
-        if (excMatch)
-          currentTarget.excludes.push(excMatch[1]);
-      }
-    }
-    if (currentTarget) {
-      result.targets.push(currentTarget);
-    }
-    return result;
-  }
-  parseDep(line, isDev) {
-    const simpleMatch = line.match(/^([a-zA-Z0-9_.-]+)\s*=\s*"([^"]+)"/);
-    if (simpleMatch) {
-      return { name: simpleMatch[1], version: simpleMatch[2], isDev };
-    }
-    const tableMatch = line.match(/^([a-zA-Z0-9_.-]+)\s*=\s*\{(.+)\}/);
-    if (tableMatch) {
-      const inner = tableMatch[2];
-      const pathMatch = inner.match(/path\s*=\s*"([^"]+)"/);
-      const gitMatch = inner.match(/git\s*=\s*"([^"]+)"/);
-      const verMatch = inner.match(/version\s*=\s*"([^"]+)"/);
-      return {
-        name: tableMatch[1],
-        version: verMatch?.[1] || (pathMatch ? `path:${pathMatch[1]}` : gitMatch ? `git:${gitMatch[1]}` : "*"),
-        isDev,
-        path: pathMatch?.[1],
-        git: gitMatch?.[1]
-      };
-    }
-    return null;
+    if (load !== this.loads)
+      return;
+    this.manifest = manifest;
+    this._onDidChangeTreeData.fire(void 0);
   }
   getTreeItem(element) {
     return element;
   }
   getChildren(element) {
     if (!this.manifest) {
-      return [new DepTreeItem("No package.lppkg found", "", vscode5.TreeItemCollapsibleState.None)];
+      return [new DepTreeItem("No package.lppkg found", "", vscode4.TreeItemCollapsibleState.None)];
     }
     if (!element) {
       const items = [];
@@ -19551,8 +19276,8 @@ var DependencyTreeProvider = class {
         new DepTreeItem(
           `${this.manifest.packageName} v${this.manifest.version}${modeSuffix}`,
           `Package${loupConstraint}`,
-          vscode5.TreeItemCollapsibleState.None,
-          new vscode5.ThemeIcon("package")
+          vscode4.TreeItemCollapsibleState.None,
+          new vscode4.ThemeIcon("package")
         )
       );
       if (this.manifest.deps.length > 0) {
@@ -19560,8 +19285,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dependencies",
             `${this.manifest.deps.length}`,
-            vscode5.TreeItemCollapsibleState.Expanded,
-            new vscode5.ThemeIcon("library"),
+            vscode4.TreeItemCollapsibleState.Expanded,
+            new vscode4.ThemeIcon("library"),
             "deps"
           )
         );
@@ -19571,8 +19296,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dev Dependencies",
             `${this.manifest.devDeps.length}`,
-            vscode5.TreeItemCollapsibleState.Collapsed,
-            new vscode5.ThemeIcon("tools"),
+            vscode4.TreeItemCollapsibleState.Collapsed,
+            new vscode4.ThemeIcon("tools"),
             "dev-deps"
           )
         );
@@ -19582,8 +19307,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dev Overrides",
             `${this.manifest.devOverrides.length}`,
-            vscode5.TreeItemCollapsibleState.Collapsed,
-            new vscode5.ThemeIcon("DebugStepOver"),
+            vscode4.TreeItemCollapsibleState.Collapsed,
+            new vscode4.ThemeIcon("debug-step-over"),
             "dev-overrides"
           )
         );
@@ -19593,8 +19318,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Delivery Targets",
             `${this.manifest.targets.length}`,
-            vscode5.TreeItemCollapsibleState.Collapsed,
-            new vscode5.ThemeIcon("server-environment"),
+            vscode4.TreeItemCollapsibleState.Collapsed,
+            new vscode4.ThemeIcon("server-environment"),
             "targets"
           )
         );
@@ -19603,17 +19328,17 @@ var DependencyTreeProvider = class {
     }
     if (element.section === "deps") {
       return this.manifest.deps.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode4.TreeItemCollapsibleState.None, new vscode4.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "dev-deps") {
       return this.manifest.devDeps.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode4.TreeItemCollapsibleState.None, new vscode4.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "dev-overrides") {
       return this.manifest.devOverrides.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode4.TreeItemCollapsibleState.None, new vscode4.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "targets") {
@@ -19625,15 +19350,15 @@ var DependencyTreeProvider = class {
         return new DepTreeItem(
           t.name,
           desc || "default",
-          vscode5.TreeItemCollapsibleState.None,
-          new vscode5.ThemeIcon("device-desktop")
+          vscode4.TreeItemCollapsibleState.None,
+          new vscode4.ThemeIcon("device-desktop")
         );
       });
     }
     return [];
   }
 };
-var DepTreeItem = class extends vscode5.TreeItem {
+var DepTreeItem = class extends vscode4.TreeItem {
   constructor(label, description, collapsibleState, icon, section) {
     super(label, collapsibleState);
     this.section = section;
@@ -19645,9 +19370,6 @@ var DepTreeItem = class extends vscode5.TreeItem {
 
 // src/extension.ts
 var client;
-var portalManager;
-var taskGroupPanel;
-var depTreeProvider;
 var EXTENSION_MODE_INFO = {
   ".loup": {
     label: "Loup",
@@ -19676,10 +19398,11 @@ var EXTENSION_MODE_INFO = {
   }
 };
 function activate(context) {
-  const outputChannel = vscode6.window.createOutputChannel("Loup Language");
-  outputChannel.appendLine("Loup Language extension v1.20.0 activated.");
-  const statusBarItem = vscode6.window.createStatusBarItem(
-    vscode6.StatusBarAlignment.Right,
+  const outputChannel = vscode5.window.createOutputChannel("Loup Language");
+  context.subscriptions.push(outputChannel);
+  outputChannel.appendLine(`Loup Language extension v${context.extension.packageJSON.version} activated.`);
+  const statusBarItem = vscode5.window.createStatusBarItem(
+    vscode5.StatusBarAlignment.Right,
     100
   );
   statusBarItem.text = "$(symbol-misc) Loup";
@@ -19691,9 +19414,9 @@ function activate(context) {
         statusBarItem.text = "$(package) Loup Manifest";
         statusBarItem.tooltip = "Loup Package Manifest (.lppkg) \u2014 v1.20";
       } else {
-        const ext = path5.extname(editor.document.fileName).toLowerCase();
+        const ext = path4.extname(editor.document.fileName).toLowerCase();
         const extInfo = EXTENSION_MODE_INFO[ext] ?? EXTENSION_MODE_INFO[".loup"];
-        const firstLines = editor.document.getText(new vscode6.Range(0, 0, 20, 0));
+        const firstLines = editor.document.getText(new vscode5.Range(0, 0, 20, 0));
         const modeMatch = firstLines.match(/@mode\(\s*([a-zA-Z0-9_.]+)\s*\)/);
         const activeMode = modeMatch ? modeMatch[1] : extInfo.defaultMode;
         statusBarItem.text = `$(symbol-misc) Loup [${activeMode}]`;
@@ -19706,72 +19429,36 @@ Active mode: @mode(${activeMode})`;
     }
   };
   context.subscriptions.push(
-    vscode6.window.onDidChangeActiveTextEditor(updateStatusBar),
-    vscode6.workspace.onDidChangeTextDocument((e) => {
-      if (vscode6.window.activeTextEditor?.document === e.document) {
-        updateStatusBar(vscode6.window.activeTextEditor);
+    vscode5.window.onDidChangeActiveTextEditor(updateStatusBar),
+    vscode5.workspace.onDidChangeTextDocument((e) => {
+      if (vscode5.window.activeTextEditor?.document === e.document) {
+        updateStatusBar(vscode5.window.activeTextEditor);
       }
     })
   );
-  updateStatusBar(vscode6.window.activeTextEditor);
+  updateStatusBar(vscode5.window.activeTextEditor);
   startLanguageClient(context, outputChannel);
   context.subscriptions.push(
-    vscode6.debug.registerDebugConfigurationProvider("loup", new LoupDebugConfigurationProvider())
-  );
-  portalManager = new PortalBreakpointManager(context);
-  const portalTreeProvider = new PortalBreakpointsTreeProvider(portalManager);
-  const portalCodeLens = new PortalCodeLensProvider(portalManager);
-  context.subscriptions.push(
-    vscode6.window.registerTreeDataProvider("loupPortalBreakpoints", portalTreeProvider),
-    vscode6.languages.registerCodeLensProvider({ language: "loup" }, portalCodeLens)
-  );
-  context.subscriptions.push(
-    vscode6.commands.registerCommand("loup.portal.toggle", (name) => {
-      portalManager.toggle(name);
-    }),
-    vscode6.commands.registerCommand("loup.portal.add", async () => {
-      const name = await vscode6.window.showInputBox({
-        prompt: "Enter portal name to break on",
-        placeHolder: "e.g., request_start or checkout.enter"
-      });
-      if (!name)
-        return;
-      const condition = await vscode6.window.showInputBox({
-        prompt: "Optional condition expression (leave empty for unconditional)",
-        placeHolder: "e.g., user.id == 42"
-      });
-      const oncePick = await vscode6.window.showQuickPick(["Every time", "Once only"], {
-        placeHolder: "Break every time or only once?"
-      });
-      portalManager.add(name, condition || void 0, oncePick === "Once only");
-    }),
-    vscode6.commands.registerCommand("loup.portal.remove", (item) => {
-      if (item?.portal?.name) {
-        portalManager.remove(item.portal.name);
-      }
-    }),
-    vscode6.commands.registerCommand("loup.portal.clearAll", () => {
-      portalManager.clear();
-    })
+    vscode5.debug.registerDebugConfigurationProvider("loup", new LoupDebugConfigurationProvider())
   );
   const withViewer = (act) => async () => {
     const viewer = TraceViewerPanel.active;
     if (!viewer) {
-      vscode6.window.showInformationMessage("Open a .ltrace file first (Loup: Open Trace).");
+      vscode5.window.showInformationMessage("Open a .ltrace file first (Loup: Open Trace).");
       return;
     }
     await act(viewer);
   };
   context.subscriptions.push(
-    vscode6.window.registerCustomEditorProvider(
+    vscode5.window.registerCustomEditorProvider(
       TraceEditorProvider.viewType,
       new TraceEditorProvider(context, outputChannel),
       { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false }
     ),
-    vscode6.commands.registerCommand("loup.trace.open", async (uri) => {
+    vscode5.commands.registerCommand("loup.trace.open", async (uri) => {
       let target = uri;
       if (!target) {
-        const picked = await vscode6.window.showOpenDialog({
+        const picked = await vscode5.window.showOpenDialog({
           canSelectMany: false,
           filters: { "Loup trace": ["ltrace"], "Exported trace view": ["json"] },
           openLabel: "Open Trace"
@@ -19781,89 +19468,60 @@ Active mode: @mode(${activeMode})`;
       if (target)
         await openTraceViewer(target);
     }),
-    vscode6.commands.registerCommand("loup.trace.stepBack", withViewer((v) => v.step("backward"))),
-    vscode6.commands.registerCommand("loup.trace.stepForward", withViewer((v) => v.step("forward"))),
-    vscode6.commands.registerCommand(
+    vscode5.commands.registerCommand("loup.trace.stepBack", withViewer((v) => v.step("backward"))),
+    vscode5.commands.registerCommand("loup.trace.stepForward", withViewer((v) => v.step("forward"))),
+    vscode5.commands.registerCommand(
       "loup.trace.previousException",
       withViewer((v) => v.stepKind("backward", ["Exception"]))
     ),
-    vscode6.commands.registerCommand(
+    vscode5.commands.registerCommand(
       "loup.trace.nextException",
       withViewer((v) => v.stepKind("forward", ["Exception"]))
     ),
-    vscode6.commands.registerCommand("loup.trace.previousCapture", withViewer((v) => v.stepCapture("backward"))),
-    vscode6.commands.registerCommand("loup.trace.nextCapture", withViewer((v) => v.stepCapture("forward"))),
-    vscode6.commands.registerCommand("loup.trace.gotoPoint", withViewer((v) => v.promptGotoPoint())),
-    vscode6.commands.registerCommand("loup.trace.query", withViewer((v) => v.promptQuery())),
-    vscode6.commands.registerCommand("loup.trace.reload", withViewer((v) => v.reload()))
-  );
-  taskGroupPanel = new TaskGroupPanel(context);
-  context.subscriptions.push(
-    vscode6.commands.registerCommand("loup.showTaskGroups", () => {
-      taskGroupPanel.show();
-    })
+    vscode5.commands.registerCommand("loup.trace.previousCapture", withViewer((v) => v.stepCapture("backward"))),
+    vscode5.commands.registerCommand("loup.trace.nextCapture", withViewer((v) => v.stepCapture("forward"))),
+    vscode5.commands.registerCommand("loup.trace.gotoPoint", withViewer((v) => v.promptGotoPoint())),
+    vscode5.commands.registerCommand("loup.trace.query", withViewer((v) => v.promptQuery())),
+    vscode5.commands.registerCommand("loup.trace.reload", withViewer((v) => v.reload()))
   );
   context.subscriptions.push(
-    vscode6.tasks.registerTaskProvider(LoupTaskProvider.type, new LoupTaskProvider())
+    vscode5.tasks.registerTaskProvider(LoupTaskProvider.type, new LoupTaskProvider())
   );
-  depTreeProvider = new DependencyTreeProvider();
+  const depTreeProvider = new DependencyTreeProvider();
+  const manifestWatcher = vscode5.workspace.createFileSystemWatcher("**/{*.lppkg,loup.pkg}");
+  const refreshDeps = () => void depTreeProvider.refresh();
   context.subscriptions.push(
-    vscode6.window.registerTreeDataProvider("loupDependencies", depTreeProvider),
-    vscode6.commands.registerCommand("loup.refreshDependencies", () => {
-      depTreeProvider.refresh();
-    })
+    vscode5.window.registerTreeDataProvider("loupDependencies", depTreeProvider),
+    vscode5.commands.registerCommand("loup.refreshDependencies", refreshDeps),
+    manifestWatcher,
+    manifestWatcher.onDidChange(refreshDeps),
+    manifestWatcher.onDidCreate(refreshDeps),
+    manifestWatcher.onDidDelete(refreshDeps),
+    vscode5.workspace.onDidChangeWorkspaceFolders(refreshDeps)
   );
-  context.subscriptions.push(
-    vscode6.window.registerTerminalProfileProvider("loup.repl", {
-      provideTerminalProfile() {
-        return new vscode6.TerminalProfile({
-          name: "Loup REPL",
-          shellPath: process.env["LOUP_PATH"] || "loup",
-          shellArgs: ["repl"],
-          iconPath: new vscode6.ThemeIcon("terminal")
-        });
-      }
-    }),
-    vscode6.commands.registerCommand("loup.openRepl", () => {
-      const terminal = vscode6.window.createTerminal({
-        name: "Loup REPL",
-        shellPath: process.env["LOUP_PATH"] || "loup",
-        shellArgs: ["repl"]
-      });
-      terminal.show();
-    })
-  );
-  outputChannel.appendLine("All P0\u2013P5 features registered.");
 }
 var LoupDebugConfigurationProvider = class {
   resolveDebugConfiguration(_folder, config, _token) {
     if (!config.type && !config.request && !config.name) {
-      const editor = vscode6.window.activeTextEditor;
+      const editor = vscode5.window.activeTextEditor;
       if (editor && editor.document.languageId === "loup") {
         config.type = "loup";
         config.name = "Run Loup File";
         config.request = "launch";
         config.program = "${file}";
-        config.target = "cli";
       }
     }
     if (!config.program) {
-      return vscode6.window.showInformationMessage("Cannot find a Loup program to debug").then((_) => {
-        return void 0;
-      });
+      return vscode5.window.showInformationMessage('Open a Loup file to run, or set "program" in the launch configuration.').then(() => void 0);
     }
-    if (portalManager) {
-      const activePortals = portalManager.getEnabled().map((p) => p.name);
-      if (activePortals.length > 0 && !config.portalBreakpoints) {
-        config.portalBreakpoints = activePortals;
-      }
-    }
+    if (!config.loupExecutable)
+      config.loupExecutable = loupExecutable();
     return config;
   }
 };
 function startLanguageClient(context, outputChannel) {
   const serverModule = context.asAbsolutePath(
-    path5.join("out", "server.js")
+    path4.join("out", "server.js")
   );
   const serverOptions = {
     run: {
@@ -19882,7 +19540,7 @@ function startLanguageClient(context, outputChannel) {
       { scheme: "file", language: "loup-pkg" }
     ],
     synchronize: {
-      fileEvents: vscode6.workspace.createFileSystemWatcher("**/*.{loup,lpscr,lpfree,lpweb,lphc,lppkg}")
+      fileEvents: vscode5.workspace.createFileSystemWatcher("**/{*.loup,*.lpscr,*.lpfree,*.lpweb,*.lphc,*.lppkg,loup.pkg}")
     },
     outputChannel
   };
@@ -19900,19 +19558,11 @@ function startLanguageClient(context, outputChannel) {
       outputChannel.appendLine(`Failed to start Language Server: ${err}`);
     }
   );
-  context.subscriptions.push({
-    dispose: () => {
-      if (client) {
-        client.stop();
-      }
-    }
-  });
 }
 function deactivate() {
-  if (client) {
-    return client.stop();
-  }
-  return void 0;
+  const running = client;
+  client = void 0;
+  return running?.isRunning() ? running.stop() : void 0;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

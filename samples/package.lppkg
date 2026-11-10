@@ -20,25 +20,16 @@ test-runner  = "^3.1"
 # my-utils = { path = "../my-utils" }
 
 [delivery.browser]
-exclude io.fs
-exclude io.proc
+exclude = ["io.fs", "io.proc"]
 
 [delivery.cli]
-include io.fs
-include io.proc
+include = ["io.fs", "io.proc"]
 
 [delivery.service]
-include io.fs
-include io.proc
-include net.http
+include = ["io.fs", "io.proc", "net.net"]
 
 [delivery.desktop]
-include io.fs
-include io.proc
-include net.http
-include ui.desktop
+include = ["io.fs", "io.proc", "net.net", "ui.desktop"]
 
 [delivery.native]
-include io.fs
-include io.proc
-include net.http
+include = ["io.fs", "io.proc", "net.net"]

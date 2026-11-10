@@ -9,13 +9,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { loupExecutable } from './toolchain';
 import { TraceToolSettings, loadTraceView, queryTrace } from './traceTool';
 import { Direction, TraceSession, TraceView, TraceViewError, ViewSite, parseTraceView } from './traceView';
 
 export function traceToolSettings(): TraceToolSettings {
   const cfg = vscode.workspace.getConfiguration('loup');
   return {
-    executable: cfg.get<string>('executable', '') || process.env['LOUP_PATH'] || 'loup',
+    executable: loupExecutable(),
     toolchainRoot: cfg.get<string>('toolchainRoot', ''),
     toolCommand: cfg.get<string[]>('trace.toolCommand', []),
     timeoutMs: cfg.get<number>('trace.timeoutMs', 60000),

@@ -72,6 +72,7 @@ export type Statement =
   | ThrowStmt
   | ExpressionStmt
   | AnnotatedDecl
+  | NamespaceDecl
   | Block
   | ErrorNode;
 
@@ -133,6 +134,8 @@ export interface VarDecl extends AstNode {
 
 export interface FunDecl extends AstNode {
   kind: 'FunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   returnType?: TypeExpr;
@@ -146,6 +149,8 @@ export interface FunDecl extends AstNode {
 
 export interface AsyncFunDecl extends AstNode {
   kind: 'AsyncFunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   returnType?: TypeExpr;
@@ -158,6 +163,8 @@ export interface AsyncFunDecl extends AstNode {
 
 export interface GenFunDecl extends AstNode {
   kind: 'GenFunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   returnType?: TypeExpr;
@@ -169,6 +176,8 @@ export interface GenFunDecl extends AstNode {
 
 export interface AsyncGenFunDecl extends AstNode {
   kind: 'AsyncGenFunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   returnType?: TypeExpr;
@@ -180,6 +189,8 @@ export interface AsyncGenFunDecl extends AstNode {
 
 export interface ClassDecl extends AstNode {
   kind: 'ClassDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   isDynamic: boolean;
   isAbstract: boolean;
@@ -191,6 +202,8 @@ export interface ClassDecl extends AstNode {
 
 export interface EnumDecl extends AstNode {
   kind: 'EnumDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   variants: EnumVariant[];
   typeParams?: TypeParam[];
@@ -204,6 +217,8 @@ export interface EnumVariant extends AstNode {
 
 export interface StructDecl extends AstNode {
   kind: 'StructDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   fields: StructField[];
   methods: (FunDecl | AsyncFunDecl)[];
@@ -223,6 +238,8 @@ export interface StructField extends AstNode {
 
 export interface InterfaceDecl extends AstNode {
   kind: 'InterfaceDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   methods: FunDecl[];
   typeParams?: TypeParam[];
@@ -230,6 +247,8 @@ export interface InterfaceDecl extends AstNode {
 
 export interface TypeAliasDecl extends AstNode {
   kind: 'TypeAliasDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   typeParams?: TypeParam[];
   value: TypeExpr;
@@ -237,6 +256,8 @@ export interface TypeAliasDecl extends AstNode {
 
 export interface MacroDecl extends AstNode {
   kind: 'MacroDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   body: Block;
@@ -247,6 +268,13 @@ export interface AnnotatedDecl extends AstNode {
   annotation: string;
   args?: Expression[];
   declaration?: Statement;
+}
+
+/** `namespace a.b;` (file-level, no body) or `namespace a.b { ... }`. */
+export interface NamespaceDecl extends AstNode {
+  kind: 'NamespaceDecl';
+  name: string;
+  body?: Statement[];
 }
 
 // --- Control flow ---
@@ -438,6 +466,8 @@ export interface ReExportStmt extends AstNode {
 
 export interface ExternJsFunDecl extends AstNode {
   kind: 'ExternJsFunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   params: Parameter[];
   returnType: TypeExpr;
@@ -445,12 +475,16 @@ export interface ExternJsFunDecl extends AstNode {
 
 export interface ExternJsValDecl extends AstNode {
   kind: 'ExternJsValDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   type: TypeExpr;
 }
 
 export interface ExternNativeFunDecl extends AstNode {
   kind: 'ExternNativeFunDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   library: string;
   name: string;
   params: Parameter[];
@@ -459,6 +493,8 @@ export interface ExternNativeFunDecl extends AstNode {
 
 export interface ExternNativeValDecl extends AstNode {
   kind: 'ExternNativeValDecl';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   library: string;
   name: string;
   type: TypeExpr;
@@ -508,6 +544,7 @@ export type Expression =
   | NewExpr
   | MacroInvocationExpr
   | GroupExpr
+  | StatementExpr
   | ErrorNode;
 
 export interface IntLiteral extends AstNode {
@@ -800,6 +837,15 @@ export interface GroupExpr extends AstNode {
   expression: Expression;
 }
 
+/**
+ * A statement in expression position: an `if` / `try` / block used for its value,
+ * or a `return` / `throw` / `break` / `continue` as a match-arm body.
+ */
+export interface StatementExpr extends AstNode {
+  kind: 'StatementExpr';
+  statement: Statement;
+}
+
 // --- Type expressions ---
 
 export type TypeExpr =
@@ -854,6 +900,8 @@ export interface TupleType extends AstNode {
 
 export interface Parameter extends AstNode {
   kind: 'Parameter';
+  /** Range of the declared name alone (the declaration's `range` covers its whole text). */
+  nameRange?: Range;
   name: string;
   type?: TypeExpr;
   defaultValue?: Expression;

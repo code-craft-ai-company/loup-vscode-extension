@@ -2,16 +2,35 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Loup Package Manifest",
   "scopeName": "source.loup-pkg",
-  "fileTypes": ["lppkg", "pkg"],
+  "fileTypes": [
+    "lppkg",
+    "pkg"
+  ],
   "patterns": [
-    { "include": "#comments" },
-    { "include": "#sections" },
-    { "include": "#top-level-keys" },
-    { "include": "#target-directives" },
-    { "include": "#dependency-entry" },
-    { "include": "#strings" },
-    { "include": "#numbers" },
-    { "include": "#booleans" }
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#sections"
+    },
+    {
+      "include": "#top-level-keys"
+    },
+    {
+      "include": "#target-directives"
+    },
+    {
+      "include": "#dependency-entry"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#booleans"
+    }
   ],
   "repository": {
     "comments": {
@@ -20,56 +39,82 @@
           "name": "comment.line.number-sign.loup-pkg",
           "match": "(#).*$",
           "captures": {
-            "1": { "name": "punctuation.definition.comment.loup-pkg" }
+            "1": {
+              "name": "punctuation.definition.comment.loup-pkg"
+            }
           }
         },
         {
           "name": "comment.line.double-slash.loup-pkg",
           "match": "(//).*$",
           "captures": {
-            "1": { "name": "punctuation.definition.comment.loup-pkg" }
+            "1": {
+              "name": "punctuation.definition.comment.loup-pkg"
+            }
           }
         }
       ]
     },
-
     "sections": {
       "patterns": [
         {
           "name": "meta.section.loup-pkg",
           "match": "^\\s*(\\[)\\s*(deps|dependencies|dev-deps|dev-dependencies|dev-overrides|build|options(?:\\.[a-zA-Z0-9_\"\\-]+)?|modes|(?:delivery|target)\\.(?:cli|browser|wasm|node|bun|deno|service|desktop|native|freestanding|[a-zA-Z0-9_-]+)|(?:providers|profile)\\.[a-zA-Z0-9_.-]+|linker|freestanding|registry|capabilities)\\s*(\\])",
           "captures": {
-            "1": { "name": "punctuation.definition.section.begin.loup-pkg" },
-            "2": { "name": "entity.name.section.loup-pkg" },
-            "3": { "name": "punctuation.definition.section.end.loup-pkg" }
+            "1": {
+              "name": "punctuation.definition.section.begin.loup-pkg"
+            },
+            "2": {
+              "name": "entity.name.section.loup-pkg"
+            },
+            "3": {
+              "name": "punctuation.definition.section.end.loup-pkg"
+            }
           }
         },
         {
           "name": "meta.section.custom.loup-pkg",
           "match": "^\\s*(\\[)([^\\]]+)(\\])",
           "captures": {
-            "1": { "name": "punctuation.definition.section.begin.loup-pkg" },
-            "2": { "name": "entity.name.section.custom.loup-pkg" },
-            "3": { "name": "punctuation.definition.section.end.loup-pkg" }
+            "1": {
+              "name": "punctuation.definition.section.begin.loup-pkg"
+            },
+            "2": {
+              "name": "entity.name.section.custom.loup-pkg"
+            },
+            "3": {
+              "name": "punctuation.definition.section.end.loup-pkg"
+            }
           }
         }
       ]
     },
-
     "top-level-keys": {
       "patterns": [
         {
           "name": "meta.key-value.top-level.loup-pkg",
           "match": "^\\s*(package|name|version|loup|shared_abi_version|description|license|authors|repository|entry|mode|embed_jit|max_image_size|error_trace_depth|delivery|values|default|no_float|overflow|target|arch|os)\\b\\s*(?:(=)\\s*)?(.*)$",
           "captures": {
-            "1": { "name": "keyword.other.manifest-key.loup-pkg" },
-            "2": { "name": "keyword.operator.assignment.loup-pkg" },
+            "1": {
+              "name": "keyword.other.manifest-key.loup-pkg"
+            },
+            "2": {
+              "name": "keyword.operator.assignment.loup-pkg"
+            },
             "3": {
               "patterns": [
-                { "include": "#strings" },
-                { "include": "#version-value" },
-                { "include": "#booleans" },
-                { "include": "#numbers" },
+                {
+                  "include": "#strings"
+                },
+                {
+                  "include": "#version-value"
+                },
+                {
+                  "include": "#booleans"
+                },
+                {
+                  "include": "#numbers"
+                },
                 {
                   "name": "string.unquoted.package-name.loup-pkg",
                   "match": "[a-zA-Z0-9_.-]+"
@@ -80,42 +125,49 @@
         }
       ]
     },
-
     "target-directives": {
       "patterns": [
         {
-          "name": "meta.target-directive.loup-pkg",
-          "match": "^\\s*(include|exclude)\\s+([a-zA-Z0-9_.]+)",
-          "captures": {
-            "1": { "name": "keyword.control.directive.loup-pkg" },
-            "2": { "name": "entity.name.namespace.module.loup-pkg" }
-          }
+          "name": "invalid.deprecated.bare-directive.loup-pkg",
+          "match": "^\\s*(include|exclude)\\s+([a-zA-Z0-9_.]+)"
         }
       ]
     },
-
     "dependency-entry": {
       "patterns": [
         {
           "name": "meta.dependency.loup-pkg",
-          "match": "^\\s*([a-zA-Z0-9_.-]+)\\s*(=)\\s*(.+)$",
+          "match": "^\\s*(\"[^\"]+\"|[a-zA-Z0-9_.-]+)\\s*(=)\\s*(.+)$",
           "captures": {
-            "1": { "name": "variable.other.dependency-name.loup-pkg" },
-            "2": { "name": "keyword.operator.assignment.loup-pkg" },
+            "1": {
+              "name": "variable.other.dependency-name.loup-pkg"
+            },
+            "2": {
+              "name": "keyword.operator.assignment.loup-pkg"
+            },
             "3": {
               "patterns": [
-                { "include": "#strings" },
-                { "include": "#inline-table" },
-                { "include": "#inline-array" },
-                { "include": "#booleans" },
-                { "include": "#numbers" }
+                {
+                  "include": "#strings"
+                },
+                {
+                  "include": "#inline-table"
+                },
+                {
+                  "include": "#inline-array"
+                },
+                {
+                  "include": "#booleans"
+                },
+                {
+                  "include": "#numbers"
+                }
               ]
             }
           }
         }
       ]
     },
-
     "inline-table": {
       "patterns": [
         {
@@ -123,10 +175,14 @@
           "begin": "\\{",
           "end": "\\}",
           "beginCaptures": {
-            "0": { "name": "punctuation.section.table.begin.loup-pkg" }
+            "0": {
+              "name": "punctuation.section.table.begin.loup-pkg"
+            }
           },
           "endCaptures": {
-            "0": { "name": "punctuation.section.table.end.loup-pkg" }
+            "0": {
+              "name": "punctuation.section.table.end.loup-pkg"
+            }
           },
           "patterns": [
             {
@@ -137,15 +193,22 @@
               "name": "keyword.operator.assignment.loup-pkg",
               "match": "="
             },
-            { "include": "#strings" },
-            { "include": "#inline-array" },
-            { "include": "#booleans" },
-            { "include": "#numbers" }
+            {
+              "include": "#strings"
+            },
+            {
+              "include": "#inline-array"
+            },
+            {
+              "include": "#booleans"
+            },
+            {
+              "include": "#numbers"
+            }
           ]
         }
       ]
     },
-
     "inline-array": {
       "patterns": [
         {
@@ -153,20 +216,29 @@
           "begin": "\\[",
           "end": "\\]",
           "beginCaptures": {
-            "0": { "name": "punctuation.section.array.begin.loup-pkg" }
+            "0": {
+              "name": "punctuation.section.array.begin.loup-pkg"
+            }
           },
           "endCaptures": {
-            "0": { "name": "punctuation.section.array.end.loup-pkg" }
+            "0": {
+              "name": "punctuation.section.array.end.loup-pkg"
+            }
           },
           "patterns": [
-            { "include": "#strings" },
-            { "include": "#numbers" },
-            { "include": "#booleans" }
+            {
+              "include": "#strings"
+            },
+            {
+              "include": "#numbers"
+            },
+            {
+              "include": "#booleans"
+            }
           ]
         }
       ]
     },
-
     "version-value": {
       "patterns": [
         {
@@ -175,7 +247,6 @@
         }
       ]
     },
-
     "strings": {
       "patterns": [
         {
@@ -183,10 +254,14 @@
           "begin": "\"",
           "end": "\"",
           "beginCaptures": {
-            "0": { "name": "punctuation.definition.string.begin.loup-pkg" }
+            "0": {
+              "name": "punctuation.definition.string.begin.loup-pkg"
+            }
           },
           "endCaptures": {
-            "0": { "name": "punctuation.definition.string.end.loup-pkg" }
+            "0": {
+              "name": "punctuation.definition.string.end.loup-pkg"
+            }
           },
           "patterns": [
             {
@@ -200,15 +275,18 @@
           "begin": "'",
           "end": "'",
           "beginCaptures": {
-            "0": { "name": "punctuation.definition.string.begin.loup-pkg" }
+            "0": {
+              "name": "punctuation.definition.string.begin.loup-pkg"
+            }
           },
           "endCaptures": {
-            "0": { "name": "punctuation.definition.string.end.loup-pkg" }
+            "0": {
+              "name": "punctuation.definition.string.end.loup-pkg"
+            }
           }
         }
       ]
     },
-
     "numbers": {
       "patterns": [
         {
@@ -217,7 +295,6 @@
         }
       ]
     },
-
     "booleans": {
       "patterns": [
         {

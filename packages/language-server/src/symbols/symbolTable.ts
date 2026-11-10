@@ -34,6 +34,7 @@ export enum SymbolKind {
   Import = 'Import',
   Field = 'Field',
   Operator = 'Operator',
+  Namespace = 'Namespace',
 }
 
 export interface Scope {
@@ -75,7 +76,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: stmt.isOperator ? SymbolKind.Operator : SymbolKind.Function,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatFunType(stmt),
           children: [],
         };
@@ -87,7 +88,7 @@ export class SymbolTable {
             name: p.name,
             kind: SymbolKind.Parameter,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : undefined,
           });
         }
@@ -103,7 +104,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.AsyncFunction,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatAsyncFunType(stmt),
           children: [],
         };
@@ -114,7 +115,7 @@ export class SymbolTable {
             name: p.name,
             kind: SymbolKind.Parameter,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : undefined,
           });
         }
@@ -130,7 +131,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.Class,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: [],
         };
         scope.symbols.set(stmt.name, sym);
@@ -147,7 +148,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.Enum,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.variants.map(v => ({
             name: v.name,
             kind: SymbolKind.EnumVariant,
@@ -164,12 +165,12 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.Interface,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.methods.map(m => ({
             name: m.name,
             kind: SymbolKind.Function,
             range: m.range,
-            selectionRange: m.range,
+            selectionRange: m.nameRange ?? m.range,
             type: this.formatFunType(m),
           })),
         };
@@ -188,7 +189,7 @@ export class SymbolTable {
               name: pattern.name,
               kind: SymbolKind.Variable,
               range: stmt.range,
-              selectionRange: stmt.range,
+              selectionRange: pattern.range,
               type: typeStr,
             };
             scope.symbols.set(pattern.name, sym);
@@ -232,7 +233,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.ExternFunction,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern js func`,
         };
         scope.symbols.set(stmt.name, sym);
@@ -244,7 +245,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.ExternValue,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern js val`,
         };
         scope.symbols.set(stmt.name, sym);
@@ -256,7 +257,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.ExternFunction,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern native "${stmt.library}" func`,
         };
         scope.symbols.set(stmt.name, sym);
@@ -292,7 +293,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.GenFunction,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatGenFunType(stmt),
           children: [],
         };
@@ -303,7 +304,7 @@ export class SymbolTable {
             name: p.name,
             kind: SymbolKind.Parameter,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : undefined,
           });
         }
@@ -319,7 +320,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.AsyncGenFunction,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatAsyncGenFunType(stmt),
           children: [],
         };
@@ -330,7 +331,7 @@ export class SymbolTable {
             name: p.name,
             kind: SymbolKind.Parameter,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : undefined,
           });
         }
@@ -346,7 +347,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.Struct,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.fields.map(f => ({
             name: f.name,
             kind: SymbolKind.Field,
@@ -370,7 +371,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.TypeAlias,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `type ${stmt.name} = ${this.formatType(stmt.value)}`,
         };
         scope.symbols.set(stmt.name, sym);
@@ -382,7 +383,7 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.Macro,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `macro ${stmt.name}(${stmt.params.map(p => p.name).join(', ')})`,
           children: [],
         };
@@ -395,10 +396,27 @@ export class SymbolTable {
           name: stmt.name,
           kind: SymbolKind.ExternValue,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern native "${stmt.library}" val`,
         };
         scope.symbols.set(stmt.name, sym);
+        return sym;
+      }
+
+      case 'NamespaceDecl': {
+        // `namespace a.b;` only names the file; `namespace a.b { ... }` holds declarations.
+        if (!stmt.body) return null;
+        const sym: SymbolInfo = {
+          name: stmt.name,
+          kind: SymbolKind.Namespace,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          children: [],
+        };
+        for (const inner of stmt.body) {
+          const childSym = this.collectSymbol(inner, scope);
+          if (childSym) sym.children!.push(childSym);
+        }
         return sym;
       }
 

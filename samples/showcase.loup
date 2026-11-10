@@ -18,7 +18,7 @@ from . {
   models import (User, Order);
 }
 
-from ..|.. {
+from .. {
   shared.config import (AppConfig);
 }
 

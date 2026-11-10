@@ -293,7 +293,7 @@ var require_debugSession = __commonJS({
     var messages_1 = require_messages();
     var runDebugAdapter_1 = require_runDebugAdapter();
     var url_1 = require("url");
-    var Source2 = class {
+    var Source = class {
       constructor(name, path2, id = 0, origin, data) {
         this.name = name;
         this.path = path2;
@@ -306,16 +306,16 @@ var require_debugSession = __commonJS({
         }
       }
     };
-    exports2.Source = Source2;
-    var Scope2 = class {
+    exports2.Source = Source;
+    var Scope = class {
       constructor(name, reference, expensive = false) {
         this.name = name;
         this.variablesReference = reference;
         this.expensive = expensive;
       }
     };
-    exports2.Scope = Scope2;
-    var StackFrame2 = class {
+    exports2.Scope = Scope;
+    var StackFrame = class {
       constructor(i, nm, src, ln = 0, col = 0) {
         this.id = i;
         this.source = src;
@@ -324,7 +324,7 @@ var require_debugSession = __commonJS({
         this.name = nm;
       }
     };
-    exports2.StackFrame = StackFrame2;
+    exports2.StackFrame = StackFrame;
     var Thread2 = class {
       constructor(id, name) {
         this.id = id;
@@ -350,7 +350,7 @@ var require_debugSession = __commonJS({
       }
     };
     exports2.Variable = Variable;
-    var Breakpoint2 = class {
+    var Breakpoint = class {
       constructor(verified, line, column, source) {
         this.verified = verified;
         const e = this;
@@ -368,7 +368,7 @@ var require_debugSession = __commonJS({
         this.id = id;
       }
     };
-    exports2.Breakpoint = Breakpoint2;
+    exports2.Breakpoint = Breakpoint;
     var Module = class {
       constructor(id, name) {
         this.id = id;
@@ -384,7 +384,7 @@ var require_debugSession = __commonJS({
       }
     };
     exports2.CompletionItem = CompletionItem;
-    var StoppedEvent2 = class extends messages_1.Event {
+    var StoppedEvent = class extends messages_1.Event {
       constructor(reason, threadId, exceptionText) {
         super("stopped");
         this.body = {
@@ -398,7 +398,7 @@ var require_debugSession = __commonJS({
         }
       }
     };
-    exports2.StoppedEvent = StoppedEvent2;
+    exports2.StoppedEvent = StoppedEvent;
     var ContinuedEvent = class extends messages_1.Event {
       constructor(threadId, allThreadsContinued) {
         super("continued");
@@ -429,7 +429,7 @@ var require_debugSession = __commonJS({
       }
     };
     exports2.TerminatedEvent = TerminatedEvent2;
-    var ExitedEvent = class extends messages_1.Event {
+    var ExitedEvent2 = class extends messages_1.Event {
       constructor(exitCode) {
         super("exited");
         this.body = {
@@ -437,7 +437,7 @@ var require_debugSession = __commonJS({
         };
       }
     };
-    exports2.ExitedEvent = ExitedEvent;
+    exports2.ExitedEvent = ExitedEvent2;
     var OutputEvent2 = class extends messages_1.Event {
       constructor(output, category = "console", data) {
         super("output");
@@ -461,7 +461,7 @@ var require_debugSession = __commonJS({
       }
     };
     exports2.ThreadEvent = ThreadEvent;
-    var BreakpointEvent2 = class extends messages_1.Event {
+    var BreakpointEvent = class extends messages_1.Event {
       constructor(reason, breakpoint) {
         super("breakpoint");
         this.body = {
@@ -470,7 +470,7 @@ var require_debugSession = __commonJS({
         };
       }
     };
-    exports2.BreakpointEvent = BreakpointEvent2;
+    exports2.BreakpointEvent = BreakpointEvent;
     var ModuleEvent = class extends messages_1.Event {
       constructor(reason, module3) {
         super("module");
@@ -1056,13 +1056,13 @@ var require_internalLogger = __commonJS({
         process.removeListener("SIGINT", this.disposeCallback);
       }
       dispose() {
-        return new Promise((resolve) => {
+        return new Promise((resolve2) => {
           this.removeShutdownListeners();
           if (this._logFileStream) {
-            this._logFileStream.end(resolve);
+            this._logFileStream.end(resolve2);
             this._logFileStream = null;
           } else {
-            resolve();
+            resolve2();
           }
         });
       }
@@ -1419,471 +1419,148 @@ var import_debugadapter = __toESM(require_main());
 // src/loupRuntime.ts
 var import_events = require("events");
 var import_child_process = require("child_process");
+var path = __toESM(require("path"));
+function runCommandArgs(opts) {
+  const out = ["run", ...opts.runArgs, opts.program];
+  if (opts.args.length > 0)
+    out.push("--", ...opts.args);
+  return out;
+}
+function exitLine(code, signal) {
+  if (signal)
+    return `Program stopped by signal ${signal}.`;
+  return `Program exited with code ${code ?? 0}.`;
+}
 var LoupRuntime = class extends import_events.EventEmitter {
-  process = null;
-  breakpoints = /* @__PURE__ */ new Map();
-  breakpointIdCounter = 1;
-  stackFrames = [];
-  variables = /* @__PURE__ */ new Map();
-  nextVarRef = 1e3;
-  running = false;
-  // ---- Lifecycle ----
-  async launch(program, args, target, env, enableTimeTravel, traceLevel) {
-    const loupArgs = ["run", program, "--target", target];
-    if (enableTimeTravel) {
-      loupArgs.push("--enable-time-travel");
-    }
-    if (traceLevel && traceLevel !== "off") {
-      loupArgs.push("--trace-level", traceLevel);
-    }
-    if (args.length > 0) {
-      loupArgs.push("--", ...args);
-    }
-    const loupPath = process.env["LOUP_PATH"] || "loup";
-    this.process = (0, import_child_process.spawn)(loupPath, loupArgs, {
-      cwd: this.workingDir(program),
-      env: { ...process.env, ...env, LOUP_DEBUG: "1" },
-      stdio: ["pipe", "pipe", "pipe"]
-    });
-    this.running = true;
-    this.process.stdout?.on("data", (data) => {
-      this.emit("output", "stdout", data.toString());
-    });
-    this.process.stderr?.on("data", (data) => {
-      const text = data.toString();
-      for (const line of text.split("\n")) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("{")) {
-          try {
-            const msg = JSON.parse(trimmed);
-            this.handleDebugMessage(msg);
-            continue;
-          } catch {
-          }
-        }
-        if (trimmed.length > 0) {
-          this.emit("output", "stderr", trimmed + "\n");
-        }
-      }
-    });
-    this.process.on("exit", (code) => {
-      this.running = false;
-      this.emit("output", "console", `Process exited with code ${code}
+  child = null;
+  ended = false;
+  /** Start the program. Rejects when the executable cannot be started. */
+  launch(opts) {
+    return new Promise((resolve2, reject) => {
+      const program = path.resolve(opts.program);
+      const child = (0, import_child_process.spawn)(opts.executable, runCommandArgs({ ...opts, program }), {
+        cwd: opts.cwd && opts.cwd.length > 0 ? opts.cwd : path.dirname(program),
+        env: { ...process.env, ...opts.env },
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+      this.child = child;
+      let started = false;
+      child.once("spawn", () => {
+        started = true;
+        resolve2();
+      });
+      child.stdout?.setEncoding("utf8");
+      child.stderr?.setEncoding("utf8");
+      child.stdout?.on("data", (text) => this.emit("output", "stdout", text));
+      child.stderr?.on("data", (text) => this.emit("output", "stderr", text));
+      child.once("error", (err) => {
+        this.child = null;
+        const why = err.code === "ENOENT" ? `could not find \`${opts.executable}\`. Set "loup.executable" in the settings to the loup binary.` : err.message;
+        if (!started)
+          reject(new Error(why));
+        else
+          this.emit("output", "stderr", `${why}
 `);
-      this.emit("end");
-    });
-    this.process.on("error", (err) => {
-      this.running = false;
-      this.emit("error", `Failed to launch Loup: ${err.message}`);
-      this.emit("end");
+        this.end();
+      });
+      child.once("close", (code, signal) => {
+        this.child = null;
+        this.emit("output", "console", `${exitLine(code, signal)}
+`);
+        this.emit("exit", code ?? (signal ? 1 : 0));
+        this.end();
+      });
     });
   }
-  async attach(host, port) {
-    this.emit("output", "console", `Attaching to ${host}:${port}...
-`);
-    this.emit("error", "Attach mode is not yet implemented. Use launch mode.");
+  /** Stop the program if it is still running. */
+  stop() {
+    const child = this.child;
+    if (!child)
+      return;
+    child.kill();
+    const timer = setTimeout(() => {
+      if (this.child === child)
+        child.kill("SIGKILL");
+    }, 2e3);
+    timer.unref();
+  }
+  end() {
+    if (this.ended)
+      return;
+    this.ended = true;
     this.emit("end");
-  }
-  disconnect() {
-    if (this.process) {
-      this.sendCommand({ command: "disconnect" });
-      this.process.kill();
-      this.process = null;
-    }
-    this.running = false;
-  }
-  // ---- Breakpoints ----
-  setBreakpoints(source, lines) {
-    const bps = lines.map((line) => ({
-      id: this.breakpointIdCounter++,
-      line,
-      verified: true,
-      source
-    }));
-    this.breakpoints.set(source, bps);
-    this.sendCommand({
-      command: "setBreakpoints",
-      source,
-      breakpoints: bps.map((bp) => ({ line: bp.line }))
-    });
-    return bps;
-  }
-  setExceptionBreakpoints(filters) {
-    this.sendCommand({
-      command: "setExceptionBreakpoints",
-      filters
-    });
-  }
-  // ---- Execution control ----
-  continue(threadId) {
-    this.sendCommand({ command: "continue", threadId });
-  }
-  next(threadId) {
-    this.sendCommand({ command: "next", threadId });
-  }
-  stepIn(threadId) {
-    this.sendCommand({ command: "stepIn", threadId });
-  }
-  stepOut(threadId) {
-    this.sendCommand({ command: "stepOut", threadId });
-  }
-  pause(threadId) {
-    this.sendCommand({ command: "pause", threadId });
-  }
-  // ---- Stack & variables ----
-  getStackTrace(_threadId) {
-    return this.stackFrames;
-  }
-  getScopes(frameId) {
-    return [
-      { name: "Locals", variablesReference: frameId * 10 + 1, expensive: false },
-      { name: "Globals", variablesReference: frameId * 10 + 2, expensive: true }
-    ];
-  }
-  getVariables(variablesReference) {
-    return this.variables.get(variablesReference) || [];
-  }
-  // ---- Evaluation ----
-  evaluate(expression, frameId) {
-    this.sendCommand({ command: "evaluate", expression, frameId });
-    return {
-      result: `<evaluating: ${expression}>`,
-      type: "string",
-      variablesReference: 0
-    };
-  }
-  // ---- Portal support (Phase 3 prep) ----
-  getPortals() {
-    return [];
-  }
-  activatePortal(name) {
-    this.sendCommand({ command: "activatePortal", name });
-  }
-  deactivatePortal(name) {
-    this.sendCommand({ command: "deactivatePortal", name });
-  }
-  activatePortalWithCondition(name, condition) {
-    this.sendCommand({ command: "activatePortal", name, condition });
-  }
-  // ---- Internal ----
-  handleDebugMessage(msg) {
-    switch (msg["event"]) {
-      case "stopped": {
-        const reason = msg["reason"];
-        const threadId = msg["threadId"] || 1;
-        if (Array.isArray(msg["stackFrames"])) {
-          this.stackFrames = msg["stackFrames"].map((f, i) => ({
-            id: i,
-            name: String(f["name"] || "<unknown>"),
-            source: String(f["source"] || ""),
-            line: Number(f["line"] || 0),
-            column: Number(f["column"] || 0),
-            execMode: f["execMode"] || "interpreted",
-            traceLevel: f["traceLevel"] || "off",
-            isPortal: Boolean(f["isPortal"]),
-            portalName: f["portalName"],
-            portalCondition: f["portalCondition"]
-          }));
-        }
-        if (msg["locals"] && typeof msg["locals"] === "object") {
-          const locals = [];
-          for (const [name, info] of Object.entries(msg["locals"])) {
-            locals.push({
-              name,
-              value: String(info["value"] || ""),
-              type: String(info["type"] || "Any"),
-              variablesReference: info["children"] ? this.nextVarRef++ : 0
-            });
-          }
-          if (this.stackFrames.length > 0) {
-            this.variables.set(this.stackFrames[0].id * 10 + 1, locals);
-          }
-        }
-        this.emit("stopOnBreakpoint", threadId, reason);
-        break;
-      }
-      case "output": {
-        const category = msg["category"] || "stdout";
-        const text = msg["text"] || "";
-        this.emit("output", category, text, msg["source"], msg["line"]);
-        break;
-      }
-      case "breakpointValidated": {
-        const bp = {
-          id: msg["id"],
-          line: msg["line"],
-          verified: msg["verified"],
-          source: msg["source"]
-        };
-        this.emit("breakpointValidated", bp);
-        break;
-      }
-      case "exited": {
-        this.running = false;
-        this.emit("end");
-        break;
-      }
-    }
-  }
-  sendCommand(cmd) {
-    if (this.process?.stdin?.writable) {
-      this.process.stdin.write(JSON.stringify(cmd) + "\n");
-    }
-  }
-  workingDir(program) {
-    const path2 = require("path");
-    return path2.dirname(path2.resolve(program));
   }
 };
 
 // src/loupDebugSession.ts
-var path = __toESM(require("path"));
 var THREAD_ID = 1;
+var NO_BREAKPOINTS = "Loup cannot stop at breakpoints from VS Code yet; the program runs to the end.";
+function strings(value) {
+  return Array.isArray(value) ? value.filter((v) => typeof v === "string") : [];
+}
 var LoupDebugSession = class extends import_debugadapter.LoggingDebugSession {
-  runtime;
+  runtime = new LoupRuntime();
   constructor() {
     super("loup-debug.log");
     this.setDebuggerLinesStartAt1(true);
     this.setDebuggerColumnsStartAt1(true);
-    this.runtime = new LoupRuntime();
-    this.runtime.on("stopOnBreakpoint", (threadId, reason) => {
-      this.sendEvent(new import_debugadapter.StoppedEvent(reason, threadId));
+    this.runtime.on("output", (category, text) => {
+      this.sendEvent(new import_debugadapter.OutputEvent(text, category));
     });
-    this.runtime.on("stopOnStep", (threadId) => {
-      this.sendEvent(new import_debugadapter.StoppedEvent("step", threadId));
-    });
-    this.runtime.on("stopOnException", (threadId, message) => {
-      const event = new import_debugadapter.StoppedEvent("exception", threadId, message);
-      this.sendEvent(event);
-    });
-    this.runtime.on("breakpointValidated", (bp) => {
-      const breakpoint = new import_debugadapter.Breakpoint(bp.verified, bp.line);
-      breakpoint.id = bp.id;
-      this.sendEvent(new import_debugadapter.BreakpointEvent("changed", breakpoint));
-    });
-    this.runtime.on("output", (category, text, source, line) => {
-      const event = new import_debugadapter.OutputEvent(text, category);
-      if (source) {
-        event.body.source = new import_debugadapter.Source(
-          path.basename(source),
-          source
-        );
-      }
-      if (line !== void 0) {
-        event.body.line = line;
-      }
-      this.sendEvent(event);
+    this.runtime.on("exit", (code) => {
+      this.sendEvent(new import_debugadapter.ExitedEvent(code));
     });
     this.runtime.on("end", () => {
       this.sendEvent(new import_debugadapter.TerminatedEvent());
     });
   }
-  // ---- Initialize ----
   initializeRequest(response, _args) {
     response.body = response.body || {};
     response.body.supportsConfigurationDoneRequest = true;
-    response.body.supportsFunctionBreakpoints = false;
-    response.body.supportsConditionalBreakpoints = false;
-    response.body.supportsHitConditionalBreakpoints = false;
-    response.body.supportsEvaluateForHovers = true;
-    response.body.exceptionBreakpointFilters = [
-      {
-        filter: "all",
-        label: "All Exceptions",
-        description: "Break on all thrown exceptions",
-        default: false
-      },
-      {
-        filter: "uncaught",
-        label: "Uncaught Exceptions",
-        description: "Break on exceptions not caught by try/catch",
-        default: true
-      }
-    ];
-    response.body.supportsStepBack = false;
-    response.body.supportsSetVariable = false;
-    response.body.supportsRestartFrame = false;
-    response.body.supportsGotoTargetsRequest = false;
-    response.body.supportsStepInTargetsRequest = false;
-    response.body.supportsCompletionsRequest = false;
-    response.body.supportsModulesRequest = false;
-    response.body.supportsRestartRequest = true;
-    response.body.supportsExceptionOptions = false;
-    response.body.supportsValueFormattingOptions = false;
-    response.body.supportsExceptionInfoRequest = true;
-    response.body.supportTerminateDebuggee = true;
-    response.body.supportsDelayedStackTraceLoading = false;
-    response.body.supportsLoadedSourcesRequest = false;
-    response.body.supportsTerminateThreadsRequest = false;
-    response.body.supportsSetExpression = false;
     response.body.supportsTerminateRequest = true;
-    response.body.supportsDataBreakpoints = false;
-    response.body.supportsReadMemoryRequest = false;
-    response.body.supportsDisassembleRequest = false;
-    response.body.supportsCancelRequest = false;
-    response.body.supportsBreakpointLocationsRequest = false;
-    response.body.supportsClipboardContext = false;
-    response.body.supportsSteppingGranularity = false;
-    response.body.supportsInstructionBreakpoints = false;
-    response.body.supportsExceptionFilterOptions = false;
+    response.body.supportTerminateDebuggee = true;
     this.sendResponse(response);
     this.sendEvent(new import_debugadapter.InitializedEvent());
   }
-  configurationDoneRequest(response, _args) {
-    super.configurationDoneRequest(response, _args);
-  }
-  // ---- Launch / Attach ----
   async launchRequest(response, args) {
+    if (typeof args.program !== "string" || args.program.length === 0) {
+      this.sendErrorResponse(response, 1, 'The launch configuration needs "program": the Loup file to run.');
+      return;
+    }
     try {
-      await this.runtime.launch(
-        args.program,
-        args.args || [],
-        args.target || "cli",
-        args.env || {},
-        args.enableTimeTravel || false,
-        args.traceLevel || "off"
-      );
-      if (args.portalBreakpoints && args.portalBreakpoints.length > 0) {
-        for (const portal of args.portalBreakpoints) {
-          this.runtime.activatePortal(portal);
-        }
-      }
+      await this.runtime.launch({
+        executable: args.loupExecutable || process.env["LOUP_PATH"] || "loup",
+        program: args.program,
+        runArgs: strings(args.runArgs),
+        args: strings(args.args),
+        cwd: args.cwd,
+        env: args.env && typeof args.env === "object" ? args.env : {}
+      });
       this.sendResponse(response);
     } catch (err) {
-      this.sendErrorResponse(response, 1, `Failed to launch: ${err}`);
+      this.sendErrorResponse(response, 2, `Could not run the program: ${err instanceof Error ? err.message : err}`);
     }
   }
-  async attachRequest(response, args) {
-    try {
-      await this.runtime.attach(args.host || "localhost", args.port || 9229);
-      this.sendResponse(response);
-    } catch (err) {
-      this.sendErrorResponse(response, 2, `Failed to attach: ${err}`);
-    }
+  attachRequest(response, _args) {
+    this.sendErrorResponse(response, 3, "Loup does not support attaching from VS Code yet.");
   }
   terminateRequest(response, _args) {
-    this.runtime.disconnect();
+    this.runtime.stop();
     this.sendResponse(response);
   }
   disconnectRequest(response, _args) {
-    this.runtime.disconnect();
+    this.runtime.stop();
     this.sendResponse(response);
   }
-  restartRequest(response, _args) {
-    this.runtime.disconnect();
-    this.sendResponse(response);
-  }
-  // ---- Breakpoints ----
+  /** Breakpoints set in other languages' files still arrive here: say plainly that none is set. */
   setBreakPointsRequest(response, args) {
-    const source = args.source.path || "";
-    const requestedLines = args.breakpoints?.map((bp) => bp.line) || [];
-    const bps = this.runtime.setBreakpoints(source, requestedLines);
     response.body = {
-      breakpoints: bps.map((bp) => ({
-        id: bp.id,
-        verified: bp.verified,
-        line: bp.line,
-        source: new import_debugadapter.Source(path.basename(source), source)
-      }))
+      breakpoints: (args.breakpoints ?? []).map((bp) => ({ verified: false, line: bp.line, message: NO_BREAKPOINTS }))
     };
     this.sendResponse(response);
   }
-  setExceptionBreakPointsRequest(response, args) {
-    this.runtime.setExceptionBreakpoints(args.filters);
-    this.sendResponse(response);
-  }
-  // ---- Threads ----
   threadsRequest(response) {
-    response.body = {
-      threads: [new import_debugadapter.Thread(THREAD_ID, "Main Thread")]
-    };
-    this.sendResponse(response);
-  }
-  // ---- Stack trace ----
-  stackTraceRequest(response, args) {
-    const frames = this.runtime.getStackTrace(args.threadId);
-    response.body = {
-      stackFrames: frames.map((f) => {
-        const sf = new import_debugadapter.StackFrame(
-          f.id,
-          f.name,
-          new import_debugadapter.Source(path.basename(f.source), f.source),
-          f.line,
-          f.column
-        );
-        if (f.isPortal) {
-          sf.presentationHint = "subtle";
-        }
-        if (f.execMode === "native") {
-          sf.presentationHint = "label";
-        }
-        return sf;
-      }),
-      totalFrames: frames.length
-    };
-    this.sendResponse(response);
-  }
-  // ---- Scopes & Variables ----
-  scopesRequest(response, args) {
-    const scopes = this.runtime.getScopes(args.frameId);
-    response.body = {
-      scopes: scopes.map((s) => new import_debugadapter.Scope(s.name, s.variablesReference, s.expensive))
-    };
-    this.sendResponse(response);
-  }
-  variablesRequest(response, args) {
-    const variables = this.runtime.getVariables(args.variablesReference);
-    response.body = {
-      variables: variables.map((v) => ({
-        name: v.name,
-        value: v.value,
-        type: v.type,
-        variablesReference: v.variablesReference,
-        namedVariables: v.namedVariables,
-        indexedVariables: v.indexedVariables
-      }))
-    };
-    this.sendResponse(response);
-  }
-  // ---- Execution control ----
-  continueRequest(response, args) {
-    this.runtime.continue(args.threadId);
-    response.body = { allThreadsContinued: true };
-    this.sendResponse(response);
-  }
-  nextRequest(response, args) {
-    this.runtime.next(args.threadId);
-    this.sendResponse(response);
-  }
-  stepInRequest(response, args) {
-    this.runtime.stepIn(args.threadId);
-    this.sendResponse(response);
-  }
-  stepOutRequest(response, args) {
-    this.runtime.stepOut(args.threadId);
-    this.sendResponse(response);
-  }
-  pauseRequest(response, args) {
-    this.runtime.pause(args.threadId);
-    this.sendResponse(response);
-  }
-  // ---- Evaluation ----
-  evaluateRequest(response, args) {
-    const result = this.runtime.evaluate(args.expression, args.frameId);
-    response.body = {
-      result: result.result,
-      type: result.type,
-      variablesReference: result.variablesReference
-    };
-    this.sendResponse(response);
-  }
-  // ---- Exception info ----
-  exceptionInfoRequest(response, _args) {
-    response.body = {
-      exceptionId: "LoupException",
-      description: "An exception was thrown",
-      breakMode: "always"
-    };
+    response.body = { threads: [new import_debugadapter.Thread(THREAD_ID, "main")] };
     this.sendResponse(response);
   }
 };

@@ -4,3 +4,6 @@ node_modules
 .vsix
 packages/extension/out/server.js
 packages/extension/out/debugAdapter.js
+packages/extension/README.md
+packages/extension/LICENSE
+packages/extension/CHANGELOG.md

@@ -3,3 +3,4 @@ tsconfig.json
 out/**/*.map
 node_modules/**
 **/.DS_Store
+icons/loup.svg

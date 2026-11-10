@@ -3486,12 +3486,12 @@ var require_main2 = __commonJS({
         }
         ColorPresentation2.is = is;
       })(ColorPresentation || (exports3.ColorPresentation = ColorPresentation = {}));
-      var FoldingRangeKind2;
-      (function(FoldingRangeKind3) {
-        FoldingRangeKind3.Comment = "comment";
-        FoldingRangeKind3.Imports = "imports";
-        FoldingRangeKind3.Region = "region";
-      })(FoldingRangeKind2 || (exports3.FoldingRangeKind = FoldingRangeKind2 = {}));
+      var FoldingRangeKind;
+      (function(FoldingRangeKind2) {
+        FoldingRangeKind2.Comment = "comment";
+        FoldingRangeKind2.Imports = "imports";
+        FoldingRangeKind2.Region = "region";
+      })(FoldingRangeKind || (exports3.FoldingRangeKind = FoldingRangeKind = {}));
       var FoldingRange2;
       (function(FoldingRange3) {
         function create(startLine, endLine, startCharacter, endCharacter, kind, collapsedText) {
@@ -9126,12 +9126,213 @@ function getWellformedEdit(textEdit) {
 }
 
 // src/parser/lexer.ts
-var KEYWORDS = {
+var TokenKind = /* @__PURE__ */ ((TokenKind2) => {
+  TokenKind2["IntLiteral"] = "IntLiteral";
+  TokenKind2["FloatLiteral"] = "FloatLiteral";
+  TokenKind2["StringLiteral"] = "StringLiteral";
+  TokenKind2["CharLiteral"] = "CharLiteral";
+  TokenKind2["InterpolatedStringLiteral"] = "InterpolatedStringLiteral";
+  TokenKind2["RawStringLiteral"] = "RawStringLiteral";
+  TokenKind2["BytesLiteral"] = "BytesLiteral";
+  TokenKind2["MultilineStringLiteral"] = "MultilineStringLiteral";
+  TokenKind2["BoolLiteral"] = "BoolLiteral";
+  TokenKind2["NoneLiteral"] = "NoneLiteral";
+  TokenKind2["TemplateFenceOpen"] = "TemplateFenceOpen";
+  TokenKind2["TemplateFenceClose"] = "TemplateFenceClose";
+  TokenKind2["TemplateContent"] = "TemplateContent";
+  TokenKind2["TemplateExprOpen"] = "TemplateExprOpen";
+  TokenKind2["TemplateExprClose"] = "TemplateExprClose";
+  TokenKind2["TemplateDirOpen"] = "TemplateDirOpen";
+  TokenKind2["TemplateDirClose"] = "TemplateDirClose";
+  TokenKind2["TemplateComment"] = "TemplateComment";
+  TokenKind2["Identifier"] = "Identifier";
+  TokenKind2["TypeIdentifier"] = "TypeIdentifier";
+  TokenKind2["LifetimeLabel"] = "LifetimeLabel";
+  TokenKind2["MacroSplice"] = "MacroSplice";
+  TokenKind2["Let"] = "let";
+  TokenKind2["Var"] = "var";
+  TokenKind2["Const"] = "const";
+  TokenKind2["Fun"] = "func";
+  TokenKind2["Gen"] = "gen";
+  TokenKind2["Macro"] = "macro";
+  TokenKind2["Quote"] = "quote";
+  TokenKind2["Return"] = "return";
+  TokenKind2["Yield"] = "yield";
+  TokenKind2["Suspend"] = "suspend";
+  TokenKind2["If"] = "if";
+  TokenKind2["Else"] = "else";
+  TokenKind2["For"] = "for";
+  TokenKind2["While"] = "while";
+  TokenKind2["Do"] = "do";
+  TokenKind2["Match"] = "match";
+  TokenKind2["Break"] = "break";
+  TokenKind2["Continue"] = "continue";
+  TokenKind2["Defer"] = "defer";
+  TokenKind2["With"] = "with";
+  TokenKind2["Portal"] = "portal";
+  TokenKind2["Async"] = "async";
+  TokenKind2["Await"] = "await";
+  TokenKind2["Spawn"] = "spawn";
+  TokenKind2["Group"] = "group";
+  TokenKind2["Concurrent"] = "concurrent";
+  TokenKind2["Try"] = "try";
+  TokenKind2["Catch"] = "catch";
+  TokenKind2["Finally"] = "finally";
+  TokenKind2["Throw"] = "throw";
+  TokenKind2["Attempt"] = "attempt";
+  TokenKind2["Unreachable"] = "unreachable";
+  TokenKind2["From"] = "from";
+  TokenKind2["Import"] = "import";
+  TokenKind2["As"] = "as";
+  TokenKind2["In"] = "in";
+  TokenKind2["Is"] = "is";
+  TokenKind2["Instanceof"] = "instanceof";
+  TokenKind2["Typeof"] = "typeof";
+  TokenKind2["Not"] = "not";
+  TokenKind2["Bnot"] = "bnot";
+  TokenKind2["Del"] = "del";
+  TokenKind2["Global"] = "global";
+  TokenKind2["Nonlocal"] = "nonlocal";
+  TokenKind2["Pub"] = "pub";
+  TokenKind2["Static"] = "static";
+  TokenKind2["Override"] = "override";
+  TokenKind2["Final"] = "final";
+  TokenKind2["Sealed"] = "sealed";
+  TokenKind2["Class"] = "class";
+  TokenKind2["Struct"] = "struct";
+  TokenKind2["Abstract"] = "abstract";
+  TokenKind2["Dynamic"] = "dynamic";
+  TokenKind2["Interface"] = "interface";
+  TokenKind2["Implements"] = "implements";
+  TokenKind2["Enum"] = "enum";
+  TokenKind2["Type"] = "type";
+  TokenKind2["Namespace"] = "namespace";
+  TokenKind2["Template"] = "template";
+  TokenKind2["Foundation"] = "foundation";
+  TokenKind2["Overlay"] = "overlay";
+  TokenKind2["Onto"] = "onto";
+  TokenKind2["Part"] = "part";
+  TokenKind2["Extern"] = "extern";
+  TokenKind2["Js"] = "js";
+  TokenKind2["Native"] = "native";
+  TokenKind2["Val"] = "val";
+  TokenKind2["New"] = "new";
+  TokenKind2["Box"] = "box";
+  TokenKind2["True"] = "true";
+  TokenKind2["False"] = "false";
+  TokenKind2["None"] = "None";
+  TokenKind2["This"] = "this";
+  TokenKind2["Self"] = "Self";
+  TokenKind2["Super"] = "super";
+  TokenKind2["Fn"] = "fn";
+  TokenKind2["Once"] = "once";
+  TokenKind2["Operator"] = "operator";
+  TokenKind2["Weak"] = "weak";
+  TokenKind2["Unowned"] = "unowned";
+  TokenKind2["Arc"] = "arc";
+  TokenKind2["Borrow"] = "borrow";
+  TokenKind2["Excl"] = "excl";
+  TokenKind2["Unique"] = "unique";
+  TokenKind2["Local"] = "local";
+  TokenKind2["Shared"] = "shared";
+  TokenKind2["Onstack"] = "onstack";
+  TokenKind2["Lifetime"] = "lifetime";
+  TokenKind2["Noescape"] = "noescape";
+  TokenKind2["Consume"] = "consume";
+  TokenKind2["Noreturn"] = "noreturn";
+  TokenKind2["Impossible"] = "impossible";
+  TokenKind2["Prefer"] = "prefer";
+  TokenKind2["Compiled"] = "compiled";
+  TokenKind2["Scripted"] = "scripted";
+  TokenKind2["Dual"] = "dual";
+  TokenKind2["Freestanding"] = "freestanding";
+  TokenKind2["Portable"] = "portable";
+  TokenKind2["Reads"] = "reads";
+  TokenKind2["Edits"] = "edits";
+  TokenKind2["Takes"] = "takes";
+  TokenKind2["Shares"] = "shares";
+  TokenKind2["Modifier"] = "modifier";
+  TokenKind2["Safe"] = "safe";
+  TokenKind2["Synchronized"] = "synchronized";
+  TokenKind2["Unsafe"] = "unsafe";
+  TokenKind2["Requires"] = "requires";
+  TokenKind2["Distinct"] = "distinct";
+  TokenKind2["Atomic"] = "atomic";
+  TokenKind2["Asm"] = "asm";
+  TokenKind2["Volatile"] = "volatile";
+  TokenKind2["Where"] = "where";
+  TokenKind2["SizeOf"] = "size_of";
+  TokenKind2["AlignOf"] = "align_of";
+  TokenKind2["Reinterpret"] = "reinterpret";
+  TokenKind2["ReinterpretChecked"] = "reinterpretChecked";
+  TokenKind2["Get"] = "get";
+  TokenKind2["Set"] = "set";
+  TokenKind2["Plus"] = "+";
+  TokenKind2["Minus"] = "-";
+  TokenKind2["Star"] = "*";
+  TokenKind2["StarStar"] = "**";
+  TokenKind2["Slash"] = "/";
+  TokenKind2["SlashSlash"] = "//";
+  TokenKind2["Percent"] = "%";
+  TokenKind2["Assign"] = "=";
+  TokenKind2["PlusAssign"] = "+=";
+  TokenKind2["MinusAssign"] = "-=";
+  TokenKind2["StarAssign"] = "*=";
+  TokenKind2["SlashAssign"] = "/=";
+  TokenKind2["SlashSlashAssign"] = "//=";
+  TokenKind2["PercentAssign"] = "%=";
+  TokenKind2["StarStarAssign"] = "**=";
+  TokenKind2["AmpersandAssign"] = "&=";
+  TokenKind2["PipeAssign"] = "|=";
+  TokenKind2["CaretAssign"] = "^=";
+  TokenKind2["ShiftLeftAssign"] = "<<=";
+  TokenKind2["ShiftRightAssign"] = ">>=";
+  TokenKind2["EqualEqual"] = "==";
+  TokenKind2["BangEqual"] = "!=";
+  TokenKind2["LessThan"] = "<";
+  TokenKind2["LessEqual"] = "<=";
+  TokenKind2["GreaterThan"] = ">";
+  TokenKind2["GreaterEqual"] = ">=";
+  TokenKind2["ShiftLeft"] = "<<";
+  TokenKind2["ShiftRight"] = ">>";
+  TokenKind2["And"] = "&&";
+  TokenKind2["Or"] = "||";
+  TokenKind2["Bang"] = "!";
+  TokenKind2["Ampersand"] = "&";
+  TokenKind2["Caret"] = "^";
+  TokenKind2["Tilde"] = "~";
+  TokenKind2["Question"] = "?";
+  TokenKind2["QuestionDot"] = "?.";
+  TokenKind2["QuestionQuestion"] = "??";
+  TokenKind2["Arrow"] = "=>";
+  TokenKind2["Pipe"] = "|";
+  TokenKind2["Dot"] = ".";
+  TokenKind2["DotDot"] = "..";
+  TokenKind2["DotDotEqual"] = "..=";
+  TokenKind2["DotDotDot"] = "...";
+  TokenKind2["Colon"] = ":";
+  TokenKind2["Semicolon"] = ";";
+  TokenKind2["Comma"] = ",";
+  TokenKind2["At"] = "@";
+  TokenKind2["BangLeftBrace"] = "!{";
+  TokenKind2["LeftParen"] = "(";
+  TokenKind2["RightParen"] = ")";
+  TokenKind2["LeftBrace"] = "{";
+  TokenKind2["RightBrace"] = "}";
+  TokenKind2["LeftBracket"] = "[";
+  TokenKind2["RightBracket"] = "]";
+  TokenKind2["LineComment"] = "LineComment";
+  TokenKind2["DocComment"] = "DocComment";
+  TokenKind2["BlockComment"] = "BlockComment";
+  TokenKind2["EOF"] = "EOF";
+  TokenKind2["Error"] = "Error";
+  return TokenKind2;
+})(TokenKind || {});
+var KEYWORD_TABLE = {
   let: "let" /* Let */,
   var: "var" /* Var */,
   const: "const" /* Const */,
-  fun: "fun" /* Fun */,
-  func: "fun" /* Fun */,
+  func: "func" /* Fun */,
   gen: "gen" /* Gen */,
   macro: "macro" /* Macro */,
   quote: "quote" /* Quote */,
@@ -9202,7 +9403,6 @@ var KEYWORDS = {
   true: "true" /* True */,
   false: "false" /* False */,
   None: "None" /* None */,
-  none: "None" /* None */,
   this: "this" /* This */,
   Self: "Self" /* Self */,
   super: "super" /* Super */,
@@ -9215,6 +9415,8 @@ var KEYWORDS = {
   borrow: "borrow" /* Borrow */,
   excl: "excl" /* Excl */,
   unique: "unique" /* Unique */,
+  local: "local" /* Local */,
+  shared: "shared" /* Shared */,
   onstack: "onstack" /* Onstack */,
   lifetime: "lifetime" /* Lifetime */,
   noescape: "noescape" /* Noescape */,
@@ -9248,6 +9450,132 @@ var KEYWORDS = {
   get: "get" /* Get */,
   set: "set" /* Set */
 };
+var KEYWORDS = new Map(Object.entries(KEYWORD_TABLE));
+var KEYWORD_KINDS = new Set(KEYWORDS.values());
+var RESERVED_WORDS = /* @__PURE__ */ new Set([
+  "abstract",
+  "and",
+  "as",
+  "async",
+  "attempt",
+  "await",
+  "bnot",
+  "borrow",
+  "break",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "defer",
+  "del",
+  "do",
+  "dynamic",
+  "else",
+  "enum",
+  "extern",
+  "false",
+  "final",
+  "finally",
+  "fn",
+  "for",
+  "from",
+  "func",
+  "gen",
+  "global",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "interface",
+  "is",
+  "let",
+  "lifetime",
+  "macro",
+  "match",
+  "new",
+  "namespace",
+  "noescape",
+  "nonlocal",
+  "not",
+  "onstack",
+  "or",
+  "override",
+  "portal",
+  "prefer",
+  "pub",
+  "return",
+  "sealed",
+  "static",
+  "super",
+  "struct",
+  "suspend",
+  "throw",
+  "true",
+  "try",
+  "type",
+  "Self",
+  "this",
+  "typeof",
+  "unique",
+  "var",
+  "volatile",
+  "where",
+  "while",
+  "with",
+  "yield",
+  "consume",
+  "reads",
+  "edits",
+  "takes",
+  "shares",
+  "modifier",
+  "safe",
+  "synchronized",
+  "unsafe",
+  "requires",
+  "atomic",
+  "unreachable",
+  "local",
+  "shared"
+]);
+function isReservedWord(text) {
+  return RESERVED_WORDS.has(text);
+}
+var RESERVED_WORD_SPELLINGS = [...RESERVED_WORDS];
+function isKeywordKind(kind) {
+  return KEYWORD_KINDS.has(kind);
+}
+var KEYWORD_SPELLINGS = [...KEYWORDS.keys()];
+var SINGLE_CHAR_TOKENS = /* @__PURE__ */ new Map([
+  ["+", "+" /* Plus */],
+  ["-", "-" /* Minus */],
+  ["*", "*" /* Star */],
+  ["/", "/" /* Slash */],
+  ["%", "%" /* Percent */],
+  ["=", "=" /* Assign */],
+  ["<", "<" /* LessThan */],
+  [">", ">" /* GreaterThan */],
+  ["!", "!" /* Bang */],
+  ["&", "&" /* Ampersand */],
+  ["^", "^" /* Caret */],
+  ["~", "~" /* Tilde */],
+  ["?", "?" /* Question */],
+  ["|", "|" /* Pipe */],
+  [".", "." /* Dot */],
+  [":", ":" /* Colon */],
+  [";", ";" /* Semicolon */],
+  [",", "," /* Comma */],
+  ["@", "@" /* At */],
+  ["(", "(" /* LeftParen */],
+  [")", ")" /* RightParen */],
+  ["{", "{" /* LeftBrace */],
+  ["}", "}" /* RightBrace */],
+  ["[", "[" /* LeftBracket */],
+  ["]", "]" /* RightBracket */]
+]);
+var UNICODE_LETTER = /^\p{L}$/u;
+var UNICODE_DIGIT = /^\p{Nd}$/u;
 var Lexer = class {
   source;
   pos = 0;
@@ -9274,7 +9602,9 @@ var Lexer = class {
       offset: this.pos,
       line: this.line,
       column: this.column,
-      length: 0
+      length: 0,
+      endLine: this.line,
+      endColumn: this.column
     });
     return this.tokens;
   }
@@ -9313,7 +9643,9 @@ var Lexer = class {
       offset: startOffset,
       line: startLine,
       column: startCol,
-      length: this.pos - startOffset
+      length: this.pos - startOffset,
+      endLine: this.line,
+      endColumn: this.column
     };
   }
   nextToken() {
@@ -9354,7 +9686,16 @@ var Lexer = class {
     if (this.isIdentStart(ch)) {
       return this.readIdentifier(startOffset, startLine, startCol);
     }
-    if (ch === "!" && this.peek(1) === "{") {
+    if (ch === "$" && this.peek(1) === "{") {
+      let i = 2;
+      while (this.isIdentContinue(this.peek(i)))
+        i++;
+      if (i > 2 && this.peek(i) === "}") {
+        this.advance(i + 1);
+        return this.makeToken("MacroSplice" /* MacroSplice */, startOffset, startLine, startCol);
+      }
+    }
+    if (ch === "!" && this.peek(1) === "{" && this.isDynamicFieldAhead()) {
       this.advance(2);
       return this.makeToken("!{" /* BangLeftBrace */, startOffset, startLine, startCol);
     }
@@ -9477,36 +9818,10 @@ var Lexer = class {
       this.advance(2);
       return this.makeToken(".." /* DotDot */, startOffset, startLine, startCol);
     }
-    const singleCharMap = {
-      "+": "+" /* Plus */,
-      "-": "-" /* Minus */,
-      "*": "*" /* Star */,
-      "/": "/" /* Slash */,
-      "%": "%" /* Percent */,
-      "=": "=" /* Assign */,
-      "<": "<" /* LessThan */,
-      ">": ">" /* GreaterThan */,
-      "!": "!" /* Bang */,
-      "&": "&" /* Ampersand */,
-      "^": "^" /* Caret */,
-      "~": "~" /* Tilde */,
-      "?": "?" /* Question */,
-      "|": "|" /* Pipe */,
-      ".": "." /* Dot */,
-      ":": ":" /* Colon */,
-      ";": ";" /* Semicolon */,
-      ",": "," /* Comma */,
-      "@": "@" /* At */,
-      "(": "(" /* LeftParen */,
-      ")": ")" /* RightParen */,
-      "{": "{" /* LeftBrace */,
-      "}": "}" /* RightBrace */,
-      "[": "[" /* LeftBracket */,
-      "]": "]" /* RightBracket */
-    };
-    if (ch in singleCharMap) {
+    const single = SINGLE_CHAR_TOKENS.get(ch);
+    if (single !== void 0) {
       this.advance();
-      return this.makeToken(singleCharMap[ch], startOffset, startLine, startCol);
+      return this.makeToken(single, startOffset, startLine, startCol);
     }
     this.advance();
     return this.makeToken("Error" /* Error */, startOffset, startLine, startCol);
@@ -9525,61 +9840,164 @@ var Lexer = class {
     }
     return this.makeToken("LineComment" /* LineComment */, startOffset, startLine, startCol);
   }
-  readBlockComment(startOffset, startLine, startCol) {
-    this.advance(2);
-    while (this.pos < this.source.length) {
-      if (this.peek() === "*" && this.peek(1) === "/") {
-        this.advance(2);
-        break;
+  /** At `!{`: is this `!{ name }` / `!{ "name" }` (a dynamic field access)? */
+  isDynamicFieldAhead() {
+    let i = this.pos + 2;
+    const src = this.source;
+    while (src[i] === " " || src[i] === "	")
+      i++;
+    const first = src[i] ?? "";
+    if (first === '"' || first === "'") {
+      i++;
+      while (i < src.length && src[i] !== first && src[i] !== "\n") {
+        if (src[i] === "\\")
+          i++;
+        i++;
       }
-      this.advance();
+      if (src[i] !== first)
+        return false;
+      i++;
+    } else if (this.isIdentStart(first)) {
+      while (this.isIdentContinue(src[i] ?? ""))
+        i++;
+    } else {
+      return false;
     }
-    return this.makeToken("BlockComment" /* BlockComment */, startOffset, startLine, startCol);
+    while (src[i] === " " || src[i] === "	")
+      i++;
+    return src[i] === "}";
+  }
+  /** Advance to `index` in one step (the text skipped holds no token boundary). */
+  advanceTo(index) {
+    const end = Math.min(index, this.source.length);
+    for (let i = this.pos; i < end; i++) {
+      if (this.source.charCodeAt(i) === 10) {
+        this.line++;
+        this.column = 0;
+      } else {
+        this.column++;
+      }
+    }
+    this.pos = end;
+  }
+  readBlockComment(startOffset, startLine, startCol) {
+    const close = this.source.indexOf("*/", this.pos + 2);
+    this.advanceTo(close < 0 ? this.source.length : close + 2);
+    const token = this.makeToken("BlockComment" /* BlockComment */, startOffset, startLine, startCol);
+    if (close < 0)
+      token.unterminated = true;
+    return token;
   }
   readTemplateFence(startOffset, startLine, startCol) {
-    this.advance(3);
-    while (this.pos < this.source.length) {
-      if (this.peek() === "`" && this.peek(1) === "`" && this.peek(2) === "`") {
-        this.advance(3);
+    const src = this.source;
+    let i = this.pos;
+    while (src[i] === "`")
+      i++;
+    const fenceLength = i - this.pos;
+    let closed = false;
+    while (i < src.length) {
+      const tick = src.indexOf("`", i);
+      if (tick < 0) {
+        i = src.length;
         break;
+      }
+      let runEnd = tick;
+      while (src[runEnd] === "`")
+        runEnd++;
+      i = runEnd;
+      if (runEnd - tick === fenceLength) {
+        closed = true;
+        break;
+      }
+    }
+    this.advanceTo(i);
+    const token = this.makeToken("TemplateFenceOpen" /* TemplateFenceOpen */, startOffset, startLine, startCol);
+    if (!closed)
+      token.unterminated = true;
+    return token;
+  }
+  /**
+   * At `{$` inside an interpolated string: skip the inline expression up to and
+   * including its `$}`. The expression may hold string literals of its own
+   * (`i"{$ d["key"] $}"`), which must not end the outer string.
+   */
+  skipInlineExpr(multiline) {
+    this.advance(2);
+    while (this.pos < this.source.length) {
+      const ch = this.peek();
+      if (ch === "$" && this.peek(1) === "}") {
+        this.advance(2);
+        return;
+      }
+      if (ch === "\n" && !multiline)
+        return;
+      if (ch === '"' || ch === "'") {
+        this.advance();
+        while (this.pos < this.source.length && this.peek() !== ch && this.peek() !== "\n") {
+          if (this.peek() === "\\")
+            this.advance();
+          this.advance();
+        }
+        if (this.peek() === ch)
+          this.advance();
+        continue;
       }
       this.advance();
     }
-    return this.makeToken("TemplateFenceOpen" /* TemplateFenceOpen */, startOffset, startLine, startCol);
   }
   readMultilineString(startOffset, startLine, startCol, quote, prefix) {
     this.advance(3);
+    let closed = false;
     while (this.pos < this.source.length) {
       if (this.peek() === quote && this.peek(1) === quote && this.peek(2) === quote) {
         this.advance(3);
+        closed = true;
         break;
       }
       if (prefix !== "r" && this.peek() === "\\") {
         this.advance(2);
+      } else if (prefix === "i" && this.peek() === "{" && this.peek(1) === "$") {
+        this.skipInlineExpr(true);
       } else {
         this.advance();
       }
     }
     const kind = prefix === "r" ? "RawStringLiteral" /* RawStringLiteral */ : prefix === "i" ? "InterpolatedStringLiteral" /* InterpolatedStringLiteral */ : "MultilineStringLiteral" /* MultilineStringLiteral */;
-    return this.makeToken(kind, startOffset, startLine, startCol);
+    const token = this.makeToken(kind, startOffset, startLine, startCol);
+    if (!closed)
+      token.unterminated = true;
+    return token;
   }
   readString(startOffset, startLine, startCol, quote, kind = "StringLiteral" /* StringLiteral */) {
     this.advance();
     const isRaw = kind === "RawStringLiteral" /* RawStringLiteral */;
+    const isInterpolated = kind === "InterpolatedStringLiteral" /* InterpolatedStringLiteral */;
+    let closed = false;
     while (this.pos < this.source.length) {
       const ch = this.peek();
+      if (ch === "\n" || ch === "\r") {
+        break;
+      }
       if (!isRaw && ch === "\\") {
+        if (this.peek(1) === "\n" || this.peek(1) === "\r") {
+          this.advance();
+          break;
+        }
         this.advance(2);
       } else if (ch === quote) {
         this.advance();
+        closed = true;
         break;
-      } else if (ch === "\n") {
-        break;
+      } else if (isInterpolated && ch === "{" && this.peek(1) === "$") {
+        this.skipInlineExpr(false);
       } else {
         this.advance();
       }
     }
-    return this.makeToken(kind, startOffset, startLine, startCol);
+    const token = this.makeToken(kind, startOffset, startLine, startCol);
+    if (!closed)
+      token.unterminated = true;
+    return token;
   }
   readNumber(startOffset, startLine, startCol) {
     let isFloat = false;
@@ -9620,7 +10038,7 @@ var Lexer = class {
         this.advance();
       }
     }
-    if (this.peek() === "e" || this.peek() === "E") {
+    if ((this.peek() === "e" || this.peek() === "E") && this.isExponentAhead()) {
       isFloat = true;
       this.advance();
       if (this.peek() === "+" || this.peek() === "-") {
@@ -9641,6 +10059,13 @@ var Lexer = class {
       startLine,
       startCol
     );
+  }
+  /** At `e`/`E` after digits: do exponent digits follow (`1e5`, `1e-3`)? */
+  isExponentAhead() {
+    const next = this.peek(1);
+    if (this.isDigit(next))
+      return true;
+    return (next === "+" || next === "-") && this.isDigit(this.peek(2));
   }
   readIntTypeSuffix() {
     const ch = this.peek();
@@ -9692,8 +10117,9 @@ var Lexer = class {
       this.advance();
     }
     const text = this.source.slice(startOffset, this.pos);
-    if (text in KEYWORDS) {
-      return this.makeToken(KEYWORDS[text], startOffset, startLine, startCol);
+    const keyword = KEYWORDS.get(text);
+    if (keyword !== void 0) {
+      return this.makeToken(keyword, startOffset, startLine, startCol);
     }
     const firstChar = text[0];
     if (firstChar >= "A" && firstChar <= "Z") {
@@ -9708,2010 +10134,15 @@ var Lexer = class {
     return ch >= "0" && ch <= "9" || ch >= "a" && ch <= "f" || ch >= "A" && ch <= "F";
   }
   isIdentStart(ch) {
-    return ch >= "a" && ch <= "z" || ch >= "A" && ch <= "Z" || ch === "_";
+    if (ch >= "a" && ch <= "z" || ch >= "A" && ch <= "Z" || ch === "_") {
+      return true;
+    }
+    return ch > "\x7F" && UNICODE_LETTER.test(ch);
   }
   isIdentContinue(ch) {
-    return this.isIdentStart(ch) || this.isDigit(ch);
-  }
-};
-
-// src/parser/parser.ts
-var Parser = class {
-  tokens = [];
-  pos = 0;
-  diagnostics = [];
-  source = "";
-  parse(source) {
-    this.source = source;
-    const lexer = new Lexer(source);
-    this.tokens = lexer.tokenize().filter(
-      (t) => t.kind !== "LineComment" /* LineComment */ && t.kind !== "BlockComment" /* BlockComment */ && t.kind !== "DocComment" /* DocComment */
-    );
-    this.pos = 0;
-    this.diagnostics = [];
-    const statements = [];
-    while (!this.isAtEnd()) {
-      const prevPos = this.pos;
-      try {
-        const stmt = this.parseStatement();
-        if (stmt)
-          statements.push(stmt);
-      } catch {
-        this.synchronize();
-      }
-      if (this.pos === prevPos && !this.isAtEnd()) {
-        this.advance();
-      }
-    }
-    const program = {
-      kind: "Program",
-      statements,
-      isCompiled: false,
-      range: {
-        start: { line: 0, column: 0, offset: 0 },
-        end: this.currentPos()
-      }
-    };
-    return { program, diagnostics: this.diagnostics };
-  }
-  // ---- Statement parsing ----
-  parseStatement() {
-    if (this.check(";" /* Semicolon */)) {
-      this.advance();
-      return null;
-    }
-    if (this.check("@" /* At */)) {
-      return this.parseAnnotatedDeclaration();
-    }
-    if (this.check("pub" /* Pub */)) {
-      return this.parsePubDeclaration();
-    }
-    const kind = this.current().kind;
-    switch (kind) {
-      case "let" /* Let */:
-        return this.parseLetDecl();
-      case "var" /* Var */:
-        return this.parseVarDecl();
-      case "const" /* Const */:
-        if (this.peekKind(1) === "fun" /* Fun */) {
-          this.advance();
-          return this.parseFunDecl(false, false, false);
-        }
-        return this.parseConstDecl();
-      case "fun" /* Fun */:
-        return this.parseFunDecl(false, false, false);
-      case "static" /* Static */: {
-        this.advance();
-        if (this.check("fun" /* Fun */))
-          return this.parseFunDecl(false, true, false);
-        if (this.check("async" /* Async */))
-          return this.parseAsyncFunDecl(false, true, false);
-        if (this.check("operator" /* Operator */))
-          return this.parseOperatorFunDecl(false, true);
-        if (this.check("let" /* Let */))
-          return this.parseLetDecl();
-        if (this.check("var" /* Var */))
-          return this.parseVarDecl();
-        return this.parseExpressionStmt();
-      }
-      case "safe" /* Safe */:
-        if (this.peekKind(1) === "fun" /* Fun */) {
-          this.advance();
-          return this.parseFunDecl(false, false, false);
-        }
-        if (this.peekKind(1) === "{" /* LeftBrace */) {
-          this.advance();
-          return this.parseBlock();
-        }
-        return this.parseExpressionStmt();
-      case "modifier" /* Modifier */:
-        if (this.peekKind(1) === "fun" /* Fun */) {
-          this.advance();
-          return this.parseFunDecl(false, false, false);
-        }
-        return this.parseExpressionStmt();
-      case "async" /* Async */:
-        if (this.peekKind(1) === "gen" /* Gen */)
-          return this.parseAsyncGenFunDecl(false, false);
-        if (this.peekKind(1) === "fun" /* Fun */)
-          return this.parseAsyncFunDecl(false, false, false);
-        return this.parseExpressionStmt();
-      case "gen" /* Gen */:
-        return this.parseGenFunDecl(false, false);
-      case "class" /* Class */:
-        return this.parseClassDecl(false, false);
-      case "synchronized" /* Synchronized */:
-      case "sealed" /* Sealed */:
-      case "final" /* Final */:
-        if (this.peekKind(1) === "class" /* Class */) {
-          this.advance();
-          return this.parseClassDecl(false, false);
-        }
-        if (this.peekKind(1) === "interface" /* Interface */) {
-          this.advance();
-          return this.parseInterfaceDecl();
-        }
-        return this.parseExpressionStmt();
-      case "unique" /* Unique */:
-        if (this.peekKind(1) === "class" /* Class */) {
-          this.advance();
-          return this.parseClassDecl(false, false);
-        }
-        if (this.peekKind(1) === "let" /* Let */) {
-          this.advance();
-          return this.parseLetDecl();
-        }
-        if (this.peekKind(1) === "var" /* Var */) {
-          this.advance();
-          return this.parseVarDecl();
-        }
-        return this.parseExpressionStmt();
-      case "abstract" /* Abstract */:
-        if (this.peekKind(1) === "class" /* Class */)
-          return this.parseClassDecl(false, true);
-        return this.parseExpressionStmt();
-      case "dynamic" /* Dynamic */:
-        if (this.peekKind(1) === "class" /* Class */)
-          return this.parseClassDecl(true, false);
-        return this.parseDynamicViewStmt();
-      case "enum" /* Enum */:
-        return this.parseEnumDecl();
-      case "struct" /* Struct */:
-        return this.parseStructDecl();
-      case "interface" /* Interface */:
-        return this.parseInterfaceDecl();
-      case "type" /* Type */:
-        return this.parseTypeAliasDecl();
-      case "macro" /* Macro */:
-        return this.parseMacroDecl();
-      case "namespace" /* Namespace */:
-        return this.parseNamespaceDecl();
-      case "from" /* From */:
-        return this.parseImportStmt();
-      case "extern" /* Extern */:
-        return this.parseExternDecl();
-      case "operator" /* Operator */:
-        return this.parseOperatorFunDecl(false, false);
-      case "if" /* If */:
-        return this.parseIfStmt();
-      case "while" /* While */:
-        return this.parseWhileStmt();
-      case "for" /* For */:
-        return this.parseForStmt();
-      case "do" /* Do */:
-        return this.parseDoWhileStmt();
-      case "try" /* Try */:
-        return this.parseTryStmt();
-      case "with" /* With */:
-        return this.parseWithStmt();
-      case "defer" /* Defer */:
-        return this.parseDeferStmt();
-      case "portal" /* Portal */:
-        return this.parsePortalStmt();
-      case "del" /* Del */:
-        return this.parseDelStmt();
-      case "global" /* Global */:
-        return this.parseGlobalDecl();
-      case "nonlocal" /* Nonlocal */:
-        return this.parseNonlocalDecl();
-      case "yield" /* Yield */:
-        return this.parseYieldStmt();
-      case "match" /* Match */:
-        return this.parseMatchExprAsStmt();
-      case "await" /* Await */:
-        if (this.peekKind(1) === "group" /* Group */)
-          return this.parseAwaitGroupStmt();
-        return this.parseExpressionStmt();
-      case "return" /* Return */:
-        return this.parseReturnStmt();
-      case "break" /* Break */:
-        return this.parseBreakStmt();
-      case "continue" /* Continue */:
-        return this.parseContinueStmt();
-      case "throw" /* Throw */:
-        return this.parseThrowStmt();
-      default:
-        if (this.check("Identifier" /* Identifier */) && this.peekKind(1) === ":" /* Colon */) {
-          return this.parseLabeledStmt();
-        }
-        return this.parseExpressionStmt();
-    }
-  }
-  parseAnnotatedDeclaration() {
-    const start = this.current();
-    this.expect("@" /* At */);
-    const annotation = this.advance().text;
-    let args;
-    if (this.check("(" /* LeftParen */)) {
-      this.advance();
-      args = [];
-      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-        args.push(this.parseExpression());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect(")" /* RightParen */);
-    }
-    if (annotation === "mode" || annotation === "compiled" && (this.check("@" /* At */) || this.check("from" /* From */) || this.check("namespace" /* Namespace */) || this.isAtEnd())) {
-      return {
-        kind: "AnnotatedDecl",
-        annotation,
-        args,
-        range: this.rangeFrom(start)
-      };
-    }
-    const declaration = this.parseStatement() ?? void 0;
-    return {
-      kind: "AnnotatedDecl",
-      annotation,
-      args,
-      declaration,
-      range: this.rangeFrom(start)
-    };
-  }
-  parsePubDeclaration() {
-    this.advance();
-    if (this.check("from" /* From */))
-      return this.parseReExportStmt();
-    if (this.check("static" /* Static */)) {
-      this.advance();
-      if (this.check("fun" /* Fun */))
-        return this.parseFunDecl(true, true, false);
-      if (this.check("async" /* Async */))
-        return this.parseAsyncFunDecl(true, true, false);
-      if (this.check("operator" /* Operator */))
-        return this.parseOperatorFunDecl(true, true);
-    }
-    if (this.check("const" /* Const */)) {
-      this.advance();
-      if (this.check("fun" /* Fun */))
-        return this.parseFunDecl(true, false, false);
-      return this.parseConstDeclAfterKeyword(this.tokens[this.pos - 2] || this.current());
-    }
-    if (this.check("safe" /* Safe */) || this.check("modifier" /* Modifier */)) {
-      this.advance();
-      if (this.check("fun" /* Fun */))
-        return this.parseFunDecl(true, false, false);
-      if (this.check("operator" /* Operator */))
-        return this.parseOperatorFunDecl(true, false);
-    }
-    if (this.check("abstract" /* Abstract */)) {
-      this.advance();
-      if (this.check("fun" /* Fun */))
-        return this.parseFunDecl(true, false, true);
-      if (this.check("class" /* Class */))
-        return this.parseClassDecl(false, true);
-    }
-    if (this.check("synchronized" /* Synchronized */) || this.check("unique" /* Unique */) || this.check("sealed" /* Sealed */) || this.check("final" /* Final */)) {
-      this.advance();
-      if (this.check("class" /* Class */))
-        return this.parseClassDecl(false, false);
-      if (this.check("interface" /* Interface */))
-        return this.parseInterfaceDecl();
-    }
-    if (this.check("class" /* Class */))
-      return this.parseClassDecl(false, false);
-    if (this.check("struct" /* Struct */))
-      return this.parseStructDecl();
-    if (this.check("enum" /* Enum */))
-      return this.parseEnumDecl();
-    if (this.check("interface" /* Interface */))
-      return this.parseInterfaceDecl();
-    if (this.check("type" /* Type */))
-      return this.parseTypeAliasDecl();
-    if (this.check("macro" /* Macro */))
-      return this.parseMacroDecl();
-    if (this.check("fun" /* Fun */))
-      return this.parseFunDecl(true, false, false);
-    if (this.check("async" /* Async */)) {
-      if (this.peekKind(1) === "gen" /* Gen */)
-        return this.parseAsyncGenFunDecl(true, false);
-      return this.parseAsyncFunDecl(true, false, false);
-    }
-    if (this.check("gen" /* Gen */))
-      return this.parseGenFunDecl(true, false);
-    if (this.check("operator" /* Operator */))
-      return this.parseOperatorFunDecl(true, false);
-    if (this.check("let" /* Let */))
-      return this.parseLetDecl();
-    if (this.check("var" /* Var */))
-      return this.parseVarDecl();
-    return this.parseExpressionStmt();
-  }
-  parseDestructPattern() {
-    const start = this.current();
-    if (this.check("(" /* LeftParen */)) {
-      this.advance();
-      const elements = [];
-      let rest;
-      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-        if (this.check("*" /* Star */)) {
-          this.advance();
-          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-          break;
-        }
-        elements.push(this.parseDestructPattern());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect(")" /* RightParen */);
-      return { kind: "TuplePattern", elements, rest, range: this.rangeFrom(start) };
-    } else if (this.check("[" /* LeftBracket */)) {
-      this.advance();
-      const elements = [];
-      let rest;
-      while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
-        if (this.check("*" /* Star */)) {
-          this.advance();
-          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-          break;
-        }
-        elements.push(this.parseDestructPattern());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect("]" /* RightBracket */);
-      return { kind: "ListPattern", elements, rest, range: this.rangeFrom(start) };
-    } else if (this.check("{" /* LeftBrace */)) {
-      this.advance();
-      const fields = [];
-      let rest;
-      while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-        if (this.check("*" /* Star */) && this.peekKind(1) === "*" /* Star */) {
-          this.advance();
-          this.advance();
-          rest = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-          break;
-        }
-        const fStart = this.current();
-        const key = this.expect("StringLiteral" /* StringLiteral */, "Identifier" /* Identifier */).text.replace(/^"|"$/g, "");
-        let alias;
-        if (this.check(":" /* Colon */)) {
-          this.advance();
-          alias = this.expect("Identifier" /* Identifier */).text;
-        }
-        let defaultValue;
-        if (this.check("=" /* Assign */)) {
-          this.advance();
-          defaultValue = this.parseExpression();
-        }
-        fields.push({ kind: "DictDestructField", key, alias, defaultValue, range: this.rangeFrom(fStart) });
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect("}" /* RightBrace */);
-      return { kind: "DictPattern", fields, rest, range: this.rangeFrom(start) };
-    } else {
-      const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-      return { kind: "IdentifierPattern", name, range: this.rangeFrom(start) };
-    }
-  }
-  parseLetDecl() {
-    const start = this.current();
-    this.expect("let" /* Let */);
-    const pattern = this.parseDestructPattern();
-    const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
-    this.expect(";" /* Semicolon */);
-    return { kind: "LetDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
-  }
-  parseVarDecl() {
-    const start = this.current();
-    this.expect("var" /* Var */);
-    const pattern = this.parseDestructPattern();
-    const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
-    this.expect(";" /* Semicolon */);
-    return { kind: "VarDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
-  }
-  parseConstDecl() {
-    const start = this.current();
-    this.expect("const" /* Const */);
-    return this.parseConstDeclAfterKeyword(start);
-  }
-  parseConstDeclAfterKeyword(start) {
-    const pattern = this.parseDestructPattern();
-    const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
-    this.expect(";" /* Semicolon */);
-    return { kind: "LetDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
-  }
-  parseNamespaceDecl() {
-    const start = this.current();
-    this.expect("namespace" /* Namespace */);
-    let name = "";
-    while (!this.check(";" /* Semicolon */) && !this.isAtEnd()) {
-      name += this.advance().text;
-    }
-    if (this.check(";" /* Semicolon */))
-      this.advance();
-    return {
-      kind: "ExpressionStmt",
-      expression: { kind: "Identifier", name: `namespace:${name}`, range: this.rangeFrom(start) },
-      range: this.rangeFrom(start)
-    };
-  }
-  parseFunDecl(isPublic, isStatic, isAbstract) {
-    const start = this.current();
-    this.expect("fun" /* Fun */);
-    const name = this.expectMethodOrIdentName();
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    let body;
-    if (this.check(";" /* Semicolon */)) {
-      const semi = this.advance();
-      body = { kind: "Block", statements: [], range: this.tokenRange(semi) };
-    } else {
-      body = this.parseBlock();
-    }
-    return { kind: "FunDecl", name, params, returnType, body, isPublic, isStatic, isAbstract, isOperator: false, typeParams, range: this.rangeFrom(start) };
-  }
-  expectMethodOrIdentName() {
-    const tok = this.current();
-    if (tok.kind === "Identifier" /* Identifier */ || tok.kind === "TypeIdentifier" /* TypeIdentifier */ || tok.kind === "from" /* From */ || tok.kind === "get" /* Get */ || tok.kind === "set" /* Set */ || tok.kind === "spawn" /* Spawn */ || tok.kind === "new" /* New */ || tok.kind === "template" /* Template */ || tok.kind === "modifier" /* Modifier */) {
-      return this.advance().text;
-    }
-    return this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-  }
-  parseAsyncFunDecl(isPublic, isStatic, isAbstract) {
-    const start = this.current();
-    this.expect("async" /* Async */);
-    this.expect("fun" /* Fun */);
-    const name = this.expectMethodOrIdentName();
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    let body;
-    if (this.check(";" /* Semicolon */)) {
-      const semi = this.advance();
-      body = { kind: "Block", statements: [], range: this.tokenRange(semi) };
-    } else {
-      body = this.parseBlock();
-    }
-    return { kind: "AsyncFunDecl", name, params, returnType, body, isPublic, isStatic, isAbstract, typeParams, range: this.rangeFrom(start) };
-  }
-  parseClassDecl(isDynamic, isAbstract) {
-    const start = this.current();
-    if (isDynamic)
-      this.advance();
-    if (isAbstract)
-      this.advance();
-    this.expect("class" /* Class */);
-    const name = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    let superClass;
-    const implementsList = [];
-    if (this.check(":" /* Colon */)) {
-      this.advance();
-      superClass = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    }
-    if (this.check("implements" /* Implements */)) {
-      this.advance();
-      implementsList.push(this.expect("TypeIdentifier" /* TypeIdentifier */).text);
-      while (this.check("," /* Comma */)) {
-        this.advance();
-        implementsList.push(this.expect("TypeIdentifier" /* TypeIdentifier */).text);
-      }
-    }
-    this.expect("{" /* LeftBrace */);
-    const members = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      const prevPos = this.pos;
-      const mem = this.parseStatement();
-      if (mem)
-        members.push(mem);
-      if (this.pos === prevPos && !this.isAtEnd())
-        this.advance();
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "ClassDecl", name, isDynamic, isAbstract, superClass, implements: implementsList.length > 0 ? implementsList : void 0, members, typeParams, range: this.rangeFrom(start) };
-  }
-  parseEnumDecl() {
-    const start = this.current();
-    this.expect("enum" /* Enum */);
-    const name = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("{" /* LeftBrace */);
-    const variants = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      const prevPos = this.pos;
-      const varStart = this.current();
-      const varName = this.expect("TypeIdentifier" /* TypeIdentifier */, "Identifier" /* Identifier */).text;
-      const fields = [];
-      if (this.check("(" /* LeftParen */)) {
-        this.advance();
-        while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-          const pPrev = this.pos;
-          fields.push(this.parseParam());
-          if (this.check("," /* Comma */))
-            this.advance();
-          if (this.pos === pPrev && !this.isAtEnd())
-            this.advance();
-        }
-        this.expect(")" /* RightParen */);
-      }
-      variants.push({ kind: "EnumVariant", name: varName, fields, range: this.rangeFrom(varStart) });
-      if (this.check("," /* Comma */))
-        this.advance();
-      if (this.pos === prevPos && !this.isAtEnd())
-        this.advance();
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "EnumDecl", name, variants, typeParams, range: this.rangeFrom(start) };
-  }
-  parseInterfaceDecl() {
-    const start = this.current();
-    this.expect("interface" /* Interface */);
-    const name = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("{" /* LeftBrace */);
-    const methods = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      const prevPos = this.pos;
-      if (this.check("fun" /* Fun */) || this.check("pub" /* Pub */) || this.check("static" /* Static */) || this.check("async" /* Async */) || this.check("modifier" /* Modifier */)) {
-        const stmt = this.parseStatement();
-        if (stmt && stmt.kind === "FunDecl")
-          methods.push(stmt);
-      } else {
-        this.advance();
-      }
-      if (this.pos === prevPos && !this.isAtEnd())
-        this.advance();
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "InterfaceDecl", name, methods, typeParams, range: this.rangeFrom(start) };
-  }
-  parseImportStmt() {
-    const start = this.current();
-    this.expect("from" /* From */);
-    let path = "";
-    while (!this.check("import" /* Import */) && !this.check("{" /* LeftBrace */) && !this.isAtEnd()) {
-      path += this.advance().text;
-    }
-    path = path.trim();
-    if (this.check("import" /* Import */)) {
-      this.advance();
-      this.expect("(" /* LeftParen */);
-      const names = this.parseImportNames();
-      this.expect(")" /* RightParen */);
-      let preferCompiled = false;
-      if (this.check("prefer" /* Prefer */)) {
-        this.advance();
-        this.expect("compiled" /* Compiled */);
-        preferCompiled = true;
-      }
-      this.expect(";" /* Semicolon */);
-      return { kind: "ImportStmt", path, names, preferCompiled, range: this.rangeFrom(start) };
-    }
-    this.expect("{" /* LeftBrace */);
-    const imports = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      let subPath = "";
-      while (!this.check("import" /* Import */) && !this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-        subPath += this.advance().text;
-      }
-      subPath = subPath.trim();
-      if (this.check("import" /* Import */)) {
-        this.advance();
-        this.expect("(" /* LeftParen */);
-        const names = this.parseImportNames();
-        this.expect(")" /* RightParen */);
-        let preferCompiled = false;
-        if (this.check("prefer" /* Prefer */)) {
-          this.advance();
-          this.expect("compiled" /* Compiled */);
-          preferCompiled = true;
-        }
-        this.expect(";" /* Semicolon */);
-        imports.push({ kind: "ImportStmt", path: subPath, names, preferCompiled, range: this.rangeFrom(start) });
-      }
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "ImportBlockStmt", path, imports, range: this.rangeFrom(start) };
-  }
-  parseImportNames() {
-    const names = [];
-    while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-      const nameStart = this.current();
-      const name = this.advance().text;
-      let alias;
-      if (this.check("as" /* As */)) {
-        this.advance();
-        alias = this.advance().text;
-      }
-      names.push({ kind: "ImportName", name, alias, range: this.rangeFrom(nameStart) });
-      if (this.check("," /* Comma */))
-        this.advance();
-    }
-    return names;
-  }
-  parseExternDecl() {
-    const start = this.current();
-    this.expect("extern" /* Extern */);
-    if (this.check("js" /* Js */)) {
-      this.advance();
-      if (this.check("fun" /* Fun */)) {
-        this.advance();
-        const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-        this.expect("(" /* LeftParen */);
-        const params = this.parseParamList();
-        this.expect(")" /* RightParen */);
-        this.expect(":" /* Colon */);
-        const returnType = this.parseTypeExpr();
-        this.expect(";" /* Semicolon */);
-        return { kind: "ExternJsFunDecl", name, params, returnType, range: this.rangeFrom(start) };
-      }
-      if (this.check("val" /* Val */)) {
-        this.advance();
-        const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-        this.expect(":" /* Colon */);
-        const type = this.parseTypeExpr();
-        this.expect(";" /* Semicolon */);
-        return { kind: "ExternJsValDecl", name, type, range: this.rangeFrom(start) };
-      }
-    }
-    if (this.check("native" /* Native */)) {
-      this.advance();
-      const library = this.expect("StringLiteral" /* StringLiteral */).text.slice(1, -1);
-      if (this.check("fun" /* Fun */)) {
-        this.expect("fun" /* Fun */);
-        const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-        this.expect("(" /* LeftParen */);
-        const params = this.parseParamList();
-        this.expect(")" /* RightParen */);
-        this.expect(":" /* Colon */);
-        const returnType = this.parseTypeExpr();
-        this.expect(";" /* Semicolon */);
-        return { kind: "ExternNativeFunDecl", library, name, params, returnType, range: this.rangeFrom(start) };
-      }
-      if (this.check("val" /* Val */)) {
-        this.advance();
-        const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-        this.expect(":" /* Colon */);
-        const type = this.parseTypeExpr();
-        this.expect(";" /* Semicolon */);
-        return { kind: "ExternNativeValDecl", library, name, type, range: this.rangeFrom(start) };
-      }
-    }
-    this.addDiagnostic('Expected "js" or "native" after "extern"', start);
-    return this.errorNode(start);
-  }
-  // ---- Control flow ----
-  parseIfStmt() {
-    const start = this.current();
-    this.expect("if" /* If */);
-    if (this.check("const" /* Const */)) {
-      this.advance();
-    }
-    this.expect("(" /* LeftParen */);
-    const condition = this.parseExpression();
-    this.expect(")" /* RightParen */);
-    const consequent = this.parseBlock();
-    let alternate;
-    if (this.check("else" /* Else */)) {
-      this.advance();
-      if (this.check("if" /* If */)) {
-        alternate = this.parseIfStmt();
-      } else {
-        alternate = this.parseBlock();
-      }
-    }
-    return { kind: "IfStmt", condition, consequent, alternate, range: this.rangeFrom(start) };
-  }
-  parseWhileStmt(label) {
-    const start = this.current();
-    this.expect("while" /* While */);
-    this.expect("(" /* LeftParen */);
-    const condition = this.parseExpression();
-    this.expect(")" /* RightParen */);
-    const body = this.parseBlock();
-    return { kind: "WhileStmt", condition, body, label, range: this.rangeFrom(start) };
-  }
-  parseForStmt(label) {
-    const start = this.current();
-    this.expect("for" /* For */);
-    if (this.check("concurrent" /* Concurrent */)) {
-      this.advance();
-    }
-    if (this.check("await" /* Await */)) {
-      this.advance();
-      this.expect("(" /* LeftParen */);
-      if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
-        this.advance();
-      }
-      const pattern = this.parseDestructPattern();
-      this.expect("in" /* In */);
-      const iterable = this.parseExpression();
-      this.expect(")" /* RightParen */);
-      const body2 = this.parseBlock();
-      return { kind: "ForAwaitStmt", pattern, iterable, body: body2, label, range: this.rangeFrom(start) };
-    }
-    this.expect("(" /* LeftParen */);
-    if ((this.check("Identifier" /* Identifier */) || this.check("let" /* Let */) || this.check("var" /* Var */) || this.check("[" /* LeftBracket */) || this.check("(" /* LeftParen */) || this.check("{" /* LeftBrace */)) && this.hasInAhead()) {
-      if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
-        this.advance();
-      }
-      const pattern = this.parseDestructPattern();
-      this.expect("in" /* In */);
-      const iterable = this.parseExpression();
-      this.expect(")" /* RightParen */);
-      const body2 = this.parseBlock();
-      return { kind: "ForInStmt", pattern, iterable, body: body2, label, range: this.rangeFrom(start) };
-    }
-    const init = this.parseStatement();
-    const condition = this.parseExpression();
-    this.expect(";" /* Semicolon */);
-    const step = this.parseExpression();
-    this.expect(")" /* RightParen */);
-    const body = this.parseBlock();
-    return { kind: "ForStmt", init, condition, step, body, label, range: this.rangeFrom(start) };
-  }
-  hasInAhead() {
-    let i = this.pos;
-    if (this.tokens[i]?.kind === "let" /* Let */)
-      i++;
-    if (this.tokens[i]?.kind === "Identifier" /* Identifier */)
-      i++;
-    return this.tokens[i]?.kind === "in" /* In */;
-  }
-  parseDoWhileStmt(label) {
-    const start = this.current();
-    this.expect("do" /* Do */);
-    const body = this.parseBlock();
-    this.expect("while" /* While */);
-    this.expect("(" /* LeftParen */);
-    const condition = this.parseExpression();
-    this.expect(")" /* RightParen */);
-    this.expect(";" /* Semicolon */);
-    return { kind: "DoWhileStmt", body, condition, label, range: this.rangeFrom(start) };
-  }
-  parseTryStmt() {
-    const start = this.current();
-    this.expect("try" /* Try */);
-    const tryBlock = this.parseBlock();
-    const catchClauses = [];
-    while (this.check("catch" /* Catch */)) {
-      const cStart = this.current();
-      this.advance();
-      this.expect("(" /* LeftParen */);
-      const types = [];
-      types.push(this.advance().text);
-      while (this.check("|" /* Pipe */)) {
-        this.advance();
-        types.push(this.advance().text);
-      }
-      let name;
-      if (this.check("as" /* As */)) {
-        this.advance();
-        name = this.advance().text;
-      }
-      this.expect(")" /* RightParen */);
-      const body = this.parseBlock();
-      catchClauses.push({ kind: "CatchClause", types, name, body, range: this.rangeFrom(cStart) });
-    }
-    let finallyBlock;
-    if (this.check("finally" /* Finally */)) {
-      this.advance();
-      finallyBlock = this.parseBlock();
-    }
-    return { kind: "TryStmt", tryBlock, catchClauses, finallyBlock, range: this.rangeFrom(start) };
-  }
-  parseWithStmt() {
-    const start = this.current();
-    this.expect("with" /* With */);
-    this.expect("(" /* LeftParen */);
-    const bindings = [];
-    while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-      const bStart = this.current();
-      const name = this.expect("Identifier" /* Identifier */).text;
-      this.expect("=" /* Assign */);
-      const resource = this.parseExpression();
-      bindings.push({ kind: "WithBinding", name, resource, range: this.rangeFrom(bStart) });
-      if (this.check("," /* Comma */))
-        this.advance();
-    }
-    this.expect(")" /* RightParen */);
-    const body = this.parseBlock();
-    return { kind: "WithStmt", bindings, body, range: this.rangeFrom(start) };
-  }
-  parseDeferStmt() {
-    const start = this.current();
-    this.expect("defer" /* Defer */);
-    if (this.check("{" /* LeftBrace */)) {
-      const body = this.parseBlock();
-      return { kind: "DeferBlockStmt", body, range: this.rangeFrom(start) };
-    }
-    const expression = this.parseExpression();
-    this.expect(";" /* Semicolon */);
-    return { kind: "DeferCallStmt", expression, range: this.rangeFrom(start) };
-  }
-  parsePortalStmt() {
-    const start = this.current();
-    this.expect("portal" /* Portal */);
-    let name;
-    if (this.check("StringLiteral" /* StringLiteral */)) {
-      name = this.advance().text.slice(1, -1);
-    } else {
-      name = this.advance().text;
-    }
-    const body = this.parseBlock();
-    return { kind: "PortalStmt", name, body, range: this.rangeFrom(start) };
-  }
-  parseAwaitGroupStmt() {
-    const start = this.current();
-    this.expect("await" /* Await */);
-    this.expect("group" /* Group */);
-    const body = this.parseBlock();
-    return { kind: "AwaitGroupStmt", body, range: this.rangeFrom(start) };
-  }
-  parseDynamicViewStmt() {
-    const start = this.current();
-    this.expect("dynamic" /* Dynamic */);
-    let object = this.parseExpression();
-    let alias;
-    if (object.kind === "CastExpr" && object.targetType.kind === "SimpleType") {
-      alias = object.targetType.name;
-      object = object.expression;
-    } else {
-      this.expect("as" /* As */);
-      alias = this.expect("Identifier" /* Identifier */).text;
-    }
-    const body = this.parseBlock();
-    return { kind: "DynamicViewStmt", object, alias, body, range: this.rangeFrom(start) };
-  }
-  parseReturnStmt() {
-    const start = this.current();
-    this.expect("return" /* Return */);
-    let value;
-    if (!this.check(";" /* Semicolon */) && !this.check("}" /* RightBrace */)) {
-      value = this.parseExpression();
-    }
-    this.expect(";" /* Semicolon */);
-    return { kind: "ReturnStmt", value, range: this.rangeFrom(start) };
-  }
-  parseBreakStmt() {
-    const start = this.current();
-    this.expect("break" /* Break */);
-    const label = this.check("Identifier" /* Identifier */) ? this.advance().text : void 0;
-    this.expect(";" /* Semicolon */);
-    return { kind: "BreakStmt", label, range: this.rangeFrom(start) };
-  }
-  parseContinueStmt() {
-    const start = this.current();
-    this.expect("continue" /* Continue */);
-    const label = this.check("Identifier" /* Identifier */) ? this.advance().text : void 0;
-    this.expect(";" /* Semicolon */);
-    return { kind: "ContinueStmt", label, range: this.rangeFrom(start) };
-  }
-  parseThrowStmt() {
-    const start = this.current();
-    this.expect("throw" /* Throw */);
-    const value = this.parseExpression();
-    let from;
-    if (this.check("from" /* From */)) {
-      this.advance();
-      from = this.parseExpression();
-    }
-    this.expect(";" /* Semicolon */);
-    return { kind: "ThrowStmt", value, from, range: this.rangeFrom(start) };
-  }
-  // ---- v0.6 new declaration parsers ----
-  parseGenFunDecl(isPublic, isStatic) {
-    const start = this.current();
-    this.expect("gen" /* Gen */);
-    this.expect("fun" /* Fun */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const body = this.parseBlock();
-    return { kind: "GenFunDecl", name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
-  }
-  parseAsyncGenFunDecl(isPublic, isStatic) {
-    const start = this.current();
-    this.expect("async" /* Async */);
-    this.expect("gen" /* Gen */);
-    this.expect("fun" /* Fun */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const body = this.parseBlock();
-    return { kind: "AsyncGenFunDecl", name, params, returnType, body, isPublic, isStatic, typeParams, range: this.rangeFrom(start) };
-  }
-  parseOperatorFunDecl(isPublic, isStatic) {
-    const start = this.current();
-    this.expect("operator" /* Operator */);
-    this.expect("fun" /* Fun */);
-    const name = this.advance().text;
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const body = this.parseBlock();
-    return { kind: "FunDecl", name, params, returnType, body, isPublic, isStatic, isAbstract: false, isOperator: true, range: this.rangeFrom(start) };
-  }
-  parseStructDecl() {
-    const start = this.current();
-    this.expect("struct" /* Struct */);
-    const name = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    const implementsList = [];
-    if (this.check("implements" /* Implements */)) {
-      this.advance();
-      implementsList.push(this.expect("TypeIdentifier" /* TypeIdentifier */).text);
-      while (this.check("," /* Comma */)) {
-        this.advance();
-        implementsList.push(this.expect("TypeIdentifier" /* TypeIdentifier */).text);
-      }
-    }
-    this.expect("{" /* LeftBrace */);
-    const fields = [];
-    const methods = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      if (this.check("fun" /* Fun */) || this.check("pub" /* Pub */) || this.check("async" /* Async */) || this.check("static" /* Static */) || this.check("operator" /* Operator */)) {
-        const stmt = this.parseStatement();
-        if (stmt && (stmt.kind === "FunDecl" || stmt.kind === "AsyncFunDecl")) {
-          methods.push(stmt);
-        }
-      } else {
-        const fStart = this.current();
-        let isPublic = false;
-        let isVar = false;
-        if (this.check("pub" /* Pub */)) {
-          isPublic = true;
-          this.advance();
-        }
-        if (this.check("var" /* Var */)) {
-          isVar = true;
-          this.advance();
-        } else if (this.check("let" /* Let */)) {
-          isVar = false;
-          this.advance();
-        }
-        let qualifier;
-        if (this.check("weak" /* Weak */)) {
-          qualifier = "weak";
-          this.advance();
-        } else if (this.check("unowned" /* Unowned */)) {
-          qualifier = "unowned";
-          this.advance();
-        } else if (this.check("excl" /* Excl */) && this.peekKind(1) === "borrow" /* Borrow */) {
-          qualifier = "excl borrow";
-          this.advance();
-          this.advance();
-        } else if (this.check("borrow" /* Borrow */)) {
-          qualifier = "borrow";
-          this.advance();
-        }
-        const fName = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-        this.expect(":" /* Colon */);
-        const fType = this.parseTypeExpr();
-        let defaultValue;
-        if (this.check("=" /* Assign */)) {
-          this.advance();
-          defaultValue = this.parseExpression();
-        }
-        this.expect(";" /* Semicolon */);
-        fields.push({ kind: "StructField", name: fName, type: fType, defaultValue, qualifier, isPublic, isVar, range: this.rangeFrom(fStart) });
-      }
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "StructDecl", name, fields, methods, implements: implementsList.length > 0 ? implementsList : void 0, typeParams, range: this.rangeFrom(start) };
-  }
-  parseTypeAliasDecl() {
-    const start = this.current();
-    this.expect("type" /* Type */);
-    const name = this.expect("TypeIdentifier" /* TypeIdentifier */).text;
-    const typeParams = this.parseOptionalTypeParams();
-    this.expect("=" /* Assign */);
-    const value = this.parseTypeExpr();
-    this.expect(";" /* Semicolon */);
-    return { kind: "TypeAliasDecl", name, typeParams, value, range: this.rangeFrom(start) };
-  }
-  parseMacroDecl() {
-    const start = this.current();
-    this.expect("macro" /* Macro */);
-    const name = this.expect("Identifier" /* Identifier */).text;
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const body = this.parseBlock();
-    return { kind: "MacroDecl", name, params, body, range: this.rangeFrom(start) };
-  }
-  parseReExportStmt() {
-    const start = this.current();
-    this.expect("from" /* From */);
-    let path = "";
-    while (!this.check("import" /* Import */) && !this.isAtEnd()) {
-      path += this.advance().text;
-    }
-    path = path.trim();
-    this.expect("import" /* Import */);
-    this.expect("(" /* LeftParen */);
-    const names = this.parseImportNames();
-    this.expect(")" /* RightParen */);
-    this.expect(";" /* Semicolon */);
-    return { kind: "ReExportStmt", path, names, range: this.rangeFrom(start) };
-  }
-  parseDelStmt() {
-    const start = this.current();
-    this.expect("del" /* Del */);
-    const target = this.parseExpression();
-    this.expect(";" /* Semicolon */);
-    return { kind: "DelStmt", target, range: this.rangeFrom(start) };
-  }
-  parseGlobalDecl() {
-    const start = this.current();
-    this.expect("global" /* Global */);
-    const name = this.expect("Identifier" /* Identifier */).text;
-    this.expect(";" /* Semicolon */);
-    return { kind: "GlobalDecl", name, range: this.rangeFrom(start) };
-  }
-  parseNonlocalDecl() {
-    const start = this.current();
-    this.expect("nonlocal" /* Nonlocal */);
-    const name = this.expect("Identifier" /* Identifier */).text;
-    this.expect(";" /* Semicolon */);
-    return { kind: "NonlocalDecl", name, range: this.rangeFrom(start) };
-  }
-  parseYieldStmt() {
-    const start = this.current();
-    this.expect("yield" /* Yield */);
-    if (this.check("*" /* Star */)) {
-      this.advance();
-      const iterable = this.parseExpression();
-      this.expect(";" /* Semicolon */);
-      return { kind: "YieldFromStmt", iterable, range: this.rangeFrom(start) };
-    }
-    let value;
-    if (!this.check(";" /* Semicolon */) && !this.check("}" /* RightBrace */)) {
-      value = this.parseExpression();
-    }
-    this.expect(";" /* Semicolon */);
-    return { kind: "YieldStmt", value, range: this.rangeFrom(start) };
-  }
-  parseLabeledStmt() {
-    const label = this.expect("Identifier" /* Identifier */).text;
-    this.expect(":" /* Colon */);
-    if (this.check("for" /* For */))
-      return this.parseForStmt(label);
-    if (this.check("while" /* While */))
-      return this.parseWhileStmt(label);
-    if (this.check("do" /* Do */))
-      return this.parseDoWhileStmt(label);
-    this.addDiagnostic("Label must precede a loop statement", this.current());
-    return this.parseExpressionStmt();
-  }
-  parseExpressionStmt() {
-    const start = this.current();
-    const expression = this.parseExpression();
-    if (this.check(";" /* Semicolon */))
-      this.advance();
-    return { kind: "ExpressionStmt", expression, range: this.rangeFrom(start) };
-  }
-  parseMatchExprAsStmt() {
-    const start = this.current();
-    const expression = this.parseMatchExpr();
-    return { kind: "ExpressionStmt", expression, range: this.rangeFrom(start) };
-  }
-  // ---- Expression parsing (Pratt-style precedence climbing) ----
-  parseExpression() {
-    return this.parseAssignment();
-  }
-  parseAssignment() {
-    const left = this.parseTernary();
-    if (this.check("=" /* Assign */)) {
-      const start = this.tokens[this.pos - 1] || this.current();
-      this.advance();
-      const value = this.parseAssignment();
-      return { kind: "AssignExpr", target: left, value, range: this.rangeFrom(start) };
-    }
-    const compoundOps = [
-      "+=" /* PlusAssign */,
-      "-=" /* MinusAssign */,
-      "*=" /* StarAssign */,
-      "/=" /* SlashAssign */,
-      "//=" /* SlashSlashAssign */,
-      "%=" /* PercentAssign */,
-      "**=" /* StarStarAssign */,
-      "&=" /* AmpersandAssign */,
-      "|=" /* PipeAssign */,
-      "^=" /* CaretAssign */,
-      "<<=" /* ShiftLeftAssign */,
-      ">>=" /* ShiftRightAssign */
-    ];
-    for (const op of compoundOps) {
-      if (this.check(op)) {
-        const opText = this.advance().text;
-        const value = this.parseAssignment();
-        return { kind: "CompoundAssignExpr", operator: opText, target: left, value, range: left.range };
-      }
-    }
-    return left;
-  }
-  parseTernary() {
-    const condition = this.parseNullCoalesce();
-    if (this.check("?" /* Question */) && !this.check("?." /* QuestionDot */) && !this.check("??" /* QuestionQuestion */)) {
-      const savedPos = this.pos;
-      this.advance();
-      try {
-        const consequent = this.parseExpression();
-        if (this.check(":" /* Colon */)) {
-          this.advance();
-          const alternate = this.parseExpression();
-          return { kind: "TernaryExpr", condition, consequent, alternate, range: condition.range };
-        }
-      } catch {
-      }
-      this.pos = savedPos;
-    }
-    return condition;
-  }
-  parseNullCoalesce() {
-    let left = this.parseOr();
-    while (this.check("??" /* QuestionQuestion */)) {
-      const start = this.current();
-      this.advance();
-      const right = this.parseOr();
-      left = { kind: "NullCoalesceExpr", left, right, range: this.rangeFrom(start) };
-    }
-    return left;
-  }
-  parseOr() {
-    let left = this.parseAnd();
-    while (this.check("||" /* Or */)) {
-      const start = this.current();
-      this.advance();
-      const right = this.parseAnd();
-      left = { kind: "BinaryExpr", operator: "||", left, right, range: this.rangeFrom(start) };
-    }
-    return left;
-  }
-  parseAnd() {
-    let left = this.parseBitwiseOr();
-    while (this.check("&&" /* And */)) {
-      const start = this.current();
-      this.advance();
-      const right = this.parseBitwiseOr();
-      left = { kind: "BinaryExpr", operator: "&&", left, right, range: this.rangeFrom(start) };
-    }
-    return left;
-  }
-  parseBitwiseOr() {
-    let left = this.parseBitwiseXor();
-    while (this.check("|" /* Pipe */)) {
-      this.advance();
-      const right = this.parseBitwiseXor();
-      left = { kind: "BinaryExpr", operator: "|", left, right, range: left.range };
-    }
-    return left;
-  }
-  parseBitwiseXor() {
-    let left = this.parseBitwiseAnd();
-    while (this.check("^" /* Caret */)) {
-      this.advance();
-      const right = this.parseBitwiseAnd();
-      left = { kind: "BinaryExpr", operator: "^", left, right, range: left.range };
-    }
-    return left;
-  }
-  parseBitwiseAnd() {
-    let left = this.parseEquality();
-    while (this.check("&" /* Ampersand */)) {
-      this.advance();
-      const right = this.parseEquality();
-      left = { kind: "BinaryExpr", operator: "&", left, right, range: left.range };
-    }
-    return left;
-  }
-  parseEquality() {
-    let left = this.parseComparison();
-    while (this.check("==" /* EqualEqual */) || this.check("!=" /* BangEqual */)) {
-      const op = this.advance().text;
-      const right = this.parseComparison();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseComparison() {
-    let left = this.parseMembership();
-    while (this.check("<" /* LessThan */) || this.check("<=" /* LessEqual */) || this.check(">" /* GreaterThan */) || this.check(">=" /* GreaterEqual */)) {
-      const op = this.advance().text;
-      const right = this.parseMembership();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseMembership() {
-    let left = this.parseShift();
-    while (this.check("in" /* In */) || this.check("not" /* Not */) && this.peekKind(1) === "in" /* In */) {
-      let op = "in";
-      if (this.check("not" /* Not */)) {
-        this.advance();
-        op = "not in";
-      }
-      this.expect("in" /* In */);
-      const right = this.parseShift();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseShift() {
-    let left = this.parseRange();
-    while (this.check("<<" /* ShiftLeft */) || this.check(">>" /* ShiftRight */)) {
-      const op = this.advance().text;
-      const right = this.parseRange();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseRange() {
-    let left = this.parseAddition();
-    while (this.check(".." /* DotDot */) || this.check("..=" /* DotDotEqual */)) {
-      const op = this.advance().text;
-      const right = this.parseAddition();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseAddition() {
-    let left = this.parseMultiplication();
-    while (this.check("+" /* Plus */) || this.check("-" /* Minus */)) {
-      const op = this.advance().text;
-      const right = this.parseMultiplication();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseMultiplication() {
-    let left = this.parseExponentiation();
-    while (this.check("*" /* Star */) || this.check("/" /* Slash */) || this.check("//" /* SlashSlash */) || this.check("%" /* Percent */)) {
-      const op = this.advance().text;
-      const right = this.parseExponentiation();
-      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseExponentiation() {
-    const left = this.parseUnary();
-    if (this.check("**" /* StarStar */)) {
-      const op = this.advance().text;
-      const right = this.parseExponentiation();
-      return { kind: "BinaryExpr", operator: op, left, right, range: left.range };
-    }
-    return left;
-  }
-  parseUnary() {
-    if (this.check("!" /* Bang */) || this.check("-" /* Minus */) || this.check("~" /* Tilde */) || this.check("not" /* Not */) || this.check("bnot" /* Bnot */) || this.check("typeof" /* Typeof */) || this.check("attempt" /* Attempt */) || this.check("consume" /* Consume */)) {
-      const start = this.current();
-      const op = this.advance().text;
-      const operand = this.parseUnary();
-      return { kind: "UnaryExpr", operator: op, operand, range: this.rangeFrom(start) };
-    }
-    if (this.check("*" /* Star */)) {
-      const start = this.current();
-      this.advance();
-      if (this.check("*" /* Star */)) {
-        this.advance();
-        const operand2 = this.parseUnary();
-        return { kind: "SpreadExpr", operator: "**", expression: operand2, range: this.rangeFrom(start) };
-      }
-      const operand = this.parseUnary();
-      return { kind: "SpreadExpr", operator: "*", expression: operand, range: this.rangeFrom(start) };
-    }
-    return this.parsePostfix();
-  }
-  parsePostfix() {
-    let expr = this.parsePrimary();
-    while (true) {
-      if (this.check("(" /* LeftParen */)) {
-        this.advance();
-        const args = [];
-        while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-          args.push(this.parseExpression());
-          if (this.check("," /* Comma */))
-            this.advance();
-        }
-        this.expect(")" /* RightParen */);
-        expr = { kind: "CallExpr", callee: expr, args, range: expr.range };
-      } else if (this.check("." /* Dot */)) {
-        this.advance();
-        const property = this.advance().text;
-        expr = { kind: "MemberExpr", object: expr, property, range: expr.range };
-      } else if (this.check("?." /* QuestionDot */)) {
-        this.advance();
-        if (this.check("[" /* LeftBracket */)) {
-          this.advance();
-          if (this.check(":" /* Colon */)) {
-            this.advance();
-            const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
-            let step;
-            if (this.check(":" /* Colon */)) {
-              this.advance();
-              step = this.check("]" /* RightBracket */) ? void 0 : this.parseExpression();
-            }
-            this.expect("]" /* RightBracket */);
-            expr = { kind: "SliceExpr", object: expr, start: void 0, end, step, optional: true, range: expr.range };
-          } else {
-            const index = this.parseExpression();
-            if (this.check(":" /* Colon */)) {
-              this.advance();
-              const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
-              let step;
-              if (this.check(":" /* Colon */)) {
-                this.advance();
-                step = this.check("]" /* RightBracket */) ? void 0 : this.parseExpression();
-              }
-              this.expect("]" /* RightBracket */);
-              expr = { kind: "SliceExpr", object: expr, start: index, end, step, optional: true, range: expr.range };
-            } else {
-              this.expect("]" /* RightBracket */);
-              expr = { kind: "IndexExpr", object: expr, index, optional: true, range: expr.range };
-            }
-          }
-        } else {
-          const property = this.advance().text;
-          expr = { kind: "OptionalChainExpr", object: expr, property, range: expr.range };
-        }
-      } else if (this.check("[" /* LeftBracket */)) {
-        this.advance();
-        if (this.check(":" /* Colon */)) {
-          this.advance();
-          const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
-          let step;
-          if (this.check(":" /* Colon */)) {
-            this.advance();
-            step = this.parseExpression();
-          }
-          this.expect("]" /* RightBracket */);
-          expr = { kind: "SliceExpr", object: expr, start: void 0, end, step, range: expr.range };
-        } else {
-          const first = this.parseExpression();
-          if (this.check(":" /* Colon */)) {
-            this.advance();
-            const end = this.check("]" /* RightBracket */) || this.check(":" /* Colon */) ? void 0 : this.parseExpression();
-            let step;
-            if (this.check(":" /* Colon */)) {
-              this.advance();
-              step = this.parseExpression();
-            }
-            this.expect("]" /* RightBracket */);
-            expr = { kind: "SliceExpr", object: expr, start: first, end, step, range: expr.range };
-          } else {
-            this.expect("]" /* RightBracket */);
-            expr = { kind: "IndexExpr", object: expr, index: first, range: expr.range };
-          }
-        }
-      } else if (this.check("!{" /* BangLeftBrace */)) {
-        this.advance();
-        let field;
-        if (this.check("StringLiteral" /* StringLiteral */)) {
-          field = this.advance().text.slice(1, -1);
-        } else {
-          field = this.advance().text;
-        }
-        this.expect("}" /* RightBrace */);
-        expr = { kind: "DynamicFieldExpr", object: expr, field, range: expr.range };
-      } else if (this.check("?" /* Question */) && !this.check("?." /* QuestionDot */) && !this.check("??" /* QuestionQuestion */)) {
-        this.advance();
-        expr = { kind: "PropagationExpr", expression: expr, range: expr.range };
-      } else if (this.check("as" /* As */)) {
-        this.advance();
-        const safe = this.check("?" /* Question */);
-        if (safe)
-          this.advance();
-        const targetType = this.parseTypeExpr();
-        expr = { kind: "CastExpr", expression: expr, targetType, safe, range: expr.range };
-      } else if (this.check("is" /* Is */)) {
-        this.advance();
-        if (this.check("not" /* Not */)) {
-          this.advance();
-          const targetType = this.parseTypeExpr();
-          const isExpr = { kind: "IsExpr", expression: expr, targetType, range: expr.range };
-          expr = { kind: "UnaryExpr", operator: "not", operand: isExpr, range: expr.range };
-        } else {
-          const targetType = this.parseTypeExpr();
-          expr = { kind: "IsExpr", expression: expr, targetType, range: expr.range };
-        }
-      } else if (this.check("instanceof" /* Instanceof */)) {
-        this.advance();
-        const targetType = this.parseTypeExpr();
-        expr = { kind: "IsExpr", expression: expr, targetType, range: expr.range };
-      } else {
-        break;
-      }
-    }
-    return expr;
-  }
-  parsePrimary() {
-    const token = this.current();
-    switch (token.kind) {
-      case "IntLiteral" /* IntLiteral */:
-        this.advance();
-        return { kind: "IntLiteral", value: token.text, range: this.tokenRange(token) };
-      case "FloatLiteral" /* FloatLiteral */:
-        this.advance();
-        return { kind: "FloatLiteral", value: token.text, range: this.tokenRange(token) };
-      case "StringLiteral" /* StringLiteral */:
-      case "CharLiteral" /* CharLiteral */:
-        this.advance();
-        return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
-      case "unreachable" /* Unreachable */:
-        this.advance();
-        return { kind: "Identifier", name: "unreachable", range: this.tokenRange(token) };
-      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
-        this.advance();
-        return { kind: "StringLiteral", value: token.text, hasInterpolation: token.text.includes("{$"), range: this.tokenRange(token) };
-      case "MultilineStringLiteral" /* MultilineStringLiteral */:
-        this.advance();
-        return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
-      case "TemplateFenceOpen" /* TemplateFenceOpen */:
-        this.advance();
-        return { kind: "TemplateFenceExpr", language: "", format: "", descriptors: {}, content: token.text, range: this.tokenRange(token) };
-      case "true" /* True */:
-        this.advance();
-        return { kind: "BoolLiteral", value: true, range: this.tokenRange(token) };
-      case "false" /* False */:
-        this.advance();
-        return { kind: "BoolLiteral", value: false, range: this.tokenRange(token) };
-      case "None" /* None */:
-        this.advance();
-        return { kind: "NoneLiteral", range: this.tokenRange(token) };
-      case "Identifier" /* Identifier */:
-        if (this.peekKind(1) === "!" /* Bang */ && this.peekKind(2) === "(" /* LeftParen */) {
-          const macroName = this.advance().text;
-          this.advance();
-          this.advance();
-          const macroArgs = [];
-          while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-            macroArgs.push(this.parseExpression());
-            if (this.check("," /* Comma */))
-              this.advance();
-          }
-          this.expect(")" /* RightParen */);
-          return { kind: "MacroInvocationExpr", name: macroName, args: macroArgs, range: this.tokenRange(token) };
-        }
-        this.advance();
-        return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
-      case "TypeIdentifier" /* TypeIdentifier */:
-      case "Self" /* Self */:
-      case "this" /* This */:
-      case "super" /* Super */:
-      case "freestanding" /* Freestanding */:
-      case "portable" /* Portable */:
-      case "scripted" /* Scripted */:
-      case "compiled" /* Compiled */:
-      case "dual" /* Dual */:
-      case "native" /* Native */:
-      case "group" /* Group */:
-      case "once" /* Once */:
-      case "distinct" /* Distinct */:
-      case "get" /* Get */:
-      case "set" /* Set */:
-        this.advance();
-        return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
-      case "await" /* Await */: {
-        const start = token;
-        this.advance();
-        const expression = this.parseUnary();
-        return { kind: "AwaitExpr", expression, range: this.rangeFrom(start) };
-      }
-      case "spawn" /* Spawn */: {
-        const start = token;
-        this.advance();
-        const expression = this.parseUnary();
-        return { kind: "SpawnExpr", expression, range: this.rangeFrom(start) };
-      }
-      case "match" /* Match */:
-        return this.parseMatchExpr();
-      case "fun" /* Fun */:
-        return this.parseFunExpr();
-      case "async" /* Async */:
-        if (this.peekKind(1) === "fun" /* Fun */)
-          return this.parseAsyncFunExpr();
-        this.advance();
-        return { kind: "Identifier", name: "async", range: this.tokenRange(token) };
-      case "new" /* New */: {
-        const start = token;
-        this.advance();
-        const className = this.advance().text;
-        this.expect("(" /* LeftParen */);
-        const args = [];
-        while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-          args.push(this.parseExpression());
-          if (this.check("," /* Comma */))
-            this.advance();
-        }
-        this.expect(")" /* RightParen */);
-        return { kind: "NewExpr", className, args, range: this.rangeFrom(start) };
-      }
-      case "box" /* Box */: {
-        const start = token;
-        this.advance();
-        const expression = this.parseUnary();
-        return { kind: "BoxExpr", expression, range: this.rangeFrom(start) };
-      }
-      case "BytesLiteral" /* BytesLiteral */:
-        this.advance();
-        return { kind: "BytesLiteral", value: token.text, range: this.tokenRange(token) };
-      case "RawStringLiteral" /* RawStringLiteral */:
-        this.advance();
-        return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
-      case "(" /* LeftParen */: {
-        const start = token;
-        this.advance();
-        if (this.check(")" /* RightParen */)) {
-          this.advance();
-          return { kind: "TupleLiteral", elements: [], range: this.rangeFrom(start) };
-        }
-        const firstExpr = this.parseExpression();
-        if (this.check("," /* Comma */)) {
-          this.advance();
-          const elements = [firstExpr];
-          while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-            elements.push(this.parseExpression());
-            if (this.check("," /* Comma */))
-              this.advance();
-          }
-          this.expect(")" /* RightParen */);
-          return { kind: "TupleLiteral", elements, range: this.rangeFrom(start) };
-        }
-        this.expect(")" /* RightParen */);
-        return { kind: "GroupExpr", expression: firstExpr, range: firstExpr.range || this.rangeFrom(start) };
-      }
-      case "[" /* LeftBracket */: {
-        const start = token;
-        this.advance();
-        if (this.check("]" /* RightBracket */)) {
-          this.advance();
-          return { kind: "ListLiteral", elements: [], range: this.rangeFrom(start) };
-        }
-        const firstExpr = this.parseExpression();
-        if (this.check("for" /* For */)) {
-          this.advance();
-          this.expect("(" /* LeftParen */);
-          if (this.check("let" /* Let */) || this.check("var" /* Var */))
-            this.advance();
-          const pattern = this.parseDestructPattern();
-          this.expect("in" /* In */);
-          const iterable = this.parseExpression();
-          this.expect(")" /* RightParen */);
-          let condition;
-          if (this.check("if" /* If */)) {
-            this.advance();
-            this.expect("(" /* LeftParen */);
-            condition = this.parseExpression();
-            this.expect(")" /* RightParen */);
-          }
-          this.expect("]" /* RightBracket */);
-          return { kind: "ComprehensionExpr", resultKind: "list", body: firstExpr, pattern, iterable, condition, range: this.rangeFrom(start) };
-        }
-        const elements = [firstExpr];
-        while (this.check("," /* Comma */)) {
-          this.advance();
-          if (this.check("]" /* RightBracket */))
-            break;
-          elements.push(this.parseExpression());
-        }
-        this.expect("]" /* RightBracket */);
-        return { kind: "ListLiteral", elements, range: this.rangeFrom(start) };
-      }
-      case "{" /* LeftBrace */: {
-        const start = token;
-        this.advance();
-        if (this.check("}" /* RightBrace */)) {
-          this.advance();
-          return { kind: "DictLiteral", entries: [], range: this.rangeFrom(start) };
-        }
-        const firstExpr = this.parseExpression();
-        if (this.check("for" /* For */)) {
-          this.advance();
-          this.expect("(" /* LeftParen */);
-          if (this.check("let" /* Let */) || this.check("var" /* Var */))
-            this.advance();
-          const pattern = this.parseDestructPattern();
-          this.expect("in" /* In */);
-          const iterable = this.parseExpression();
-          this.expect(")" /* RightParen */);
-          let condition;
-          if (this.check("if" /* If */)) {
-            this.advance();
-            this.expect("(" /* LeftParen */);
-            condition = this.parseExpression();
-            this.expect(")" /* RightParen */);
-          }
-          this.expect("}" /* RightBrace */);
-          return { kind: "ComprehensionExpr", resultKind: "set", body: firstExpr, pattern, iterable, condition, range: this.rangeFrom(start) };
-        }
-        if (this.check(":" /* Colon */)) {
-          this.advance();
-          const firstVal = this.parseExpression();
-          if (this.check("for" /* For */)) {
-            this.advance();
-            this.expect("(" /* LeftParen */);
-            if (this.check("let" /* Let */) || this.check("var" /* Var */))
-              this.advance();
-            const pattern = this.parseDestructPattern();
-            this.expect("in" /* In */);
-            const iterable = this.parseExpression();
-            this.expect(")" /* RightParen */);
-            let condition;
-            if (this.check("if" /* If */)) {
-              this.advance();
-              this.expect("(" /* LeftParen */);
-              condition = this.parseExpression();
-              this.expect(")" /* RightParen */);
-            }
-            this.expect("}" /* RightBrace */);
-            const bodyTup = { kind: "TupleLiteral", elements: [firstExpr, firstVal], range: this.rangeFrom(start) };
-            return { kind: "ComprehensionExpr", resultKind: "dict", body: bodyTup, pattern, iterable, condition, range: this.rangeFrom(start) };
-          }
-          const entries = [[firstExpr, firstVal]];
-          if (this.check("," /* Comma */))
-            this.advance();
-          while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-            const key = this.parseExpression();
-            this.expect(":" /* Colon */);
-            const value = this.parseExpression();
-            entries.push([key, value]);
-            if (this.check("," /* Comma */))
-              this.advance();
-          }
-          this.expect("}" /* RightBrace */);
-          return { kind: "DictLiteral", entries, range: this.rangeFrom(start) };
-        }
-        const elements = [firstExpr];
-        if (this.check("," /* Comma */))
-          this.advance();
-        while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-          elements.push(this.parseExpression());
-          if (this.check("," /* Comma */))
-            this.advance();
-        }
-        this.expect("}" /* RightBrace */);
-        return { kind: "SetLiteral", elements, range: this.rangeFrom(start) };
-      }
-      default:
-        this.addDiagnostic(`Unexpected token: ${token.text}`, token);
-        this.advance();
-        return this.errorExpr(token);
-    }
-  }
-  parseMatchExpr() {
-    const start = this.current();
-    this.expect("match" /* Match */);
-    const subject = this.parseExpression();
-    this.expect("{" /* LeftBrace */);
-    const arms = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      const armStart = this.current();
-      const pattern = this.parsePattern();
-      let guard;
-      if (this.check("if" /* If */)) {
-        this.advance();
-        this.expect("(" /* LeftParen */);
-        guard = this.parseExpression();
-        this.expect(")" /* RightParen */);
-      }
-      this.expect("=>" /* Arrow */);
-      const body = this.parseExpression();
-      if (this.check("," /* Comma */))
-        this.advance();
-      arms.push({ kind: "MatchArm", pattern, guard, body, range: this.rangeFrom(armStart) });
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "MatchExpr", subject, arms, range: this.rangeFrom(start) };
-  }
-  parsePattern() {
-    const token = this.current();
-    if (token.text === "_") {
-      this.advance();
-      return { kind: "WildcardPattern", range: this.tokenRange(token) };
-    }
-    const name = this.advance().text;
-    if (this.check("(" /* LeftParen */)) {
-      this.advance();
-      const fields = [];
-      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-        fields.push(this.parsePattern());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect(")" /* RightParen */);
-      return { kind: "ConstructorPattern", name, fields, range: this.rangeFrom(token) };
-    }
-    return { kind: "IdentifierPattern", name, range: this.tokenRange(token) };
-  }
-  parseFunExpr() {
-    const start = this.current();
-    this.expect("fun" /* Fun */);
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    if (this.check("=>" /* Arrow */)) {
-      this.advance();
-      const body2 = this.parseExpression();
-      return { kind: "FunExpr", params, returnType, body: body2, range: this.rangeFrom(start) };
-    }
-    const body = this.parseBlock();
-    return { kind: "FunExpr", params, returnType, body, range: this.rangeFrom(start) };
-  }
-  parseAsyncFunExpr() {
-    const start = this.current();
-    this.expect("async" /* Async */);
-    this.expect("fun" /* Fun */);
-    this.expect("(" /* LeftParen */);
-    const params = this.parseParamList();
-    this.expect(")" /* RightParen */);
-    const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    if (this.check("=>" /* Arrow */)) {
-      this.advance();
-      const body2 = this.parseExpression();
-      return { kind: "AsyncFunExpr", params, returnType, body: body2, range: this.rangeFrom(start) };
-    }
-    const body = this.parseBlock();
-    return { kind: "AsyncFunExpr", params, returnType, body, range: this.rangeFrom(start) };
-  }
-  // ---- Type expressions ----
-  parseTypeExpr() {
-    let type = this.parseBaseType();
-    if (this.check("?" /* Question */)) {
-      this.advance();
-      type = { kind: "OptionalType", inner: type, range: type.range };
-    }
-    return type;
-  }
-  parseBaseType() {
-    const token = this.current();
-    let isNoescape = false;
-    if (this.check("noescape" /* Noescape */)) {
-      isNoescape = true;
-      this.advance();
-    }
-    if (this.check("fn" /* Fn */)) {
-      const start = token;
-      this.advance();
-      this.expect("(" /* LeftParen */);
-      const params = [];
-      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-        params.push(this.parseTypeExpr());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect(")" /* RightParen */);
-      this.expect(":" /* Colon */);
-      const returnType = this.parseTypeExpr();
-      return { kind: "FunctionType", params, returnType, isNoescape, range: this.rangeFrom(start) };
-    }
-    if (this.check("async" /* Async */) && this.peekKind(1) === "fn" /* Fn */) {
-      const start = token;
-      this.advance();
-      this.advance();
-      this.expect("(" /* LeftParen */);
-      const params = [];
-      while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-        params.push(this.parseTypeExpr());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect(")" /* RightParen */);
-      this.expect(":" /* Colon */);
-      const returnType = this.parseTypeExpr();
-      return { kind: "AsyncFunctionType", params, returnType, range: this.rangeFrom(start) };
-    }
-    if (token.text === "tuple") {
-      const start = token;
-      this.advance();
-      if (this.check("[" /* LeftBracket */)) {
-        this.advance();
-        const elements = [];
-        while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
-          elements.push(this.parseTypeExpr());
-          if (this.check("," /* Comma */))
-            this.advance();
-        }
-        this.expect("]" /* RightBracket */);
-        return { kind: "TupleType", elements, range: this.rangeFrom(start) };
-      }
-      return { kind: "SimpleType", name: "tuple", range: this.tokenRange(start) };
-    }
-    const name = this.advance().text;
-    if (this.check("[" /* LeftBracket */)) {
-      const start = token;
-      this.advance();
-      const args = [];
-      while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
-        args.push(this.parseTypeExpr());
-        if (this.check("," /* Comma */))
-          this.advance();
-      }
-      this.expect("]" /* RightBracket */);
-      return { kind: "GenericType", name, args, range: this.rangeFrom(start) };
-    }
-    return { kind: "SimpleType", name, range: this.tokenRange(token) };
-  }
-  // ---- Helpers ----
-  parseBlock() {
-    const start = this.current();
-    this.expect("{" /* LeftBrace */);
-    const statements = [];
-    while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      const prevPos = this.pos;
-      const stmt = this.parseStatement();
-      if (stmt)
-        statements.push(stmt);
-      if (this.pos === prevPos && !this.isAtEnd()) {
-        this.advance();
-      }
-    }
-    this.expect("}" /* RightBrace */);
-    return { kind: "Block", statements, range: this.rangeFrom(start) };
-  }
-  parseParamList() {
-    const params = [];
-    while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
-      const prevPos = this.pos;
-      params.push(this.parseParam());
-      if (this.check("," /* Comma */))
-        this.advance();
-      if (this.pos === prevPos && !this.isAtEnd()) {
-        this.advance();
-      }
-    }
-    return params;
-  }
-  parseParam() {
-    const start = this.current();
-    let qualifier;
-    if (this.check("reads" /* Reads */) || this.check("edits" /* Edits */) || this.check("takes" /* Takes */) || this.check("shares" /* Shares */)) {
-      this.advance();
-    }
-    if (this.check("weak" /* Weak */)) {
-      qualifier = "weak";
-      this.advance();
-    } else if (this.check("unowned" /* Unowned */)) {
-      qualifier = "unowned";
-      this.advance();
-    } else if (this.check("excl" /* Excl */) && this.peekKind(1) === "borrow" /* Borrow */) {
-      qualifier = "excl borrow";
-      this.advance();
-      this.advance();
-    } else if (this.check("borrow" /* Borrow */)) {
-      qualifier = "borrow";
-      this.advance();
-    }
-    if (this.check("[" /* LeftBracket */) && this.peekKind(1) === "LifetimeLabel" /* LifetimeLabel */) {
-      this.advance();
-      this.advance();
-      this.expect("]" /* RightBracket */);
-    }
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
-    let type;
-    if (this.check(":" /* Colon */)) {
-      this.advance();
-      type = this.parseTypeExpr();
-    }
-    let defaultValue;
-    if (this.check("=" /* Assign */)) {
-      this.advance();
-      defaultValue = this.parseExpression();
-    }
-    return { kind: "Parameter", name, type, defaultValue, range: this.rangeFrom(start) };
-  }
-  parseOptionalTypeParams() {
-    if (!this.check("[" /* LeftBracket */))
-      return void 0;
-    this.advance();
-    const params = [];
-    while (!this.check("]" /* RightBracket */) && !this.isAtEnd()) {
-      const pStart = this.current();
-      const name = this.advance().text;
-      let constraint;
-      if (this.check(":" /* Colon */)) {
-        this.advance();
-        constraint = this.parseTypeExpr();
-      }
-      params.push({ kind: "TypeParam", name, constraint, range: this.rangeFrom(pStart) });
-      if (this.check("," /* Comma */))
-        this.advance();
-    }
-    this.expect("]" /* RightBracket */);
-    return params.length > 0 ? params : void 0;
-  }
-  // ---- Token helpers ----
-  current() {
-    return this.tokens[this.pos] || { kind: "EOF" /* EOF */, text: "", offset: this.source.length, line: 0, column: 0, length: 0 };
-  }
-  advance() {
-    const token = this.current();
-    if (!this.isAtEnd())
-      this.pos++;
-    return token;
-  }
-  check(...kinds) {
-    return kinds.includes(this.current().kind);
-  }
-  peekKind(offset) {
-    const idx = this.pos + offset;
-    return idx < this.tokens.length ? this.tokens[idx].kind : "EOF" /* EOF */;
-  }
-  expect(...kinds) {
-    if (this.check(...kinds)) {
-      return this.advance();
-    }
-    const token = this.current();
-    const expected = kinds.map((k) => `'${k}'`).join(" or ");
-    this.addDiagnostic(`Expected ${expected} but found '${token.text}'`, token);
-    return { kind: kinds[0], text: "", offset: token.offset, line: token.line, column: token.column, length: 0 };
-  }
-  isAtEnd() {
-    return this.current().kind === "EOF" /* EOF */;
-  }
-  synchronize() {
-    this.advance();
-    while (!this.isAtEnd()) {
-      if (this.tokens[this.pos - 1]?.kind === ";" /* Semicolon */)
-        return;
-      if (this.tokens[this.pos - 1]?.kind === "}" /* RightBrace */)
-        return;
-      const kind = this.current().kind;
-      if (kind === "fun" /* Fun */ || kind === "async" /* Async */ || kind === "gen" /* Gen */ || kind === "macro" /* Macro */ || kind === "class" /* Class */ || kind === "enum" /* Enum */ || kind === "struct" /* Struct */ || kind === "abstract" /* Abstract */ || kind === "interface" /* Interface */ || kind === "type" /* Type */ || kind === "let" /* Let */ || kind === "var" /* Var */ || kind === "for" /* For */ || kind === "while" /* While */ || kind === "if" /* If */ || kind === "return" /* Return */ || kind === "from" /* From */ || kind === "extern" /* Extern */ || kind === "portal" /* Portal */ || kind === "@" /* At */ || kind === "del" /* Del */ || kind === "yield" /* Yield */ || kind === "operator" /* Operator */) {
-        return;
-      }
-      this.advance();
-    }
-  }
-  // ---- Diagnostics & ranges ----
-  addDiagnostic(message, token) {
-    this.diagnostics.push({
-      message,
-      range: this.tokenRange(token),
-      severity: "error"
-    });
-  }
-  tokenRange(token) {
-    return {
-      start: { line: token.line, column: token.column, offset: token.offset },
-      end: { line: token.line, column: token.column + token.length, offset: token.offset + token.length }
-    };
-  }
-  rangeFrom(start) {
-    const prev = this.tokens[this.pos - 1] || start;
-    return {
-      start: { line: start.line, column: start.column, offset: start.offset },
-      end: { line: prev.line, column: prev.column + prev.length, offset: prev.offset + prev.length }
-    };
-  }
-  currentPos() {
-    const t = this.current();
-    return { line: t.line, column: t.column, offset: t.offset };
-  }
-  errorNode(start) {
-    return {
-      kind: "ErrorNode",
-      message: "Parse error",
-      text: start.text,
-      range: this.tokenRange(start)
-    };
-  }
-  errorExpr(token) {
-    return {
-      kind: "ErrorNode",
-      message: `Unexpected token: ${token.text}`,
-      text: token.text,
-      range: this.tokenRange(token)
-    };
+    if (this.isIdentStart(ch) || this.isDigit(ch))
+      return true;
+    return ch > "\x7F" && UNICODE_DIGIT.test(ch);
   }
 };
 
@@ -11747,7 +10178,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: stmt.isOperator ? "Operator" /* Operator */ : "Function" /* Function */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatFunType(stmt),
           children: []
         };
@@ -11758,7 +10189,7 @@ var SymbolTable = class {
             name: p.name,
             kind: "Parameter" /* Parameter */,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : void 0
           });
         }
@@ -11774,7 +10205,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "AsyncFunction" /* AsyncFunction */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatAsyncFunType(stmt),
           children: []
         };
@@ -11785,7 +10216,7 @@ var SymbolTable = class {
             name: p.name,
             kind: "Parameter" /* Parameter */,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : void 0
           });
         }
@@ -11801,7 +10232,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "Class" /* Class */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: []
         };
         scope.symbols.set(stmt.name, sym);
@@ -11818,7 +10249,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "Enum" /* Enum */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.variants.map((v) => ({
             name: v.name,
             kind: "EnumVariant" /* EnumVariant */,
@@ -11834,12 +10265,12 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "Interface" /* Interface */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.methods.map((m) => ({
             name: m.name,
             kind: "Function" /* Function */,
             range: m.range,
-            selectionRange: m.range,
+            selectionRange: m.nameRange ?? m.range,
             type: this.formatFunType(m)
           }))
         };
@@ -11856,7 +10287,7 @@ var SymbolTable = class {
               name: pattern.name,
               kind: "Variable" /* Variable */,
               range: stmt.range,
-              selectionRange: stmt.range,
+              selectionRange: pattern.range,
               type: typeStr
             };
             scope.symbols.set(pattern.name, sym);
@@ -11898,7 +10329,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "ExternFunction" /* ExternFunction */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern js func`
         };
         scope.symbols.set(stmt.name, sym);
@@ -11909,7 +10340,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "ExternValue" /* ExternValue */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern js val`
         };
         scope.symbols.set(stmt.name, sym);
@@ -11920,7 +10351,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "ExternFunction" /* ExternFunction */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern native "${stmt.library}" func`
         };
         scope.symbols.set(stmt.name, sym);
@@ -11953,7 +10384,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "GenFunction" /* GenFunction */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatGenFunType(stmt),
           children: []
         };
@@ -11964,7 +10395,7 @@ var SymbolTable = class {
             name: p.name,
             kind: "Parameter" /* Parameter */,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : void 0
           });
         }
@@ -11980,7 +10411,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "AsyncGenFunction" /* AsyncGenFunction */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: this.formatAsyncGenFunType(stmt),
           children: []
         };
@@ -11991,7 +10422,7 @@ var SymbolTable = class {
             name: p.name,
             kind: "Parameter" /* Parameter */,
             range: p.range,
-            selectionRange: p.range,
+            selectionRange: p.nameRange ?? p.range,
             type: p.type ? this.formatType(p.type) : void 0
           });
         }
@@ -12007,7 +10438,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "Struct" /* Struct */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           children: stmt.fields.map((f) => ({
             name: f.name,
             kind: "Field" /* Field */,
@@ -12030,7 +10461,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "TypeAlias" /* TypeAlias */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `type ${stmt.name} = ${this.formatType(stmt.value)}`
         };
         scope.symbols.set(stmt.name, sym);
@@ -12041,7 +10472,7 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "Macro" /* Macro */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `macro ${stmt.name}(${stmt.params.map((p) => p.name).join(", ")})`,
           children: []
         };
@@ -12053,10 +10484,27 @@ var SymbolTable = class {
           name: stmt.name,
           kind: "ExternValue" /* ExternValue */,
           range: stmt.range,
-          selectionRange: stmt.range,
+          selectionRange: stmt.nameRange ?? stmt.range,
           type: `extern native "${stmt.library}" val`
         };
         scope.symbols.set(stmt.name, sym);
+        return sym;
+      }
+      case "NamespaceDecl": {
+        if (!stmt.body)
+          return null;
+        const sym = {
+          name: stmt.name,
+          kind: "Namespace" /* Namespace */,
+          range: stmt.range,
+          selectionRange: stmt.range,
+          children: []
+        };
+        for (const inner of stmt.body) {
+          const childSym = this.collectSymbol(inner, scope);
+          if (childSym)
+            sym.children.push(childSym);
+        }
         return sym;
       }
       case "AnnotatedDecl":
@@ -12110,13 +10558,3231 @@ var SymbolTable = class {
   }
 };
 
-// src/server.ts
-var connection = (0, import_node.createConnection)(import_node.ProposedFeatures.all);
-var documents = new import_node.TextDocuments(TextDocument);
-var astCache = /* @__PURE__ */ new Map();
-var symbolCache = /* @__PURE__ */ new Map();
-var scopeCache = /* @__PURE__ */ new Map();
-var tokenTypes = [
+// src/parser/parser.ts
+var ParseError = class extends Error {
+  constructor() {
+    super("parse error");
+    this.name = "ParseError";
+  }
+};
+var ParseAbort = class extends Error {
+  constructor() {
+    super("parse aborted");
+    this.name = "ParseAbort";
+  }
+};
+var MAX_DIAGNOSTICS = 200;
+var MAX_NESTING = 200;
+var K = TokenKind;
+var MODIFIER_KINDS = /* @__PURE__ */ new Set([
+  K.Pub,
+  K.Static,
+  K.Abstract,
+  K.Override,
+  K.Final,
+  K.Sealed,
+  K.Safe,
+  K.Async,
+  K.Gen,
+  K.Synchronized,
+  K.Local,
+  K.Shared,
+  K.Unique,
+  K.Dynamic,
+  K.Modifier,
+  K.Operator,
+  K.Reads,
+  K.Edits,
+  K.Takes,
+  K.Shares,
+  K.Arc,
+  K.Onstack,
+  K.Weak,
+  K.Unowned,
+  K.Borrow,
+  K.Excl,
+  K.Volatile,
+  K.Part
+]);
+var OWNERSHIP_KINDS = /* @__PURE__ */ new Set([
+  K.Reads,
+  K.Edits,
+  K.Takes,
+  K.Shares,
+  K.Borrow,
+  K.Excl,
+  K.Weak,
+  K.Unowned,
+  K.Unique,
+  K.Volatile,
+  K.Noescape
+]);
+var NOT_AN_EXPRESSION = /* @__PURE__ */ new Set([
+  K.Let,
+  K.Var,
+  K.Const,
+  K.Else,
+  K.For,
+  K.While,
+  K.Do,
+  K.Defer,
+  K.With,
+  K.Portal,
+  K.Try,
+  K.Catch,
+  K.Finally,
+  K.Import,
+  K.As,
+  K.In,
+  K.Is,
+  K.Instanceof,
+  K.Del,
+  K.Global,
+  K.Nonlocal,
+  K.Pub,
+  K.Static,
+  K.Override,
+  K.Final,
+  K.Sealed,
+  K.Class,
+  K.Struct,
+  K.Abstract,
+  K.Interface,
+  K.Implements,
+  K.Enum,
+  K.Namespace,
+  K.Extern,
+  K.Macro,
+  K.Where,
+  K.Requires,
+  K.Prefer,
+  K.Synchronized,
+  K.And,
+  K.Or,
+  K.Local
+]);
+var COMPOUND_ASSIGN = /* @__PURE__ */ new Set([
+  K.PlusAssign,
+  K.MinusAssign,
+  K.StarAssign,
+  K.SlashAssign,
+  K.SlashSlashAssign,
+  K.PercentAssign,
+  K.StarStarAssign,
+  K.AmpersandAssign,
+  K.PipeAssign,
+  K.CaretAssign,
+  K.ShiftLeftAssign,
+  K.ShiftRightAssign
+]);
+var STATEMENT_START = /* @__PURE__ */ new Set([
+  K.Let,
+  K.Var,
+  K.Const,
+  K.Fun,
+  K.Class,
+  K.Struct,
+  K.Enum,
+  K.Interface,
+  K.If,
+  K.For,
+  K.While,
+  K.Do,
+  K.Return,
+  K.Try,
+  K.Match,
+  K.Pub,
+  K.Static,
+  K.From,
+  K.Import,
+  K.At,
+  K.Break,
+  K.Continue,
+  K.Throw,
+  K.Defer,
+  K.With,
+  K.Portal,
+  K.Extern,
+  K.Macro,
+  K.Abstract,
+  K.Namespace,
+  K.Del,
+  K.Yield
+]);
+var RESERVED_EVERYWHERE = /* @__PURE__ */ new Set([
+  "Self",
+  "abstract",
+  "and",
+  "as",
+  "async",
+  "atomic",
+  "await",
+  "bnot",
+  "break",
+  "catch",
+  "class",
+  "const",
+  "consume",
+  "continue",
+  "defer",
+  "del",
+  "do",
+  "dynamic",
+  "else",
+  "enum",
+  "extern",
+  "false",
+  "final",
+  "finally",
+  "fn",
+  "for",
+  "func",
+  "gen",
+  "global",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "interface",
+  "is",
+  "let",
+  "local",
+  "macro",
+  "match",
+  "namespace",
+  "noescape",
+  "nonlocal",
+  "not",
+  "onstack",
+  "or",
+  "override",
+  "portal",
+  "pub",
+  "requires",
+  "return",
+  "safe",
+  "sealed",
+  "shared",
+  "static",
+  "struct",
+  "super",
+  "suspend",
+  "synchronized",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "type",
+  "typeof",
+  "unique",
+  "unsafe",
+  "var",
+  "where",
+  "while",
+  "with",
+  "yield"
+]);
+var VERBS = ["borrow", "edits", "reads", "shares", "takes", "volatile"];
+var RESERVED_BY_POSITION = {
+  "binding": /* @__PURE__ */ new Set(["None", "Some", "from", "lifetime", "new", "spawn", "template", ...VERBS]),
+  "parameter": /* @__PURE__ */ new Set(["None", "Some", "from", "lifetime", "new", "spawn", "template"]),
+  "function": /* @__PURE__ */ new Set(["None", "Some", "lifetime", ...VERBS]),
+  "type": /* @__PURE__ */ new Set(["None", "Some", "from", "impossible", "lifetime", "new", "noreturn", "spawn", "template", ...VERBS]),
+  "type parameter": /* @__PURE__ */ new Set(["None", "Some", "from", "impossible", "new", "noreturn", "spawn", "template", ...VERBS]),
+  "field": /* @__PURE__ */ new Set(["None", "Some", "from", "lifetime", "new", "template", ...VERBS]),
+  "enum variant": /* @__PURE__ */ new Set(["from", "lifetime", "new", "spawn", "template", ...VERBS]),
+  "macro": /* @__PURE__ */ new Set(["None", "Some", "from", "lifetime", "new", "spawn", "template", ...VERBS]),
+  "import alias": /* @__PURE__ */ new Set(["None", "Some", "from", "lifetime", "new", "spawn", "template", ...VERBS])
+};
+var CLOSERS = {
+  [K.LeftParen]: K.RightParen,
+  [K.LeftBracket]: K.RightBracket,
+  [K.LeftBrace]: K.RightBrace,
+  [K.BangLeftBrace]: K.RightBrace
+};
+var Parser = class {
+  tokens = [];
+  pos = 0;
+  diagnostics = [];
+  source = "";
+  eof = { kind: K.EOF, text: "", offset: 0, line: 0, column: 0, length: 0, endLine: 0, endColumn: 0 };
+  depth = 0;
+  work = 0;
+  workLimit = 0;
+  parse(source) {
+    this.source = source;
+    const lexer = new Lexer(source);
+    this.tokens = lexer.tokenize().filter(
+      (t) => t.kind !== K.LineComment && t.kind !== K.BlockComment && t.kind !== K.DocComment
+    );
+    this.eof = this.tokens[this.tokens.length - 1];
+    this.pos = 0;
+    this.diagnostics = [];
+    this.depth = 0;
+    this.work = 0;
+    this.workLimit = 1e5 + this.tokens.length * 4e3;
+    let statements = [];
+    try {
+      statements = this.parseStatementList(K.EOF, "top");
+    } catch (err) {
+      if (!(err instanceof ParseAbort) && !(err instanceof RangeError))
+        throw err;
+    }
+    const program = {
+      kind: "Program",
+      statements,
+      isCompiled: false,
+      range: {
+        start: { line: 0, column: 0, offset: 0 },
+        end: { line: this.eof.line, column: this.eof.column, offset: this.eof.offset }
+      }
+    };
+    return { program, diagnostics: this.diagnostics };
+  }
+  // ==========================================================================
+  // Statement lists and recovery
+  // ==========================================================================
+  /**
+   * Parse statements up to (not including) `close`. A statement that fails is
+   * reported once, skipped, and parsing resumes at the next statement boundary.
+   */
+  parseStatementList(close, ctx) {
+    const statements = [];
+    while (!this.at(close) && !this.atEnd()) {
+      const startPos = this.pos;
+      const depth = this.depth;
+      try {
+        const stmt = this.parseStatement(ctx);
+        if (stmt)
+          statements.push(stmt);
+      } catch (err) {
+        if (!(err instanceof ParseError))
+          throw err;
+        this.depth = depth;
+        this.recover(startPos);
+      }
+      if (this.pos === startPos && !this.atEnd()) {
+        this.advance();
+      }
+    }
+    return statements;
+  }
+  /** Skip to the next statement boundary after an error. */
+  recover(startPos) {
+    let nesting = 0;
+    while (!this.atEnd()) {
+      const tok = this.cur();
+      if (nesting === 0) {
+        if (tok.kind === K.Semicolon) {
+          this.advance();
+          return;
+        }
+        if (tok.kind === K.RightBrace)
+          return;
+        if (this.pos > startPos && STATEMENT_START.has(tok.kind) && this.startsLine())
+          return;
+      }
+      if (tok.kind === K.LeftBrace || tok.kind === K.LeftParen || tok.kind === K.LeftBracket || tok.kind === K.BangLeftBrace) {
+        nesting++;
+      } else if (tok.kind === K.RightBrace || tok.kind === K.RightParen || tok.kind === K.RightBracket) {
+        if (nesting > 0) {
+          nesting--;
+          if (nesting === 0 && tok.kind === K.RightBrace) {
+            this.advance();
+            if (this.at(K.Semicolon))
+              this.advance();
+            return;
+          }
+        }
+      }
+      this.advance();
+    }
+  }
+  // ==========================================================================
+  // Statements
+  // ==========================================================================
+  parseStatement(ctx) {
+    this.enter();
+    try {
+      return this.parseStatementInner(ctx);
+    } finally {
+      this.depth--;
+    }
+  }
+  parseStatementInner(ctx) {
+    const tok = this.cur();
+    switch (tok.kind) {
+      case K.Semicolon:
+        this.advance();
+        return null;
+      case K.At:
+        return this.parseAnnotated(ctx);
+      case K.LeftBrace:
+        if (ctx === "top" || ctx === "block")
+          return this.parseBlock();
+        break;
+      default:
+        break;
+    }
+    const decl = this.tryParseDeclaration(ctx);
+    if (decl)
+      return decl;
+    switch (tok.kind) {
+      case K.If:
+        return this.parseIfStmt();
+      case K.While:
+        return this.parseWhileStmt();
+      case K.For:
+        return this.parseForStmt();
+      case K.Do:
+        return this.parseDoWhileStmt();
+      case K.Try:
+        return this.parseTryStmt();
+      case K.With:
+        return this.parseWithStmt();
+      case K.Defer:
+        return this.parseDeferStmt();
+      case K.Portal:
+        return this.parsePortalStmt();
+      case K.Del:
+        return this.parseDelStmt();
+      case K.Global:
+        return this.parseGlobalDecl();
+      case K.Nonlocal:
+        return this.parseNonlocalDecl();
+      case K.Yield:
+        return this.parseYieldStmt();
+      case K.From:
+        return this.parseImportStmt(false);
+      case K.Import:
+        return this.parseModuleImport();
+      case K.Namespace:
+        return this.parseNamespaceDecl();
+      case K.Extern:
+        return this.parseExternDecl();
+      case K.Return:
+      case K.Break:
+      case K.Continue:
+      case K.Throw: {
+        const expression = this.parseJump();
+        this.endStatement();
+        return this.jumpToStatement(expression, tok);
+      }
+      case K.Match: {
+        const expression = this.parseMatchExpr();
+        return this.finishBlockExpression(expression, tok);
+      }
+      case K.Await:
+        if (this.kindAt(1) === K.Group && this.kindAt(2) === K.LeftBrace)
+          return this.parseAwaitGroupStmt();
+        break;
+      case K.Safe:
+      case K.Atomic:
+        if (this.kindAt(1) === K.LeftBrace) {
+          this.advance();
+          return this.parseBlock();
+        }
+        break;
+      case K.Unsafe:
+        if (this.kindAt(1) === K.LeftParen) {
+          const close = this.matchingClose(this.pos + 1);
+          const body = close >= 0 ? this.tokens[close + 1] : void 0;
+          if (body?.kind === K.LeftBrace) {
+            this.advance();
+            this.skipBalanced();
+            return this.parseBlock();
+          }
+          if (body?.kind === K.Asm && this.tokens[close + 2]?.kind === K.LeftBrace) {
+            this.advance();
+            this.skipBalanced();
+            return this.parseOpaqueBlock("asm");
+          }
+        }
+        break;
+      case K.Asm:
+        if (this.kindAt(1) === K.LeftBrace)
+          return this.parseOpaqueBlock("asm");
+        break;
+      case K.Quote:
+        if (this.kindAt(1) === K.LeftBrace)
+          return this.parseOpaqueBlock("quote");
+        break;
+      case K.Dynamic:
+        return this.parseDynamicViewStmt();
+      default:
+        break;
+    }
+    if (this.isWord(tok) && this.kindAt(1) === K.Colon) {
+      const after = this.kindAt(2);
+      if (after === K.For || after === K.While || after === K.Do)
+        return this.parseLabeledStmt();
+      if (ctx === "class" || ctx === "struct" || ctx === "interface") {
+        return this.parseFieldDecl(tok, /* @__PURE__ */ new Set());
+      }
+    }
+    return this.parseExpressionStmt();
+  }
+  /** `return` / `break` / `continue` / `throw` are parsed as expressions so match arms can hold them. */
+  jumpToStatement(expression, start) {
+    if (expression.kind === "StatementExpr")
+      return expression.statement;
+    return { kind: "ExpressionStmt", expression, range: this.rangeFrom(start) };
+  }
+  /** A `match` / `if` in statement position needs no terminator, but may carry one or a postfix chain. */
+  finishBlockExpression(expression, start) {
+    if (this.at(K.Dot) || this.at(K.QuestionDot) || this.at(K.Question)) {
+      this.parsePostfixOps(expression);
+      this.endStatement();
+    } else if (this.at(K.Semicolon)) {
+      this.advance();
+    }
+    return { kind: "ExpressionStmt", expression, range: this.rangeFrom(start) };
+  }
+  // ---- Annotations ----
+  parseAnnotated(ctx) {
+    const start = this.cur();
+    const annotation = this.parseAnnotation();
+    if (annotation === "mode" || this.at(K.RightBrace) || this.atEnd()) {
+      return { kind: "AnnotatedDecl", annotation, range: this.rangeFrom(start) };
+    }
+    const declaration = this.parseStatement(ctx) ?? void 0;
+    return { kind: "AnnotatedDecl", annotation, declaration, range: this.rangeFrom(start) };
+  }
+  /** `@name`, `@name(args)`, `@pkg.name(args)`. The arguments are skipped as a token tree. */
+  parseAnnotation() {
+    this.expect(K.At);
+    let name = this.expectWord("an annotation name").text;
+    while (this.at(K.Dot) && this.isWord(this.peekTok(1))) {
+      this.advance();
+      name += "." + this.advance().text;
+    }
+    if (this.at(K.LeftParen))
+      this.skipBalanced();
+    return name;
+  }
+  skipAnnotations() {
+    while (this.at(K.At))
+      this.parseAnnotation();
+  }
+  // ---- Declarations ----
+  /**
+   * Parse a declaration if one starts here. The modifier words are contextual, so
+   * the decision is made on the token after them: `part = 3;` and `shared.x` are
+   * expressions, `part func f()` and `shared class C` are declarations.
+   */
+  tryParseDeclaration(ctx) {
+    let i = this.pos;
+    while (MODIFIER_KINDS.has(this.kindAt(i - this.pos))) {
+      i++;
+      if (this.tokens[i]?.kind === K.LeftBracket && this.tokens[i + 1]?.kind === K.LifetimeLabel && this.tokens[i + 2]?.kind === K.RightBracket) {
+        i += 3;
+      }
+    }
+    const head = this.tokens[i] ?? this.eof;
+    const next = this.tokens[i + 1] ?? this.eof;
+    const after = this.tokens[i + 2] ?? this.eof;
+    const hasModifiers = i > this.pos;
+    const inType = ctx === "class" || ctx === "struct" || ctx === "interface";
+    const lastModifier = hasModifiers ? this.tokens[i - 1] : void 0;
+    let form = null;
+    switch (head.kind) {
+      case K.Fun:
+        if (next.kind !== K.LeftParen || lastModifier?.kind === K.Operator)
+          form = "func";
+        break;
+      case K.Class:
+        if (this.isNameToken(next))
+          form = "class";
+        break;
+      case K.Struct:
+        if (this.isNameToken(next))
+          form = "struct";
+        break;
+      case K.Enum:
+        if (this.isNameToken(next))
+          form = "enum";
+        break;
+      case K.Interface:
+        if (this.isNameToken(next))
+          form = "interface";
+        break;
+      case K.Type:
+        if (this.isNameToken(next) && (after.kind === K.Assign || after.kind === K.LeftBracket || // an associated type in an interface: `type Item;`
+        inType && (after.kind === K.Semicolon || after.kind === K.Colon || after.kind === K.RightBrace || after.line > next.endLine))) {
+          form = "type";
+        }
+        break;
+      case K.Macro:
+        if (this.isNameToken(next) && after.kind === K.LeftParen)
+          form = "macro";
+        break;
+      case K.Let:
+      case K.Var:
+        form = "binding";
+        break;
+      case K.Const:
+        form = "const";
+        break;
+      case K.Template:
+        if (this.isWord(next) && this.isNameToken(after))
+          form = "template";
+        break;
+      case K.New:
+        if (next.kind === K.LeftParen && (inType || hasModifiers))
+          form = "ctor";
+        break;
+      case K.Get:
+      case K.Set:
+        if (inType && this.isNameToken(next) && after.kind === K.LeftParen)
+          form = "property";
+        break;
+      case K.From:
+        if (hasModifiers && i === this.pos + 1 && this.at(K.Pub))
+          form = "reexport";
+        break;
+      case K.Namespace:
+        if (hasModifiers)
+          form = "namespace";
+        break;
+      case K.Extern:
+        if (hasModifiers)
+          form = "extern";
+        break;
+      default:
+        break;
+    }
+    if (form === null && hasModifiers) {
+      if (lastModifier.kind === K.Modifier && this.isNameToken(head) && (next.kind === K.LeftParen || next.kind === K.LeftBracket) && i - 1 >= this.pos) {
+        form = "bareMethod";
+      } else if (inType && this.isNameToken(head) && next.kind === K.Colon) {
+        form = "field";
+      } else if (inType && head.kind === K.Colon && i - 1 > this.pos) {
+        form = "fieldLastModifier";
+      }
+    }
+    if (form === null)
+      return null;
+    const start = this.cur();
+    const modifierEnd = form === "fieldLastModifier" ? i - 1 : i;
+    const modifiers = /* @__PURE__ */ new Set();
+    while (this.pos < modifierEnd)
+      modifiers.add(this.advance().text);
+    switch (form) {
+      case "func":
+        return this.parseFunDecl(start, modifiers, ctx, false);
+      case "bareMethod":
+        return this.parseFunDecl(start, modifiers, ctx, true);
+      case "class":
+        return this.parseClassDecl(start, modifiers);
+      case "struct":
+        return this.parseStructDecl(start);
+      case "enum":
+        return this.parseEnumDecl(start);
+      case "interface":
+        return this.parseInterfaceDecl(start);
+      case "type":
+        return this.parseTypeAliasDecl(start);
+      case "macro":
+        return this.parseMacroDecl(start);
+      case "binding": {
+        const decl = this.parseBindingDecl(start, inType ? "field" : "binding");
+        this.endStatement();
+        return decl;
+      }
+      case "const":
+        if (this.kindAt(1) === K.Fun) {
+          this.advance();
+          return this.parseFunDecl(start, modifiers, ctx, false);
+        } else {
+          const decl = this.parseBindingDecl(start, inType ? "field" : "binding");
+          this.endStatement();
+          return decl;
+        }
+      case "template":
+        return this.parseTemplateDecl(start);
+      case "ctor":
+        return this.parseConstructorDecl(start, modifiers);
+      case "property":
+        return this.parsePropertyDecl(start, modifiers);
+      case "reexport":
+        return this.parseImportStmt(true, start);
+      case "namespace":
+        return this.parseNamespaceDecl(start);
+      case "extern":
+        return this.parseExternDecl(start);
+      case "field":
+      case "fieldLastModifier":
+        return this.parseFieldDecl(start, modifiers);
+    }
+  }
+  /** `let` / `var` / `const` binding, without its terminator. */
+  parseBindingDecl(start, position = "binding") {
+    const keyword = this.advance();
+    const pattern = this.parseDestructPattern(position);
+    const typeAnnotation = this.eat(K.Colon) ? this.parseType() : void 0;
+    const initializer = this.eat(K.Assign) ? this.parseExpression() : void 0;
+    const kind = keyword.kind === K.Var ? "VarDecl" : "LetDecl";
+    return { kind, pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
+  }
+  /** A field written without `let` / `var`: `[pub] [borrow[~a]] name: Type [= default];` */
+  parseFieldDecl(start, modifiers) {
+    const nameTok = this.advance();
+    this.expect(K.Colon);
+    const typeAnnotation = this.parseType();
+    const initializer = this.eat(K.Assign) ? this.parseExpression() : void 0;
+    this.endStatement();
+    return {
+      kind: "VarDecl",
+      pattern: { kind: "IdentifierPattern", name: nameTok.text, range: this.tokenRange(nameTok) },
+      typeAnnotation,
+      initializer,
+      range: this.rangeFrom(start)
+    };
+  }
+  parseDestructPattern(position = "binding") {
+    this.enter();
+    try {
+      return this.parseDestructPatternInner(position);
+    } finally {
+      this.depth--;
+    }
+  }
+  parseDestructPatternInner(position) {
+    const start = this.cur();
+    if (this.at(K.LeftParen) || this.at(K.LeftBracket)) {
+      const isTuple = this.at(K.LeftParen);
+      const close = isTuple ? K.RightParen : K.RightBracket;
+      this.advance();
+      const elements = [];
+      let rest;
+      while (!this.at(close)) {
+        if (this.at(K.Star)) {
+          this.advance();
+          rest = this.expectDeclaredName(position).text;
+        } else {
+          elements.push(this.parseDestructPattern(position));
+        }
+        if (!this.eat(K.Comma))
+          break;
+      }
+      this.expect(close);
+      return { kind: isTuple ? "TuplePattern" : "ListPattern", elements, rest, range: this.rangeFrom(start) };
+    }
+    if (this.at(K.LeftBrace)) {
+      this.advance();
+      const fields = [];
+      let rest;
+      while (!this.at(K.RightBrace)) {
+        if (this.at(K.StarStar)) {
+          this.advance();
+          rest = this.expectName('a name after "**"').text;
+        } else if (this.at(K.Star) && this.kindAt(1) === K.Star) {
+          this.advance();
+          this.advance();
+          rest = this.expectName('a name after "**"').text;
+        } else {
+          const fStart = this.cur();
+          let key;
+          if (this.at(K.StringLiteral)) {
+            key = this.advance().text.slice(1, -1);
+          } else {
+            key = this.expectName("a key").text;
+          }
+          let alias;
+          if (this.eat(K.Colon))
+            alias = this.expectDeclaredName(position).text;
+          const defaultValue = this.eat(K.Assign) ? this.parseExpression() : void 0;
+          fields.push({ kind: "DictDestructField", key, alias, defaultValue, range: this.rangeFrom(fStart) });
+        }
+        if (!this.eat(K.Comma))
+          break;
+      }
+      this.expect(K.RightBrace);
+      return { kind: "DictPattern", fields, rest, range: this.rangeFrom(start) };
+    }
+    if (this.isNameToken(this.cur()) && this.kindAt(1) === K.LeftParen && this.peekTok(1).line === this.cur().endLine) {
+      this.advance();
+      this.advance();
+      const elements = [];
+      while (!this.at(K.RightParen)) {
+        if (this.isWord(this.cur()) && this.kindAt(1) === K.Assign) {
+          this.advance();
+          this.advance();
+        }
+        elements.push(this.parseDestructPattern(position));
+        if (!this.eat(K.Comma))
+          break;
+      }
+      this.expect(K.RightParen);
+      return { kind: "TuplePattern", elements, range: this.rangeFrom(start) };
+    }
+    const nameTok = this.expectDeclaredName(position);
+    return { kind: "IdentifierPattern", name: nameTok.text, range: this.tokenRange(nameTok) };
+  }
+  parseFunDecl(start, modifiers, ctx, bare) {
+    if (!bare)
+      this.expect(K.Fun);
+    const isOperator = modifiers.has("operator");
+    const nameTok = this.cur();
+    const name = isOperator ? this.parseOperatorSymbol() : this.expectDeclaredName("function").text;
+    const nameRange = isOperator ? this.rangeFrom(nameTok) : this.tokenRange(nameTok);
+    const typeParams = this.parseOptionalTypeParams();
+    this.expect(K.LeftParen);
+    const params = this.parseParamList();
+    this.expect(K.RightParen);
+    const returnType = this.parseSignatureTail();
+    let body;
+    if (this.at(K.LeftBrace)) {
+      body = this.parseBlock();
+    } else if (this.at(K.Arrow)) {
+      this.advance();
+      const exprStart = this.cur();
+      this.parseExpression();
+      this.endStatement();
+      body = { kind: "Block", statements: [], range: this.rangeFrom(exprStart) };
+    } else if (this.at(K.Semicolon)) {
+      body = { kind: "Block", statements: [], range: this.tokenRange(this.advance()) };
+    } else if ((ctx === "interface" || ctx === "class" || ctx === "struct" || modifiers.has("abstract") || modifiers.has("part")) && (this.at(K.RightBrace) || this.atEnd() || this.startsLine())) {
+      body = { kind: "Block", statements: [], range: this.rangeFrom(this.prev()) };
+    } else {
+      this.fail(`Expected '{' but found ${this.describe(this.cur())}`);
+    }
+    const common = {
+      name,
+      nameRange,
+      params,
+      returnType,
+      body,
+      isPublic: modifiers.has("pub"),
+      isStatic: modifiers.has("static"),
+      typeParams,
+      range: this.rangeFrom(start)
+    };
+    const isAsync = modifiers.has("async");
+    const isGen = modifiers.has("gen");
+    if (isAsync && isGen)
+      return { kind: "AsyncGenFunDecl", ...common };
+    if (isGen)
+      return { kind: "GenFunDecl", ...common };
+    if (isAsync)
+      return { kind: "AsyncFunDecl", isAbstract: modifiers.has("abstract"), ...common };
+    return { kind: "FunDecl", isAbstract: modifiers.has("abstract"), isOperator, ...common };
+  }
+  /** After a parameter list: `requires ...`, `: ReturnType` and `where ...`, in any order. */
+  parseSignatureTail() {
+    let returnType;
+    for (; ; ) {
+      if (this.at(K.Requires)) {
+        this.advance();
+        do {
+          this.expectWord("a contract");
+          if (this.at(K.LeftParen))
+            this.skipBalanced();
+        } while (this.eat(K.Comma));
+      } else if (this.at(K.Colon)) {
+        this.advance();
+        returnType = this.parseType();
+      } else if (this.at(K.Where)) {
+        this.parseWhereClause();
+      } else {
+        return returnType;
+      }
+    }
+  }
+  /** `where T: A + B, U: C` */
+  parseWhereClause() {
+    this.expect(K.Where);
+    for (; ; ) {
+      this.expectWord("a type parameter name");
+      this.expect(K.Colon);
+      this.parseType();
+      while (this.eat(K.Plus))
+        this.parseType();
+      if (this.at(K.Comma) && this.isWord(this.peekTok(1)) && this.kindAt(2) === K.Colon) {
+        this.advance();
+        continue;
+      }
+      return;
+    }
+  }
+  /** The symbol of an `operator func`: `+`, `[]`, `[]=`, `()`, `==`, `contains`, ... */
+  parseOperatorSymbol() {
+    if (this.at(K.LeftBracket)) {
+      this.advance();
+      this.expect(K.RightBracket);
+      if (this.at(K.Assign) && this.kindAt(1) !== K.Assign) {
+        this.advance();
+        return "[]=";
+      }
+      return "[]";
+    }
+    if (this.at(K.LeftParen) && this.kindAt(1) === K.RightParen) {
+      this.advance();
+      this.advance();
+      return "()";
+    }
+    if (this.at(K.LeftParen) || this.atEnd()) {
+      this.fail(`Expected an operator symbol but found ${this.describe(this.cur())}`);
+    }
+    return this.advance().text;
+  }
+  parseConstructorDecl(start, modifiers) {
+    const nameTok = this.expect(K.New);
+    this.expect(K.LeftParen);
+    const params = this.parseParamList();
+    this.expect(K.RightParen);
+    const returnType = this.parseSignatureTail();
+    const body = this.parseBlock();
+    return {
+      kind: "FunDecl",
+      name: "new",
+      nameRange: this.tokenRange(nameTok),
+      params,
+      returnType,
+      body,
+      isPublic: modifiers.has("pub"),
+      isStatic: false,
+      isAbstract: false,
+      isOperator: false,
+      range: this.rangeFrom(start)
+    };
+  }
+  /** `get name(): T { ... }` / `set name(v: T) { ... }` (a `;` body in an interface). */
+  parsePropertyDecl(start, modifiers) {
+    this.advance();
+    const nameTok = this.expectName("a property name");
+    this.expect(K.LeftParen);
+    const params = this.parseParamList();
+    this.expect(K.RightParen);
+    const returnType = this.parseSignatureTail();
+    let body;
+    if (this.at(K.LeftBrace)) {
+      body = this.parseBlock();
+    } else {
+      body = { kind: "Block", statements: [], range: this.rangeFrom(this.prev()) };
+      this.endStatement();
+    }
+    return {
+      kind: "FunDecl",
+      name: nameTok.text,
+      nameRange: this.tokenRange(nameTok),
+      params,
+      returnType,
+      body,
+      isPublic: modifiers.has("pub"),
+      isStatic: modifiers.has("static"),
+      isAbstract: false,
+      isOperator: false,
+      range: this.rangeFrom(start)
+    };
+  }
+  /** Supertypes after `:` and any number of `implements A, B [where ...]` clauses. */
+  parseHeritage() {
+    let superClass;
+    const implementsList = [];
+    if (this.eat(K.Colon)) {
+      superClass = this.typeName(this.parseType());
+      while (this.at(K.Comma) && this.kindAt(1) !== K.Implements) {
+        this.advance();
+        this.parseType();
+      }
+    }
+    for (; ; ) {
+      if (this.at(K.Comma) && this.kindAt(1) === K.Implements)
+        this.advance();
+      if (!this.at(K.Implements))
+        break;
+      this.advance();
+      implementsList.push(this.typeName(this.parseType()));
+      while (this.at(K.Comma) && this.kindAt(1) !== K.Implements) {
+        this.advance();
+        implementsList.push(this.typeName(this.parseType()));
+      }
+      if (this.at(K.Where))
+        this.parseWhereClause();
+    }
+    if (this.at(K.Where))
+      this.parseWhereClause();
+    return { superClass, implementsList };
+  }
+  typeName(type) {
+    return type.kind === "SimpleType" || type.kind === "GenericType" ? type.name : "";
+  }
+  /** `{ members }`. A body left open at end of file is reported but still returned. */
+  parseBody(ctx) {
+    this.expect(K.LeftBrace);
+    const members = this.parseStatementList(K.RightBrace, ctx);
+    this.closeBrace();
+    return members;
+  }
+  parseClassDecl(start, modifiers) {
+    this.expect(K.Class);
+    const nameTok = this.expectDeclaredName("type");
+    const typeParams = this.parseOptionalTypeParams();
+    const { superClass, implementsList } = this.parseHeritage();
+    const members = this.parseBody("class");
+    return {
+      kind: "ClassDecl",
+      name: nameTok.text,
+      nameRange: this.tokenRange(nameTok),
+      isDynamic: modifiers.has("dynamic"),
+      isAbstract: modifiers.has("abstract"),
+      superClass,
+      implements: implementsList.length > 0 ? implementsList : void 0,
+      members,
+      typeParams,
+      range: this.rangeFrom(start)
+    };
+  }
+  /** `template foundation Name [implements ...] { ... }` / `template overlay Name onto Base { ... }` */
+  parseTemplateDecl(start) {
+    this.expect(K.Template);
+    this.advance();
+    const nameTok = this.expectName("a template name");
+    let superClass;
+    if (this.at(K.Onto)) {
+      this.advance();
+      superClass = this.expectName("a template name").text;
+    }
+    const { implementsList } = this.parseHeritage();
+    const members = this.parseBody("class");
+    return {
+      kind: "ClassDecl",
+      name: nameTok.text,
+      nameRange: this.tokenRange(nameTok),
+      isDynamic: false,
+      isAbstract: false,
+      superClass,
+      implements: implementsList.length > 0 ? implementsList : void 0,
+      members,
+      range: this.rangeFrom(start)
+    };
+  }
+  parseStructDecl(start) {
+    this.expect(K.Struct);
+    const nameTok = this.expectDeclaredName("type");
+    const typeParams = this.parseOptionalTypeParams();
+    const { implementsList } = this.parseHeritage();
+    const members = this.parseBody("struct");
+    const fields = [];
+    const methods = [];
+    for (const rawMember of members) {
+      const member = this.unwrapAnnotated(rawMember);
+      if (!member)
+        continue;
+      if (member.kind === "FunDecl" || member.kind === "AsyncFunDecl") {
+        methods.push(member);
+      } else if ((member.kind === "LetDecl" || member.kind === "VarDecl") && member.pattern.kind === "IdentifierPattern") {
+        fields.push({
+          kind: "StructField",
+          name: member.pattern.name,
+          type: member.typeAnnotation ?? { kind: "SimpleType", name: "", range: member.pattern.range },
+          defaultValue: member.initializer,
+          isVar: member.kind === "VarDecl",
+          range: member.range
+        });
+      }
+    }
+    return {
+      kind: "StructDecl",
+      name: nameTok.text,
+      nameRange: this.tokenRange(nameTok),
+      fields,
+      methods,
+      implements: implementsList.length > 0 ? implementsList : void 0,
+      typeParams,
+      range: this.rangeFrom(start)
+    };
+  }
+  unwrapAnnotated(stmt) {
+    let current = stmt;
+    while (current && current.kind === "AnnotatedDecl")
+      current = current.declaration;
+    return current;
+  }
+  parseInterfaceDecl(start) {
+    this.expect(K.Interface);
+    const nameTok = this.expectDeclaredName("type");
+    const typeParams = this.parseOptionalTypeParams();
+    this.parseHeritage();
+    const members = this.parseBody("interface");
+    const methods = [];
+    for (const rawMember of members) {
+      const member = this.unwrapAnnotated(rawMember);
+      if (member && member.kind === "FunDecl")
+        methods.push(member);
+    }
+    return {
+      kind: "InterfaceDecl",
+      name: nameTok.text,
+      nameRange: this.tokenRange(nameTok),
+      methods,
+      typeParams,
+      range: this.rangeFrom(start)
+    };
+  }
+  parseEnumDecl(start) {
+    this.expect(K.Enum);
+    const nameTok = this.expectDeclaredName("type");
+    const typeParams = this.parseOptionalTypeParams();
+    this.parseHeritage();
+    this.expect(K.LeftBrace);
+    const variants = [];
+    while (!this.at(K.RightBrace) && !this.atEnd()) {
+      if (this.at(K.Comma) || this.at(K.Semicolon)) {
+        this.advance();
+        continue;
+      }
+      this.skipAnnotations();
+      if (this.at(K.RightBrace))
+        break;
+      if (this.at(K.Fun) || this.at(K.Pub) || this.at(K.Static)) {
+        const member = this.tryParseDeclaration("class");
+        if (member)
+          continue;
+      }
+      const varStart = this.cur();
+      const varName = this.expectDeclaredName("enum variant").text;
+      const fields = [];
+      if (this.at(K.LeftParen) || this.at(K.LeftBrace)) {
+        const close = this.at(K.LeftParen) ? K.RightParen : K.RightBrace;
+        this.advance();
+        while (!this.at(close)) {
+          if (this.at(K.Comma) || this.at(K.Semicolon)) {
+            this.advance();
+            continue;
+          }
+          this.skipAnnotations();
+          const fStart = this.cur();
+          let fieldName = "";
+          if (this.isWord(this.cur()) && this.kindAt(1) === K.Colon) {
+            fieldName = this.advance().text;
+            this.advance();
+          }
+          const type = this.parseType();
+          const defaultValue = this.eat(K.Assign) ? this.parseExpression() : void 0;
+          fields.push({ kind: "Parameter", name: fieldName, type, defaultValue, range: this.rangeFrom(fStart) });
+          if (!this.at(K.Comma) && !this.at(K.Semicolon) && !this.at(close) && !this.startsLine()) {
+            this.fail(`Expected ',' or '${close}' but found ${this.describe(this.cur())}`);
+          }
+        }
+        this.expect(close);
+      }
+      if (this.eat(K.Assign))
+        this.parseExpression();
+      variants.push({ kind: "EnumVariant", name: varName, fields, range: this.rangeFrom(varStart) });
+      if (!this.at(K.Comma) && !this.at(K.Semicolon) && !this.at(K.RightBrace) && !this.atEnd() && !this.startsLine()) {
+        this.fail(`Expected ',' or '}' but found ${this.describe(this.cur())}`);
+      }
+    }
+    this.closeBrace();
+    return { kind: "EnumDecl", name: nameTok.text, nameRange: this.tokenRange(nameTok), variants, typeParams, range: this.rangeFrom(start) };
+  }
+  parseTypeAliasDecl(start) {
+    this.expect(K.Type);
+    const nameTok = this.expectDeclaredName("type");
+    const typeParams = this.parseOptionalTypeParams();
+    let value = { kind: "SimpleType", name: "", range: this.tokenRange(nameTok) };
+    if (this.eat(K.Colon)) {
+      this.parseType();
+      while (this.eat(K.Plus))
+        this.parseType();
+    }
+    if (this.eat(K.Assign))
+      value = this.parseType();
+    this.endStatement();
+    return { kind: "TypeAliasDecl", name: nameTok.text, nameRange: this.tokenRange(nameTok), typeParams, value, range: this.rangeFrom(start) };
+  }
+  parseMacroDecl(start) {
+    this.expect(K.Macro);
+    const nameTok = this.expectDeclaredName("macro");
+    this.expect(K.LeftParen);
+    const params = this.parseParamList();
+    this.expect(K.RightParen);
+    const body = this.parseBlock();
+    return { kind: "MacroDecl", name: nameTok.text, nameRange: this.tokenRange(nameTok), params, body, range: this.rangeFrom(start) };
+  }
+  /** `namespace a.b.c;` or `namespace a.b { ... }` */
+  parseNamespaceDecl(start = this.cur()) {
+    this.expect(K.Namespace);
+    let name = this.expectName("a namespace name").text;
+    while (this.at(K.Dot)) {
+      this.advance();
+      name += "." + this.expectName("a namespace name").text;
+    }
+    let body;
+    if (this.at(K.LeftBrace)) {
+      body = this.parseBody("top");
+    } else {
+      this.endStatement();
+    }
+    return { kind: "NamespaceDecl", name, body, range: this.rangeFrom(start) };
+  }
+  // ---- Imports ----
+  /** The module path of an import: `core.text`, `.`, `..sibling`, `.pkg.mod`. */
+  parseModulePath() {
+    let path = "";
+    for (; ; ) {
+      const tok = this.cur();
+      if (tok.kind === K.Import || tok.kind === K.Defer || tok.kind === K.As || tok.kind === K.Prefer)
+        break;
+      if (tok.kind === K.Dot || tok.kind === K.DotDot || tok.kind === K.DotDotDot || this.isWord(tok)) {
+        if (path !== "" && !this.sameLine())
+          break;
+        path += this.advance().text;
+        continue;
+      }
+      break;
+    }
+    if (path === "")
+      this.fail(`Expected a module path but found ${this.describe(this.cur())}`);
+    return path;
+  }
+  parseImportNames() {
+    this.expect(K.LeftParen);
+    const names = [];
+    while (!this.at(K.RightParen)) {
+      const nameTok = this.at(K.Star) ? this.advance() : this.expectName("an imported name");
+      let alias;
+      if (this.eat(K.As))
+        alias = this.expectDeclaredName("import alias").text;
+      names.push({ kind: "ImportName", name: nameTok.text, alias, range: this.rangeFrom(nameTok) });
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightParen);
+    return names;
+  }
+  parsePreferCompiled() {
+    if (!this.at(K.Prefer))
+      return false;
+    this.advance();
+    this.expect(K.Compiled);
+    return true;
+  }
+  /** `from path import (names) [prefer compiled];`, `from path defer import (...)`, `from path { ... }` */
+  parseImportStmt(isReExport, start = this.cur()) {
+    this.expect(K.From);
+    const path = this.parseModulePath();
+    if (this.at(K.LeftBrace)) {
+      this.advance();
+      const imports = [];
+      while (!this.at(K.RightBrace) && !this.atEnd()) {
+        if (this.eat(K.Semicolon))
+          continue;
+        const itemStart = this.cur();
+        const subPath = this.parseModulePath();
+        this.eat(K.Defer);
+        this.expect(K.Import);
+        const names2 = this.parseImportNames();
+        const preferCompiled2 = this.parsePreferCompiled();
+        imports.push({ kind: "ImportStmt", path: subPath, names: names2, preferCompiled: preferCompiled2, range: this.rangeFrom(itemStart) });
+        if (!this.at(K.RightBrace))
+          this.endStatement();
+      }
+      this.closeBrace();
+      return { kind: "ImportBlockStmt", path, imports, range: this.rangeFrom(start) };
+    }
+    this.eat(K.Defer);
+    this.expect(K.Import);
+    const names = this.parseImportNames();
+    const preferCompiled = this.parsePreferCompiled();
+    this.endStatement();
+    if (isReExport)
+      return { kind: "ReExportStmt", path, names, range: this.rangeFrom(start) };
+    return { kind: "ImportStmt", path, names, preferCompiled, range: this.rangeFrom(start) };
+  }
+  /** `import path [as name] [prefer compiled];` binds the module itself. */
+  parseModuleImport() {
+    const start = this.cur();
+    this.expect(K.Import);
+    const pathStart = this.cur();
+    const path = this.parseModulePath();
+    const pathEnd = this.prev();
+    const names = [];
+    if (this.eat(K.As)) {
+      const aliasTok = this.expectName("an alias");
+      names.push({ kind: "ImportName", name: aliasTok.text, range: this.tokenRange(aliasTok) });
+    } else if (pathStart === pathEnd && this.isWord(pathStart)) {
+      names.push({ kind: "ImportName", name: path, range: this.tokenRange(pathStart) });
+    }
+    const preferCompiled = this.parsePreferCompiled();
+    this.endStatement();
+    return { kind: "ImportStmt", path, names, preferCompiled, range: this.rangeFrom(start) };
+  }
+  /** `extern js func|val ...;`, `extern native "lib" func|val ...;` */
+  parseExternDecl(start = this.cur()) {
+    this.expect(K.Extern);
+    let library;
+    const isJs = this.at(K.Js);
+    if (isJs) {
+      this.advance();
+    } else if (this.at(K.Native)) {
+      this.advance();
+    }
+    if (this.at(K.StringLiteral))
+      library = this.advance().text.slice(1, -1);
+    if (this.at(K.LeftBrace)) {
+      const body = this.parseBody("interface");
+      return { kind: "Block", statements: body, range: this.rangeFrom(start) };
+    }
+    if (this.at(K.Fun)) {
+      this.advance();
+      const nameTok = this.expectName("a function name");
+      this.parseOptionalTypeParams();
+      this.expect(K.LeftParen);
+      const params = this.parseParamList();
+      this.expect(K.RightParen);
+      const returnType = this.parseSignatureTail() ?? { kind: "SimpleType", name: "void", range: this.tokenRange(nameTok) };
+      this.endStatement();
+      if (isJs || library === void 0) {
+        return { kind: "ExternJsFunDecl", name: nameTok.text, nameRange: this.tokenRange(nameTok), params, returnType, range: this.rangeFrom(start) };
+      }
+      return { kind: "ExternNativeFunDecl", library, name: nameTok.text, nameRange: this.tokenRange(nameTok), params, returnType, range: this.rangeFrom(start) };
+    }
+    if (this.at(K.Val) || this.at(K.Let) || this.at(K.Var)) {
+      this.advance();
+      const nameTok = this.expectName("a name");
+      this.expect(K.Colon);
+      const type = this.parseType();
+      this.endStatement();
+      if (isJs || library === void 0) {
+        return { kind: "ExternJsValDecl", name: nameTok.text, nameRange: this.tokenRange(nameTok), type, range: this.rangeFrom(start) };
+      }
+      return { kind: "ExternNativeValDecl", library, name: nameTok.text, nameRange: this.tokenRange(nameTok), type, range: this.rangeFrom(start) };
+    }
+    this.fail(`Expected 'func' or 'val' in an extern declaration but found ${this.describe(this.cur())}`);
+  }
+  // ---- Control flow ----
+  parseCondition() {
+    this.expect(K.LeftParen);
+    const condition = this.parseExpression();
+    this.expect(K.RightParen);
+    return condition;
+  }
+  parseIfStmt() {
+    const start = this.cur();
+    this.expect(K.If);
+    this.eat(K.Const);
+    const condition = this.parseCondition();
+    const consequent = this.parseBlock();
+    const root = { kind: "IfStmt", condition, consequent, range: this.rangeFrom(start) };
+    let tail = root;
+    while (this.at(K.Else)) {
+      this.advance();
+      if (this.at(K.If)) {
+        const elifStart = this.advance();
+        this.eat(K.Const);
+        const elifCondition = this.parseCondition();
+        const elifBlock = this.parseBlock();
+        const next = { kind: "IfStmt", condition: elifCondition, consequent: elifBlock, range: this.rangeFrom(elifStart) };
+        tail.alternate = next;
+        tail = next;
+      } else {
+        tail.alternate = this.parseBlock();
+        break;
+      }
+    }
+    root.range = this.rangeFrom(start);
+    return root;
+  }
+  parseWhileStmt(label) {
+    const start = this.cur();
+    this.expect(K.While);
+    const condition = this.parseCondition();
+    const body = this.parseBlock();
+    return { kind: "WhileStmt", condition, body, label, range: this.rangeFrom(start) };
+  }
+  parseForStmt(label) {
+    const start = this.cur();
+    this.expect(K.For);
+    this.eat(K.Concurrent);
+    const isAwait = this.eat(K.Await);
+    const open = this.expect(K.LeftParen);
+    if (isAwait || this.hasInAhead()) {
+      let pattern;
+      let iterable;
+      do {
+        if (this.at(K.Let) || this.at(K.Var))
+          this.advance();
+        const p = this.parseDestructPattern();
+        this.expect(K.In);
+        const it = this.parseExpression();
+        pattern = pattern ?? p;
+        iterable = iterable ?? it;
+      } while (this.eat(K.Comma));
+      this.expect(K.RightParen);
+      const body2 = this.parseBlock();
+      const kind = isAwait ? "ForAwaitStmt" : "ForInStmt";
+      return { kind, pattern, iterable, body: body2, label, range: this.rangeFrom(start) };
+    }
+    let init = { kind: "Block", statements: [], range: this.tokenRange(open) };
+    if (!this.at(K.Semicolon)) {
+      const initStart = this.cur();
+      if (this.at(K.Let) || this.at(K.Var) || this.at(K.Const)) {
+        init = this.parseBindingDecl(initStart);
+      } else {
+        init = { kind: "ExpressionStmt", expression: this.parseExpression(), range: this.rangeFrom(initStart) };
+      }
+    }
+    this.expect(K.Semicolon);
+    const condition = this.at(K.Semicolon) ? { kind: "BoolLiteral", value: true, range: this.tokenRange(this.cur()) } : this.parseExpression();
+    this.expect(K.Semicolon);
+    const step = this.at(K.RightParen) ? { kind: "BoolLiteral", value: true, range: this.tokenRange(this.cur()) } : this.parseExpression();
+    this.expect(K.RightParen);
+    const body = this.parseBlock();
+    return { kind: "ForStmt", init, condition, step, body, label, range: this.rangeFrom(start) };
+  }
+  /** Just past `for (`: is there an `in` at bracket depth 0 before a `;` or the closing `)`? */
+  hasInAhead() {
+    return this.hasInAheadFrom(this.pos);
+  }
+  hasInAheadFrom(from) {
+    let nesting = 0;
+    for (let i = from; i < this.tokens.length; i++) {
+      const kind = this.tokens[i].kind;
+      if (kind === K.LeftParen || kind === K.LeftBracket || kind === K.LeftBrace || kind === K.BangLeftBrace) {
+        nesting++;
+      } else if (kind === K.RightParen || kind === K.RightBracket || kind === K.RightBrace) {
+        if (nesting === 0)
+          return false;
+        nesting--;
+      } else if (nesting === 0) {
+        if (kind === K.In)
+          return true;
+        if (kind === K.Semicolon || kind === K.Assign)
+          return false;
+      }
+    }
+    return false;
+  }
+  parseDoWhileStmt(label) {
+    const start = this.cur();
+    this.expect(K.Do);
+    const body = this.parseBlock();
+    this.expect(K.While);
+    const condition = this.parseCondition();
+    this.endStatement();
+    return { kind: "DoWhileStmt", body, condition, label, range: this.rangeFrom(start) };
+  }
+  parseTryStmt() {
+    const start = this.cur();
+    this.expect(K.Try);
+    const tryBlock = this.parseBlock();
+    const catchClauses = [];
+    while (this.at(K.Catch)) {
+      const cStart = this.advance();
+      const types = [];
+      let name;
+      if (this.isWord(this.cur()) && this.kindAt(1) === K.LeftParen) {
+        types.push(this.advance().text);
+      }
+      if (this.at(K.LeftParen)) {
+        const close = this.matchingClose(this.pos);
+        if (close < 0)
+          this.fail("Expected ')' to close the catch clause", this.cur());
+        for (let i = this.pos + 1; i < close; i++) {
+          const tok = this.tokens[i];
+          if (tok.kind === K.As && this.isWord(this.tokens[i + 1])) {
+            name = this.tokens[i + 1].text;
+            break;
+          }
+          if (this.isWord(tok) && this.tokens[i - 1].kind !== K.Dot)
+            types.push(tok.text);
+        }
+        if (name === void 0 && types.length > 0 && close - this.pos >= 2 && this.isWord(this.tokens[this.pos + 1])) {
+          const first = this.tokens[this.pos + 1].text;
+          if (close - this.pos === 2 || this.tokens[this.pos + 2].kind === K.Colon) {
+            name = first;
+            types.splice(types.indexOf(first), 1);
+          }
+        }
+        this.skipBalanced();
+      }
+      const body = this.parseBlock();
+      catchClauses.push({ kind: "CatchClause", types, name, body, range: this.rangeFrom(cStart) });
+    }
+    let finallyBlock;
+    if (this.eat(K.Finally))
+      finallyBlock = this.parseBlock();
+    return { kind: "TryStmt", tryBlock, catchClauses, finallyBlock, range: this.rangeFrom(start) };
+  }
+  parseWithStmt() {
+    const start = this.cur();
+    this.expect(K.With);
+    this.expect(K.LeftParen);
+    const bindings = [];
+    while (!this.at(K.RightParen)) {
+      const bStart = this.cur();
+      let name = "";
+      if (this.isWord(bStart) && this.kindAt(1) === K.Assign) {
+        name = this.advance().text;
+        this.advance();
+      }
+      const resource = this.parseExpression();
+      bindings.push({ kind: "WithBinding", name, resource, range: this.rangeFrom(bStart) });
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightParen);
+    const body = this.parseBlock();
+    return { kind: "WithStmt", bindings, body, range: this.rangeFrom(start) };
+  }
+  parseDeferStmt() {
+    const start = this.cur();
+    this.expect(K.Defer);
+    if (this.at(K.LeftBrace)) {
+      const body = this.parseBlock();
+      return { kind: "DeferBlockStmt", body, range: this.rangeFrom(start) };
+    }
+    const expression = this.parseExpression();
+    this.endStatement();
+    return { kind: "DeferCallStmt", expression, range: this.rangeFrom(start) };
+  }
+  parsePortalStmt() {
+    const start = this.cur();
+    this.expect(K.Portal);
+    let name;
+    if (this.at(K.StringLiteral)) {
+      name = this.advance().text.slice(1, -1);
+    } else {
+      name = this.expectName("a portal name").text;
+    }
+    const body = this.parseBlock();
+    return { kind: "PortalStmt", name, body, range: this.rangeFrom(start) };
+  }
+  parseAwaitGroupStmt() {
+    const start = this.cur();
+    this.expect(K.Await);
+    this.expect(K.Group);
+    const body = this.parseBlock();
+    return { kind: "AwaitGroupStmt", body, range: this.rangeFrom(start) };
+  }
+  /** `dynamic obj as alias { ... }`; `dynamic` alone is an ordinary name. */
+  parseDynamicViewStmt() {
+    const start = this.cur();
+    const next = this.peekTok(1);
+    const startsOperand = next.line === start.endLine && (this.isWord(next) || next.kind === K.LeftParen) && !NOT_AN_EXPRESSION.has(next.kind);
+    if (!startsOperand)
+      return this.parseExpressionStmt();
+    this.advance();
+    let object = this.parseExpression();
+    let alias = "";
+    if (object.kind === "CastExpr" && object.targetType.kind === "SimpleType") {
+      alias = object.targetType.name;
+      object = object.expression;
+    }
+    const body = this.parseBlock();
+    return { kind: "DynamicViewStmt", object, alias, body, range: this.rangeFrom(start) };
+  }
+  /** `asm { ... }` and `quote { ... }`: the body is not Loup statement syntax; skip it as a token tree. */
+  parseOpaqueBlock(name) {
+    const start = this.advance();
+    this.skipBalanced();
+    this.eat(K.Semicolon);
+    return {
+      kind: "ExpressionStmt",
+      expression: { kind: "Identifier", name, range: this.tokenRange(start) },
+      range: this.rangeFrom(start)
+    };
+  }
+  parseDelStmt() {
+    const start = this.cur();
+    this.expect(K.Del);
+    const target = this.parseExpression();
+    this.endStatement();
+    return { kind: "DelStmt", target, range: this.rangeFrom(start) };
+  }
+  parseGlobalDecl() {
+    const start = this.cur();
+    this.expect(K.Global);
+    const name = this.expectName("a name").text;
+    while (this.eat(K.Comma))
+      this.expectName("a name");
+    this.endStatement();
+    return { kind: "GlobalDecl", name, range: this.rangeFrom(start) };
+  }
+  parseNonlocalDecl() {
+    const start = this.cur();
+    this.expect(K.Nonlocal);
+    const name = this.expectName("a name").text;
+    while (this.eat(K.Comma))
+      this.expectName("a name");
+    this.endStatement();
+    return { kind: "NonlocalDecl", name, range: this.rangeFrom(start) };
+  }
+  parseYieldStmt() {
+    const start = this.cur();
+    this.expect(K.Yield);
+    if (this.at(K.Star)) {
+      this.advance();
+      const iterable = this.parseExpression();
+      this.endStatement();
+      return { kind: "YieldFromStmt", iterable, range: this.rangeFrom(start) };
+    }
+    const value = this.startsExpression() && this.sameLine() ? this.parseExpression() : void 0;
+    this.endStatement();
+    return { kind: "YieldStmt", value, range: this.rangeFrom(start) };
+  }
+  parseLabeledStmt() {
+    const label = this.advance().text;
+    this.expect(K.Colon);
+    if (this.at(K.For))
+      return this.parseForStmt(label);
+    if (this.at(K.While))
+      return this.parseWhileStmt(label);
+    return this.parseDoWhileStmt(label);
+  }
+  parseExpressionStmt() {
+    const start = this.cur();
+    const expression = this.parseExpression();
+    if (expression.kind === "StatementExpr" && (start.kind === K.If || start.kind === K.Match)) {
+      return this.finishBlockExpression(expression, start);
+    }
+    this.endStatement();
+    return { kind: "ExpressionStmt", expression, range: this.rangeFrom(start) };
+  }
+  parseBlock() {
+    const start = this.cur();
+    this.expect(K.LeftBrace);
+    const statements = this.parseStatementList(K.RightBrace, "block");
+    this.closeBrace();
+    return { kind: "Block", statements, range: this.rangeFrom(start) };
+  }
+  /**
+   * The `}` of a block or body. Reaching end of file instead is reported without
+   * throwing, so the declaration being typed keeps its place in the outline.
+   */
+  closeBrace() {
+    if (this.at(K.RightBrace)) {
+      this.advance();
+      return;
+    }
+    if (this.atEnd()) {
+      this.addDiagnostic("Expected '}' but found end of file", this.rangeAfterPrev());
+      return;
+    }
+    this.fail(`Expected '}' but found ${this.describe(this.cur())}`);
+  }
+  // ==========================================================================
+  // Expressions
+  // ==========================================================================
+  parseExpression() {
+    this.enter();
+    try {
+      return this.parseAssignment();
+    } finally {
+      this.depth--;
+    }
+  }
+  parseAssignment() {
+    const left = this.parseNullCoalesce();
+    if (this.at(K.Assign)) {
+      this.advance();
+      const value = this.parseExpression();
+      return { kind: "AssignExpr", target: left, value, range: this.spanFrom(left) };
+    }
+    if (COMPOUND_ASSIGN.has(this.cur().kind)) {
+      const operator = this.advance().text;
+      const value = this.parseExpression();
+      return { kind: "CompoundAssignExpr", operator, target: left, value, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseNullCoalesce() {
+    let left = this.parseOr();
+    while (this.at(K.QuestionQuestion)) {
+      this.advance();
+      const right = this.parseOr();
+      left = { kind: "NullCoalesceExpr", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseOr() {
+    let left = this.parseAnd();
+    while (this.at(K.Or)) {
+      this.advance();
+      const right = this.parseAnd();
+      left = { kind: "BinaryExpr", operator: "||", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseAnd() {
+    let left = this.parseBitwiseOr();
+    while (this.at(K.And)) {
+      this.advance();
+      const right = this.parseBitwiseOr();
+      left = { kind: "BinaryExpr", operator: "&&", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseBitwiseOr() {
+    let left = this.parseBitwiseXor();
+    while (this.at(K.Pipe)) {
+      this.advance();
+      const right = this.parseBitwiseXor();
+      left = { kind: "BinaryExpr", operator: "|", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseBitwiseXor() {
+    let left = this.parseBitwiseAnd();
+    while (this.at(K.Caret)) {
+      this.advance();
+      const right = this.parseBitwiseAnd();
+      left = { kind: "BinaryExpr", operator: "^", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseBitwiseAnd() {
+    let left = this.parseEquality();
+    while (this.at(K.Ampersand)) {
+      this.advance();
+      const right = this.parseEquality();
+      left = { kind: "BinaryExpr", operator: "&", left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseEquality() {
+    let left = this.parseComparison();
+    while (this.at(K.EqualEqual) || this.at(K.BangEqual)) {
+      const operator = this.advance().text;
+      const right = this.parseComparison();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseComparison() {
+    let left = this.parseMembership();
+    while (this.at(K.LessThan) || this.at(K.LessEqual) || this.at(K.GreaterThan) || this.at(K.GreaterEqual)) {
+      const operator = this.advance().text;
+      const right = this.parseMembership();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseMembership() {
+    let left = this.parseShift();
+    while (this.at(K.In) || this.at(K.Not) && this.kindAt(1) === K.In) {
+      const operator = this.at(K.Not) ? (this.advance(), "not in") : "in";
+      this.expect(K.In);
+      const right = this.parseShift();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseShift() {
+    let left = this.parseRange();
+    while (this.at(K.ShiftLeft) || this.at(K.ShiftRight)) {
+      const operator = this.advance().text;
+      const right = this.parseRange();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseRange() {
+    let left = this.parseAddition();
+    while (this.at(K.DotDot) || this.at(K.DotDotEqual)) {
+      const operator = this.advance().text;
+      if (!this.startsExpression()) {
+        return { kind: "UnaryExpr", operator, operand: left, range: this.spanFrom(left) };
+      }
+      const right = this.parseAddition();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseAddition() {
+    let left = this.parseMultiplication();
+    while (this.at(K.Plus) || this.at(K.Minus)) {
+      const operator = this.advance().text;
+      const right = this.parseMultiplication();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseMultiplication() {
+    let left = this.parseExponentiation();
+    while (this.at(K.Star) || this.at(K.Slash) || this.at(K.SlashSlash) || this.at(K.Percent)) {
+      const operator = this.advance().text;
+      const right = this.parseExponentiation();
+      left = { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseExponentiation() {
+    const left = this.parseUnary();
+    if (this.at(K.StarStar)) {
+      const operator = this.advance().text;
+      const right = this.parseExponentiation();
+      return { kind: "BinaryExpr", operator, left, right, range: this.spanFrom(left) };
+    }
+    return left;
+  }
+  parseUnary() {
+    this.enter();
+    try {
+      return this.parseUnaryInner();
+    } finally {
+      this.depth--;
+    }
+  }
+  parseUnaryInner() {
+    const start = this.cur();
+    switch (start.kind) {
+      case K.Bang:
+      case K.Minus:
+      case K.Plus:
+      case K.Tilde:
+      case K.Not:
+      case K.Bnot:
+      case K.Typeof:
+      case K.Attempt:
+      case K.Consume: {
+        this.advance();
+        const operand = this.parseUnary();
+        return { kind: "UnaryExpr", operator: start.text, operand, range: this.rangeFrom(start) };
+      }
+      case K.Star:
+      case K.StarStar: {
+        this.advance();
+        let operator = start.kind === K.Star ? "*" : "**";
+        if (operator === "*" && this.at(K.Star)) {
+          this.advance();
+          operator = "**";
+        }
+        const expression = this.parseUnary();
+        return { kind: "SpreadExpr", operator, expression, range: this.rangeFrom(start) };
+      }
+      case K.DotDot:
+      case K.DotDotEqual: {
+        this.advance();
+        const operand = this.parseAddition();
+        return { kind: "UnaryExpr", operator: start.text, operand, range: this.rangeFrom(start) };
+      }
+      case K.Await: {
+        this.advance();
+        const expression = this.parseUnary();
+        return { kind: "AwaitExpr", expression, range: this.rangeFrom(start) };
+      }
+      case K.Spawn:
+        if (this.startsExpressionAt(1) && this.kindAt(1) !== K.LeftParen) {
+          this.advance();
+          const expression = this.parseUnary();
+          return { kind: "SpawnExpr", expression, range: this.rangeFrom(start) };
+        }
+        break;
+      case K.Box:
+        if (this.startsOperandAt(1)) {
+          this.advance();
+          const expression = this.parseUnary();
+          return { kind: "BoxExpr", expression, range: this.rangeFrom(start) };
+        }
+        break;
+      case K.Shared:
+        this.advance();
+        if (this.at(K.LeftParen))
+          this.skipBalanced();
+        return this.parseUnary();
+      default:
+        break;
+    }
+    return this.parsePostfix();
+  }
+  /** Is the token `offset` ahead the start of an operand on the current token's line? */
+  startsOperandAt(offset) {
+    const tok = this.peekTok(offset);
+    if (tok.line !== this.cur().endLine)
+      return false;
+    switch (tok.kind) {
+      case K.Identifier:
+      case K.TypeIdentifier:
+      case K.IntLiteral:
+      case K.FloatLiteral:
+      case K.StringLiteral:
+      case K.CharLiteral:
+      case K.InterpolatedStringLiteral:
+      case K.RawStringLiteral:
+      case K.BytesLiteral:
+      case K.MultilineStringLiteral:
+      case K.True:
+      case K.False:
+      case K.None:
+      case K.This:
+      case K.Self:
+      case K.LeftBrace:
+      case K.MacroSplice:
+      case K.Fun:
+      case K.Match:
+      case K.If:
+      case K.Minus:
+      case K.Not:
+      case K.Box:
+      case K.Await:
+        return true;
+      default:
+        return isKeywordKind(tok.kind) && !NOT_AN_EXPRESSION.has(tok.kind) && this.peekTok(offset + 1).kind !== K.Assign;
+    }
+  }
+  parsePostfix() {
+    return this.parsePostfixOps(this.parsePrimary());
+  }
+  parsePostfixOps(operand) {
+    let expr = operand;
+    for (; ; ) {
+      const tok = this.cur();
+      switch (tok.kind) {
+        case K.LeftParen: {
+          const args = this.parseArgs();
+          expr = { kind: "CallExpr", callee: expr, args, range: this.spanFrom(expr) };
+          continue;
+        }
+        case K.Dot: {
+          this.advance();
+          const member = this.cur();
+          if (!this.isWord(member) && member.kind !== K.IntLiteral && member.kind !== K.FloatLiteral && member.kind !== K.MacroSplice) {
+            this.fail(`Expected a member name after '.' but found ${this.describe(member)}`);
+          }
+          this.advance();
+          expr = { kind: "MemberExpr", object: expr, property: member.text, range: this.spanFrom(expr) };
+          continue;
+        }
+        case K.QuestionDot: {
+          this.advance();
+          if (this.at(K.LeftBracket)) {
+            expr = this.parseIndex(expr, true);
+          } else {
+            const member = this.cur();
+            if (!this.isWord(member) && member.kind !== K.IntLiteral) {
+              this.fail(`Expected a member name after '?.' but found ${this.describe(member)}`);
+            }
+            this.advance();
+            expr = { kind: "OptionalChainExpr", object: expr, property: member.text, range: this.spanFrom(expr) };
+          }
+          continue;
+        }
+        case K.LeftBracket:
+          expr = this.parseIndex(expr, false);
+          continue;
+        case K.BangLeftBrace: {
+          this.advance();
+          const fieldTok = this.advance();
+          const field = fieldTok.kind === K.StringLiteral ? fieldTok.text.slice(1, -1) : fieldTok.text;
+          this.expect(K.RightBrace);
+          expr = { kind: "DynamicFieldExpr", object: expr, field, range: this.spanFrom(expr) };
+          continue;
+        }
+        case K.Question:
+          this.advance();
+          expr = { kind: "PropagationExpr", expression: expr, range: this.spanFrom(expr) };
+          continue;
+        case K.Bang:
+          this.advance();
+          expr = { kind: "UnaryExpr", operator: "!", operand: expr, range: this.spanFrom(expr) };
+          continue;
+        case K.As: {
+          this.advance();
+          let safe = false;
+          if ((this.at(K.Question) || this.at(K.Bang)) && this.cur().offset === this.prev().offset + this.prev().length) {
+            safe = this.at(K.Question);
+            this.advance();
+          }
+          const targetType = this.parseTypeNoUnion();
+          expr = { kind: "CastExpr", expression: expr, targetType, safe, range: this.spanFrom(expr) };
+          continue;
+        }
+        case K.Is: {
+          this.advance();
+          const negated = this.eat(K.Not);
+          const targetType = this.parseTypeNoUnion();
+          expr = { kind: "IsExpr", expression: expr, targetType, range: this.spanFrom(expr) };
+          if (negated)
+            expr = { kind: "UnaryExpr", operator: "not", operand: expr, range: expr.range };
+          continue;
+        }
+        case K.Instanceof: {
+          this.advance();
+          const targetType = this.parseTypeNoUnion();
+          expr = { kind: "IsExpr", expression: expr, targetType, range: this.spanFrom(expr) };
+          continue;
+        }
+        case K.With:
+          if (this.kindAt(1) === K.LeftParen && this.sameLine()) {
+            this.advance();
+            const args = this.parseArgs();
+            expr = { kind: "CallExpr", callee: expr, args, range: this.spanFrom(expr) };
+            continue;
+          }
+          return expr;
+        default:
+          return expr;
+      }
+    }
+  }
+  /** `( args )`: positional, named (`a = 1`, `a: 1`), verb acknowledgments (`edits: x`), spreads. */
+  parseArgs() {
+    this.expect(K.LeftParen);
+    const args = [];
+    while (!this.at(K.RightParen)) {
+      if (this.at(K.At)) {
+        this.parseAnnotation();
+        if (this.at(K.Comma)) {
+          this.advance();
+          continue;
+        }
+        if (this.at(K.RightParen))
+          break;
+      }
+      if (this.isWord(this.cur()) && this.kindAt(1) === K.Colon) {
+        this.advance();
+        this.advance();
+      }
+      let arg = this.parseExpression();
+      if (this.at(K.For))
+        arg = this.parseComprehensionTail(arg, "list", arg);
+      args.push(arg);
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightParen);
+    return args;
+  }
+  /** `[i]`, `[a:b:c]`, `[i, j:k, ::2]` and explicit type arguments `f[T](x)`. */
+  parseIndex(object, optional) {
+    this.expect(K.LeftBracket);
+    let first;
+    let slice;
+    let count = 0;
+    while (!this.at(K.RightBracket)) {
+      let start;
+      if (!this.at(K.Colon))
+        start = this.parseExpression();
+      if (this.at(K.Colon)) {
+        this.advance();
+        const end = this.atIndexBoundary() ? void 0 : this.parseExpression();
+        let step;
+        if (this.eat(K.Colon))
+          step = this.atIndexBoundary() ? void 0 : this.parseExpression();
+        if (count === 0)
+          slice = { start, end, step };
+      } else if (count === 0) {
+        first = start;
+      }
+      count++;
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightBracket);
+    const range = this.spanFrom(object);
+    if (slice) {
+      return { kind: "SliceExpr", object, start: slice.start, end: slice.end, step: slice.step, optional: optional || void 0, range };
+    }
+    const index = first ?? { kind: "TupleLiteral", elements: [], range };
+    return { kind: "IndexExpr", object, index, optional: optional || void 0, range };
+  }
+  atIndexBoundary() {
+    return this.at(K.RightBracket) || this.at(K.Colon) || this.at(K.Comma);
+  }
+  parsePrimary() {
+    const token = this.cur();
+    switch (token.kind) {
+      case K.IntLiteral:
+        this.advance();
+        return { kind: "IntLiteral", value: token.text, range: this.tokenRange(token) };
+      case K.FloatLiteral:
+        this.advance();
+        return { kind: "FloatLiteral", value: token.text, range: this.tokenRange(token) };
+      case K.StringLiteral:
+      case K.CharLiteral:
+      case K.RawStringLiteral:
+      case K.MultilineStringLiteral:
+        this.advance();
+        this.checkTerminated(token, "string literal");
+        return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
+      case K.InterpolatedStringLiteral:
+        this.advance();
+        this.checkTerminated(token, "string literal");
+        return { kind: "StringLiteral", value: token.text, hasInterpolation: token.text.includes("{$"), range: this.tokenRange(token) };
+      case K.BytesLiteral:
+        this.advance();
+        this.checkTerminated(token, "bytes literal");
+        return { kind: "BytesLiteral", value: token.text, range: this.tokenRange(token) };
+      case K.TemplateFenceOpen:
+        this.advance();
+        this.checkTerminated(token, "template fence");
+        return { kind: "TemplateFenceExpr", language: "", format: "", descriptors: {}, content: token.text, range: this.tokenRange(token) };
+      case K.True:
+      case K.False:
+        this.advance();
+        return { kind: "BoolLiteral", value: token.kind === K.True, range: this.tokenRange(token) };
+      case K.None:
+        this.advance();
+        return { kind: "NoneLiteral", range: this.tokenRange(token) };
+      case K.MacroSplice:
+        this.advance();
+        return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
+      case K.Match:
+        return this.parseMatchExpr();
+      case K.If: {
+        const statement = this.parseIfStmt();
+        return { kind: "StatementExpr", statement, range: statement.range };
+      }
+      case K.Fun:
+        return this.parseFunExpr();
+      case K.Async:
+        if (this.kindAt(1) === K.Fun || this.kindAt(1) === K.Gen && this.kindAt(2) === K.Fun)
+          return this.parseFunExpr();
+        break;
+      case K.Gen:
+        if (this.kindAt(1) === K.Fun)
+          return this.parseFunExpr();
+        this.fail(`Expected an expression but found ${this.describe(token)}`);
+        break;
+      case K.LifetimeLabel:
+        this.advance();
+        return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
+      case K.Fn:
+      case K.Noescape:
+        if (this.kindAt(1) === K.LeftParen || this.kindAt(1) === K.Fn) {
+          const type = this.parseType();
+          return { kind: "Identifier", name: "fn", range: type.range };
+        }
+        break;
+      case K.Return:
+      case K.Break:
+      case K.Continue:
+      case K.Throw:
+        return this.parseJump();
+      case K.Yield: {
+        const statement = this.parseYieldExprAsStatement();
+        return { kind: "StatementExpr", statement, range: statement.range };
+      }
+      case K.Try: {
+        const statement = this.parseTryStmt();
+        return { kind: "StatementExpr", statement, range: statement.range };
+      }
+      case K.Unsafe:
+      case K.Safe:
+      case K.Atomic:
+        if (token.kind === K.Unsafe && this.kindAt(1) === K.LeftParen || this.kindAt(1) === K.LeftBrace) {
+          const close = token.kind === K.Unsafe ? this.matchingClose(this.pos + 1) : this.pos;
+          if (close >= 0 && this.tokens[close + 1]?.kind === K.LeftBrace) {
+            this.advance();
+            if (this.at(K.LeftParen))
+              this.skipBalanced();
+            const statement = this.parseBlock();
+            return { kind: "StatementExpr", statement, range: this.rangeFrom(token) };
+          }
+        }
+        break;
+      case K.New:
+        if (this.isWord(this.peekTok(1)) && this.peekTok(1).line === token.endLine) {
+          this.advance();
+          const className = this.advance().text;
+          const args = this.at(K.LeftParen) ? this.parseArgs() : [];
+          return { kind: "NewExpr", className, args, range: this.rangeFrom(token) };
+        }
+        break;
+      case K.Dot:
+        if (this.isWord(this.peekTok(1))) {
+          this.advance();
+          const member = this.advance();
+          return { kind: "Identifier", name: "." + member.text, range: this.rangeFrom(token) };
+        }
+        break;
+      case K.At: {
+        this.parseAnnotation();
+        return this.parseExpression();
+      }
+      case K.LeftParen:
+        return this.parseParenthesized();
+      case K.LeftBracket:
+        return this.parseListLiteral();
+      case K.LeftBrace:
+        return this.parseBraceLiteral();
+      case K.Identifier:
+      case K.TypeIdentifier:
+        break;
+      default:
+        if (!isKeywordKind(token.kind) || NOT_AN_EXPRESSION.has(token.kind)) {
+          this.fail(`Expected an expression but found ${this.describe(token)}`);
+        }
+        break;
+    }
+    this.advance();
+    if (this.at(K.Bang) && this.kindAt(1) === K.LeftParen && this.cur().offset === token.offset + token.length) {
+      this.advance();
+      this.skipBalanced();
+      return { kind: "MacroInvocationExpr", name: token.text, args: [], range: this.rangeFrom(token) };
+    }
+    return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
+  }
+  /** `return [expr]`, `throw expr [from cause]`, `break [label]`, `continue [label]`. */
+  parseJump() {
+    const start = this.advance();
+    let statement;
+    switch (start.kind) {
+      case K.Return: {
+        const value = this.startsExpression() && this.sameLine() ? this.parseExpression() : void 0;
+        statement = { kind: "ReturnStmt", value, range: this.rangeFrom(start) };
+        break;
+      }
+      case K.Throw: {
+        const value = this.parseExpression();
+        const from = this.eat(K.From) ? this.parseExpression() : void 0;
+        statement = { kind: "ThrowStmt", value, from, range: this.rangeFrom(start) };
+        break;
+      }
+      default: {
+        const labelTok = this.cur();
+        const label = (labelTok.kind === K.Identifier || labelTok.kind === K.TypeIdentifier) && this.sameLine() ? this.advance().text : void 0;
+        statement = start.kind === K.Break ? { kind: "BreakStmt", label, range: this.rangeFrom(start) } : { kind: "ContinueStmt", label, range: this.rangeFrom(start) };
+        break;
+      }
+    }
+    return { kind: "StatementExpr", statement, range: statement.range };
+  }
+  parseYieldExprAsStatement() {
+    const start = this.advance();
+    if (this.at(K.Star)) {
+      this.advance();
+      const iterable = this.parseExpression();
+      return { kind: "YieldFromStmt", iterable, range: this.rangeFrom(start) };
+    }
+    const value = this.startsExpression() && this.sameLine() ? this.parseExpression() : void 0;
+    return { kind: "YieldStmt", value, range: this.rangeFrom(start) };
+  }
+  /** `()`, `(expr)`, `(a, b)`, `(expr for (x in xs))` */
+  parseParenthesized() {
+    const start = this.advance();
+    if (this.at(K.RightParen)) {
+      this.advance();
+      return { kind: "TupleLiteral", elements: [], range: this.rangeFrom(start) };
+    }
+    const first = this.parseTupleElement();
+    if (this.at(K.For)) {
+      const comprehension = this.parseComprehensionTail(first, "list", first);
+      this.expect(K.RightParen);
+      comprehension.range = this.rangeFrom(start);
+      return comprehension;
+    }
+    if (this.at(K.Comma)) {
+      const elements = [first];
+      while (this.eat(K.Comma)) {
+        if (this.at(K.RightParen))
+          break;
+        elements.push(this.parseTupleElement());
+      }
+      this.expect(K.RightParen);
+      return { kind: "TupleLiteral", elements, range: this.rangeFrom(start) };
+    }
+    this.expect(K.RightParen);
+    return { kind: "GroupExpr", expression: first, range: this.rangeFrom(start) };
+  }
+  /** A tuple element; a named one (`(x: 1, y: 2)`) drops its label. */
+  parseTupleElement() {
+    if (this.isWord(this.cur()) && this.kindAt(1) === K.Colon) {
+      this.advance();
+      this.advance();
+    }
+    return this.parseExpression();
+  }
+  parseListLiteral() {
+    const start = this.advance();
+    const elements = [];
+    while (!this.at(K.RightBracket)) {
+      const element = this.parseExpression();
+      if (elements.length === 0 && this.at(K.For)) {
+        const comprehension = this.parseComprehensionTail(element, "list", element);
+        this.expect(K.RightBracket);
+        comprehension.range = this.rangeFrom(start);
+        return comprehension;
+      }
+      if (elements.length === 0 && this.at(K.Semicolon)) {
+        this.advance();
+        this.parseExpression();
+        elements.push(element);
+        break;
+      }
+      elements.push(element);
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightBracket);
+    return { kind: "ListLiteral", elements, range: this.rangeFrom(start) };
+  }
+  /** `{}`, `{k: v, **rest}`, `{a, b}`, and the dict / set comprehensions. */
+  parseBraceLiteral() {
+    const start = this.advance();
+    const entries = [];
+    const elements = [];
+    let isDict = this.at(K.RightBrace);
+    while (!this.at(K.RightBrace)) {
+      const key = this.parseExpression();
+      if (this.at(K.Colon)) {
+        this.advance();
+        const value = this.parseExpression();
+        if (entries.length === 0 && elements.length === 0 && this.at(K.For)) {
+          const body = { kind: "TupleLiteral", elements: [key, value], range: this.spanFrom(key) };
+          const comprehension = this.parseComprehensionTail(body, "dict", body);
+          this.expect(K.RightBrace);
+          comprehension.range = this.rangeFrom(start);
+          return comprehension;
+        }
+        isDict = true;
+        entries.push([key, value]);
+      } else {
+        if (entries.length === 0 && elements.length === 0 && this.at(K.For)) {
+          const comprehension = this.parseComprehensionTail(key, "set", key);
+          this.expect(K.RightBrace);
+          comprehension.range = this.rangeFrom(start);
+          return comprehension;
+        }
+        if (key.kind === "SpreadExpr" && key.operator === "**")
+          isDict = true;
+        elements.push(key);
+      }
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightBrace);
+    if (isDict)
+      return { kind: "DictLiteral", entries, range: this.rangeFrom(start) };
+    return { kind: "SetLiteral", elements, range: this.rangeFrom(start) };
+  }
+  /** `for (pattern in iterable)` followed by any number of `if (cond)` / `for (...)` clauses. */
+  parseComprehensionTail(body, resultKind, anchor) {
+    let pattern;
+    let iterable;
+    let condition;
+    while (this.at(K.For) || this.at(K.If)) {
+      if (this.eat(K.If)) {
+        const cond = this.parseExpression();
+        condition = condition ?? cond;
+        continue;
+      }
+      this.advance();
+      const parenthesized = this.at(K.LeftParen) && this.hasInAheadFrom(this.pos + 1);
+      if (parenthesized)
+        this.advance();
+      if (this.at(K.Let) || this.at(K.Var))
+        this.advance();
+      const p = this.parseDestructPattern();
+      this.expect(K.In);
+      const it = this.parseExpression();
+      if (parenthesized)
+        this.expect(K.RightParen);
+      pattern = pattern ?? p;
+      iterable = iterable ?? it;
+    }
+    return { kind: "ComprehensionExpr", resultKind, body, pattern, iterable, condition, range: this.spanFrom(anchor) };
+  }
+  parseMatchExpr() {
+    const start = this.cur();
+    this.expect(K.Match);
+    const subject = this.parseExpression();
+    this.expect(K.LeftBrace);
+    const arms = [];
+    while (!this.at(K.RightBrace) && !this.atEnd()) {
+      if (this.at(K.Comma) || this.at(K.Semicolon)) {
+        this.advance();
+        continue;
+      }
+      const armStart = this.cur();
+      this.skipAnnotations();
+      const pattern = this.parsePattern();
+      let guard;
+      if (this.eat(K.If))
+        guard = this.parseExpression();
+      this.expect(K.Arrow);
+      const body = this.parseArrowBody();
+      arms.push({ kind: "MatchArm", pattern, guard, body, range: this.rangeFrom(armStart) });
+    }
+    this.closeBrace();
+    return { kind: "MatchExpr", subject, arms, range: this.rangeFrom(start) };
+  }
+  /** After `=>`: an expression, or a block (`None => { db.commit(); return true; }`). */
+  parseArrowBody() {
+    if (this.at(K.LeftBrace) && this.looksLikeBlock()) {
+      const statement = this.parseBlock();
+      return { kind: "StatementExpr", statement, range: statement.range };
+    }
+    return this.parseExpression();
+  }
+  /** At `{` in a position that admits both a block and a dict / set literal. */
+  looksLikeBlock() {
+    const first = this.peekTok(1);
+    const second = this.peekTok(2);
+    if (first.kind === K.RightBrace)
+      return true;
+    if (first.kind === K.StarStar)
+      return false;
+    if (second.kind === K.Colon) {
+      const third = this.kindAt(3);
+      const isLabel = this.isWord(first) && (third === K.For || third === K.While || third === K.Do);
+      return isLabel;
+    }
+    if (second.kind === K.Comma) {
+      return false;
+    }
+    return true;
+  }
+  // ---- Patterns ----
+  parsePattern() {
+    this.enter();
+    try {
+      const first = this.parsePatternPrimary();
+      while (this.at(K.Pipe)) {
+        this.advance();
+        this.parsePatternPrimary();
+      }
+      return first;
+    } finally {
+      this.depth--;
+    }
+  }
+  parsePatternPrimary() {
+    const token = this.cur();
+    switch (token.kind) {
+      case K.Minus:
+      case K.IntLiteral:
+      case K.FloatLiteral:
+      case K.StringLiteral:
+      case K.CharLiteral:
+      case K.RawStringLiteral:
+      case K.BytesLiteral:
+      case K.InterpolatedStringLiteral:
+      case K.MultilineStringLiteral:
+      case K.True:
+      case K.False: {
+        if (token.kind === K.Minus)
+          this.advance();
+        this.advance();
+        if (this.at(K.DotDot) || this.at(K.DotDotEqual)) {
+          this.advance();
+          this.eat(K.Minus);
+          if (this.at(K.IntLiteral) || this.at(K.FloatLiteral) || this.at(K.CharLiteral) || this.at(K.StringLiteral))
+            this.advance();
+        }
+        return { kind: "IdentifierPattern", name: token.text, range: this.rangeFrom(token) };
+      }
+      case K.LeftParen:
+      case K.LeftBracket: {
+        const close = token.kind === K.LeftParen ? K.RightParen : K.RightBracket;
+        this.advance();
+        const fields = this.parsePatternItems(close);
+        this.expect(close);
+        return { kind: "ConstructorPattern", name: "", fields, range: this.rangeFrom(token) };
+      }
+      case K.LeftBrace: {
+        this.advance();
+        const fields = this.parseNamedPatternItems();
+        this.expect(K.RightBrace);
+        return { kind: "ConstructorPattern", name: "", fields, range: this.rangeFrom(token) };
+      }
+      case K.Star: {
+        this.advance();
+        const rest = this.expectName('a name after "*"');
+        return { kind: "IdentifierPattern", name: rest.text, range: this.rangeFrom(token) };
+      }
+      case K.Borrow:
+        if (this.kindAt(1) === K.LeftBracket || this.isWord(this.peekTok(1))) {
+          this.advance();
+          if (this.at(K.LeftBracket))
+            this.skipBalanced();
+          const bound = this.expectName("a binding name");
+          return { kind: "IdentifierPattern", name: bound.text, range: this.rangeFrom(token) };
+        }
+        break;
+      default:
+        break;
+    }
+    if (!this.isNameToken(token)) {
+      this.fail(`Expected a pattern but found ${this.describe(token)}`);
+    }
+    this.advance();
+    if (token.text === "_")
+      return { kind: "WildcardPattern", range: this.tokenRange(token) };
+    let name = token.text;
+    while (this.at(K.Dot) && this.isNameToken(this.peekTok(1))) {
+      this.advance();
+      name += "." + this.advance().text;
+    }
+    if (this.at(K.LeftBracket))
+      this.skipBalanced();
+    if (this.at(K.LeftParen)) {
+      this.advance();
+      const fields = this.parsePatternItems(K.RightParen);
+      this.expect(K.RightParen);
+      return { kind: "ConstructorPattern", name, fields, range: this.rangeFrom(token) };
+    }
+    if (this.at(K.LeftBrace)) {
+      this.advance();
+      const fields = this.parseNamedPatternItems();
+      this.expect(K.RightBrace);
+      return { kind: "ConstructorPattern", name, fields, range: this.rangeFrom(token) };
+    }
+    return { kind: "IdentifierPattern", name, range: this.rangeFrom(token) };
+  }
+  /** Positional or `name = pattern` items up to `close`. */
+  parsePatternItems(close) {
+    const items = [];
+    while (!this.at(close)) {
+      if (this.at(K.DotDot) || this.at(K.DotDotDot)) {
+        this.advance();
+      } else {
+        if (this.isWord(this.cur()) && (this.kindAt(1) === K.Assign || this.kindAt(1) === K.Colon)) {
+          this.advance();
+          this.advance();
+        }
+        items.push(this.parsePattern());
+      }
+      if (!this.eat(K.Comma))
+        break;
+    }
+    return items;
+  }
+  /** `{ name: pattern, "key": name = default, **rest }` */
+  parseNamedPatternItems() {
+    const items = [];
+    while (!this.at(K.RightBrace)) {
+      if (this.at(K.StarStar)) {
+        this.advance();
+        this.expectName('a name after "**"');
+      } else {
+        const key = this.cur();
+        if (key.kind !== K.StringLiteral && !this.isNameToken(key)) {
+          this.fail(`Expected a field name but found ${this.describe(key)}`);
+        }
+        this.advance();
+        if (this.eat(K.Colon)) {
+          items.push(this.parsePattern());
+        } else {
+          items.push({ kind: "IdentifierPattern", name: key.text, range: this.tokenRange(key) });
+        }
+        if (this.eat(K.Assign))
+          this.parseExpression();
+      }
+      if (!this.eat(K.Comma) && !this.eat(K.Semicolon))
+        break;
+    }
+    return items;
+  }
+  // ---- Lambdas ----
+  /** `func(params) [: Type] [captures] => expr` or `... { block }`, optionally `async`. */
+  parseFunExpr() {
+    const start = this.cur();
+    const isAsync = this.eat(K.Async);
+    this.eat(K.Gen);
+    this.expect(K.Fun);
+    this.expect(K.LeftParen);
+    const params = this.parseParamList();
+    this.expect(K.RightParen);
+    let returnType;
+    for (; ; ) {
+      if (this.at(K.Colon)) {
+        this.advance();
+        returnType = this.parseType();
+      } else if (this.at(K.LeftBracket)) {
+        this.skipBalanced();
+      } else {
+        break;
+      }
+    }
+    let body;
+    if (this.eat(K.Arrow)) {
+      body = this.at(K.LeftBrace) && this.looksLikeBlock() ? this.parseBlock() : this.parseExpression();
+    } else {
+      body = this.parseBlock();
+    }
+    return { kind: isAsync ? "AsyncFunExpr" : "FunExpr", params, returnType, body, range: this.rangeFrom(start) };
+  }
+  // ==========================================================================
+  // Types
+  // ==========================================================================
+  parseType() {
+    const first = this.parseTypeNoUnion();
+    if (!this.at(K.Pipe))
+      return first;
+    const members = [first];
+    while (this.eat(K.Pipe))
+      members.push(this.parseTypeNoUnion());
+    return { kind: "UnionType", members, range: this.spanFromRange(first.range) };
+  }
+  parseTypeNoUnion() {
+    this.enter();
+    try {
+      let type = this.parseTypePrimary();
+      while (this.at(K.Question)) {
+        this.advance();
+        type = { kind: "OptionalType", inner: type, range: this.spanFromRange(type.range) };
+      }
+      return type;
+    } finally {
+      this.depth--;
+    }
+  }
+  parseTypePrimary() {
+    const token = this.cur();
+    let i = 0;
+    while (this.kindAt(i) === K.Async || this.kindAt(i) === K.Gen || this.kindAt(i) === K.Noescape)
+      i++;
+    if ((this.kindAt(i) === K.Fn || this.kindAt(i) === K.Fun) && this.kindAt(i + 1) === K.LeftParen) {
+      let isAsync = false;
+      let isNoescape = false;
+      for (; i > 0; i--) {
+        const modifier = this.advance();
+        if (modifier.kind === K.Async)
+          isAsync = true;
+        if (modifier.kind === K.Noescape)
+          isNoescape = true;
+      }
+      this.advance();
+      this.expect(K.LeftParen);
+      const params = [];
+      while (!this.at(K.RightParen)) {
+        if (this.at(K.Star) || this.at(K.StarStar))
+          this.advance();
+        while (OWNERSHIP_KINDS.has(this.cur().kind) && this.kindAt(1) !== K.LeftBracket && this.startsTypeAt(1))
+          this.advance();
+        if (this.isWord(this.cur()) && this.kindAt(1) === K.Colon) {
+          this.advance();
+          this.advance();
+        }
+        params.push(this.parseType());
+        if (this.eat(K.Assign))
+          this.parseExpression();
+        if (!this.eat(K.Comma))
+          break;
+      }
+      this.expect(K.RightParen);
+      const returnType = this.eat(K.Colon) ? this.parseTypeNoUnion() : { kind: "SimpleType", name: "void", range: this.tokenRange(this.prev()) };
+      if (isAsync)
+        return { kind: "AsyncFunctionType", params, returnType, range: this.rangeFrom(token) };
+      return { kind: "FunctionType", params, returnType, isNoescape, range: this.rangeFrom(token) };
+    }
+    if (token.kind === K.LeftParen) {
+      this.advance();
+      const elements = [];
+      while (!this.at(K.RightParen)) {
+        elements.push(this.parseType());
+        if (!this.eat(K.Comma))
+          break;
+      }
+      this.expect(K.RightParen);
+      if (elements.length === 1)
+        return elements[0];
+      return { kind: "TupleType", elements, range: this.rangeFrom(token) };
+    }
+    if (OWNERSHIP_KINDS.has(token.kind)) {
+      if (this.kindAt(1) === K.LeftBracket && this.kindAt(2) === K.LifetimeLabel) {
+        this.advance();
+        this.skipBalanced();
+        return this.parseTypeNoUnion();
+      }
+      if (this.startsTypeAt(1) && this.peekTok(1).line === token.endLine) {
+        this.advance();
+        return this.parseTypeNoUnion();
+      }
+    }
+    if (token.kind === K.MacroSplice) {
+      this.advance();
+      return { kind: "SimpleType", name: token.text, range: this.tokenRange(token) };
+    }
+    if (!this.isWord(token)) {
+      this.fail(`Expected a type but found ${this.describe(token)}`);
+    }
+    this.advance();
+    let name = token.text;
+    while (this.at(K.Dot) && this.isWord(this.peekTok(1))) {
+      this.advance();
+      name += "." + this.advance().text;
+    }
+    if (name === "decimal" && this.at(K.LeftParen)) {
+      this.skipBalanced();
+      return { kind: "SimpleType", name, range: this.rangeFrom(token) };
+    }
+    if (this.at(K.LeftBracket) && this.kindAt(1) !== K.Weak && this.kindAt(1) !== K.Unowned) {
+      const args = this.parseTypeArgs();
+      if (name === "tuple")
+        return { kind: "TupleType", elements: args, range: this.rangeFrom(token) };
+      return { kind: "GenericType", name, args, range: this.rangeFrom(token) };
+    }
+    return { kind: "SimpleType", name, range: this.rangeFrom(token) };
+  }
+  startsTypeAt(offset) {
+    const tok = this.peekTok(offset);
+    return this.isWord(tok) || tok.kind === K.LeftParen || tok.kind === K.MacroSplice;
+  }
+  /**
+   * `[T, U]`. A type argument may also be a value (`buffer[uint8, 64]`,
+   * `array[float, rank + 1]`, `decimal`-style `name: value`), a lifetime (`~a`) or `_`.
+   */
+  parseTypeArgs() {
+    this.expect(K.LeftBracket);
+    const args = [];
+    while (!this.at(K.RightBracket)) {
+      const tok = this.cur();
+      if (tok.kind === K.LifetimeLabel) {
+        this.advance();
+      } else if (this.isWord(tok) && this.kindAt(1) === K.Colon) {
+        this.advance();
+        this.advance();
+        this.skipTypeArgValue();
+      } else if (this.startsTypeAt(0) && !this.isValueWord(tok)) {
+        args.push(this.parseType());
+        if (!this.at(K.Comma) && !this.at(K.RightBracket))
+          this.skipTypeArgValue();
+      } else {
+        this.skipTypeArgValue();
+      }
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightBracket);
+    return args;
+  }
+  isValueWord(tok) {
+    return tok.kind === K.True || tok.kind === K.False;
+  }
+  /** Skip one value-typed generic argument: tokens up to the `,` or `]` at this bracket depth. */
+  skipTypeArgValue() {
+    let consumed = false;
+    for (; ; ) {
+      const tok = this.cur();
+      if (tok.kind === K.EOF)
+        break;
+      if (tok.kind === K.Comma || tok.kind === K.RightBracket)
+        break;
+      if (tok.kind === K.RightParen || tok.kind === K.RightBrace || tok.kind === K.Semicolon)
+        break;
+      if (CLOSERS[tok.kind] !== void 0) {
+        this.skipBalanced();
+      } else {
+        this.advance();
+      }
+      consumed = true;
+    }
+    if (!consumed)
+      this.fail(`Expected a type but found ${this.describe(this.cur())}`);
+  }
+  // ---- Parameters ----
+  parseParamList() {
+    const params = [];
+    while (!this.at(K.RightParen)) {
+      params.push(this.parseParam());
+      if (!this.eat(K.Comma))
+        break;
+    }
+    return params;
+  }
+  parseParam() {
+    const start = this.cur();
+    this.skipAnnotations();
+    if (this.at(K.Star) || this.at(K.StarStar)) {
+      const star = this.advance();
+      if (star.kind === K.Star && this.at(K.Star))
+        this.advance();
+      if (this.at(K.Comma) || this.at(K.RightParen)) {
+        return { kind: "Parameter", name: "*", range: this.rangeFrom(start) };
+      }
+    }
+    let qualifier;
+    for (; ; ) {
+      const tok = this.cur();
+      if (!OWNERSHIP_KINDS.has(tok.kind))
+        break;
+      const next = this.kindAt(1);
+      if (next === K.Colon || next === K.Comma || next === K.RightParen || next === K.Assign)
+        break;
+      this.advance();
+      if (tok.kind === K.Weak)
+        qualifier = "weak";
+      else if (tok.kind === K.Unowned)
+        qualifier = "unowned";
+      else if (tok.kind === K.Borrow)
+        qualifier = qualifier === void 0 && this.tokens[this.pos - 2]?.kind === K.Excl ? "excl borrow" : "borrow";
+      if (this.at(K.LeftBracket) && this.kindAt(1) === K.LifetimeLabel)
+        this.skipBalanced();
+    }
+    let name;
+    let nameRange;
+    if (this.at(K.LeftParen) || this.at(K.LeftBracket) || this.at(K.LeftBrace)) {
+      const pattern = this.parseDestructPattern("parameter");
+      name = "_";
+      nameRange = pattern.range;
+    } else {
+      const nameTok = this.expectDeclaredName("parameter");
+      name = nameTok.text;
+      nameRange = this.tokenRange(nameTok);
+    }
+    const type = this.eat(K.Colon) ? this.parseType() : void 0;
+    const defaultValue = this.eat(K.Assign) ? this.parseExpression() : void 0;
+    return { kind: "Parameter", name, nameRange, type, defaultValue, qualifier, range: this.rangeFrom(start) };
+  }
+  /** `[T, U: Bound + Other, lifetime ~a, out V, N: int]` */
+  parseOptionalTypeParams() {
+    if (!this.at(K.LeftBracket))
+      return void 0;
+    this.advance();
+    const params = [];
+    while (!this.at(K.RightBracket)) {
+      const pStart = this.cur();
+      if (this.at(K.Lifetime))
+        this.advance();
+      if (this.at(K.LifetimeLabel)) {
+        const label = this.advance();
+        params.push({ kind: "TypeParam", name: label.text, range: this.rangeFrom(pStart) });
+      } else {
+        if ((this.at(K.In) || this.cur().text === "out") && this.isWord(this.peekTok(1)))
+          this.advance();
+        const name = this.expectDeclaredName("type parameter").text;
+        let constraint;
+        if (this.eat(K.Colon)) {
+          constraint = this.parseType();
+          while (this.eat(K.Plus))
+            this.parseType();
+        }
+        if (this.eat(K.Assign))
+          this.parseType();
+        params.push({ kind: "TypeParam", name, constraint, range: this.rangeFrom(pStart) });
+      }
+      if (!this.eat(K.Comma))
+        break;
+    }
+    this.expect(K.RightBracket);
+    return params.length > 0 ? params : void 0;
+  }
+  // ==========================================================================
+  // Token helpers
+  // ==========================================================================
+  cur() {
+    if (++this.work > this.workLimit)
+      throw new ParseAbort();
+    return this.tokens[this.pos] ?? this.eof;
+  }
+  prev() {
+    return this.tokens[this.pos - 1] ?? this.tokens[0] ?? this.eof;
+  }
+  peekTok(offset) {
+    return this.tokens[this.pos + offset] ?? this.eof;
+  }
+  kindAt(offset) {
+    const tok = this.tokens[this.pos + offset];
+    return tok ? tok.kind : K.EOF;
+  }
+  advance() {
+    const token = this.cur();
+    if (token.kind !== K.EOF)
+      this.pos++;
+    return token;
+  }
+  at(kind) {
+    return this.cur().kind === kind;
+  }
+  eat(kind) {
+    if (this.cur().kind !== kind)
+      return false;
+    this.pos++;
+    return true;
+  }
+  atEnd() {
+    return this.cur().kind === K.EOF;
+  }
+  /** Does the current token start on the line the previous token ended on? */
+  sameLine() {
+    if (this.pos === 0)
+      return false;
+    return this.cur().line === this.tokens[this.pos - 1].endLine;
+  }
+  startsLine() {
+    return !this.sameLine();
+  }
+  /** Any identifier-like token: a name or a keyword spelling. */
+  isWord(tok) {
+    if (!tok)
+      return false;
+    return tok.kind === K.Identifier || tok.kind === K.TypeIdentifier || isKeywordKind(tok.kind);
+  }
+  /** A token that can stand where a declaration or pattern introduces a name. */
+  isNameToken(tok) {
+    return this.isWord(tok) || tok?.kind === K.MacroSplice;
+  }
+  startsExpression() {
+    return this.startsExpressionAt(0);
+  }
+  startsExpressionAt(offset) {
+    const tok = this.peekTok(offset);
+    switch (tok.kind) {
+      case K.EOF:
+      case K.Semicolon:
+      case K.Comma:
+      case K.RightParen:
+      case K.RightBracket:
+      case K.RightBrace:
+      case K.Colon:
+      case K.Arrow:
+      case K.Assign:
+      case K.Error:
+        return false;
+      default:
+        return !NOT_AN_EXPRESSION.has(tok.kind);
+    }
+  }
+  expect(kind) {
+    const token = this.cur();
+    if (token.kind === kind) {
+      this.pos++;
+      return token;
+    }
+    this.fail(`Expected '${kind}' but found ${this.describe(token)}`);
+  }
+  expectWord(what) {
+    const token = this.cur();
+    if (this.isWord(token)) {
+      this.pos++;
+      return token;
+    }
+    this.fail(`Expected ${what} but found ${this.describe(token)}`);
+  }
+  /** A name being introduced or referenced by a declaration: any word, or a macro splice. */
+  expectName(what) {
+    const token = this.cur();
+    if (this.isNameToken(token)) {
+      this.pos++;
+      return token;
+    }
+    this.fail(`Expected ${what} but found ${this.describe(token)}`);
+  }
+  /**
+   * A name a declaration introduces. A reserved word is reported once and kept as
+   * the name, so the rest of the declaration is still checked (§1-3.4).
+   */
+  expectDeclaredName(position) {
+    const token = this.expectName(position === "enum variant" || position === "import alias" ? `an ${position} name` : `a ${position} name`);
+    if (token.kind !== K.Identifier && (RESERVED_EVERYWHERE.has(token.text) || RESERVED_BY_POSITION[position].has(token.text))) {
+      this.addDiagnostic(
+        `\`${token.text}\` is a reserved word (\xA71-3.4) and cannot name ${position === "enum variant" || position === "import alias" ? "an" : "a"} ${position}`,
+        this.tokenRange(token)
+      );
+    }
+    return token;
+  }
+  /**
+   * End of a simple statement. `;` is optional before `}`, at end of file and
+   * when the next statement starts on a new line (§1-19.4).
+   */
+  endStatement() {
+    if (this.eat(K.Semicolon))
+      return;
+    if (this.at(K.RightBrace) || this.atEnd() || this.startsLine())
+      return;
+    this.addDiagnostic(`Expected ';' but found ${this.describe(this.cur())}`, this.tokenRange(this.cur()));
+  }
+  /** Index of the bracket closing the one at `openIndex`, or -1. */
+  matchingClose(openIndex) {
+    let nesting = 0;
+    for (let i = openIndex; i < this.tokens.length; i++) {
+      const kind = this.tokens[i].kind;
+      if (kind === K.LeftParen || kind === K.LeftBracket || kind === K.LeftBrace || kind === K.BangLeftBrace) {
+        nesting++;
+      } else if (kind === K.RightParen || kind === K.RightBracket || kind === K.RightBrace) {
+        nesting--;
+        if (nesting === 0)
+          return i;
+        if (nesting < 0)
+          return -1;
+      }
+    }
+    return -1;
+  }
+  /** At an opening bracket: consume through its matching closer, whatever lies between. */
+  skipBalanced() {
+    const open = this.cur();
+    const close = this.matchingClose(this.pos);
+    if (close < 0) {
+      this.fail(`'${open.text}' is never closed`, open);
+    }
+    this.pos = close + 1;
+  }
+  enter() {
+    if (++this.depth > MAX_NESTING) {
+      this.fail("Nesting is too deep to analyse");
+    }
+  }
+  checkTerminated(token, what) {
+    if (token.unterminated) {
+      this.addDiagnostic(`Unterminated ${what}`, this.tokenRange(token));
+    }
+  }
+  // ==========================================================================
+  // Diagnostics & ranges
+  // ==========================================================================
+  describe(token) {
+    if (token.kind === K.EOF)
+      return "end of file";
+    const text = token.text.length > 24 ? token.text.slice(0, 24).split("\n")[0] + "\u2026" : token.text.split("\n")[0];
+    return `'${text}'`;
+  }
+  /** Record a diagnostic at `token` (default: the current token) and abandon the statement. */
+  fail(message, token = this.cur()) {
+    const range = token.kind === K.EOF ? this.rangeAfterPrev() : this.tokenRange(token);
+    this.addDiagnostic(message, range);
+    throw new ParseError();
+  }
+  addDiagnostic(message, range) {
+    if (this.diagnostics.length >= MAX_DIAGNOSTICS)
+      return;
+    const last = this.diagnostics[this.diagnostics.length - 1];
+    if (last && last.range.start.offset === range.start.offset)
+      return;
+    this.diagnostics.push({ message, range, severity: "error" });
+  }
+  tokenRange(token) {
+    return {
+      start: { line: token.line, column: token.column, offset: token.offset },
+      end: { line: token.endLine, column: token.endColumn, offset: token.offset + token.length }
+    };
+  }
+  /** From `start` through the last token consumed. */
+  rangeFrom(start) {
+    const last = this.pos > 0 ? this.tokens[this.pos - 1] : start;
+    const end = last.offset + last.length >= start.offset + start.length ? last : start;
+    return {
+      start: { line: start.line, column: start.column, offset: start.offset },
+      end: { line: end.endLine, column: end.endColumn, offset: end.offset + end.length }
+    };
+  }
+  /** From the start of `node` through the last token consumed. */
+  spanFrom(node) {
+    return this.spanFromRange(node.range);
+  }
+  spanFromRange(range) {
+    const last = this.pos > 0 ? this.tokens[this.pos - 1] : void 0;
+    if (!last || last.offset + last.length < range.end.offset)
+      return range;
+    return {
+      start: range.start,
+      end: { line: last.endLine, column: last.endColumn, offset: last.offset + last.length }
+    };
+  }
+  /** A zero-width range just past the last token consumed: where something is missing. */
+  rangeAfterPrev() {
+    const last = this.pos > 0 ? this.tokens[this.pos - 1] : this.eof;
+    const position = { line: last.endLine, column: last.endColumn, offset: last.offset + last.length };
+    return { start: position, end: position };
+  }
+};
+
+// src/analysis.ts
+function isManifestUri(uri) {
+  const path = uri.split(/[?#]/)[0].toLowerCase();
+  return path.endsWith(".lppkg") || path.endsWith(".pkg");
+}
+function toPlainRange(range) {
+  return {
+    start: { line: range.start.line, character: range.start.column },
+    end: { line: range.end.line, character: range.end.column }
+  };
+}
+function analyze(text) {
+  const { program, diagnostics: parseDiagnostics } = new Parser().parse(text);
+  const symbolTable = new SymbolTable();
+  const symbols = symbolTable.build(program);
+  const diagnostics = parseDiagnostics.map((d) => ({
+    severity: d.severity,
+    range: toPlainRange(d.range),
+    message: d.message
+  }));
+  return { program, symbols, symbolTable, diagnostics };
+}
+var WORD_CHAR = /[\p{L}\p{Nd}_]/u;
+function getWordAtOffset(text, offset) {
+  let start = Math.max(0, Math.min(offset, text.length));
+  let end = start;
+  while (start > 0 && WORD_CHAR.test(text[start - 1]))
+    start--;
+  while (end < text.length && WORD_CHAR.test(text[end]))
+    end++;
+  return end > start ? text.slice(start, end) : null;
+}
+function importInsertLine(text) {
+  const lines = text.split("\n");
+  let insertAt = 0;
+  let inBlockComment = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (inBlockComment) {
+      if (line.includes("*/"))
+        inBlockComment = false;
+      insertAt = i + 1;
+      continue;
+    }
+    if (line === "" || line.startsWith("#"))
+      continue;
+    if (line.startsWith("/*")) {
+      inBlockComment = !line.includes("*/");
+      continue;
+    }
+    if (/^@mode\b/.test(line) || /^@compiled\b/.test(line) || /^namespace\b[^{]*;?$/.test(line)) {
+      insertAt = i + 1;
+      continue;
+    }
+    break;
+  }
+  return Math.min(insertAt, lines.length);
+}
+function splitTopLevel(text) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of text) {
+    if (ch === "(" || ch === "[" || ch === "{")
+      depth++;
+    else if (ch === ")" || ch === "]" || ch === "}")
+      depth--;
+    if (ch === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim() !== "")
+    parts.push(current.trim());
+  return parts;
+}
+
+// src/folding.ts
+function computeFoldingRanges(text) {
+  const tokens = new Lexer(text).tokenize();
+  const ranges = [];
+  const stack = [];
+  let commentRun;
+  const flushComments = () => {
+    if (commentRun && commentRun.end > commentRun.start) {
+      ranges.push({ startLine: commentRun.start, endLine: commentRun.end, kind: "comment" });
+    }
+    commentRun = void 0;
+  };
+  for (const tok of tokens) {
+    const isLineComment = tok.kind === "LineComment" /* LineComment */ || tok.kind === "DocComment" /* DocComment */;
+    if (isLineComment) {
+      if (commentRun && tok.line === commentRun.end + 1) {
+        commentRun.end = tok.line;
+      } else if (!commentRun || tok.line !== commentRun.end) {
+        flushComments();
+        commentRun = { start: tok.line, end: tok.line };
+      }
+      continue;
+    }
+    flushComments();
+    switch (tok.kind) {
+      case "{" /* LeftBrace */:
+      case "[" /* LeftBracket */:
+      case "(" /* LeftParen */:
+        stack.push(tok.line);
+        break;
+      case "}" /* RightBrace */:
+      case "]" /* RightBracket */:
+      case ")" /* RightParen */: {
+        const startLine = stack.pop();
+        if (startLine !== void 0 && tok.line - 1 > startLine) {
+          ranges.push({ startLine, endLine: tok.line - 1 });
+        }
+        break;
+      }
+      case "BlockComment" /* BlockComment */:
+        if (tok.endLine > tok.line)
+          ranges.push({ startLine: tok.line, endLine: tok.endLine, kind: "comment" });
+        break;
+      case "TemplateFenceOpen" /* TemplateFenceOpen */:
+      case "MultilineStringLiteral" /* MultilineStringLiteral */:
+      case "RawStringLiteral" /* RawStringLiteral */:
+      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
+        if (tok.endLine - 1 > tok.line)
+          ranges.push({ startLine: tok.line, endLine: tok.endLine - 1, kind: "region" });
+        break;
+      default:
+        break;
+    }
+  }
+  flushComments();
+  ranges.sort((a, b) => a.startLine - b.startLine || b.endLine - a.endLine);
+  return ranges;
+}
+
+// src/formatting.ts
+var OPENERS = /* @__PURE__ */ new Set(["{" /* LeftBrace */, "[" /* LeftBracket */, "(" /* LeftParen */]);
+var CLOSERS2 = /* @__PURE__ */ new Set(["}" /* RightBrace */, "]" /* RightBracket */, ")" /* RightParen */]);
+function formatSource(text, indentUnit) {
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split("\n").map((line) => line.endsWith("\r") ? line.slice(0, -1) : line);
+  const tokens = new Lexer(text).tokenize();
+  const insideToken = new Array(lines.length).fill(false);
+  const indentLevel = new Array(lines.length).fill(0);
+  const openLines = [];
+  const levelNow = () => {
+    let level = 0;
+    for (let i = 0; i < openLines.length; i++) {
+      if (i === 0 || openLines[i] !== openLines[i - 1])
+        level++;
+    }
+    return level;
+  };
+  let currentLine = -1;
+  let assigned = false;
+  let leadingCloser = false;
+  for (const tok of tokens) {
+    if (tok.kind === "EOF" /* EOF */)
+      break;
+    if (tok.line !== currentLine) {
+      currentLine = tok.line;
+      assigned = false;
+      leadingCloser = false;
+    }
+    const isCloser = CLOSERS2.has(tok.kind);
+    const openedOn = isCloser ? openLines.pop() : void 0;
+    if (!assigned && tok.line < lines.length) {
+      if (isCloser) {
+        indentLevel[tok.line] = openedOn !== void 0 && openedOn < tok.line ? indentLevel[openedOn] : levelNow();
+      } else {
+        if (!leadingCloser)
+          indentLevel[tok.line] = levelNow();
+        assigned = true;
+      }
+      leadingCloser = isCloser;
+    }
+    if (OPENERS.has(tok.kind) || tok.kind === "!{" /* BangLeftBrace */)
+      openLines.push(tok.line);
+    for (let inner = tok.line + 1; inner <= tok.endLine && inner < lines.length; inner++) {
+      insideToken[inner] = true;
+    }
+    if (tok.endLine !== tok.line) {
+      currentLine = tok.endLine;
+      assigned = true;
+    }
+  }
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    if (insideToken[i]) {
+      out.push(raw);
+      continue;
+    }
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) {
+      out.push("");
+      continue;
+    }
+    out.push(indentUnit.repeat(indentLevel[i]) + trimmed);
+  }
+  return out.join(eol);
+}
+
+// src/semanticTokens.ts
+var TOKEN_TYPES = [
   "keyword",
   "type",
   "class",
@@ -12138,7 +13804,7 @@ var tokenTypes = [
   "operator",
   "comment"
 ];
-var tokenModifiers = [
+var TOKEN_MODIFIERS = [
   "declaration",
   "definition",
   "readonly",
@@ -12148,6 +13814,221 @@ var tokenModifiers = [
   "documentation",
   "defaultLibrary"
 ];
+var PRIMITIVE_TYPES = [
+  "int",
+  "int8",
+  "int16",
+  "int32",
+  "int64",
+  "uint",
+  "uint8",
+  "uint16",
+  "uint32",
+  "uint64",
+  "bigint",
+  "float",
+  "float32",
+  "float64",
+  "decimal",
+  "complex",
+  "complex32",
+  "complex64",
+  "fixed",
+  "bool",
+  "char",
+  "string",
+  "bytes",
+  "void",
+  "noreturn",
+  "impossible",
+  "list",
+  "dict",
+  "set",
+  "tuple",
+  "buffer",
+  "array"
+];
+function isContextualKeywordUse(tokens, i) {
+  const tok = tokens[i];
+  const prev = tokens[i - 1];
+  const next = tokens[i + 1];
+  if (prev && (prev.kind === "." /* Dot */ || prev.kind === "?." /* QuestionDot */))
+    return false;
+  const nextIsWord = next !== void 0 && next.line === tok.endLine && (next.kind === "Identifier" /* Identifier */ || next.kind === "TypeIdentifier" /* TypeIdentifier */ || isKeywordKind(next.kind));
+  switch (tok.kind) {
+    case "get" /* Get */:
+    case "set" /* Set */:
+      return nextIsWord && tokens[i + 2]?.kind === "(" /* LeftParen */;
+    case "quote" /* Quote */:
+    case "asm" /* Asm */:
+      return next?.kind === "{" /* LeftBrace */;
+    case "group" /* Group */:
+      return prev?.kind === "await" /* Await */ && next?.kind === "{" /* LeftBrace */;
+    case "concurrent" /* Concurrent */:
+      return prev?.kind === "for" /* For */;
+    case "excl" /* Excl */:
+      return next?.kind === "borrow" /* Borrow */;
+    case "arc" /* Arc */:
+      return next?.kind === "let" /* Let */ || next?.kind === "var" /* Var */;
+    case "operator" /* Operator */:
+      return next?.kind === "func" /* Fun */ || next?.kind === "modifier" /* Modifier */;
+    case "compiled" /* Compiled */:
+      return prev?.kind === "prefer" /* Prefer */;
+    case "js" /* Js */:
+    case "native" /* Native */:
+      return prev?.kind === "extern" /* Extern */;
+    case "val" /* Val */:
+      return prev?.kind === "js" /* Js */ || prev?.kind === "StringLiteral" /* StringLiteral */;
+    case "foundation" /* Foundation */:
+    case "overlay" /* Overlay */:
+      return prev?.kind === "template" /* Template */;
+    case "onto" /* Onto */:
+      return nextIsWord && tokens[i - 2]?.kind === "overlay" /* Overlay */;
+    case "part" /* Part */:
+      return next?.kind === "func" /* Fun */ || next !== void 0 && isKeywordKind(next.kind) && tokens[i + 2]?.kind === "func" /* Fun */;
+    case "spawn" /* Spawn */:
+    case "box" /* Box */:
+      return nextIsWord || next?.kind === "{" /* LeftBrace */;
+    case "weak" /* Weak */:
+    case "unowned" /* Unowned */:
+      return nextIsWord || next?.kind === "[" /* LeftBracket */;
+    case "size_of" /* SizeOf */:
+    case "align_of" /* AlignOf */:
+    case "reinterpret" /* Reinterpret */:
+    case "reinterpretChecked" /* ReinterpretChecked */:
+      return next?.kind === "[" /* LeftBracket */;
+    case "distinct" /* Distinct */:
+      return next?.kind === "(" /* LeftParen */ && (prev?.kind === "requires" /* Requires */ || prev?.kind === "," /* Comma */ || prev?.kind === "(" /* LeftParen */);
+    case "None" /* None */:
+    case "this" /* This */:
+    case "super" /* Super */:
+      return true;
+    default:
+      return false;
+  }
+}
+function classifyTokens(text) {
+  const tokens = new Lexer(text).tokenize();
+  const primitives = new Set(PRIMITIVE_TYPES);
+  const out = [];
+  const push = (tok, length, type, modifiers = []) => {
+    out.push({ line: tok.line, character: tok.column, length, type, modifiers });
+  };
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    if (tok.kind === "EOF" /* EOF */)
+      break;
+    if (tok.endLine !== tok.line)
+      continue;
+    const prev = tokens[i - 1];
+    const next = tokens[i + 1];
+    switch (tok.kind) {
+      case "LineComment" /* LineComment */:
+      case "BlockComment" /* BlockComment */:
+        push(tok, tok.length, "comment");
+        continue;
+      case "DocComment" /* DocComment */:
+        push(tok, tok.length, "comment", ["documentation"]);
+        continue;
+      case "StringLiteral" /* StringLiteral */:
+      case "CharLiteral" /* CharLiteral */:
+      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
+      case "RawStringLiteral" /* RawStringLiteral */:
+      case "BytesLiteral" /* BytesLiteral */:
+      case "MultilineStringLiteral" /* MultilineStringLiteral */:
+        push(tok, tok.length, "string");
+        continue;
+      case "IntLiteral" /* IntLiteral */:
+      case "FloatLiteral" /* FloatLiteral */:
+        push(tok, tok.length, "number");
+        continue;
+      case "@" /* At */:
+        if (next && next.offset === tok.offset + tok.length && next.line === tok.line && (next.kind === "Identifier" /* Identifier */ || next.kind === "TypeIdentifier" /* TypeIdentifier */ || isKeywordKind(next.kind))) {
+          push(tok, tok.length + next.length, "decorator");
+          i++;
+        } else {
+          push(tok, tok.length, "decorator");
+        }
+        continue;
+      default:
+        break;
+    }
+    const isName = tok.kind === "Identifier" /* Identifier */ || tok.kind === "TypeIdentifier" /* TypeIdentifier */;
+    if (!isName && !isKeywordKind(tok.kind))
+      continue;
+    const afterDot = prev !== void 0 && (prev.kind === "." /* Dot */ || prev.kind === "?." /* QuestionDot */);
+    if (!isName && !afterDot) {
+      if (isReservedWord(tok.text) || isContextualKeywordUse(tokens, i)) {
+        const modifiers = [];
+        if (tok.kind === "async" /* Async */)
+          modifiers.push("async");
+        if (tok.kind === "static" /* Static */)
+          modifiers.push("static");
+        if (tok.kind === "let" /* Let */ || tok.kind === "const" /* Const */)
+          modifiers.push("readonly");
+        if (tok.kind === "var" /* Var */)
+          modifiers.push("modification");
+        push(tok, tok.length, "keyword", modifiers);
+        continue;
+      }
+    }
+    if (afterDot) {
+      push(tok, tok.length, next?.kind === "(" /* LeftParen */ ? "method" : "property");
+      continue;
+    }
+    if (primitives.has(tok.text)) {
+      push(tok, tok.length, "type", ["defaultLibrary"]);
+      continue;
+    }
+    switch (prev?.kind) {
+      case "class" /* Class */:
+        push(tok, tok.length, "class", ["declaration"]);
+        continue;
+      case "struct" /* Struct */:
+        push(tok, tok.length, "struct", ["declaration"]);
+        continue;
+      case "enum" /* Enum */:
+        push(tok, tok.length, "enum", ["declaration"]);
+        continue;
+      case "interface" /* Interface */:
+        push(tok, tok.length, "interface", ["declaration"]);
+        continue;
+      case "type" /* Type */:
+        push(tok, tok.length, "type", ["declaration"]);
+        continue;
+      case "func" /* Fun */:
+        push(tok, tok.length, "function", ["declaration"]);
+        continue;
+      case "macro" /* Macro */:
+        push(tok, tok.length, "macro", ["declaration"]);
+        continue;
+      case "let" /* Let */:
+      case "const" /* Const */:
+        push(tok, tok.length, "variable", ["declaration", "readonly"]);
+        continue;
+      case "var" /* Var */:
+        push(tok, tok.length, "variable", ["declaration", "modification"]);
+        continue;
+      default:
+        break;
+    }
+    if (next?.kind === "!" /* Bang */ && tokens[i + 2]?.kind === "(" /* LeftParen */ && next.offset === tok.offset + tok.length) {
+      push(tok, tok.length, "macro");
+    } else if (next?.kind === "(" /* LeftParen */) {
+      push(tok, tok.length, tok.kind === "TypeIdentifier" /* TypeIdentifier */ ? "type" : "function");
+    } else if (tok.kind === "TypeIdentifier" /* TypeIdentifier */) {
+      push(tok, tok.length, "type");
+    }
+  }
+  return out;
+}
+
+// src/server.ts
+var connection = (0, import_node.createConnection)(import_node.ProposedFeatures.all);
+var documents = new import_node.TextDocuments(TextDocument);
+var analysisCache = /* @__PURE__ */ new Map();
+var tokenTypes = [...TOKEN_TYPES];
+var tokenModifiers = [...TOKEN_MODIFIERS];
 var semanticTokensLegend = {
   tokenTypes,
   tokenModifiers
@@ -12179,155 +14060,64 @@ connection.onInitialize((_params) => {
     }
   };
 });
+var VALIDATION_DELAY_MS = 200;
+var pendingValidation = /* @__PURE__ */ new Map();
+function getAnalysis(document) {
+  const cached = analysisCache.get(document.uri);
+  if (cached && cached.version === document.version)
+    return cached.analysis;
+  const analysis = analyze(document.getText());
+  analysisCache.set(document.uri, { version: document.version, analysis });
+  return analysis;
+}
+function getSymbols(uri) {
+  const document = documents.get(uri);
+  if (!document || isManifestUri(uri))
+    return [];
+  return getAnalysis(document).symbols;
+}
 documents.onDidChangeContent((change) => {
-  validateDocument(change.document);
+  const uri = change.document.uri;
+  const pending = pendingValidation.get(uri);
+  if (pending !== void 0)
+    clearTimeout(pending);
+  pendingValidation.set(uri, setTimeout(() => {
+    pendingValidation.delete(uri);
+    const current = documents.get(uri);
+    if (!current)
+      return;
+    try {
+      validateDocument(current);
+    } catch (err) {
+      connection.console.error(`loup: validation of ${uri} failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+    }
+  }, VALIDATION_DELAY_MS));
+});
+documents.onDidClose((event) => {
+  const uri = event.document.uri;
+  const pending = pendingValidation.get(uri);
+  if (pending !== void 0)
+    clearTimeout(pending);
+  pendingValidation.delete(uri);
+  analysisCache.delete(uri);
+  connection.sendDiagnostics({ uri, diagnostics: [] });
 });
 function validateDocument(textDocument) {
-  const text = textDocument.getText();
   const uri = textDocument.uri;
-  if (uri.endsWith(".lppkg") || uri.endsWith("loup.pkg") || uri.endsWith(".pkg")) {
+  if (isManifestUri(uri)) {
     connection.sendDiagnostics({ uri, diagnostics: [] });
     return;
   }
-  const parser = new Parser();
-  const { program, diagnostics: parseDiags } = parser.parse(text);
-  astCache.set(uri, program);
-  const symTable = new SymbolTable();
-  const symbols = symTable.build(program);
-  symbolCache.set(uri, symbols);
-  scopeCache.set(uri, symTable);
-  const lspDiagnostics = parseDiags.map((d) => ({
+  const { diagnostics } = getAnalysis(textDocument);
+  const lspDiagnostics = diagnostics.map((d) => ({
     severity: d.severity === "error" ? import_node.DiagnosticSeverity.Error : d.severity === "warning" ? import_node.DiagnosticSeverity.Warning : import_node.DiagnosticSeverity.Information,
-    range: {
-      start: { line: d.range.start.line, character: d.range.start.column },
-      end: { line: d.range.end.line, character: d.range.end.column }
-    },
+    range: d.range,
     message: d.message,
     source: "loup"
   }));
-  connection.sendDiagnostics({ uri, diagnostics: lspDiagnostics });
+  connection.sendDiagnostics({ uri, version: textDocument.version, diagnostics: lspDiagnostics });
 }
-var LOUP_KEYWORDS = [
-  "let",
-  "var",
-  "const",
-  "func",
-  "fun",
-  "gen",
-  "macro",
-  "quote",
-  "return",
-  "yield",
-  "suspend",
-  "if",
-  "else",
-  "for",
-  "while",
-  "do",
-  "match",
-  "break",
-  "continue",
-  "defer",
-  "with",
-  "portal",
-  "async",
-  "await",
-  "spawn",
-  "group",
-  "concurrent",
-  "try",
-  "catch",
-  "finally",
-  "throw",
-  "attempt",
-  "unreachable",
-  "from",
-  "import",
-  "as",
-  "in",
-  "is",
-  "instanceof",
-  "typeof",
-  "not",
-  "and",
-  "or",
-  "bnot",
-  "del",
-  "global",
-  "nonlocal",
-  "pub",
-  "static",
-  "override",
-  "final",
-  "sealed",
-  "class",
-  "struct",
-  "abstract",
-  "dynamic",
-  "interface",
-  "implements",
-  "enum",
-  "type",
-  "namespace",
-  "template",
-  "foundation",
-  "overlay",
-  "onto",
-  "part",
-  "extern",
-  "js",
-  "native",
-  "val",
-  "new",
-  "box",
-  "true",
-  "false",
-  "None",
-  "this",
-  "Self",
-  "super",
-  "fn",
-  "once",
-  "operator",
-  "weak",
-  "unowned",
-  "arc",
-  "borrow",
-  "excl",
-  "unique",
-  "onstack",
-  "lifetime",
-  "noescape",
-  "consume",
-  "noreturn",
-  "impossible",
-  "prefer",
-  "compiled",
-  "scripted",
-  "dual",
-  "freestanding",
-  "portable",
-  "reads",
-  "edits",
-  "takes",
-  "shares",
-  "modifier",
-  "safe",
-  "synchronized",
-  "unsafe",
-  "requires",
-  "distinct",
-  "atomic",
-  "asm",
-  "volatile",
-  "where",
-  "size_of",
-  "align_of",
-  "reinterpret",
-  "reinterpretChecked",
-  "get",
-  "set"
-];
+var LOUP_KEYWORDS = [...KEYWORD_SPELLINGS, "self"];
 var LOUP_MODES = [
   { label: "@mode(host.scripted)", detail: "Host JIT mode (default for .loup / .lpscr)", doc: "Write-and-run scripting on the host environment." },
   { label: "@mode(host.dual)", detail: "Host hybrid mode \u2014 JIT or AOT (.lpscr / .lphc)", doc: "Compiles cleanly to either script JIT or AOT native binary." },
@@ -12338,38 +14128,8 @@ var LOUP_MODES = [
   { label: "@mode(portable)", detail: "Portable library mode \u2014 compiled in importer's mode", doc: "Checked against PORTABLE-SUBSET (\xA71-2.4.7) and lowered in each importing unit's mode." }
 ];
 var LOUP_TYPES = [
-  "int",
-  "int8",
-  "int16",
-  "int32",
-  "int64",
-  "uint8",
-  "uint16",
-  "uint32",
-  "uint64",
-  "bigint",
-  "float",
-  "float32",
-  "float64",
-  "decimal",
-  "complex",
-  "complex32",
-  "complex64",
-  "fixed",
-  "bool",
-  "char",
-  "string",
-  "bytes",
-  "void",
-  "noreturn",
-  "impossible",
-  "list",
-  "dict",
-  "set",
-  "tuple",
+  ...PRIMITIVE_TYPES,
   "fn",
-  "buffer",
-  "array",
   "Any",
   "Self",
   "Task",
@@ -12460,7 +14220,7 @@ var LOUP_TYPES = [
   "PriorityQueue",
   "Mark"
 ];
-var STDLIB_MODULES = {
+var STDLIB_MODULE_TABLE = {
   "core.text": {
     label: "core.text",
     detail: "String manipulation, formatting, and regex (\xA721.1)",
@@ -12469,7 +14229,7 @@ var STDLIB_MODULES = {
   "core.math": {
     label: "core.math",
     detail: "Mathematical constants and functions (\xA721.2)",
-    exports: ["PI", "E", "TAU", "INF", "NAN", "abs", "min", "max", "clamp", "floor", "ceil", "round", "trunc", "sqrt", "cbrt", "pow", "exp", "log", "log2", "log10", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "hypot", "sign", " isNan", "isInf", "isFinite"]
+    exports: ["PI", "E", "TAU", "INF", "NAN", "abs", "min", "max", "clamp", "floor", "ceil", "round", "trunc", "sqrt", "cbrt", "pow", "exp", "log", "log2", "log10", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "hypot", "sign", "isNan", "isInf", "isFinite"]
   },
   "core.complex": {
     label: "core.complex",
@@ -12769,7 +14529,7 @@ var STDLIB_MODULES = {
   "loup.autodiff": {
     label: "loup.autodiff",
     detail: "Reverse- and forward-mode automatic differentiation",
-    exports: ["grad", "valueAndGrad", "jvp", "vjp", " Dual"]
+    exports: ["grad", "valueAndGrad", "jvp", "vjp", "Dual"]
   },
   "loup.tpu": {
     label: "loup.tpu",
@@ -12792,16 +14552,17 @@ var STDLIB_MODULES = {
     exports: ["Node", "Layout", "Style", "Color", "Event", "Widget", "Painter"]
   }
 };
+var STDLIB_MODULES = new Map(Object.entries(STDLIB_MODULE_TABLE));
 connection.onCompletion((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return [];
-  const text = document.getText();
-  const offset = document.offsetAt(params.position);
-  const lineText = text.split("\n")[params.position.line] || "";
-  const linePrefix = lineText.slice(0, params.position.character);
+  const linePrefix = document.getText({
+    start: { line: params.position.line, character: 0 },
+    end: params.position
+  });
   const items = [];
-  if (linePrefix.trimStart().startsWith("@")) {
+  if (/(^|[\s(,])@[A-Za-z_]*$/.test(linePrefix)) {
     for (const m of LOUP_MODES) {
       items.push({
         label: m.label,
@@ -12855,7 +14616,7 @@ connection.onCompletion((params) => {
   }
   const fromMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]*)$/);
   if (fromMatch) {
-    for (const mod of Object.values(STDLIB_MODULES)) {
+    for (const mod of STDLIB_MODULES.values()) {
       items.push({
         label: mod.label,
         kind: import_node.CompletionItemKind.Module,
@@ -12867,7 +14628,7 @@ connection.onCompletion((params) => {
   const importMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]+)\s+(?:defer\s+)?import\s*\([^)]*$/);
   if (importMatch) {
     const modName = importMatch[1];
-    const mod = STDLIB_MODULES[modName];
+    const mod = STDLIB_MODULES.get(modName);
     if (mod) {
       for (const exp of mod.exports) {
         items.push({
@@ -12882,7 +14643,7 @@ connection.onCompletion((params) => {
   const nsDotMatch = linePrefix.match(/\b(core|io|net|data|sync|structures|ui|debug|native|loup)\.\s*([a-zA-Z0-9_]*)$/);
   if (nsDotMatch) {
     const prefix = `${nsDotMatch[1]}.`;
-    for (const [key, mod] of Object.entries(STDLIB_MODULES)) {
+    for (const [key, mod] of STDLIB_MODULES) {
       if (key.startsWith(prefix)) {
         const subName = key.slice(prefix.length);
         items.push({
@@ -12893,9 +14654,11 @@ connection.onCompletion((params) => {
       }
     }
   }
-  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-    const escaped = modName.replace(".", "\\.");
-    if (new RegExp(`\\b${escaped}\\.\\s*$`).test(linePrefix)) {
+  const moduleDot = linePrefix.match(/(?:^|[^A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\.\s*$/);
+  if (moduleDot) {
+    const modName = moduleDot[1];
+    const mod = STDLIB_MODULES.get(modName);
+    if (mod) {
       for (const exp of mod.exports) {
         items.push({
           label: exp.trim(),
@@ -12906,6 +14669,8 @@ connection.onCompletion((params) => {
       return items;
     }
   }
+  if (items.length > 0)
+    return items;
   if (/\bruntime\.\s*$/.test(linePrefix)) {
     const runtimeMethods = [
       { name: "fs", detail: "func fs(): FileSystem \u2014 Host filesystem access" },
@@ -12926,8 +14691,10 @@ connection.onCompletion((params) => {
     }
     return items;
   }
-  const symbols = symbolCache.get(params.textDocument.uri) || [];
+  const symbols = getAnalysis(document).symbols;
   for (const sym of symbols) {
+    if (sym.name === "")
+      continue;
     items.push({
       label: sym.name,
       kind: symbolKindToCompletionKind(sym.kind),
@@ -12946,7 +14713,7 @@ connection.onCompletion((params) => {
       kind: import_node.CompletionItemKind.TypeParameter
     });
   }
-  for (const mod of Object.values(STDLIB_MODULES)) {
+  for (const mod of STDLIB_MODULES.values()) {
     items.push({
       label: mod.label,
       kind: import_node.CompletionItemKind.Module,
@@ -12990,9 +14757,11 @@ function symbolKindToCompletionKind(kind) {
       return import_node.CompletionItemKind.Event;
     case "Import" /* Import */:
       return import_node.CompletionItemKind.Reference;
+    case "Namespace" /* Namespace */:
+      return import_node.CompletionItemKind.Module;
   }
 }
-var KEYWORD_DOCS = {
+var KEYWORD_DOC_TABLE = {
   portal: "**`portal`** \u2014 Named diagnostic and debug observation point (\xA72-6).\n\nZero cost when inactive; can be activated at runtime or in the debugger with optional conditions.",
   defer: "**`defer`** \u2014 Schedules a call or block to execute when the enclosing scope exits (\xA71-6.5).",
   with: "**`with`** \u2014 Scoped resource management (`Scoped[T]` / `AsyncScoped[T]`, \xA71-6.6). Automatically closes the resource on scope exit.",
@@ -13036,42 +14805,41 @@ var KEYWORD_DOCS = {
   array: "**`array[T, rank]`** \u2014 Rank-typed N-dimensional dense array type (\xA71-4.10, `core.array`).",
   reinterpretChecked: "**`reinterpretChecked[T, U](expr)`** \u2014 Safe bit-cast with runtime alignment check returning `Result[U, AlignmentError]` (\xA73-3.18)."
 };
+var KEYWORD_DOCS = new Map(Object.entries(KEYWORD_DOC_TABLE));
 connection.onHover((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return null;
   const text = document.getText();
   const offset = document.offsetAt(params.position);
   const word = getWordAtOffset(text, offset);
   if (!word)
     return null;
-  if (word in KEYWORD_DOCS) {
+  const keywordDoc = KEYWORD_DOCS.get(word);
+  if (keywordDoc !== void 0) {
     return {
       contents: {
         kind: import_node.MarkupKind.Markdown,
-        value: KEYWORD_DOCS[word]
+        value: keywordDoc
       }
     };
   }
-  const symTable = scopeCache.get(params.textDocument.uri);
-  if (symTable) {
-    const sym = symTable.findSymbol(word);
-    if (sym) {
-      const codeBlock = sym.type ? `\`\`\`loup
+  const sym = getAnalysis(document).symbolTable.findSymbol(word);
+  if (sym) {
+    const codeBlock = sym.type ? `\`\`\`loup
 ${sym.name}: ${sym.type}
 \`\`\`` : `\`\`\`loup
 (${sym.kind}) ${sym.name}
 \`\`\``;
-      return {
-        contents: {
-          kind: import_node.MarkupKind.Markdown,
-          value: codeBlock
-        }
-      };
-    }
+    return {
+      contents: {
+        kind: import_node.MarkupKind.Markdown,
+        value: codeBlock
+      }
+    };
   }
-  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-    if (mod.exports.map((e) => e.trim()).includes(word)) {
+  for (const [modName, mod] of STDLIB_MODULES) {
+    if (mod.exports.includes(word)) {
       return {
         contents: {
           kind: import_node.MarkupKind.Markdown,
@@ -13086,22 +14854,16 @@ ${mod.detail}`
   return null;
 });
 connection.onDocumentSymbol((params) => {
-  const symbols = symbolCache.get(params.textDocument.uri) || [];
-  return symbols.map((sym) => symbolInfoToDocumentSymbol(sym));
+  return getSymbols(params.textDocument.uri).map((sym) => symbolInfoToDocumentSymbol(sym));
 });
 function symbolInfoToDocumentSymbol(sym) {
   return {
-    name: sym.name,
+    // The client rejects the whole outline if any name is empty.
+    name: sym.name === "" ? "_" : sym.name,
     detail: sym.type,
     kind: symbolKindToLspKind(sym.kind),
-    range: {
-      start: { line: sym.range.start.line, character: sym.range.start.column },
-      end: { line: sym.range.end.line, character: sym.range.end.column }
-    },
-    selectionRange: {
-      start: { line: sym.selectionRange.start.line, character: sym.selectionRange.start.column },
-      end: { line: sym.selectionRange.end.line, character: sym.selectionRange.end.column }
-    },
+    range: toPlainRange(sym.range),
+    selectionRange: toPlainRange(sym.selectionRange),
     children: sym.children?.map((c) => symbolInfoToDocumentSymbol(c))
   };
 }
@@ -13140,285 +14902,68 @@ function symbolKindToLspKind(kind) {
       return import_node.SymbolKind.Event;
     case "Import" /* Import */:
       return import_node.SymbolKind.Package;
+    case "Namespace" /* Namespace */:
+      return import_node.SymbolKind.Namespace;
   }
 }
 connection.onDefinition((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return null;
   const text = document.getText();
   const offset = document.offsetAt(params.position);
   const word = getWordAtOffset(text, offset);
   if (!word)
     return null;
-  const symTable = scopeCache.get(params.textDocument.uri);
-  if (!symTable)
-    return null;
+  const symTable = getAnalysis(document).symbolTable;
   const sym = symTable.findSymbol(word) || symTable.findSymbol(`portal:${word}`);
   if (!sym)
     return null;
   return {
     uri: params.textDocument.uri,
-    range: {
-      start: { line: sym.range.start.line, character: sym.range.start.column },
-      end: { line: sym.range.end.line, character: sym.range.end.column }
-    }
+    range: toPlainRange(sym.selectionRange)
   };
 });
 connection.onFoldingRanges((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return [];
-  const ranges = [];
-  const text = document.getText();
-  const lines = text.split("\n");
-  const stack = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line.startsWith("/*") && !line.includes("*/")) {
-      stack.push({ line: i, kind: import_node.FoldingRangeKind.Comment });
-      continue;
-    }
-    if (line.includes("*/") && stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Comment) {
-      const start = stack.pop();
-      ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Comment });
-      continue;
-    }
-    if (line.startsWith("```") && stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Region) {
-      const start = stack.pop();
-      ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Region });
-      continue;
-    }
-    if (line.startsWith("```")) {
-      stack.push({ line: i, kind: import_node.FoldingRangeKind.Region });
-      continue;
-    }
-    if (line.includes('"""') || line.includes("'''")) {
-      if (stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Region) {
-        const start = stack.pop();
-        ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Region });
-      } else {
-        stack.push({ line: i, kind: import_node.FoldingRangeKind.Region });
-      }
-      continue;
-    }
-    for (const ch of line) {
-      if (ch === "{") {
-        stack.push({ line: i });
-      } else if (ch === "}" && stack.length > 0) {
-        const start = stack.pop();
-        if (i > start.line) {
-          ranges.push({ startLine: start.line, endLine: i, kind: start.kind });
-        }
-      }
-    }
-  }
-  return ranges;
+  return computeFoldingRanges(document.getText());
 });
-function getWordAtOffset(text, offset) {
-  let start = offset;
-  let end = offset;
-  while (start > 0 && /[a-zA-Z0-9_]/.test(text[start - 1])) {
-    start--;
-  }
-  while (end < text.length && /[a-zA-Z0-9_]/.test(text[end])) {
-    end++;
-  }
-  const word = text.slice(start, end);
-  return word.length > 0 ? word : null;
-}
 var tokenTypeMap = /* @__PURE__ */ new Map();
 tokenTypes.forEach((t, i) => tokenTypeMap.set(t, i));
 var tokenModMap = /* @__PURE__ */ new Map();
 tokenModifiers.forEach((m, i) => tokenModMap.set(m, 1 << i));
 connection.languages.semanticTokens.on((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return { data: [] };
-  const text = document.getText();
-  const lexer = new Lexer(text);
-  const tokens = lexer.tokenize();
   const builder = new import_node.SemanticTokensBuilder();
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
-    if (tok.kind === "EOF" /* EOF */)
+  for (const tok of classifyTokens(document.getText())) {
+    const typeIdx = tokenTypeMap.get(tok.type);
+    if (typeIdx === void 0)
       continue;
-    if (tok.text.includes("\n"))
-      continue;
-    let typeIdx;
     let modBits = 0;
-    switch (tok.kind) {
-      case "LineComment" /* LineComment */:
-      case "BlockComment" /* BlockComment */:
-        typeIdx = tokenTypeMap.get("comment");
-        break;
-      case "DocComment" /* DocComment */:
-        typeIdx = tokenTypeMap.get("comment");
-        modBits |= tokenModMap.get("documentation") || 0;
-        break;
-      case "StringLiteral" /* StringLiteral */:
-      case "CharLiteral" /* CharLiteral */:
-      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
-      case "RawStringLiteral" /* RawStringLiteral */:
-      case "BytesLiteral" /* BytesLiteral */:
-        typeIdx = tokenTypeMap.get("string");
-        break;
-      case "IntLiteral" /* IntLiteral */:
-      case "FloatLiteral" /* FloatLiteral */:
-        typeIdx = tokenTypeMap.get("number");
-        break;
-      case "@" /* At */: {
-        typeIdx = tokenTypeMap.get("decorator");
-        if (tokens[i + 1]?.kind === "Identifier" /* Identifier */) {
-          builder.push(tok.line, tok.column, tok.length + tokens[i + 1].length, typeIdx, 0);
-          i++;
-          continue;
-        }
-        break;
-      }
-      case "portal" /* Portal */:
-        typeIdx = tokenTypeMap.get("keyword");
-        break;
-      case "async" /* Async */:
-        typeIdx = tokenTypeMap.get("keyword");
-        modBits |= tokenModMap.get("async") || 0;
-        break;
-      case "static" /* Static */:
-        typeIdx = tokenTypeMap.get("keyword");
-        modBits |= tokenModMap.get("static") || 0;
-        break;
-      case "let" /* Let */:
-      case "const" /* Const */:
-        typeIdx = tokenTypeMap.get("keyword");
-        modBits |= tokenModMap.get("readonly") || 0;
-        break;
-      case "var" /* Var */:
-        typeIdx = tokenTypeMap.get("keyword");
-        modBits |= tokenModMap.get("modification") || 0;
-        break;
-      case "TypeIdentifier" /* TypeIdentifier */:
-        if (LOUP_TYPES.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get("type");
-          modBits |= tokenModMap.get("defaultLibrary") || 0;
-        } else if (tokens[i - 1]?.kind === "class" /* Class */) {
-          typeIdx = tokenTypeMap.get("class");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i - 1]?.kind === "struct" /* Struct */) {
-          typeIdx = tokenTypeMap.get("struct");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i - 1]?.kind === "enum" /* Enum */) {
-          typeIdx = tokenTypeMap.get("enum");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i - 1]?.kind === "interface" /* Interface */) {
-          typeIdx = tokenTypeMap.get("interface");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i - 1]?.kind === "type" /* Type */) {
-          typeIdx = tokenTypeMap.get("type");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else {
-          typeIdx = tokenTypeMap.get("type");
-        }
-        break;
-      case "Identifier" /* Identifier */:
-        if (LOUP_TYPES.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get("type");
-          modBits |= tokenModMap.get("defaultLibrary") || 0;
-        } else if (tokens[i - 1]?.kind === "fun" /* Fun */) {
-          typeIdx = tokenTypeMap.get("function");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i - 1]?.kind === "macro" /* Macro */) {
-          typeIdx = tokenTypeMap.get("macro");
-          modBits |= tokenModMap.get("declaration") || 0;
-        } else if (tokens[i + 1]?.kind === "!" /* Bang */ && tokens[i + 2]?.kind === "(" /* LeftParen */) {
-          typeIdx = tokenTypeMap.get("macro");
-        } else if (tokens[i + 1]?.kind === "(" /* LeftParen */) {
-          typeIdx = tokenTypeMap.get("function");
-        } else if (tokens[i - 1]?.kind === "." /* Dot */ || tokens[i - 1]?.kind === "?." /* QuestionDot */) {
-          typeIdx = tokens[i + 1]?.kind === "(" /* LeftParen */ ? tokenTypeMap.get("method") : tokenTypeMap.get("property");
-        } else if (tokens[i - 1]?.kind === "let" /* Let */ || tokens[i - 1]?.kind === "const" /* Const */) {
-          typeIdx = tokenTypeMap.get("variable");
-          modBits |= (tokenModMap.get("declaration") || 0) | (tokenModMap.get("readonly") || 0);
-        } else if (tokens[i - 1]?.kind === "var" /* Var */) {
-          typeIdx = tokenTypeMap.get("variable");
-          modBits |= (tokenModMap.get("declaration") || 0) | (tokenModMap.get("modification") || 0);
-        }
-        break;
-      default:
-        if (LOUP_KEYWORDS.includes(tok.text)) {
-          typeIdx = tokenTypeMap.get("keyword");
-        }
-        break;
-    }
-    if (typeIdx !== void 0) {
-      builder.push(tok.line, tok.column, tok.length, typeIdx, modBits);
-    }
+    for (const modifier of tok.modifiers)
+      modBits |= tokenModMap.get(modifier) ?? 0;
+    builder.push(tok.line, tok.character, tok.length, typeIdx, modBits);
   }
   return builder.build();
 });
 connection.onDocumentFormatting((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return [];
   const text = document.getText();
-  const lines = text.split("\n");
   const indentUnit = params.options.insertSpaces ? " ".repeat(params.options.tabSize || 2) : "	";
-  let indentLevel = 0;
-  let inTemplateFence = false;
-  let inMultilineString = false;
-  const formattedLines = [];
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    const trimmed = raw.trim();
-    if (trimmed.length === 0) {
-      formattedLines.push("");
-      continue;
-    }
-    if (trimmed.startsWith("```")) {
-      if (inTemplateFence) {
-        inTemplateFence = false;
-        indentLevel = Math.max(0, indentLevel - 1);
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        continue;
-      } else {
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        inTemplateFence = true;
-        indentLevel++;
-        continue;
-      }
-    }
-    if (inTemplateFence || inMultilineString) {
-      if (trimmed.startsWith('"""') || trimmed.startsWith("'''")) {
-        inMultilineString = false;
-        indentLevel = Math.max(0, indentLevel - 1);
-        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-        continue;
-      }
-      formattedLines.push(raw);
-      continue;
-    }
-    if ((trimmed.includes('"""') || trimmed.includes("'''")) && !trimmed.endsWith('"""') && !trimmed.endsWith("'''")) {
-      formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-      inMultilineString = true;
-      indentLevel++;
-      continue;
-    }
-    if (/^[}\])]/.test(trimmed)) {
-      indentLevel = Math.max(0, indentLevel - 1);
-    }
-    formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
-    const withoutComment = trimmed.replace(/#.*$/, "").trim();
-    if (/[{[(]\s*$/.test(withoutComment)) {
-      indentLevel++;
-    }
-  }
-  const formatted = formattedLines.join("\n");
+  const formatted = formatSource(text, indentUnit);
   if (formatted === text)
     return [];
   return [
     import_node.TextEdit.replace(
       {
         start: { line: 0, character: 0 },
-        end: { line: lines.length, character: 0 }
+        end: document.positionAt(text.length)
       },
       formatted
     )
@@ -13426,7 +14971,7 @@ connection.onDocumentFormatting((params) => {
 });
 connection.onCodeAction((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (!document)
+  if (!document || isManifestUri(params.textDocument.uri))
     return [];
   const actions = [];
   const text = document.getText();
@@ -13434,8 +14979,8 @@ connection.onCodeAction((params) => {
   for (const diag of params.context.diagnostics) {
     const word = getWordAtOffset(text, document.offsetAt(diag.range.start));
     if (word) {
-      for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
-        if (mod.exports.map((e) => e.trim()).includes(word)) {
+      for (const [modName, mod] of STDLIB_MODULES) {
+        if (mod.exports.includes(word)) {
           if (!text.includes(`from ${modName}`)) {
             actions.push({
               title: `Import '${word}' from ${modName}`,
@@ -13445,7 +14990,8 @@ connection.onCodeAction((params) => {
                 changes: {
                   [uri]: [
                     import_node.TextEdit.insert(
-                      { line: 0, character: 0 },
+                      // below `@mode(...)` and `namespace`, which must stay first
+                      { line: importInsertLine(text), character: 0 },
                       `from ${modName} import (${word});
 `
                     )
@@ -13480,10 +15026,10 @@ connection.onCodeAction((params) => {
 });
 connection.onSignatureHelp((params) => {
   const uri = params.textDocument.uri;
-  const symbols = symbolCache.get(uri) || [];
   const document = documents.get(uri);
-  if (!document)
+  if (!document || isManifestUri(uri))
     return null;
+  const symbols = getAnalysis(document).symbols;
   const text = document.getText();
   const offset = document.offsetAt(params.position);
   let parenDepth = 0;
@@ -13511,12 +15057,12 @@ connection.onSignatureHelp((params) => {
   const sym = findSymbolByName(symbols, funcName);
   if (!sym || !sym.type)
     return null;
-  const sigMatch = sym.type.match(/^(?:async )?(?:func|fun)\((.*)\)(.*)$/);
+  const sigMatch = sym.type.match(/^(?:async )?(?:gen )?func\((.*)\)(.*)$/);
   if (!sigMatch)
     return null;
   const paramsStr = sigMatch[1];
   const returnType = sigMatch[2] || "";
-  const paramList = paramsStr ? paramsStr.split(",").map((p) => p.trim()) : [];
+  const paramList = splitTopLevel(paramsStr);
   const sig = {
     label: `${funcName}(${paramsStr})${returnType}`,
     parameters: paramList.map((p) => ({
@@ -13526,7 +15072,7 @@ connection.onSignatureHelp((params) => {
   return {
     signatures: [sig],
     activeSignature: 0,
-    activeParameter: commaCount
+    activeParameter: Math.min(commaCount, Math.max(0, paramList.length - 1))
   };
 });
 function findSymbolByName(symbols, name) {
@@ -13544,8 +15090,11 @@ function findSymbolByName(symbols, name) {
 connection.onWorkspaceSymbol((_params) => {
   const results = [];
   const query = (_params.query || "").toLowerCase();
-  for (const [uri, symbols] of symbolCache) {
-    for (const sym of symbols) {
+  for (const document of documents.all()) {
+    const uri = document.uri;
+    if (isManifestUri(uri))
+      continue;
+    for (const sym of getAnalysis(document).symbols) {
       if (query && !sym.name.toLowerCase().includes(query))
         continue;
       results.push({
@@ -13553,10 +15102,7 @@ connection.onWorkspaceSymbol((_params) => {
         kind: symbolKindToLspKind(sym.kind),
         location: {
           uri,
-          range: {
-            start: { line: sym.range.start.line, character: sym.range.start.column },
-            end: { line: sym.range.end.line, character: sym.range.end.column }
-          }
+          range: toPlainRange(sym.selectionRange)
         }
       });
       if (sym.children) {
@@ -13569,10 +15115,7 @@ connection.onWorkspaceSymbol((_params) => {
             containerName: sym.name,
             location: {
               uri,
-              range: {
-                start: { line: child.range.start.line, character: child.range.start.column },
-                end: { line: child.range.end.line, character: child.range.end.column }
-              }
+              range: toPlainRange(child.selectionRange)
             }
           });
         }

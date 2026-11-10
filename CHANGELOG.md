@@ -8,7 +8,7 @@
 
 - New extension icon, and a separate file icon for each Loup file type (`.loup`, `.lpscr`, `.lpfree`, `.lpweb`,
   `.lphc`, `.lppkg`). Each source extension is now its own language id.
-- Marketplace publisher is `code-craft-ai-company`.
+- Marketplace publisher is `code-craft-ai`.
 
 ## 1.20.0
 

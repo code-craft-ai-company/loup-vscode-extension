@@ -102,3 +102,8 @@ Press **F5** in VSCode to launch the Extension Development Host and open [`sampl
 | `packages/extension` | VSCode extension client (activation, grammar, snippets, status bar, commands, views) |
 | `packages/language-server` | LSP server (lexer, parser, symbol table, diagnostics, completions, hover, navigation) |
 | `packages/debug-adapter` | DAP server (breakpoints, stepping, portal breakpoints). It speaks a provisional protocol and is not yet connected to the Loup debug wire. |
+
+## Publisher
+
+Loup for Visual Studio Code is published by Code Craft AI LLC.
+Source and issue tracker: <https://github.com/code-craft-ai-company/loup-vscode-extension>.

@@ -4,6 +4,17 @@
   "description": "Language support for the Loup programming language (v1.20)",
   "version": "1.20.0",
   "publisher": "loup-lang",
+  "author": {
+    "name": "Code Craft AI LLC"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/code-craft-ai-company/loup-vscode-extension.git"
+  },
+  "homepage": "https://github.com/code-craft-ai-company/loup-vscode-extension#readme",
+  "bugs": {
+    "url": "https://github.com/code-craft-ai-company/loup-vscode-extension/issues"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"

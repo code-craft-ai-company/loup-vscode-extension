@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Symbol Table — Scope resolver for go-to-definition and references
+// Loup Symbol Table — Scope resolver for go-to-definition and references
 // ============================================================================
 
 import * as AST from '../parser/ast.js';
@@ -403,7 +403,7 @@ export class SymbolTable {
       }
 
       case 'AnnotatedDecl':
-        return this.collectSymbol(stmt.declaration, scope);
+        return stmt.declaration ? this.collectSymbol(stmt.declaration, scope) : null;
 
       default:
         return null;

@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom AST Node Types — v0.6
+// Loup AST Node Types — v1.20
 // ============================================================================
 
 export interface Position {
@@ -72,6 +72,7 @@ export type Statement =
   | ThrowStmt
   | ExpressionStmt
   | AnnotatedDecl
+  | Block
   | ErrorNode;
 
 // --- Destructuring ---
@@ -216,6 +217,8 @@ export interface StructField extends AstNode {
   type: TypeExpr;
   defaultValue?: Expression;
   qualifier?: 'weak' | 'unowned' | 'borrow' | 'excl borrow';
+  isPublic?: boolean;
+  isVar?: boolean;
 }
 
 export interface InterfaceDecl extends AstNode {
@@ -243,7 +246,7 @@ export interface AnnotatedDecl extends AstNode {
   kind: 'AnnotatedDecl';
   annotation: string;
   args?: Expression[];
-  declaration: Statement;
+  declaration?: Statement;
 }
 
 // --- Control flow ---

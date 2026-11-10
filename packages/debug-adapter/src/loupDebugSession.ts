@@ -1,5 +1,5 @@
 // ============================================================================
-// Loom Debug Session — DAP session handler
+// Loup Debug Session — DAP session handler
 // ============================================================================
 
 import {
@@ -17,13 +17,13 @@ import {
 } from '@vscode/debugadapter';
 
 import { DebugProtocol } from '@vscode/debugprotocol';
-import { LoomRuntime, LoomBreakpoint, StopReason } from './loomRuntime.js';
+import { LoupRuntime, LoupBreakpoint, StopReason } from './loupRuntime.js';
 import * as path from 'path';
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   program: string;
   args?: string[];
-  target?: string; // cli | browser | service | desktop | native
+  target?: string; // cli | browser | wasm | node | bun | deno | service | desktop | native | freestanding
   env?: Record<string, string>;
   enableTimeTravel?: boolean;
   traceLevel?: 'off' | 'minimal' | 'full';
@@ -38,16 +38,16 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 
 const THREAD_ID = 1;
 
-export class LoomDebugSession extends LoggingDebugSession {
-  private runtime: LoomRuntime;
+export class LoupDebugSession extends LoggingDebugSession {
+  private runtime: LoupRuntime;
 
   constructor() {
-    super('loom-debug.log');
+    super('loup-debug.log');
 
     this.setDebuggerLinesStartAt1(true);
     this.setDebuggerColumnsStartAt1(true);
 
-    this.runtime = new LoomRuntime();
+    this.runtime = new LoupRuntime();
 
     // Wire runtime events to DAP events
     this.runtime.on('stopOnBreakpoint', (threadId: number, reason: StopReason) => {
@@ -63,7 +63,7 @@ export class LoomDebugSession extends LoggingDebugSession {
       this.sendEvent(event);
     });
 
-    this.runtime.on('breakpointValidated', (bp: LoomBreakpoint) => {
+    this.runtime.on('breakpointValidated', (bp: LoupBreakpoint) => {
       const breakpoint = new Breakpoint(bp.verified, bp.line);
       (breakpoint as DebugProtocol.Breakpoint).id = bp.id;
       this.sendEvent(new BreakpointEvent('changed', breakpoint));
@@ -392,7 +392,7 @@ export class LoomDebugSession extends LoggingDebugSession {
     _args: DebugProtocol.ExceptionInfoArguments
   ): void {
     response.body = {
-      exceptionId: 'LoomException',
+      exceptionId: 'LoupException',
       description: 'An exception was thrown',
       breakMode: 'always',
     };

@@ -1,61 +1,44 @@
 // ============================================================================
-// Loom Task Provider — Auto-detect loom run/build/test tasks from loom.pkg
+// Loup Task Provider — Auto-detect tasks from package.lppkg / loup.pkg
 // ============================================================================
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import * as path from 'path';
 
-export class LoomTaskProvider implements vscode.TaskProvider {
-  static readonly type = 'loom';
+export class LoupTaskProvider implements vscode.TaskProvider {
+  static readonly type = 'loup';
 
   async provideTasks(): Promise<vscode.Task[]> {
     const tasks: vscode.Task[] = [];
-    const pkgFiles = await vscode.workspace.findFiles('**/loom.pkg', '**/node_modules/**');
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) return tasks;
 
-    for (const pkgUri of pkgFiles) {
-      const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(pkgUri));
-      const dir = path.dirname(pkgUri.fsPath);
-      const name = this.extractPackageName(content) || path.basename(dir);
+    for (const folder of workspaceFolders) {
+      const manifestPath = this.findManifest(folder.uri.fsPath);
+      if (manifestPath) {
+        const pkgContent = fs.readFileSync(manifestPath, 'utf-8');
+        const pkgName = this.parsePackageName(pkgContent) || folder.name;
 
-      // Standard tasks
-      tasks.push(this.createTask('run', `Run ${name}`, dir, ['run', '.']));
-      tasks.push(this.createTask('build', `Build ${name}`, dir, ['build']));
-      tasks.push(this.createTask('test', `Test ${name}`, dir, ['test']));
+        // Standard tasks: run, build, test, fmt, check
+        tasks.push(this.createTask('run', `loup run`, folder, pkgName, vscode.TaskGroup.Build));
+        tasks.push(this.createTask('build', `loup build`, folder, pkgName, vscode.TaskGroup.Build));
+        tasks.push(this.createTask('test', `loup test`, folder, pkgName, vscode.TaskGroup.Test));
+        tasks.push(this.createTask('fmt', `loup fmt`, folder, pkgName));
+        tasks.push(this.createTask('check', `loup check`, folder, pkgName, vscode.TaskGroup.Build));
 
-      // Check for scripts section
-      const scripts = this.extractScripts(content);
-      for (const [scriptName, scriptCmd] of scripts) {
-        tasks.push(this.createTask(
-          `script:${scriptName}`,
-          `${name}: ${scriptName}`,
-          dir,
-          ['run', '--script', scriptName]
-        ));
-      }
-
-      // Target-specific tasks
-      const targets = this.extractTargets(content);
-      for (const target of targets) {
-        tasks.push(this.createTask(
-          `run:${target}`,
-          `Run ${name} (${target})`,
-          dir,
-          ['run', '.', '--target', target]
-        ));
-        // v0.7: browser target gets build and serve tasks
-        if (target === 'browser') {
-          tasks.push(this.createTask(
-            'build:browser',
-            `Build ${name} (browser)`,
-            dir,
-            ['build', '--target', 'browser']
-          ));
-          tasks.push(this.createTask(
-            'serve',
-            `Serve ${name} (dev server)`,
-            dir,
-            ['serve']
-          ));
+        // Delivery target-specific build tasks
+        const targets = this.parseTargets(pkgContent);
+        for (const target of targets) {
+          tasks.push(
+            this.createTask(
+              `build:${target}`,
+              `loup build --target ${target}`,
+              folder,
+              pkgName,
+              vscode.TaskGroup.Build
+            )
+          );
         }
       }
     }
@@ -65,74 +48,80 @@ export class LoomTaskProvider implements vscode.TaskProvider {
 
   resolveTask(task: vscode.Task): vscode.Task | undefined {
     const definition = task.definition;
-    if (definition.type === LoomTaskProvider.type && definition.command) {
-      return this.createTask(
-        definition.command,
-        task.name,
-        definition.cwd || '.',
-        definition.args || [definition.command]
+    if (definition.type === LoupTaskProvider.type && definition.command) {
+      const execution = new vscode.ShellExecution(definition.command);
+      return new vscode.Task(
+        definition,
+        task.scope ?? vscode.TaskScope.Workspace,
+        definition.task || definition.command,
+        'loup',
+        execution,
+        '$loup'
       );
     }
     return undefined;
   }
 
-  private createTask(command: string, label: string, cwd: string, args: string[]): vscode.Task {
+  private findManifest(dir: string): string | undefined {
+    const candidates = ['package.lppkg', 'loup.pkg'];
+    for (const candidate of candidates) {
+      const fullPath = path.join(dir, candidate);
+      if (fs.existsSync(fullPath)) {
+        return fullPath;
+      }
+    }
+    try {
+      const entries = fs.readdirSync(dir);
+      const lppkg = entries.find(e => e.endsWith('.lppkg'));
+      if (lppkg) {
+        return path.join(dir, lppkg);
+      }
+    } catch {
+      // Ignore read errors
+    }
+    return undefined;
+  }
+
+  private createTask(
+    name: string,
+    command: string,
+    folder: vscode.WorkspaceFolder,
+    pkgName: string,
+    group?: vscode.TaskGroup
+  ): vscode.Task {
     const definition: vscode.TaskDefinition = {
-      type: LoomTaskProvider.type,
+      type: LoupTaskProvider.type,
+      task: name,
       command,
-      cwd,
-      args,
     };
 
-    const execution = new vscode.ShellExecution('loom', args, { cwd });
-
+    const execution = new vscode.ShellExecution(command, { cwd: folder.uri.fsPath });
     const task = new vscode.Task(
       definition,
-      vscode.TaskScope.Workspace,
-      label,
-      'Loom',
+      folder,
+      `${pkgName}: ${name}`,
+      'loup',
       execution,
-      '$loom'  // problem matcher
+      '$loup'
     );
 
-    task.group = command === 'test'
-      ? vscode.TaskGroup.Test
-      : command === 'build'
-        ? vscode.TaskGroup.Build
-        : undefined;
-
-    task.presentationOptions = {
-      reveal: vscode.TaskRevealKind.Always,
-      panel: vscode.TaskPanelKind.Shared,
-    };
+    if (group) {
+      task.group = group;
+    }
 
     return task;
   }
 
-  private extractPackageName(content: string): string | null {
-    const match = content.match(/^name\s*=\s*"([^"]+)"/m);
-    return match ? match[1] : null;
+  private parsePackageName(content: string): string | undefined {
+    const pkgMatch = content.match(/^(?:package|name)\s+(?:=\s*)?"?([^\s"]+)"?/m);
+    return pkgMatch?.[1];
   }
 
-  private extractScripts(content: string): [string, string][] {
-    const scripts: [string, string][] = [];
-    const scriptSection = content.match(/\[scripts\]([\s\S]*?)(?=\[|$)/);
-    if (scriptSection) {
-      const lines = scriptSection[1].split('\n');
-      for (const line of lines) {
-        const match = line.match(/^\s*(\w+)\s*=\s*"([^"]+)"/);
-        if (match) {
-          scripts.push([match[1], match[2]]);
-        }
-      }
-    }
-    return scripts;
-  }
-
-  private extractTargets(content: string): string[] {
+  private parseTargets(content: string): string[] {
     const targets: string[] = [];
-    const matches = content.matchAll(/\[target\.(\w+)\]/g);
-    for (const match of matches) {
+    const regex = /\[(?:delivery|target)\.([a-zA-Z0-9_-]+)\]/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
       targets.push(match[1]);
     }
     return targets;

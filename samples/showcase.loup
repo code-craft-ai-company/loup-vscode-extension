@@ -1,0 +1,320 @@
+# =============================================================================
+# Loup v1.20 — Syntax Showcase
+# This file exercises every major language construct for grammar verification.
+# =============================================================================
+
+@mode(host.scripted)
+
+# --- Imports -----------------------------------------------------------------
+from core.text import (split, join, trim, toUpper);
+from data.json import (parse, stringify, getString);
+from core.time import (Instant, Duration, sleep);
+from core.collections import (map, filter, reduce, range);
+from core.complex import (complex);
+from ui.web import (signal, derived, effect, View, ComponentRegistry);
+
+from . {
+  utils import (formatCurrency);
+  models import (User, Order);
+}
+
+from ..|.. {
+  shared.config import (AppConfig);
+}
+
+# --- Enums -------------------------------------------------------------------
+enum Shape {
+  Circle(radius: float),
+  Rect(w: float, h: float),
+  Point,
+}
+
+enum Tree[T] {
+  Leaf(value: T),
+  Node(left: Tree[T], right: Tree[T]),
+}
+
+# --- Interfaces --------------------------------------------------------------
+interface Drawable {
+  func draw(): void;
+  func boundingBox(): Rect;
+}
+
+interface From[E] {
+  static func from(err: E): Self;
+}
+
+# --- Classes -----------------------------------------------------------------
+class Canvas : Any {
+  pub var width: int;
+  pub var height: int;
+
+  pub modifier func clear(): void {
+    # ...
+  }
+}
+
+dynamic class Config {
+  pub var name: string;
+}
+
+# --- Compile-Time Constants & Functions --------------------------------------
+const MAX_RETRIES: int = 5;
+
+const func square(n: int): int {
+  return n * n;
+}
+
+# --- Functions ---------------------------------------------------------------
+func area(shape: Shape): float {
+  return match shape {
+    Circle(r)    => 3.14159 * r * r,
+    Rect(w, h)   => w * h,
+    Point        => 0.0,
+  };
+}
+
+func describe(x: Any): string {
+  return match x {
+    Circle(r)  => i"circle with radius {$ r $}",
+    Rect(w, h) => i"rect {$ w $}x{$ h $}",
+    Point      => "a point",
+    _          => "something else",
+  };
+}
+
+# --- Option / Result & Attempt -----------------------------------------------
+func safeDivide(a: float, b: float): Result[float, string] {
+  if (b == 0.0) {
+    return Err("division by zero");
+  }
+  return Ok(a / b);
+}
+
+func process(path: string): Result[string, AppError] {
+  let raw    = readText(path)?;
+  let parsed = parse(raw)?;
+  return Ok(transform(parsed));
+}
+
+let name: string = user?.profile?.displayName ?? "Anonymous";
+let port: int    = config("PORT")?.let(parseInt) ?? 8080;
+
+# --- Complex & Floor Division ------------------------------------------------
+let z: complex = 1.5 + 2.3i;
+let q: int = 17 // 3;
+
+# --- Async / Await -----------------------------------------------------------
+async func buildPage(): Task[string] {
+  let userTask = fetchUser();
+  let postsTask = fetchPosts();
+
+  let user = await userTask;
+  let posts = await postsTask;
+  return renderPage(user, posts);
+}
+
+# --- Structured Concurrency --------------------------------------------------
+async func loadDashboard(userId: string): Task[Dashboard] {
+  let user: User;
+  let config: Config;
+  let flags: FeatureFlags;
+
+  await group {
+    user   = spawn fetchUser(userId);
+    config = spawn fetchConfig();
+    flags  = spawn fetchFlags(userId);
+  }
+
+  return buildDashboard(user, config, flags);
+}
+
+# --- For Await & For Concurrent ----------------------------------------------
+async func processLines(path: string): Task[void] {
+  for await (let line in runtime.fs().linesAsync(path)) {
+    process(line);
+  }
+}
+
+for concurrent (let idx in 0..n) {
+  results[idx] = compute(idx);
+}
+
+# --- Control Flow ------------------------------------------------------------
+if (x > 0) {
+  x = x - 1;
+}
+
+while (running) {
+  tick();
+}
+
+for (let i = 0; i < n; i = i + 1) {
+  items[i] = compute(i);
+}
+
+for (let item in collection) {
+  process(item);
+}
+
+outer: for (let i = 0; i < n; i = i + 1) {
+  for (let j = 0; j < m; j = j + 1) {
+    if (grid[i][j] == target) {
+      break outer;
+    }
+  }
+}
+
+do {
+  conn = try_connect();
+} while (!conn.ok);
+
+# --- Defer -------------------------------------------------------------------
+defer close(handle);
+defer {
+  log("leaving scope");
+};
+
+# --- With (scoped resource) --------------------------------------------------
+with (fh = runtime.fs().open("out.txt")) {
+  fh.write("ok");
+}
+
+# --- Portal ------------------------------------------------------------------
+portal request_start {
+  let data = readText("input.json");
+  process(data);
+}
+
+portal "checkout.enter" {
+  validate(cart);
+}
+
+# --- Dynamic fields ----------------------------------------------------------
+let cfg = Config();
+cfg!{theme} = "dark";
+cfg!{"font-size"} = 14;
+let theme: string = cfg!{theme};
+
+dynamic cfg as dobj {
+  let x = dobj.foo;
+  dobj.bar = 42;
+}
+
+# --- Strings & Interpolation -------------------------------------------------
+let greeting = i"Hello, {$ name $}";
+let outPath = i'out/{$ fileStem $}.txt';
+let newlineChar: char = c"\n";
+
+# --- Multiline Strings -------------------------------------------------------
+let sql = """(indent=+2, eol="LF")
+  SELECT *
+  FROM users
+  WHERE active = true
+""";
+
+let text = '''
+  This is a plain
+  multiline string
+''';
+
+# --- Template Fences ---------------------------------------------------------
+let page = ```(html):(format=prettier)
+  <div class="container">
+    {% if (users.isEmpty()) %}
+      <p>No users found.</p>
+    {% else %}
+      {% for (user in users) %}
+        <p>{$ user.name $}</p>
+      {% end %}
+    {% end %}
+  </div>
+```;
+
+let query = ```(sql):(none)
+  SELECT {$ columns | join(", ") $}
+  FROM {$ tableName $}
+  WHERE id = {$ id $}
+```;
+
+let script = ```(py):(format=black)
+  def greet(name):
+      print(f"Hello, {name}")
+
+  {% for (fn in functions) %}
+  def {$ fn.name $}({$ fn.params | join(", ") $}):
+      {$ fn.body $}
+  {% end %}
+```;
+
+# --- FFI ---------------------------------------------------------------------
+extern js func fetch(url: string, opts: Any): Task[Any];
+extern js func parseInt(s: string, radix: int): int;
+extern js val document: Any;
+extern js val window: Any;
+
+extern native "libsqlite3" func sqlite3_open(path: string): NativeHandle;
+extern native "libsqlite3" func sqlite3_close(db: NativeHandle): int;
+
+# --- @jsexport ---------------------------------------------------------------
+@jsexport
+func onMessage(data: string): void {
+  process(data);
+}
+
+@jsexport
+async func fetchSummary(userId: string): Task[string] {
+  let user = await fetchUser(userId);
+  return buildSummary(user);
+}
+
+# --- Reactive UI (ui.web) ----------------------------------------------------
+let count   = signal(0);
+let doubled = derived(func() => count.get() * 2);
+
+effect(func() {
+  log(i"count is now: {$ count.get() $}");
+});
+
+func Counter(initialValue: int): View {
+  let count = signal(initialValue);
+  let label = derived(func() => i"Clicked {$ count.get() $} times");
+
+  return ```(html):(none)
+    <div class="counter">
+      <p>{$ label.get() $}</p>
+      <button onclick="{$ func() { count.set(count.get() + 1); } $}">+</button>
+    </div>
+  ```;
+}
+
+# --- Try / Catch / Finally ---------------------------------------------------
+try {
+  let data = await fetchData();
+  process(data);
+} catch (NetworkError as err) {
+  log(i"Network error: {$ err.message $}");
+} finally {
+  cleanup();
+}
+
+# --- Annotations -------------------------------------------------------------
+@total
+@jsexport
+func handler(ev: Event): void {
+  ev.preventDefault();
+}
+
+# --- Standard library usage --------------------------------------------------
+let parts = split("a,b,c", ",");
+let upper = toUpper("hello");
+let cfg2 = parse(readText("config.json"))?;
+let host = getString(cfg2, "host")?;
+
+let start = Instant.now();
+await sleep(Duration.ofMillis(500));
+let elapsed = Instant.now().durationSince(start);
+
+let squares = map(range(10), func(x) => x * x);
+let evens = filter(squares, func(x) => x % 2 == 0);
+let total = reduce(evens, 0, func(acc, x) => acc + x);

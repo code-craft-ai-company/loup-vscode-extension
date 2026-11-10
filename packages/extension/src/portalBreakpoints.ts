@@ -1,110 +1,164 @@
 // ============================================================================
-// Portal Breakpoints Provider — Tree view for managing Loom portal breakpoints
+// Portal Breakpoints Manager — Custom breakpoint type for Loup portals
 // ============================================================================
 
 import * as vscode from 'vscode';
 
-export interface PortalBreakpointItem {
+export interface PortalBreakpoint {
   name: string;
+  condition?: string;
+  once: boolean;
   enabled: boolean;
-  source?: string;
-  line?: number;
-  hitCount?: number;
 }
 
-export class PortalBreakpointsProvider implements vscode.TreeDataProvider<PortalBreakpointItem> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<PortalBreakpointItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+export class PortalBreakpointManager {
+  private portals = new Map<string, PortalBreakpoint>();
+  private _onDidChange = new vscode.EventEmitter<void>();
+  readonly onDidChange = this._onDidChange.event;
 
-  private portals: PortalBreakpointItem[] = [];
-
-  refresh(): void {
-    this._onDidChangeTreeData.fire(undefined);
-  }
-
-  getTreeItem(element: PortalBreakpointItem): vscode.TreeItem {
-    const item = new vscode.TreeItem(element.name);
-    item.description = element.enabled ? '● Active' : '○ Inactive';
-    item.tooltip = new vscode.MarkdownString(
-      `**Portal:** \`${element.name}\`\n\n` +
-      `**Status:** ${element.enabled ? 'Active' : 'Inactive'}\n\n` +
-      (element.source ? `**Source:** ${element.source}:${element.line}\n\n` : '') +
-      (element.hitCount !== undefined ? `**Hits:** ${element.hitCount}` : '')
-    );
-    item.iconPath = new vscode.ThemeIcon(
-      element.enabled ? 'debug-breakpoint' : 'debug-breakpoint-disabled',
-      element.enabled
-        ? new vscode.ThemeColor('debugIcon.breakpointForeground')
-        : undefined
-    );
-    item.contextValue = element.enabled ? 'portalActive' : 'portalInactive';
-    item.command = {
-      command: 'loom.togglePortalBreakpoint',
-      title: 'Toggle Portal Breakpoint',
-      arguments: [element],
-    };
-    return item;
-  }
-
-  getChildren(): PortalBreakpointItem[] {
-    return this.portals;
-  }
-
-  // ---- Management ----
-
-  addPortal(name: string, source?: string, line?: number): void {
-    const existing = this.portals.find(p => p.name === name);
-    if (!existing) {
-      this.portals.push({ name, enabled: true, source, line, hitCount: 0 });
-      this.refresh();
+  constructor(private context: vscode.ExtensionContext) {
+    // Restore saved portal breakpoints
+    const saved = context.workspaceState.get<PortalBreakpoint[]>('loup.portalBreakpoints', []);
+    for (const bp of saved) {
+      this.portals.set(bp.name, bp);
     }
   }
 
-  removePortal(name: string): void {
-    this.portals = this.portals.filter(p => p.name !== name);
-    this.refresh();
+  getAll(): PortalBreakpoint[] {
+    return Array.from(this.portals.values());
   }
 
-  togglePortal(name: string): boolean {
-    const portal = this.portals.find(p => p.name === name);
-    if (portal) {
-      portal.enabled = !portal.enabled;
-      this.refresh();
-      return portal.enabled;
+  getEnabled(): PortalBreakpoint[] {
+    return this.getAll().filter(p => p.enabled);
+  }
+
+  add(name: string, condition?: string, once = false): void {
+    this.portals.set(name, { name, condition, once, enabled: true });
+    this.save();
+    this._onDidChange.fire();
+  }
+
+  remove(name: string): void {
+    this.portals.delete(name);
+    this.save();
+    this._onDidChange.fire();
+  }
+
+  toggle(name: string): void {
+    const existing = this.portals.get(name);
+    if (existing) {
+      existing.enabled = !existing.enabled;
+    } else {
+      this.portals.set(name, { name, once: false, enabled: true });
     }
-    return false;
+    this.save();
+    this._onDidChange.fire();
   }
 
-  setHitCount(name: string, count: number): void {
-    const portal = this.portals.find(p => p.name === name);
-    if (portal) {
-      portal.hitCount = count;
-      this.refresh();
+  setCondition(name: string, condition: string | undefined): void {
+    const bp = this.portals.get(name);
+    if (bp) {
+      bp.condition = condition;
+      this.save();
+      this._onDidChange.fire();
     }
-  }
-
-  getEnabled(): string[] {
-    return this.portals.filter(p => p.enabled).map(p => p.name);
   }
 
   clear(): void {
-    this.portals = [];
-    this.refresh();
+    this.portals.clear();
+    this.save();
+    this._onDidChange.fire();
   }
 
-  /** Populate from AST portal statements found by the language server */
-  populateFromDocument(portals: { name: string; source: string; line: number }[]): void {
-    for (const p of portals) {
-      if (!this.portals.find(existing => existing.name === p.name)) {
-        this.portals.push({
-          name: p.name,
-          enabled: false,
-          source: p.source,
-          line: p.line,
-          hitCount: 0,
-        });
-      }
+  private save(): void {
+    this.context.workspaceState.update('loup.portalBreakpoints', this.getAll());
+  }
+}
+
+// ---- Tree View Provider for Portal Breakpoints sidebar ----
+
+export class PortalBreakpointsTreeProvider implements vscode.TreeDataProvider<PortalBreakpointItem> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<PortalBreakpointItem | undefined>();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+  constructor(private manager: PortalBreakpointManager) {
+    manager.onDidChange(() => this._onDidChangeTreeData.fire(undefined));
+  }
+
+  getTreeItem(element: PortalBreakpointItem): vscode.TreeItem {
+    return element;
+  }
+
+  getChildren(): PortalBreakpointItem[] {
+    return this.manager.getAll().map(bp => new PortalBreakpointItem(bp));
+  }
+}
+
+export class PortalBreakpointItem extends vscode.TreeItem {
+  constructor(public readonly portal: PortalBreakpoint) {
+    super(portal.name, vscode.TreeItemCollapsibleState.None);
+
+    this.description = [
+      portal.enabled ? '●' : '○',
+      portal.condition ? `when: ${portal.condition}` : '',
+      portal.once ? '(once)' : '',
+    ].filter(Boolean).join(' ');
+
+    this.tooltip = `Portal: ${portal.name}\nEnabled: ${portal.enabled}${
+      portal.condition ? `\nCondition: ${portal.condition}` : ''
+    }${portal.once ? '\nTriggers once' : ''}`;
+
+    this.contextValue = 'portalBreakpoint';
+
+    this.iconPath = new vscode.ThemeIcon(
+      portal.enabled ? 'debug-breakpoint' : 'debug-breakpoint-disabled'
+    );
+
+    this.command = {
+      command: 'loup.portal.toggle',
+      title: 'Toggle Portal Breakpoint',
+      arguments: [portal.name],
+    };
+  }
+}
+
+// ---- CodeLens Provider for `portal` declarations in .loup files ----
+
+export class PortalCodeLensProvider implements vscode.CodeLensProvider {
+  private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+
+  constructor(private manager: PortalBreakpointManager) {
+    manager.onDidChange(() => this._onDidChangeCodeLenses.fire());
+  }
+
+  provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    if (document.languageId !== 'loup') return [];
+
+    const lenses: vscode.CodeLens[] = [];
+    const text = document.getText();
+    const portalRegex = /\bportal\s+(?:([a-zA-Z_][a-zA-Z0-9_]*)|"([^"]+)"|'([^']+)')\s*\{/g;
+
+    let match: RegExpExecArray | null;
+    while ((match = portalRegex.exec(text)) !== null) {
+      const portalName = match[1] || match[2] || match[3];
+      const pos = document.positionAt(match.index);
+      const range = new vscode.Range(pos, pos);
+
+      const active = this.manager.getAll().find(p => p.name === portalName && p.enabled);
+
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: active ? `🔴 Breakpoint Active (${portalName})` : `⚪ Activate Portal (${portalName})`,
+          command: 'loup.portal.toggle',
+          arguments: [portalName],
+          tooltip: active
+            ? `Click to deactivate portal breakpoint "${portalName}"`
+            : `Click to break when portal "${portalName}" is entered`,
+        })
+      );
     }
-    this.refresh();
+
+    return lenses;
   }
 }

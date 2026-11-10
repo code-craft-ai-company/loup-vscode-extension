@@ -1,0 +1,44 @@
+# package.lppkg — sample manifest for grammar verification (Loup v1.20 §1-13.3)
+
+package              my-app
+version              1.20.0
+loup                 ">=1.20"
+shared_abi_version   1
+
+[build]
+mode = "host.dual"
+
+[deps]
+net.http     = "^2.0"
+jsonschema   = "^1.4"
+loup.ui      = "^1.0"
+
+[dev-deps]
+test-runner  = "^3.1"
+
+[dev-overrides]
+# my-utils = { path = "../my-utils" }
+
+[delivery.browser]
+exclude io.fs
+exclude io.proc
+
+[delivery.cli]
+include io.fs
+include io.proc
+
+[delivery.service]
+include io.fs
+include io.proc
+include net.http
+
+[delivery.desktop]
+include io.fs
+include io.proc
+include net.http
+include ui.desktop
+
+[delivery.native]
+include io.fs
+include io.proc
+include net.http

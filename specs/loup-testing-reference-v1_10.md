@@ -1,4 +1,4 @@
-# Loom Testing Module Reference v1.10
+# Loup Testing Module Reference v1.10
 
 **Status:** Draft
 **Version:** 1.10.0
@@ -8,10 +8,10 @@
   constraints, tandem validators, diagnostics, debugging, configuration, and CLI.
 
 **Related documents:**
-- [Loom Language Reference v1.10](loom-language-reference-v1_10.md)
-- [Loom Standard Library Reference v1.10](loom-stdlib-reference-v1_10.md)
-- [testing module requirements](81-stdlib-5-test/requirements.md)
-- [core.waiting design](108-stdlib-2-core-waiting/design.md)
+- [Loup Language Reference v1.10](loup-language-reference-v1_10.md)
+- [Loup Standard Library Reference v1.10](loup-stdlib-reference-v1_10.md)
+- [testing module requirements](3-stdlib-5-test/requirements.md)
+- [core.waiting design](3-stdlib-2-core-waiting/design.md)
 
 ---
 
@@ -29,24 +29,13 @@
 - [§10 Sequence Document Generation](#10-sequence-document-generation)
 - [§11 Test Execution (TestJob)](#11-test-execution-testjob)
 - [§12 Factory Protocol for TestJob Extensibility](#12-factory-protocol-for-testjob-extensibility)
-- [§13 Result Model](#13-result-model)
-- [§14 Text Result Recorder](#14-text-result-recorder)
-- [§15 Verification and Assertions](#15-verification-and-assertions)
-- [§16 Mocking Framework](#16-mocking-framework)
-- [§17 Property-Based Testing](#17-property-based-testing)
-- [§18 Tandem Validators](#18-tandem-validators)
-- [§19 Diagnostics](#19-diagnostics)
-- [§20 Test Run Timeout](#20-test-run-timeout)
-- [§21 Debugging Support](#21-debugging-support)
-- [§22 Configuration](#22-configuration)
-- [§23 CLI Integration (loom test)](#23-cli-integration-loom-test)
-- [§24 Extension Points (Integration Package)](#24-extension-points-integration-package)
+- [§23 CLI Integration (loup test)](#23-cli-integration-loup-test)
 
 ---
 
 ## §1 Overview and Architecture
 
-The `testing` module is Loom's foundation test framework, shipping with the runtime as part of the standard library. It provides everything needed to write, discover, execute, and report on tests without any external packages.
+The `testing` module is Loup's foundation test framework, shipping with the runtime as part of the standard library. It provides everything needed to write, discover, execute, and report on tests without any external packages.
 
 ### §1.1 Design Principles
 
@@ -56,6 +45,16 @@ The framework follows a two-tier architecture:
 - **Tier 2 (`testing.integration` package):** Deferred to a separate installable package. Adds integration/configuration couplings, build/job/pipeline metadata, HTML rendering, result streaming, progress concentrators, and diagnostic capture.
 
 The `TestJob` is intentionally simple — it handles test discovery → sequence generation → execution → results without requiring job/build/pipeline metadata. An extensible factory protocol allows `testing.integration` to provide an `IntegratedTestJob` with full reporting capabilities.
+
+**`const func` bodies are runtime-testable.** A function declared `const func` (core
+§1-7.1) is callable in ordinary runtime contexts with identical observable behaviour —
+that is rule 8 of the const-evaluation profile, and it is what makes the profile testable
+at all. A test targets a `const func` exactly as it targets any other function; nothing
+in this framework distinguishes them, and nothing should, because a `const func` that
+behaved differently at run time from compile time would be the defect the rule exists to
+forbid. What a test CANNOT do from here is exercise the compile-time evaluator itself:
+that is the compiler's, and its evidence obligations are the `CTR-CONST-*` entries of the
+qualification plan's §12.4.
 
 ### §1.2 Module Structure
 
@@ -83,24 +82,28 @@ testing                          # Root module
 
 ### §1.3 Dependencies
 
-The `testing` module depends on the following stdlib modules:
+The shipped `testing` module depends on **the prelude only**, plus the `clock_ns`
+builtin (`@builtin("clock_ns")`, the platform contract's monotonic clock slot) that
+`runTest` times each test with. `debug.assert` — the assertion library whose throws
+decide a test's verdict — depends on the prelude only. Neither imports another stdlib
+module, and that is a rule, not an accident: the framework and everything it depends
+on form the dependency closure of `loup test`, the **exclusion list**
+(`docs/loup-test-exclusions.txt`, generated and `--check`ed by
+`source/sandboxes/agent/loup_test_closure.py`). Code on that list cannot be tested
+with `loup test`, because a defect there could hide its own failures; it is tested by
+Loup test programs judged from outside. An import added here would move that module
+onto the list and out of `loup test`'s reach, so the closure check fails until the
+list is regenerated and the change reviewed.
 
-| Dependency | Usage |
-|---|---|
-| `core.time` | `Duration`, `Instant` for timing and timeouts |
-| `core.waiting` | `WaitGate`, `waitForIt` for tandem validators and polling |
-| `core.reflect` | Function signature introspection for injection |
-| `core.math` | Random number generation for property testing |
-| `io.fs` | File system scanning for test discovery |
-| `io.path` | Path manipulation for module resolution |
-| `data.json` | JSON serialization for result recording |
-| `structures` | `OrderedDictionary` for ordered result data |
+The dependency table this section used to carry (`core.time`, `core.waiting`,
+`core.reflect`, `core.math`, `io.fs`, `io.path`, `data.json`, `structures`) described
+the aspirational framework of §2–§12, which has no code (see the status note at §2).
 
 ### §1.4 Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     loom test CLI                        │
+│                     loup test CLI                        │
 ├─────────────────────────────────────────────────────────┤
 │                      TestJob                             │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────────┐  │
@@ -128,13 +131,22 @@ The `testing` module depends on the following stdlib modules:
 
 ## §2 Test Discovery and Collection
 
-The discovery system scans directories for `.loom` test files, imports modules, identifies test functions, applies filters, and builds a hierarchical test tree.
+> **Status (2026-10-03): aspirational — §2–§12 are not implemented.** Nothing in the
+> tree defines `TestCollector`, `TestSequencer`, `InjectionRegistry`, markers, feature
+> tags, constraints, sequence documents or `TestJob`; the implementation tasks that
+> once checked them off have no code behind them. The shipped framework is the small
+> `testing` surface of §23 (`runTest`, `TestResult`, `TestSummary`, `skipTest`,
+> `SkipSignal`, `TestFailure`) plus `debug.assert`. These sections record intent only.
+> Building any of them must keep the framework's closure to the prelude (§1.3) or move
+> the new dependencies onto the exclusion list deliberately.
+
+The discovery system scans directories for `.loup` test files, imports modules, identifies test functions, applies filters, and builds a hierarchical test tree.
 
 ### §2.1 TestCollector
 
 `TestCollector` is the central orchestrator for test discovery.
 
-```loom
+```loup
 pub class TestCollector : Any {
     let root: string;
     let excludes: list[string];
@@ -154,18 +166,18 @@ pub class TestCollector : Any {
         testModule: Any? = none
     ): TestCollector;
 
-    /// Collect test references matching the given include expression.
-    /// May be called multiple times with different expressions; results accumulate.
+    ## Collect test references matching the given include expression.
+    ## May be called multiple times with different expressions; results accumulate.
     pub func collectReferences(expression: string): void;
 
-    /// Apply metadata filters, build the final test tree.
+    ## Apply metadata filters, build the final test tree.
     pub func finalizeCollection(): void;
 
-    /// Resolve all parameter origins in the injection registry.
-    /// Throws UnknownParameterError if unresolved parameters remain.
+    ## Resolve all parameter origins in the injection registry.
+    ## Throws UnknownParameterError if unresolved parameters remain.
     pub func collectInjectionsAndConfigurations(): void;
 
-    // Properties
+    # Properties
     pub func testTree(): TestGroup;
     pub func references(): dict[string, TestRef];
     pub func importErrors(): dict[string, ImportErrorRecord];
@@ -175,7 +187,7 @@ pub class TestCollector : Any {
 **Discovery algorithm:**
 
 1. Parse the include expression via `parseTestIncludeExpression`.
-2. Scan the root directory for `.loom` files matching the package/module expressions.
+2. Scan the root directory for `.loup` files matching the package/module expressions.
 3. Import each module, inspect exported functions, and collect those whose names start with `methodPrefix`.
 4. Create a `TestRef` for each matching function.
 5. Merge results into the internal reference dictionary.
@@ -185,7 +197,7 @@ pub class TestCollector : Any {
 
 A lightweight reference to a test function that delays instantiation of test runtime state until execution time.
 
-```loom
+```loup
 pub class TestRef : Any {
     pub let func_ref: func;
     pub let name: string;
@@ -217,7 +229,7 @@ pub class TestRef : Any {
 
 A hierarchical grouping node in the test tree, mirroring the source code module structure.
 
-```loom
+```loup
 pub class TestGroup : Any {
     pub let name: string;
     pub let package_name: string?;
@@ -239,20 +251,20 @@ The test tree root is always a `TestGroup` named `"<session>"`. Intermediate gro
 
 ### §2.4 Test Root Discovery
 
-Test roots are directories containing a `__testroot__.loom` marker file. The framework walks up from a module's location to find this marker.
+Test roots are directories containing a `__testroot__.loup` marker file. The framework walks up from a module's location to find this marker.
 
-```loom
+```loup
 pub func findTestModuleRoot(modulePath: string): string;
-// Walks up the directory tree looking for __testroot__.loom.
-// Throws ConfigurationError if the filesystem root is reached.
+# Walks up the directory tree looking for __testroot__.loup.
+# Throws ConfigurationError if the filesystem root is reached.
 
 pub func findTestModuleFullName(modulePath: string, testRoot: string? = none): string;
-// Computes the dotted module name relative to the test root's parent.
+# Computes the dotted module name relative to the test root's parent.
 ```
 
 ### §2.5 Platform Support Filtering
 
-Directories containing a `__platforms__.loom` file are conditionally included based on platform support. If the file raises `UnsupportedPlatformError` when executed, the directory and its subdirectories are skipped.
+Directories containing a `__platforms__.loup` file are conditionally included based on platform support. If the file raises `UnsupportedPlatformError` when executed, the directory and its subdirectories are skipped.
 
 ### §2.6 Import Error Tracking
 
@@ -268,6 +280,8 @@ Import errors are logged at ERROR level but do not block discovery of other modu
 
 ## §3 Expression Parsing
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 The expression parser converts test include/exclude strings into structured components for the discovery system.
 
 ### §3.1 Expression Format
@@ -280,13 +294,13 @@ Delimiter precedence (right to left): `#` → `@` → `.`
 
 ### §3.2 Parser API
 
-```loom
+```loup
 pub func parseTestIncludeExpression(
     expression: string,
     testModule: Any? = none,
     methodPrefix: string = "test"
 ): (string?, string?, string?, string?);
-// Returns: (package, module, testClass, testName)
+# Returns: (package, module, testClass, testName)
 ```
 
 ### §3.3 Expression Examples
@@ -309,28 +323,30 @@ pub func parseTestIncludeExpression(
 
 ## §4 Dependency Injection System
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 The DI system manages resolution, instantiation, and lifecycle of injectable resources during test execution. It provides a hierarchical scope tree for parameter visibility and supports multiple resource lifespans.
 
 ### §4.1 InjectionRegistry
 
 The singleton registry managing all registered sources, origins, and the scope tree.
 
-```loom
+```loup
 pub class InjectionRegistry : Any {
-    // Singleton
+    # Singleton
     static var _instance: InjectionRegistry?;
     pub static func instance(): InjectionRegistry;
 
-    // Source tables
+    # Source tables
     var _integrationSources: dict[func, IntegrationSource];
     var _resourceSources: dict[func, ResourceSource];
     var _configurationSources: dict[func, ConfigurationSource];
     var _validatorSources: dict[func, ValidatorSource];
 
-    // Scope tree
+    # Scope tree
     var _scopeRoot: InjectionScope;
 
-    // Tracking
+    # Tracking
     var _unknownParameters: dict[string, list[string]];
     var _referencedIntegrations: dict[func, type];
     var _referencedConfigurations: dict[func, type];
@@ -352,7 +368,7 @@ pub class InjectionRegistry : Any {
 
 A node in the hierarchical scope tree containing parameter and validator originations.
 
-```loom
+```loup
 pub class InjectionScope : Any {
     let name: string;
     var _children: dict[string, InjectionScope];
@@ -369,12 +385,12 @@ pub class InjectionScope : Any {
 
 ### §4.3 ResourceLifespan
 
-```loom
+```loup
 pub enum ResourceLifespan {
-    Session;   // Lives for the entire test session
-    Package;   // Lives within a module hierarchy
-    Test;      // Created and destroyed per test
-    Task;      // Lives within a task scope
+    Session;   # Lives for the entire test session
+    Package;   # Lives within a module hierarchy
+    Test;      # Created and destroyed per test
+    Task;      # Lives within a task scope
 }
 ```
 
@@ -392,7 +408,7 @@ Parameters are resolved by walking the scope tree from root to the injection mom
 
 Represents a point in the execution flow where injection occurs.
 
-```loom
+```loup
 pub class InjectionMoment : Any {
     pub let func_ref: func;
     pub let monikers: list[string];
@@ -411,13 +427,15 @@ The `parameterSignature()` method uses `core.reflect` to introspect the function
 
 ## §5 Declaration and Registration
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 Annotations (decorators) for declaring test parameters, resource factories, and validator factories.
 
 ### §5.1 @resourceFactory
 
 Registers a generator function as a resource factory in the injection registry.
 
-```loom
+```loup
 @resourceFactory(lifespan = ResourceLifespan.Package)
 gen func provideDatabase(): Iterable[DatabaseConnection] {
     let conn = DatabaseConnection.connect("test.db");
@@ -436,7 +454,7 @@ gen func provideDatabase(): Iterable[DatabaseConnection] {
 
 Attaches a resource parameter to a specific test function with `Test` lifespan.
 
-```loom
+```loup
 @parameter(source = provideDatabase, identifier = "db")
 func test_query(db: DatabaseConnection): void {
     let result = db.query("SELECT 1");
@@ -453,18 +471,18 @@ func test_query(db: DatabaseConnection): void {
 
 Attaches a validator to a specific test function.
 
-```loom
+```loup
 @validation(source = provideLogValidator, suffix = "log_check")
 func test_operation(logValidator: LogValidator): void {
     performOperation();
-    // logValidator runs in parallel, finalized after test completes
+    # logValidator runs in parallel, finalized after test completes
 }
 ```
 
 ### §5.4 @integrationFactory / @configurationFactory / @validatorFactory
 
-```loom
-// Integration factory — yields an IntegrationCoupling subclass
+```loup
+# Integration factory — yields an IntegrationCoupling subclass
 @integrationFactory(constraints = deviceConstraints)
 gen func provideDevice(): Iterable[DeviceIntegration] {
     let device = DeviceIntegration.discover();
@@ -472,14 +490,14 @@ gen func provideDevice(): Iterable[DeviceIntegration] {
     device.disconnect();
 }
 
-// Configuration factory — yields a ConfigurationCoupling subclass
+# Configuration factory — yields a ConfigurationCoupling subclass
 @configurationFactory()
 gen func provideConfig(): Iterable[TestConfig] {
     let config = TestConfig.load();
     yield config;
 }
 
-// Validator factory — returns a ValidatorCoupling subclass
+# Validator factory — returns a ValidatorCoupling subclass
 @validatorFactory()
 func provideLogValidator(): LogValidator {
     return LogValidator.new();
@@ -490,8 +508,8 @@ func provideLogValidator(): LogValidator {
 
 For resources shared across multiple tests at package or session scope:
 
-```loom
-// At module level — creates a Package-scoped parameter
+```loup
+# At module level — creates a Package-scoped parameter
 from testing.injection import parameter, ResourceLifespan;
 
 parameter(
@@ -510,17 +528,19 @@ parameter(
 
 ## §6 Constraints
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 The constraints system passes configuration parameters and feature requirements from external sources to resource factories.
 
 ### §6.1 Constraints Type
 
-```loom
+```loup
 pub class Constraints : Any implements IReadableMap[string, Any] {
-    // Dictionary-like container for key-value constraint pairs
+    # Dictionary-like container for key-value constraint pairs
     pub static func new(**kwargs: Any): Constraints;
 
-    /// Returns a new dict with original values updated by the provided arguments.
-    /// Does NOT modify the original.
+    ## Returns a new dict with original values updated by the provided arguments.
+    ## Does NOT modify the original.
     pub func call(**kwargs: Any): dict[string, Any];
 }
 ```
@@ -529,7 +549,7 @@ pub class Constraints : Any implements IReadableMap[string, Any] {
 
 Singleton registry for constraint lookup with priority-based resolution.
 
-```loom
+```loup
 pub class ConstraintsCatalog : Any {
     static var _instance: ConstraintsCatalog?;
     pub static func instance(): ConstraintsCatalog;
@@ -542,10 +562,10 @@ pub class ConstraintsCatalog : Any {
         scope: string,
         identifier: string,
         constraints: Constraints
-    ): string;  // Returns the constraint key
+    ): string;  # Returns the constraint key
 
     pub func lookupConstraints(key: string): Constraints?;
-    // Override constraints take precedence over site constraints.
+    # Override constraints take precedence over site constraints.
 
     pub func pruneConstraints(keepScopes: list[string]): void;
 }
@@ -553,16 +573,16 @@ pub class ConstraintsCatalog : Any {
 
 ### §6.3 ConstraintsOrigin
 
-```loom
+```loup
 pub enum ConstraintsOrigin {
-    SiteParameter;      // Default constraints from site configuration (lower priority)
-    OverrideParameter;  // Runtime overrides (higher priority)
+    SiteParameter;      # Default constraints from site configuration (lower priority)
+    OverrideParameter;  # Runtime overrides (higher priority)
 }
 ```
 
 ### §6.4 FeatureConstraints
 
-```loom
+```loup
 pub class FeatureConstraints : FeatureMask {
     pub let checkout: bool;
 
@@ -577,25 +597,27 @@ pub class FeatureConstraints : FeatureMask {
 
 ### §6.5 Constraint Merging
 
-```loom
+```loup
 pub func mergeConstraints(...constraints: Constraints | dict[string, Any]): Constraints;
-// Merges multiple constraint sets. Last value wins for duplicate keys.
+# Merges multiple constraint sets. Last value wins for duplicate keys.
 ```
 
 ---
 
 ## §7 Markers and Metadata Filtering
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 Annotations for tagging tests with categories, keywords, and priority, plus filter types for selecting tests based on metadata.
 
 ### §7.1 Marker Annotations
 
-```loom
+```loup
 @markCategories(categories = ["smoke", "regression"])
 @markKeywords(keywords = ["login", "auth"])
 @markPriority(priority = 1)
 func test_user_login(): void {
-    // ...
+    # ...
 }
 ```
 
@@ -603,7 +625,7 @@ func test_user_login(): void {
 
 Applied at module scope, propagating to all tests in the module:
 
-```loom
+```loup
 from testing.markers import markDescendentCategories, markDescendentKeywords;
 
 markDescendentCategories(categories = ["integration"]);
@@ -622,7 +644,7 @@ Each filter has an `include` flag (`+` for include mode, `-` for exclude mode).
 
 ### §7.4 Marker Expression Parsing
 
-```loom
+```loup
 pub func parseMarkerExpression(expression: string): MetaFilter;
 ```
 
@@ -644,19 +666,21 @@ pub func parseMarkerExpression(expression: string): MetaFilter;
 
 ## §8 Feature Tagging
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 A hierarchical, type-safe mechanism for categorizing and filtering objects based on feature capabilities.
 
 ### §8.1 FeatureTag
 
-```loom
+```loup
 pub class FeatureTag : Any {
-    pub static let ID: string;  // Auto-generated from class hierarchy
+    pub static let ID: string;  # Auto-generated from class hierarchy
 
-    // ID is generated from __qualname__: lowercase, dots → slashes
-    // e.g., class Connectivity.WiFi → "connectivity/wifi"
+    # ID is generated from __qualname__: lowercase, dots → slashes
+    # e.g., class Connectivity.WiFi → "connectivity/wifi"
 }
 
-// Usage: define feature tags as nested classes
+# Usage: define feature tags as nested classes
 class DeviceFeatures {
     class Connectivity : FeatureTag {
         class WiFi : FeatureTag {}
@@ -666,16 +690,16 @@ class DeviceFeatures {
         class HDR : FeatureTag {}
     }
 }
-// DeviceFeatures.Connectivity.WiFi.ID == "devicefeatures/connectivity/wifi"
+# DeviceFeatures.Connectivity.WiFi.ID == "devicefeatures/connectivity/wifi"
 ```
 
 ### §8.2 FeatureAttachedObject
 
 Mixin that adds feature tag support to any type.
 
-```loom
+```loup
 pub class FeatureAttachedObject : Any {
-    var _featureTags: list[string];  // Sorted for efficient lookup
+    var _featureTags: list[string];  # Sorted for efficient lookup
 
     pub func extendFeatures(features: list[FeatureTag | string]): void;
     pub func featureTags(): frozenset[string];
@@ -687,7 +711,7 @@ pub class FeatureAttachedObject : Any {
 
 ### §8.3 FeatureMask and FeatureFilter
 
-```loom
+```loup
 pub class FeatureMask : Any {
     pub let requiredFeatures: list[FeatureTag | string]?;
     pub let excludedFeatures: list[FeatureTag | string]?;
@@ -698,7 +722,7 @@ pub class FeatureFilter : Any {
     pub let excludedFeatures: list[FeatureTag | string]?;
 
     pub func filter(items: list[FeatureAttachedObject]): list[FeatureAttachedObject];
-    // Includes items with ALL required features and NONE of excluded features.
+    # Includes items with ALL required features and NONE of excluded features.
 }
 ```
 
@@ -706,11 +730,13 @@ pub class FeatureFilter : Any {
 
 ## §9 Test Sequencing and Scope Management
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 The sequencer is the central state machine that orchestrates test execution through a hierarchy of scope context managers.
 
 ### §9.1 TestSequencer
 
-```loom
+```loup
 pub enum SequencerPhase {
     Initial;
     Discovery;
@@ -727,7 +753,7 @@ pub class TestSequencer : Any implements Scoped[TestSequencer] {
     let metafilters: list[MetaFilter];
 
     var _phase: SequencerPhase;
-    var _scopeStack: list[(string, string)];  // (scopeName, scopeId)
+    var _scopeStack: list[(string, string)];  # (scopeName, scopeId)
     var _testTree: TestGroup?;
     var _sequenceDocument: string?;
 
@@ -739,33 +765,33 @@ pub class TestSequencer : Any implements Scoped[TestSequencer] {
         metafilters: list[MetaFilter] = []
     ): TestSequencer;
 
-    // Discovery
+    # Discovery
     pub func discover(testModule: Any? = none): int;
-    // Returns count of discovered tests.
+    # Returns count of discovered tests.
 
-    // Sequence document generation
+    # Sequence document generation
     pub func generateTestrunSequenceDocument(outputFilename: string): void;
 
-    // Execution
+    # Execution
     pub func executeTests(runId: string, recorder: ResultRecorder): void;
-    // Compiles and executes the sequence document via runtime.compile().
+    # Compiles and executes the sequence document via runtime.compile().
 
-    // Scope management
+    # Scope management
     pub func enterSessionScopeContext(): SequencerSessionScope;
     pub func enterModuleScopeContext(scopeName: string): SequencerModuleScope;
     pub func enterTestSetupContext(testName: string): SequencerTestSetupScope;
     pub func enterTestScopeContext(testName: string, notables: dict[string, Any]? = none): SequencerTestScope;
 
-    // Scope ID management
-    pub func scopeIdCreate(): (string, string);  // (parentId, scopeId)
+    # Scope ID management
+    pub func scopeIdCreate(): (string, string);  # (parentId, scopeId)
     pub func scopeIdPush(scopeName: string, scopeId: string): void;
     pub func scopeIdPop(scopeName: string): void;
     pub func getTopScopeId(): string;
 
-    // Tree navigation
+    # Tree navigation
     pub func findTreeNodeForScope(scopeName: string): TestGroup | TestRef | none;
 
-    // Properties
+    # Properties
     pub func importErrors(): dict[string, ImportErrorRecord];
     pub func references(): dict[string, TestRef];
     pub func testTree(): TestGroup;
@@ -787,7 +813,7 @@ SessionScope          ← Root scope, entire test run
 
 ### §9.3 SequencerSessionScope
 
-```loom
+```loup
 pub class SequencerSessionScope : Any implements Scoped[SequencerSessionScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -797,18 +823,18 @@ pub class SequencerSessionScope : Any implements Scoped[SequencerSessionScope] {
     let scopeNode: TestGroup;
 
     pub func scope_enter(): SequencerSessionScope;
-    // Pushes scope ID, logs "SESSION ENTER: {scopeId}"
+    # Pushes scope ID, logs "SESSION ENTER: {scopeId}"
 
     pub func scope_exit(error: Option[Any]): bool;
-    // On SkipError: marks all descendants as skipped
-    // On other exception: marks all descendants as errored
-    // Always: finalizes scope node, pops scope ID
+    # On SkipError: marks all descendants as skipped
+    # On other exception: marks all descendants as errored
+    # Always: finalizes scope node, pops scope ID
 }
 ```
 
 ### §9.4 SequencerModuleScope
 
-```loom
+```loup
 pub class SequencerModuleScope : Any implements Scoped[SequencerModuleScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -818,34 +844,34 @@ pub class SequencerModuleScope : Any implements Scoped[SequencerModuleScope] {
     let scopeNode: TestGroup;
 
     pub func scope_enter(): SequencerModuleScope;
-    // Creates scope ID, records TestContainer, logs "MODULE ENTER"
+    # Creates scope ID, records TestContainer, logs "MODULE ENTER"
 
     pub func scope_exit(error: Option[Any]): bool;
-    // On SkipError: marks descendants as skipped
-    // On other exception: marks descendants as errored
-    // Always: finalizes scope node, pops scope ID
+    # On SkipError: marks descendants as skipped
+    # On other exception: marks descendants as errored
+    # Always: finalizes scope node, pops scope ID
 }
 ```
 
 ### §9.5 SequencerTestSetupScope
 
-```loom
+```loup
 pub class SequencerTestSetupScope : Any implements Scoped[SequencerTestSetupScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
     let testName: string;
-    let scopeName: string;  // "setup:{testName}"
+    let scopeName: string;  # "setup:{testName}"
 
     pub func scope_enter(): SequencerTestSetupScope;
     pub func scope_exit(error: Option[Any]): bool;
-    // On SkipError: marks the test as skipped
-    // On other exception: marks the test as errored
+    # On SkipError: marks the test as skipped
+    # On other exception: marks the test as errored
 }
 ```
 
 ### §9.6 SequencerTestScope
 
-```loom
+```loup
 pub class SequencerTestScope : Any implements Scoped[SequencerTestScope] {
     let sequencer: TestSequencer;
     let recorder: ResultRecorder;
@@ -859,17 +885,17 @@ pub class SequencerTestScope : Any implements Scoped[SequencerTestScope] {
     var pivots: OrderedDictionary[string, Any];
 
     pub func scope_enter(): SequencerTestScope;
-    // Creates scope ID, creates TestResult, previews with recorder
+    # Creates scope ID, creates TestResult, previews with recorder
 
     pub func scope_exit(error: Option[Any]): bool;
-    // SkipError → SKIPPED
-    // AssertionError → FAILED
-    // Other exception → ERRORED
-    // No exception → PASSED
-    // Always: finalizes result, records with recorder, pops scope ID
-    // Returns true (suppresses exception propagation)
+    # SkipError → SKIPPED
+    # AssertionError → FAILED
+    # Other exception → ERRORED
+    # No exception → PASSED
+    # Always: finalizes result, records with recorder, pops scope ID
+    # Returns true (suppresses exception propagation)
 
-    // Activity tracking
+    # Activity tracking
     pub func beginActivity(activityName: string, target: string = "NA",
                            detail: dict[string, Any]? = none): TestActivity;
     pub func markActivity(activityName: string, target: string = "NA",
@@ -900,7 +926,7 @@ When notables have a `moniker` property, that value is used. Otherwise, `str(not
 
 Records timing information for operations within a test scope.
 
-```loom
+```loup
 pub class TestActivity : Any implements Scoped[TestActivity] {
     pub let activityName: string;
     pub let target: string;
@@ -920,7 +946,9 @@ pub class TestActivity : Any implements Scoped[TestActivity] {
 
 ## §10 Sequence Document Generation
 
-The sequencer generates an executable Loom source file (the "sequence document") that encodes the test execution order, parameter provisioning, and scope management. This document is then compiled and executed via `runtime.compile()`.
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
+The sequencer generates an executable Loup source file (the "sequence document") that encodes the test execution order, parameter provisioning, and scope management. This document is then compiled and executed via `runtime.compile()`.
 
 ### §10.1 Generation Process
 
@@ -932,22 +960,22 @@ The sequencer generates an executable Loom source file (the "sequence document")
 
 The generated document contains:
 
-```loom
-// Code-generated test sequence document — do not edit manually.
+```loup
+# Code-generated test sequence document — do not edit manually.
 
 from testing.constraints import ConstraintsCatalog;
 from logging import getLogger;
 
-// ------- INSERT CONSTRAINT IMPORTS HERE -------
-// ------- INSERT FACTORY IMPORTS HERE -------
+# ------- INSERT CONSTRAINT IMPORTS HERE -------
+# ------- INSERT FACTORY IMPORTS HERE -------
 
 let logger = getLogger();
 let constraintsCatalog = ConstraintsCatalog.instance();
 
-/// Entry point for the test run sequence document.
+## Entry point for the test run sequence document.
 func session(sequencer: TestSequencer): void {
     with (ssc = sequencer.enterSessionScopeContext()) {
-        // Session-level parameter loops
+        # Session-level parameter loops
         for (param in sessionFactory()) {
             scope_tests_unit(sequencer, param);
             scope_tests_integration(sequencer, param);
@@ -958,9 +986,9 @@ func session(sequencer: TestSequencer): void {
 
 func scope_tests_unit(sequencer: TestSequencer, param: SomeType): void {
     with (msc = sequencer.enterModuleScopeContext("tests.unit")) {
-        // Module-level parameter loops
-        // Test scope blocks
-        // ================ Test Scope: test_example ================
+        # Module-level parameter loops
+        # Test scope blocks
+        # ================ Test Scope: test_example ================
         let testScopeName = "test_example";
         with (tscope = sequencer.enterTestScopeContext(testScopeName)) {
             from tests.unit import test_example;
@@ -973,7 +1001,7 @@ func scope_tests_unit(sequencer: TestSequencer, param: SomeType): void {
 
 ### §10.3 Key Differences from Python automojo-testbase
 
-| Aspect | automojo-testbase (Python) | Loom testing |
+| Aspect | automojo-testbase (Python) | Loup testing |
 |---|---|---|
 | Module loading | `import_file()` | `runtime.compile()` |
 | Signature introspection | `inspect.signature` | `core.reflect.signatureOf` |
@@ -995,13 +1023,13 @@ This ensures parent scopes are defined before child scopes in the output file.
 
 When a factory function's signature includes a `constraints` parameter:
 
-```loom
+```loup
 let constraints = constraintsCatalog.lookupConstraints("scope:identifier");
 if (constraints == none) {
     throw RuntimeError("Constraints not found for key: scope:identifier");
 }
 for (resource in factory(constraints = constraints)) {
-    // ...
+    # ...
 }
 ```
 
@@ -1009,7 +1037,7 @@ for (resource in factory(constraints = constraints)) {
 
 Validators are integrated into test scope code with try/finally blocks:
 
-```loom
+```loup
 with (tscope = sequencer.enterTestScopeContext(testScopeName)) {
     let validator = validatorFactory();
     try {
@@ -1026,13 +1054,15 @@ with (tscope = sequencer.enterTestScopeContext(testScopeName)) {
 
 ## §11 Test Execution (TestJob)
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 `TestJob` is the high-level orchestrator that spans the complete test run lifecycle.
 
 ### §11.1 SimpleTestJob
 
 The foundation `TestJob` implementation. No integration metadata, no build/pipeline/job info.
 
-```loom
+```loup
 pub class SimpleTestJob : Any implements Scoped[SimpleTestJob] {
     pub let title: string;
     pub let testRoot: string;
@@ -1055,26 +1085,26 @@ pub class SimpleTestJob : Any implements Scoped[SimpleTestJob] {
         testModule: Any? = none
     ): SimpleTestJob;
 
-    /// Full test run lifecycle.
+    ## Full test run lifecycle.
     pub func execute(): int;
-    // Returns 0 for all passed/skipped, -1 for failures/errors.
+    # Returns 0 for all passed/skipped, -1 for failures/errors.
 
-    /// Query mode — discover tests without executing.
+    ## Query mode — discover tests without executing.
     pub func query(): list[TestRef];
 
-    // Lifecycle hooks (overridable)
+    # Lifecycle hooks (overridable)
     pub func begin(): void;
     pub func finalize(): void;
 
-    // Factory methods (overridable)
+    # Factory methods (overridable)
     pub func createSequencer(): TestSequencer;
     pub func createRecorder(): ResultRecorder;
 
-    // Scoped interface
+    # Scoped interface
     pub func scope_enter(): SimpleTestJob;
     pub func scope_exit(error: Option[Any]): bool;
 
-    // Properties
+    # Properties
     pub func importErrors(): list[ImportErrorRecord];
 }
 ```
@@ -1107,11 +1137,13 @@ When discovery finds zero tests, the `execute()` method logs an error including 
 
 ## §12 Factory Protocol for TestJob Extensibility
 
+> **Status (2026-10-03): aspirational — not implemented** (see the note at §2).
+
 The factory protocol enables `testing.integration` to substitute an enhanced `TestJob` without modifying the foundation.
 
 ### §12.1 TestJobFactory Interface
 
-```loom
+```loup
 pub interface TestJobFactory {
     func createTestJob(config: TestJobConfig): SimpleTestJob;
 }
@@ -1129,7 +1161,7 @@ pub struct TestJobConfig {
 
 ### §12.2 Default Factory
 
-```loom
+```loup
 pub class DefaultTestJobFactory : Any implements TestJobFactory {
     pub func createTestJob(config: TestJobConfig): SimpleTestJob {
         return SimpleTestJob.new(
@@ -1147,8 +1179,8 @@ pub class DefaultTestJobFactory : Any implements TestJobFactory {
 
 ### §12.3 Factory Registration
 
-```loom
-// In testing.factories module
+```loup
+# In testing.factories module
 var _currentFactory: TestJobFactory = DefaultTestJobFactory();
 
 pub func setTestJobFactory(factory: TestJobFactory): void;
@@ -1159,20 +1191,322 @@ pub func getTestJobFactory(): TestJobFactory;
 
 The `testing.integration` package (Tier 2) provides:
 
-```loom
-// In testing.integration (separate package, not in stdlib)
+```loup
+# In testing.integration (separate package, not in stdlib)
 pub class IntegratedTestJobFactory : Any implements TestJobFactory {
     pub func createTestJob(config: TestJobConfig): SimpleTestJob {
         return IntegratedTestJob.new(
-            // ... config fields plus:
-            // buildInfo, pipelineInfo, jobInfo, renderInfo, forwardingInfo
+            # ... config fields plus:
+            # buildInfo, pipelineInfo, jobInfo, renderInfo, forwardingInfo
         );
     }
 }
 
-// Registration at package init:
+# Registration at package init:
 from testing.factories import setTestJobFactory;
 setTestJobFactory(IntegratedTestJobFactory());
 ```
 
 ---
+
+> **Sections §13–§22 and §24 do not exist, and this document no longer claims they do.**
+> Its table of contents promised eleven sections that were never written — Result Model,
+> Text Result Recorder, Verification and Assertions, Mocking Framework, Property-Based
+> Testing, Tandem Validators, Diagnostics, Test Run Timeout, Debugging Support,
+> Configuration, and Extension Points (Integration Package) — and the numbering jumps
+> straight from §12 to §23 as a result. Measured 2026-09-09: nothing in the corpus
+> references any of them, and the shipped `testing` module is a small surface
+> (`skipTest`, `runTest`, `TestResult`, `TestSummary`, `SkipSignal`) with no mocking,
+> property-testing or validator machinery to document. The entries were removed rather
+> than filled because writing eleven sections of reference text for unbuilt features would
+> describe a framework that does not exist — a worse defect than the gap. The titles are
+> kept here so the intent is not lost if those features are ever built; the numbers §13–§22
+> and §24 are reserved for them.
+
+## §23 CLI Integration (`loup test`)
+
+`loup test` is the default way to test Loup code, except the code on its own
+exclusion list (`docs/loup-test-exclusions.txt`, see §1.3): the framework, the runner,
+and the front end, interpreter and prelude they run on. Two runners implement it:
+
+- the self-hosted `loup test`, which the `loup` CLI hands to `loup-test`
+  (`source/runtime/tools/loup_test/`). It discovers `*_test.lpscr` / `*_test.loup`
+  files, runs each with `loup run` (a generated driver runs each arg-less
+  `func test_*()` through `testing.runTest`, §23.9), and reads the `ok:` / `FAIL:` /
+  `skip:` lines each check prints. `--strict` makes a file that reports nothing, finding no test files, and a
+  script-style file without a matching expected output (`<name>.out`) failures. It is
+  judged from outside by `loup_test/e2e.sh`, `loup_test/parity.sh` and
+  `loup_cli/test_e2e.sh`;
+- Stage0's `loup-bootstrap test`, the oracle twin, which drives `runTest` in-process
+  as described below. (Implemented: `loup-tools/src/test/`, backed by the embedded
+  `testing` + `debug.assert` stdlib modules.)
+
+Both runners compile each test file with the build keys of the package it belongs to
+(core §1-13.3, "Every driver defines the closed keys"; v1.21, v21.portable.10): its
+`[options]` at their declared defaults and every closed `freestanding.*` / `build.*` /
+`target.*` key, `target.*` describing the host. `--option <name>=<value>` (repeatable)
+supplies an option value to every test file, validated as `loup build --option` is; the
+self-hosted runner passes each test file to `loup run` as `--package-of`, so a driver it
+generates elsewhere still reads the test file's package. A module of a dependency the test
+file imports reads ITS package's options (core §1-13.3, "A package's options are its own";
+v1.21, v21.portable.13): at their declared defaults unless `--option <package>.<name>=<value>`
+or the test file's package manifest (`[options."<package>"]`) sets them.
+
+### §23.1 Discovery
+
+A **test** is a top-level function whose name begins with `test_` and that takes
+no parameters. Test files are found by the manifest's `test.pattern` (and the
+project `tests/` directory), or a single file via `loup test --file <path>`. Each
+file is compiled to MIR and its `test_*` functions are collected
+(`extract_test_functions`). `gen func` / `async func` tests are detected from the
+function shape.
+
+### §23.2 Execution model
+
+For each discovered test, the runner compiles the file **augmented in-memory**
+with an injected harness:
+
+```loup
+from testing import (runTest, TestResult);
+func loupTestHarnessEntry(): TestResult {
+    return runTest("<test name>", func(): void { <test_fn>(); });
+}
+```
+
+It then runs `loupTestHarnessEntry` in a fresh isolated runtime
+(`execute_named`), reads back the returned `TestResult`, and maps its
+`TestOutcome` to the CLI status. The test body is wrapped in an anonymous `func`
+so it is passed to `runTest` as an `fn(): void` value. This is why the framework
+— not a parallel reimplementation — defines execution semantics: `runTest`'s
+try/catch is what turns a thrown exception into a recorded failure.
+
+Each test runs in its own `IsolatedRuntime` (isolation between tests), under a
+wall-clock timeout enforced by the runner, with stdout/stderr captured.
+
+### §23.3 Outcome mapping
+
+| Framework `TestOutcome` | CLI status | Source |
+|---|---|---|
+| `PASS` | pass | test body returned normally |
+| `FAIL` | fail | test body threw (e.g. `debug.assert.expect*` → `AssertionError`); the message is carried through |
+| `SKIP` | skipped | `skipTest(reason)` raised `SkipSignal` |
+
+A setup/compile/harness error (the file fails to compile, or top-level code
+throws) is reported as a failure distinct from an assertion. v0.6 / v1.16 error
+types still receive specialized diagnostic rendering.
+
+### §23.4 Assertions and skip
+
+Test bodies fail by **throwing**. The `debug.assert` helpers (`expect`,
+`expectEq`, `expectThrows`, …) throw `AssertionError`; `runTest` catches it and
+records FAIL. `testing.skipTest(reason)` raises `SkipSignal`, which `runTest`
+catches ahead of the generic handler and records SKIP. `testing.TestFailure(testName,
+details)` is an `Exception` whose message is `"<testName>: <details>"` (fields
+`testName`, `details`), for helpers that know which test they are checking;
+`runTest` records it as a FAIL like any other exception.
+
+`runTest` times each test on the monotonic clock: `TestResult.durationNs` is the
+nanoseconds the test took (a skipped test included), and
+`TestSummary.totalDurationNs` sums its results' durations.
+
+### §23.5 Reporters
+
+Results render in `pretty` (default), `json`, and `junit` formats with pass /
+fail / skip counts; `loup test` exits non-zero if any test fails.
+
+### §23.6 Known limitations
+
+- `gen func` / `async func` tests: the harness currently calls the test as a
+  plain `fn(): void`, so a generator's body is not yet driven to exhaustion and
+  an async test's `Task` is not yet awaited (the in-process event loop is
+  pending). Plain tests are fully supported. (Follow-up: `runGeneratorTest` /
+  `runTestAsync` harness variants.)
+- The framework `TestResult` preserves a failed test's message but not the
+  original exception type, so non-assertion failures are reported under a generic
+  type. (Follow-up: carry the thrown type.)
+- The CLI's per-test time is its own wall-clock measurement (it includes the
+  harness compile), not the framework's `durationNs`.
+
+### §23.7 Freestanding tests (`loup test --freestanding`)
+
+> **Stage0 twin only.** This mode exists in `loup-bootstrap test`, and the self-hosted
+> `loup test` never gains it (ruling D3, 2026-10-02): native and freestanding lanes are
+> driven as subprocesses from scripted `loup test` suites, so the runner's own closure
+> never grows a native backend.
+
+`loup test --freestanding <file>` runs `@mode(freestanding)` (bare-metal/kernel)
+tests by compiling them to an actual freestanding binary and booting it under
+QEMU — the host in-process path cannot run bare-metal code, and the host
+framework's `runTest` is unusable freestanding (it uses `try/catch`, forbidden
+by `E_FREESTANDING_EXCEPTIONS`).
+
+**Authoring.** A freestanding test file is:
+
+```loup
+@mode(freestanding)
+from debug.assert_fs import (expectFs, expectEqFs);
+
+func test_math(): void { expectEqFs(2 + 2, 4, "math"); return; }
+```
+
+Tests are the usual `test_*` zero-param functions. Assertions come from
+`debug.assert_fs` — **no exceptions**: a failing `expectFs(cond, msg)` /
+`expectEqFs(a, b, msg)` sets a module-global fail flag instead of throwing.
+
+**Execution.** For each test file the runner generates a complete freestanding
+program — the test file + the `debug.assert_fs` accessors + a generated
+`kernelMain` that, per test, resets the fail flag, calls the test, and writes
+`<name>: PASS|FAIL` to the COM1 serial port, then a `LOUPTEST-DONE` sentinel and
+the QEMU `isa-debug-exit` — plus a boot trampoline. It builds via `loup build`
+(freestanding target), boots `qemu-system-x86_64 -kernel … -serial file:… -device
+isa-debug-exit`, and parses the serial log back into the normal report. A missing
+`LOUPTEST-DONE` (hang/crash) fails the affected tests rather than passing them.
+
+**Scope/limitations.** x86_64 only (the boot scaffold + COM1 serial are
+x86-specific; aarch64/PL011 is a follow-up). All a file's tests run in one binary
+sequentially (a crash aborts the rest). Failure messages aren't carried over
+serial yet (PASS/FAIL only); numeric summaries and richer asserts are follow-ups.
+Requires `qemu-system-x86_64` on PATH.
+
+### §23.8 Native tests (`loup test --native`)
+
+> **Stage0 twin only.** This mode exists in `loup-bootstrap test`, and the self-hosted
+> `loup test` never gains it (ruling D3, 2026-10-02): native and freestanding lanes are
+> driven as subprocesses from scripted `loup test` suites, so the runner's own closure
+> never grows a native backend.
+
+`loup test --native <file>` runs `@mode(host.native)` / `@compiled` tests through
+the real **native AOT pipeline** — the same `loup build` path the CLI uses
+(resolve + typecheck + native LLVM codegen + `clang` link) — rather than the
+default in-process interpreter. This exercises the code generator a native
+program actually ships through. `--mode host.native` selects the same path.
+
+**Auto-routing in the default run.** A plain `loup test` (no `--native`) also
+routes native test files through this pipeline automatically: each discovered
+test file whose source carries `@mode(host.native)` — or a bare `@compiled` with
+no other `@mode(...)` — is sent to the native path, while every other file
+(undecorated, `host.scripted`, `host.dual`, `web.*`) runs in-process as before.
+Both sets are merged into one report. The runner prints a one-line note
+(`routing N test(s) in M host.native file(s) through the native AOT pipeline`)
+when any file is routed. `--native` forces *all* discovered files through the
+native path regardless of directive.
+
+**Authoring.** A native test file carries `@mode(host.native)` (or `@compiled`)
+and the usual `test_*` zero-param functions. A test *fails by throwing*: any
+uncaught exception (e.g. from an assertion helper) marks the test failed; a test
+that returns normally passes.
+
+```loup
+@mode(host.native)
+
+class TestFail : Exception { pub func init(m: string): void { self.message = m; } }
+func check(cond: bool, msg: string): void { if (not cond) { throw TestFail(msg); } }
+
+func test_math(): void { check(2 + 3 == 5, "math"); return; }
+```
+
+**Execution.** Each test becomes its **own native binary**: the runner generates
+an `@compiled` program = the test file (its leading mode directive normalized to
+`@compiled`) + a generated `main` that calls the single test and returns 0. It
+builds with `loup build --target native --backend llvm` (the explicit backend is
+required — without it the native target delegates to the wasm-packaged-app path),
+runs the executable under a `timeout` backstop (coreutils `timeout` on Linux; on
+macOS, which ships none, the runner enforces the same deadline in-process and kills
+the test), and maps the **process exit code** to a verdict: `0` → pass; `134` → fail (the native runtime's deterministic
+uncaught-exception exit — the normal failing-test path); `124` → fail (timeout);
+any other nonzero or a signal (e.g. SIGSEGV) → fail (abnormal exit / crash).
+
+One binary per test gives both per-test granularity and true isolation — a
+`SIGSEGV` or `abort()` in one test can't take the rest of the run down with it.
+
+The generated `main` does **not** wrap the test in `try/catch`: the managed
+native (libc) backend cannot install a catch filter on the built-in base
+`Exception` (`E-BUILD-NATIVE: catch type filter on unknown type Exception`), and
+the goal is to catch *every* throwable regardless of its concrete type — so the
+exception is allowed to propagate uncaught to exit 134 instead.
+
+**Scope/limitations.** Runs on the host architecture (the binary is produced for
+this machine via the `libc` foundation); cross-arch native test execution is a
+follow-up. One native build + link per test — fast per test (~hundreds of ms) but
+linear in test count; sharing one binary across tests needs an argv/env test
+selector the native entry ABI doesn't expose yet. Failure detail is the exit-code
+class (assertion messages are not yet carried out of the process). Requires a
+working `clang` (`$LOUP_CLANG`, else `clang`/`clang-NN`) on the host.
+
+### §23.9 The self-hosted runner: framework driver, corpus cases, limits, lane suites
+
+These are behaviours of `loup-test` (`source/runtime/tools/loup_test/`), added in phase
+P1 of the test re-layering. Its judges are `loup_test/e2e.sh` and `loup_test/parity.sh`.
+
+**Driver.** A file of arg-less `func test_*()` runs through a generated driver. The
+driver keeps the file's header first and imports `testing.runTest` and
+`debug.assert.expect`; the bare `assert(cond, msg)` that tests call is `expect`, unless
+the file declares or imports its own `assert`. Each test runs as
+`runTest(name, func(): void { test(); })`, so §23.3 decides its outcome: a `skipTest`
+is SKIP, and any other exception is FAIL. Per check the driver prints
+`ok: <name>` | `FAIL: <name>: <message>` | `skip: <name>: <reason>`, then
+`type: <AssertionError|Exception> <name>` after a FAIL, and
+`time: <durationNs> <name>`. A file that calls its own `main()` or tests at top level
+runs once, as written. A test, a `cases_` function and `main` are found whatever
+their declaration modifiers (inline annotations, `pub`, `safe`, `async`, `gen`,
+`const`), as Stage0's runner finds every top-level `test_*` function: a
+`safe func test_x()` — the form a test takes when it calls a `modifier` method on a
+shared object (FIELD-1) — is a test like `func test_x()` (merge 30c; `e2e.sh`
+step "declaration modifiers").
+
+**Corpus tests.** `func test_<x>(c: string)` with a sibling
+`func cases_<x>(): list[string]` is a corpus test. Each case is its own check,
+`test_<x>[<case>]`, and runs in its own process under the case timeout.
+
+**Limits.** The nearest `loup-test.toml` at or above a test file sets the limits for
+every test below it. A flag on the command line wins over the file. The file holds
+`key = value` lines; `#` comments must be on their own line.
+
+| Key | Meaning |
+|---|---|
+| `timeout` | Seconds per whole-file job. The default is 60. |
+| `case-timeout` | Seconds per corpus case. The default is `timeout`. |
+| `max-mem` | MB of address space per run. The default is 4096. |
+| `louppath` | `:`-separated roots, relative to the toml. |
+| `allow-skip` | The checks `--strict` lets skip (below). It adds to `--allow-skip`. |
+
+**Strict and skips.** A skipped check judged nothing, so under `--strict` it never
+counts toward a pass. A file with a skipped check FAILS, whether its other checks
+passed or every check skipped, unless the allow-list names that check. The allow-list
+is the union of `allow-skip` in the file's `loup-test.toml` and `--allow-skip <names>`.
+Each takes comma-separated entries:
+- an exact check name (`test_x`, `test_x[<case>]`);
+- `<prefix>*`, which matches every check whose name starts with the prefix;
+- `*`, which matches every check.
+
+An allowed skip still reports as a skip: the file is SKIP when every check skipped,
+else PASS. Without `--strict`, a skip never fails a file.
+
+**Environment.** Every job gets two variables:
+- `LOUP_TEST_FILE`: the test file itself.
+- `LOUP_TEST_TMP`: a fresh directory, inside the run's scratch directory (by default
+  under `~/.cache/loup-test`, never `/tmp`). It is removed after the job.
+
+**Reports.** `--format json` uses Stage0's per-test schema (ruling D4): one result per
+check (`name` = `<file>::<check>`, `status`, `duration_ms`, `error {type, message, trace}`),
+plus the file verdicts. `junit`'s `<failure type>` is the exception that `runTest`
+caught.
+
+**Lane suites (ruling D3).** `loup test` never runs a program on a native or
+freestanding lane itself. A suite in `tests/lanes/<lane>_test.lpscr` builds each
+corpus program on its lane AS A SUBPROCESS, runs it, and compares the program's stdout
+and exit code with its golden. It does this through the `testkit` package
+(`source/packages/testkit/`: `lanes`, `golden`, `scratch`, `proc`). testkit is not on
+the exclusion list, and `loup_test_closure.py --check` fails if an edge from the
+closure reaches it.
+
+A missing lane tool is a SKIP. A tool that fails, or a tool variable that names nothing
+executable, is a FAIL. The routine gate of a test root (`tests/lib/loup_test_gate.sh`)
+fails on any skip.
+
+**Known limits.**
+- The self-hosted interpreter's `exec` does not pass a `sh -c` argument intact, so
+  testkit runs every command from a script file.
+- Concurrent self-hosted interpreters share their `exec` capture files, so do not run
+  tests that call `exec` under `--jobs` greater than 1.
+- Stage0's `loup-bootstrap test` does not yet discover corpus tests.

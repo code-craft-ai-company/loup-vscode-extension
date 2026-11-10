@@ -1,12 +1,13 @@
 {
-  "name": "loom-debug-adapter",
-  "version": "0.1.0",
-  "description": "Debug Adapter Protocol implementation for the Loom programming language",
+  "name": "loup-debug-adapter",
+  "version": "1.20.0",
+  "description": "Debug Adapter Protocol implementation for the Loup programming language",
+  "private": true,
   "main": "./out/debugAdapter.js",
   "scripts": {
-    "build": "esbuild src/debugAdapter.ts --bundle --outfile=out/debugAdapter.js --external:vscode --format=cjs --platform=node",
+    "build": "esbuild src/debugAdapter.ts --bundle --outfile=out/debugAdapter.js --format=cjs --platform=node --sourcemap",
     "watch": "npm run build -- --watch",
-    "test": "echo \"No tests yet\""
+    "clean": "rm -rf out"
   },
   "dependencies": {
     "@vscode/debugadapter": "^1.65.0",
@@ -15,6 +16,6 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "esbuild": "^0.20.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.3.3"
   }
 }

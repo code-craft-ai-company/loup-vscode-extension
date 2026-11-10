@@ -1,139 +1,207 @@
 // ============================================================================
-// Time-Travel Manager — Manages capture server and trace file replay
+// Time-Travel Session Manager — Trace event stream & timeline navigation
 // ============================================================================
 
 import * as vscode from 'vscode';
-import * as path from 'path';
+
+export type TraceEventKind =
+  | 'Call'
+  | 'Return'
+  | 'Line'
+  | 'Exception'
+  | 'Await'
+  | 'Resume'
+  | 'Portal'
+  | 'Signal';
 
 export interface TraceEvent {
+  seq: number;
   timestamp: number;
-  kind: 'line' | 'call' | 'return' | 'portal_enter' | 'portal_exit' | 'exception' | 'spawn' | 'await';
-  portal?: string;
-  source: string;
-  line: number;
+  kind: TraceEventKind;
+  threadId: number;
+  source?: string;
+  line?: number;
   column?: number;
   functionName?: string;
-  data?: Record<string, unknown>;
+  portalName?: string;
+  signalName?: string;
+  signalValue?: string;
+  returnValue?: string;
+  exceptionType?: string;
+  exceptionMessage?: string;
+  variables?: Record<string, { value: string; type: string }>;
 }
 
-export interface CaptureSession {
-  id: string;
-  startTime: number;
-  endTime?: number;
+export interface TimeTravelState {
+  capturing: boolean;
+  replaying: boolean;
   events: TraceEvent[];
-  portals: string[];
-  filePath?: string;
+  currentIndex: number;
+  totalEvents: number;
 }
 
 export class TimeTravelManager {
-  private sessions = new Map<string, CaptureSession>();
-  private activeSession: CaptureSession | null = null;
-  private _onSessionChanged = new vscode.EventEmitter<CaptureSession | null>();
-  readonly onSessionChanged = this._onSessionChanged.event;
+  private state: TimeTravelState = {
+    capturing: false,
+    replaying: false,
+    events: [],
+    currentIndex: -1,
+    totalEvents: 0,
+  };
 
-  // ---- Capture ----
+  private _onDidUpdate = new vscode.EventEmitter<TimeTravelState>();
+  readonly onDidUpdate = this._onDidUpdate.event;
 
-  startCapture(): CaptureSession {
-    const session: CaptureSession = {
-      id: `capture-${Date.now()}`,
-      startTime: Date.now(),
-      events: [],
-      portals: [],
-    };
-    this.sessions.set(session.id, session);
-    this.activeSession = session;
-    this._onSessionChanged.fire(session);
-    return session;
+  getState(): TimeTravelState {
+    return { ...this.state };
   }
 
-  stopCapture(): CaptureSession | null {
-    if (this.activeSession) {
-      this.activeSession.endTime = Date.now();
-      const session = this.activeSession;
-      this.activeSession = null;
-      this._onSessionChanged.fire(null);
-      return session;
-    }
-    return null;
+  // ---- Capture lifecycle ----
+
+  startCapture(): void {
+    this.state.capturing = true;
+    this.state.events = [];
+    this.state.currentIndex = -1;
+    this.state.totalEvents = 0;
+    this._onDidUpdate.fire(this.state);
+  }
+
+  stopCapture(): void {
+    this.state.capturing = false;
+    this._onDidUpdate.fire(this.state);
   }
 
   addEvent(event: TraceEvent): void {
-    if (this.activeSession) {
-      this.activeSession.events.push(event);
-      if (event.portal && !this.activeSession.portals.includes(event.portal)) {
-        this.activeSession.portals.push(event.portal);
+    this.state.events.push(event);
+    this.state.totalEvents = this.state.events.length;
+    if (!this.state.replaying) {
+      this.state.currentIndex = this.state.events.length - 1;
+    }
+    this._onDidUpdate.fire(this.state);
+  }
+
+  // ---- Replay navigation ----
+
+  stepTo(seq: number): TraceEvent | undefined {
+    const idx = this.state.events.findIndex(e => e.seq === seq);
+    if (idx >= 0) {
+      this.state.replaying = true;
+      this.state.currentIndex = idx;
+      this._onDidUpdate.fire(this.state);
+      return this.state.events[idx];
+    }
+    return undefined;
+  }
+
+  stepForward(): TraceEvent | undefined {
+    if (this.state.currentIndex < this.state.events.length - 1) {
+      this.state.replaying = true;
+      this.state.currentIndex++;
+      this._onDidUpdate.fire(this.state);
+      return this.state.events[this.state.currentIndex];
+    }
+    return undefined;
+  }
+
+  stepBackward(): TraceEvent | undefined {
+    if (this.state.currentIndex > 0) {
+      this.state.replaying = true;
+      this.state.currentIndex--;
+      this._onDidUpdate.fire(this.state);
+      return this.state.events[this.state.currentIndex];
+    }
+    return undefined;
+  }
+
+  stepBackToCall(): TraceEvent | undefined {
+    for (let i = this.state.currentIndex - 1; i >= 0; i--) {
+      if (this.state.events[i].kind === 'Call') {
+        this.state.replaying = true;
+        this.state.currentIndex = i;
+        this._onDidUpdate.fire(this.state);
+        return this.state.events[i];
       }
     }
+    return undefined;
   }
 
-  // ---- Trace file ----
-
-  async loadTraceFile(filePath: string): Promise<CaptureSession> {
-    const uri = vscode.Uri.file(filePath);
-    const content = await vscode.workspace.fs.readFile(uri);
-    const text = new TextDecoder().decode(content);
-    const data = JSON.parse(text);
-
-    const session: CaptureSession = {
-      id: path.basename(filePath, '.loom-trace'),
-      startTime: data.startTime || 0,
-      endTime: data.endTime,
-      events: data.events || [],
-      portals: data.portals || [],
-      filePath,
-    };
-
-    this.sessions.set(session.id, session);
-    return session;
+  stepForwardToReturn(): TraceEvent | undefined {
+    for (let i = this.state.currentIndex + 1; i < this.state.events.length; i++) {
+      if (this.state.events[i].kind === 'Return') {
+        this.state.replaying = true;
+        this.state.currentIndex = i;
+        this._onDidUpdate.fire(this.state);
+        return this.state.events[i];
+      }
+    }
+    return undefined;
   }
 
-  async saveTraceFile(sessionId: string, filePath: string): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error(`Session ${sessionId} not found`);
-
-    const data = {
-      version: 1,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      portals: session.portals,
-      events: session.events,
-    };
-
-    const uri = vscode.Uri.file(filePath);
-    const content = new TextEncoder().encode(JSON.stringify(data, null, 2));
-    await vscode.workspace.fs.writeFile(uri, content);
-    session.filePath = filePath;
+  stepToNextPortal(): TraceEvent | undefined {
+    for (let i = this.state.currentIndex + 1; i < this.state.events.length; i++) {
+      if (this.state.events[i].kind === 'Portal') {
+        this.state.replaying = true;
+        this.state.currentIndex = i;
+        this._onDidUpdate.fire(this.state);
+        return this.state.events[i];
+      }
+    }
+    return undefined;
   }
 
-  // ---- Query ----
-
-  getSession(id: string): CaptureSession | undefined {
-    return this.sessions.get(id);
+  stepToPrevPortal(): TraceEvent | undefined {
+    for (let i = this.state.currentIndex - 1; i >= 0; i--) {
+      if (this.state.events[i].kind === 'Portal') {
+        this.state.replaying = true;
+        this.state.currentIndex = i;
+        this._onDidUpdate.fire(this.state);
+        return this.state.events[i];
+      }
+    }
+    return undefined;
   }
 
-  getActiveSession(): CaptureSession | null {
-    return this.activeSession;
+  exitReplay(): void {
+    this.state.replaying = false;
+    this.state.currentIndex = this.state.events.length - 1;
+    this._onDidUpdate.fire(this.state);
   }
 
-  getAllSessions(): CaptureSession[] {
-    return Array.from(this.sessions.values());
+  // ---- Filtering ----
+
+  getEventsByKind(kind: TraceEventKind): TraceEvent[] {
+    return this.state.events.filter(e => e.kind === kind);
   }
 
-  getEventsForPortal(sessionId: string, portalName: string): TraceEvent[] {
-    const session = this.sessions.get(sessionId);
-    if (!session) return [];
-    return session.events.filter(e => e.portal === portalName);
+  getCurrentEvent(): TraceEvent | undefined {
+    return this.state.events[this.state.currentIndex];
   }
 
-  getEventsInRange(sessionId: string, startTime: number, endTime: number): TraceEvent[] {
-    const session = this.sessions.get(sessionId);
-    if (!session) return [];
-    return session.events.filter(e => e.timestamp >= startTime && e.timestamp <= endTime);
+  getEvents(): TraceEvent[] {
+    return this.state.events;
   }
 
-  getEventAtIndex(sessionId: string, index: number): TraceEvent | undefined {
-    const session = this.sessions.get(sessionId);
-    if (!session) return undefined;
-    return session.events[index];
+  // ---- Load / Save trace recordings (.loup-trace) ----
+
+  async saveRecording(uri: vscode.Uri): Promise<void> {
+    const data = JSON.stringify({
+      version: '1.20',
+      timestamp: Date.now(),
+      events: this.state.events,
+    }, null, 2);
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(data, 'utf-8'));
+  }
+
+  async loadRecording(uri: vscode.Uri): Promise<void> {
+    const raw = await vscode.workspace.fs.readFile(uri);
+    const data = JSON.parse(Buffer.from(raw).toString('utf-8'));
+    if (Array.isArray(data.events)) {
+      this.state.events = data.events;
+      this.state.totalEvents = data.events.length;
+      this.state.currentIndex = 0;
+      this.state.replaying = true;
+      this.state.capturing = false;
+      this._onDidUpdate.fire(this.state);
+    }
   }
 }

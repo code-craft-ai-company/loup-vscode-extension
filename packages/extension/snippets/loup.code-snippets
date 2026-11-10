@@ -1,0 +1,497 @@
+{
+  "Mode Directive": {
+    "prefix": "@mode",
+    "body": [
+      "@mode(${1|host.scripted,host.dual,host.native,web.scripted,web.compiled,freestanding,portable|})"
+    ],
+    "description": "Declare file execution mode (§1-2.5)"
+  },
+  "Function Declaration": {
+    "prefix": "func",
+    "body": [
+      "func ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare a function"
+  },
+  "Const Function Declaration": {
+    "prefix": "cfunc",
+    "body": [
+      "const func ${1:name}(${2:params}): ${3:int} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare a compile-time evaluable function (§1-7.1)"
+  },
+  "Public Function": {
+    "prefix": "pfunc",
+    "body": [
+      "pub func ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare a public function"
+  },
+  "Async Function": {
+    "prefix": "afunc",
+    "body": [
+      "async func ${1:name}(${2:params}): Task[${3:void}] {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare an async function"
+  },
+  "Generator Function": {
+    "prefix": "gfunc",
+    "body": [
+      "gen func ${1:name}(${2:params}): Iterable[${3:int}] {",
+      "  yield ${4:value};",
+      "}"
+    ],
+    "description": "Declare a generator function"
+  },
+  "Async Generator Function": {
+    "prefix": "agfunc",
+    "body": [
+      "async gen func ${1:name}(${2:params}): AsyncIterable[${3:int}] {",
+      "  yield ${4:value};",
+      "}"
+    ],
+    "description": "Declare an async generator function"
+  },
+  "Safe Function": {
+    "prefix": "sfunc",
+    "body": [
+      "safe func ${1:name}(${2:reads param: Type}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare a safe-context function (§3-2.4.12)"
+  },
+  "Modifier Method": {
+    "prefix": "mfunc",
+    "body": [
+      "pub modifier func ${1:name}(${2:params}): ${3:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Declare a mutating class method (§3-2.4.11)"
+  },
+  "Lambda (Arrow)": {
+    "prefix": "fn=>",
+    "body": [
+      "func(${1:x}) => ${2:x}"
+    ],
+    "description": "Short lambda expression"
+  },
+  "Lambda (Block)": {
+    "prefix": "fn{}",
+    "body": [
+      "func(${1:x}): ${2:void} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Block lambda expression"
+  },
+  "Enum Declaration": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "  ${2:Variant1}(${3:field: Type}),",
+      "  ${4:Variant2},",
+      "}"
+    ],
+    "description": "Declare an algebraic data type (enum)"
+  },
+  "Generic Enum": {
+    "prefix": "genum",
+    "body": [
+      "enum ${1:Name}[${2:T}] {",
+      "  ${3:Variant1}(${4:value: T}),",
+      "  ${5:Variant2},",
+      "}"
+    ],
+    "description": "Declare a generic enum"
+  },
+  "Struct Declaration": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "  pub var ${2:field}: ${3:int};",
+      "",
+      "  pub func ${4:method}(): ${5:void} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a value-type struct"
+  },
+  "Class Declaration": {
+    "prefix": "class",
+    "body": [
+      "class ${1:Name} {",
+      "  pub var ${2:field}: ${3:Type};",
+      "",
+      "  pub func ${4:method}(): ${5:void} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a class"
+  },
+  "Shared Class Declaration": {
+    "prefix": "sclass",
+    "body": [
+      "shared class ${1:Name} {",
+      "  pub let ${2:field}: ${3:int};",
+      "",
+      "  pub func ${4:method}(): ${5:void} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a cross-thread shared class (§3-2.4.15)"
+  },
+  "Synchronized Class Declaration": {
+    "prefix": "syncclass",
+    "body": [
+      "synchronized class ${1:Name} {",
+      "  var ${2:state}: ${3:int} = 0;",
+      "",
+      "  pub modifier func ${4:update}(${5:delta: int}): void {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a mutex-serialized synchronized class (§3-2.4.13)"
+  },
+  "Unique Class Declaration": {
+    "prefix": "uclass",
+    "body": [
+      "unique class ${1:Name} {",
+      "  pub var ${2:field}: ${3:int};",
+      "",
+      "  pub modifier func ${4:method}(): ${5:void} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a single-owner unique class (§1-8.11)"
+  },
+  "Dynamic Class": {
+    "prefix": "dclass",
+    "body": [
+      "dynamic class ${1:Name} {",
+      "  pub var ${2:field}: ${3:Type};",
+      "}"
+    ],
+    "description": "Declare a dynamic class (supports !{} fields)"
+  },
+  "Interface Declaration": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:Name} {",
+      "  func ${2:method}(${3:params}): ${4:ReturnType};",
+      "}"
+    ],
+    "description": "Declare an interface"
+  },
+  "Type Alias": {
+    "prefix": "type",
+    "body": [
+      "type ${1:AliasName} = ${2:TargetType};"
+    ],
+    "description": "Declare a type alias"
+  },
+  "Macro Declaration": {
+    "prefix": "macro",
+    "body": [
+      "macro ${1:name}(${2:expr}) {",
+      "  quote {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a hygienic macro"
+  },
+  "Template Foundation": {
+    "prefix": "tplfound",
+    "body": [
+      "template foundation ${1:Name} {",
+      "  part ${2:PartName} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a composable architecture template foundation (§1-23)"
+  },
+  "Template Overlay": {
+    "prefix": "tplover",
+    "body": [
+      "template overlay ${1:OverlayName} onto ${2:FoundationName} {",
+      "  part ${3:PartName} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Declare a composable architecture template overlay (§1-23)"
+  },
+  "Match Expression": {
+    "prefix": "match",
+    "body": [
+      "match ${1:expr} {",
+      "  ${2:Pattern} => ${3:result},",
+      "  _ => ${4:default},",
+      "}"
+    ],
+    "description": "Pattern matching expression"
+  },
+  "Match Option": {
+    "prefix": "matchopt",
+    "body": [
+      "match ${1:opt} {",
+      "  Some(${2:v}) => ${3:v},",
+      "  None => ${4:default},",
+      "}"
+    ],
+    "description": "Match on Option[T]"
+  },
+  "Match Result": {
+    "prefix": "matchres",
+    "body": [
+      "match ${1:res} {",
+      "  Ok(${2:val}) => ${3:val},",
+      "  Err(${4:err}) => ${5:handleError(err)},",
+      "}"
+    ],
+    "description": "Match on Result[T, E]"
+  },
+  "IfConst Statement": {
+    "prefix": "ifconst",
+    "body": [
+      "if const (${1:target.os == \"linux\"}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Compile-time conditional branch (§1-6.3)"
+  },
+  "For-In Loop": {
+    "prefix": "forin",
+    "body": [
+      "for (let ${1:item} in ${2:collection}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "For-in loop over iterable"
+  },
+  "For Concurrent Loop": {
+    "prefix": "forconc",
+    "body": [
+      "for concurrent (let ${1:i} in ${2:0..n}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Parallel iteration loop (§2-1.11)"
+  },
+  "For Range Loop": {
+    "prefix": "forr",
+    "body": [
+      "for (let ${1:i} in ${2:0}..${3:n}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "For loop over a range (0..n)"
+  },
+  "For Loop (C-style)": {
+    "prefix": "for",
+    "body": [
+      "for (let ${1:i} = 0; ${1:i} < ${2:n}; ${1:i} += 1) {",
+      "  $0",
+      "}"
+    ],
+    "description": "C-style for loop"
+  },
+  "For Await Loop": {
+    "prefix": "forawait",
+    "body": [
+      "for await (let ${1:item} in ${2:stream}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Async stream iteration"
+  },
+  "Await Group (Structured Concurrency)": {
+    "prefix": "awaitgroup",
+    "body": [
+      "await group {",
+      "  ${1:result1} = spawn ${2:task1()};",
+      "  ${3:result2} = spawn ${4:task2()};",
+      "}"
+    ],
+    "description": "Structured concurrency block with parallel tasks"
+  },
+  "Safe Block": {
+    "prefix": "safe",
+    "body": [
+      "safe {",
+      "  $0",
+      "}"
+    ],
+    "description": "Safe ownership context block (§3-2.4.12)"
+  },
+  "Atomic Block": {
+    "prefix": "atomic",
+    "body": [
+      "atomic {",
+      "  $0",
+      "}"
+    ],
+    "description": "Cooperative atomicity block — no suspension points (§2-1.7)"
+  },
+  "Defer Statement": {
+    "prefix": "defer",
+    "body": [
+      "defer {",
+      "  $0",
+      "};"
+    ],
+    "description": "Defer cleanup until scope exit"
+  },
+  "With Statement (Scoped Resource)": {
+    "prefix": "with",
+    "body": [
+      "with (${1:resource} = ${2:acquire()}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Scoped resource management"
+  },
+  "Portal Block": {
+    "prefix": "portal",
+    "body": [
+      "portal ${1:portal_name} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Diagnostic/debug portal block"
+  },
+  "Try / Catch / Finally": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "  $1",
+      "} catch (${2:ErrorType} as ${3:err}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Try/catch block with typed exception handling"
+  },
+  "Try / Catch Err (Attempt)": {
+    "prefix": "attempt",
+    "body": [
+      "try {",
+      "  let ${1:val} = attempt ${2:fallibleCall()};",
+      "  $0",
+      "} catch Err(${3:err}) {",
+      "  return Err(${3:err});",
+      "}"
+    ],
+    "description": "Result unwrapping with attempt and catch Err (§1-5.10)"
+  },
+  "Template Fence": {
+    "prefix": "tpl",
+    "body": [
+      "```(${1:html}):(${2:format=prettier})",
+      "  $0",
+      "```"
+    ],
+    "description": "Template fence block with language and formatter"
+  },
+  "Multiline String": {
+    "prefix": "mls",
+    "body": [
+      "\"\"\"(${1:indent=+2})",
+      "  $0",
+      "\"\"\""
+    ],
+    "description": "Multiline string literal with alignment anchor"
+  },
+  "From Import": {
+    "prefix": "from",
+    "body": [
+      "from ${1:module.path} import (${2:symbol});"
+    ],
+    "description": "Import symbols from a module"
+  },
+  "Grouped Relative Import": {
+    "prefix": "fromrel",
+    "body": [
+      "from . {",
+      "  ${1:module} import (${2:symbol});",
+      "}"
+    ],
+    "description": "Grouped relative import"
+  },
+  "Extern JS Function": {
+    "prefix": "extjs",
+    "body": [
+      "extern js func ${1:name}(${2:params}): ${3:ReturnType};"
+    ],
+    "description": "Declare an external JavaScript function"
+  },
+  "Extern Native Function": {
+    "prefix": "extnative",
+    "body": [
+      "extern native \"${1:library}\" func ${2:name}(${3:params}): ${4:ReturnType};"
+    ],
+    "description": "Declare an external native C ABI function"
+  },
+  "@jsexport Function": {
+    "prefix": "jsexport",
+    "body": [
+      "@jsexport",
+      "func ${1:name}(${2:params}): ${3:ReturnType} {",
+      "  $0",
+      "}"
+    ],
+    "description": "Export a Loup function to JavaScript"
+  },
+  "Reactive Component": {
+    "prefix": "component",
+    "body": [
+      "func ${1:ComponentName}(${2:props}): View {",
+      "  let ${3:state} = signal(${4:initialValue});",
+      "",
+      "  return ```(html):(none)",
+      "    <div class=\"${5:component}\">",
+      "      <p>{\\$ ${3:state}.get() \\$}</p>",
+      "    </div>",
+      "  ```;",
+      "}"
+    ],
+    "description": "Reactive UI component with signal state"
+  },
+  "Loup Package Manifest (.lppkg)": {
+    "prefix": "lppkg",
+    "body": [
+      "package              ${1:my-package}",
+      "version              ${2:0.1.0}",
+      "loup                 \">=1.20\"",
+      "shared_abi_version   1",
+      "",
+      "[build]",
+      "mode = \"${3|host.scripted,host.dual,host.native,web.scripted,web.compiled,freestanding,portable|}\"",
+      "",
+      "[deps]",
+      "$0",
+      "",
+      "[dev-deps]",
+      "",
+      "[delivery.cli]",
+      "include io.fs",
+      "include io.proc"
+    ],
+    "description": "Scaffold a package.lppkg manifest (§1-13.3)"
+  }
+}

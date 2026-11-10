@@ -4289,8 +4289,8 @@ var require_main2 = __commonJS({
       (function(SymbolTag2) {
         SymbolTag2.Deprecated = 1;
       })(SymbolTag || (exports3.SymbolTag = SymbolTag = {}));
-      var SymbolInformation2;
-      (function(SymbolInformation3) {
+      var SymbolInformation;
+      (function(SymbolInformation2) {
         function create(name, kind, range, uri, containerName) {
           var result = {
             name,
@@ -4302,8 +4302,8 @@ var require_main2 = __commonJS({
           }
           return result;
         }
-        SymbolInformation3.create = create;
-      })(SymbolInformation2 || (exports3.SymbolInformation = SymbolInformation2 = {}));
+        SymbolInformation2.create = create;
+      })(SymbolInformation || (exports3.SymbolInformation = SymbolInformation = {}));
       var WorkspaceSymbol2;
       (function(WorkspaceSymbol3) {
         function create(name, kind, uri, range) {
@@ -4485,14 +4485,14 @@ var require_main2 = __commonJS({
         SemanticTokenModifiers2["documentation"] = "documentation";
         SemanticTokenModifiers2["defaultLibrary"] = "defaultLibrary";
       })(SemanticTokenModifiers || (exports3.SemanticTokenModifiers = SemanticTokenModifiers = {}));
-      var SemanticTokens;
-      (function(SemanticTokens2) {
+      var SemanticTokens2;
+      (function(SemanticTokens3) {
         function is(value) {
           var candidate = value;
           return Is.objectLiteral(candidate) && (candidate.resultId === void 0 || typeof candidate.resultId === "string") && Array.isArray(candidate.data) && (candidate.data.length === 0 || typeof candidate.data[0] === "number");
         }
-        SemanticTokens2.is = is;
-      })(SemanticTokens || (exports3.SemanticTokens = SemanticTokens = {}));
+        SemanticTokens3.is = is;
+      })(SemanticTokens2 || (exports3.SemanticTokens = SemanticTokens2 = {}));
       var InlineValueText;
       (function(InlineValueText2) {
         function create(range, text) {
@@ -9127,89 +9127,126 @@ function getWellformedEdit(textEdit) {
 
 // src/parser/lexer.ts
 var KEYWORDS = {
-  "if": "if" /* If */,
-  "else": "else" /* Else */,
-  "for": "for" /* For */,
-  "while": "while" /* While */,
-  "do": "do" /* Do */,
-  "match": "match" /* Match */,
-  "break": "break" /* Break */,
-  "continue": "continue" /* Continue */,
-  "return": "return" /* Return */,
-  "throw": "throw" /* Throw */,
-  "try": "try" /* Try */,
-  "catch": "catch" /* Catch */,
-  "finally": "finally" /* Finally */,
-  "await": "await" /* Await */,
-  "spawn": "spawn" /* Spawn */,
-  "yield": "yield" /* Yield */,
-  "suspend": "suspend" /* Suspend */,
-  "let": "let" /* Let */,
-  "var": "var" /* Var */,
-  "fun": "fun" /* Fun */,
-  "func": "fun" /* Fun */,
-  "async": "async" /* Async */,
-  "gen": "gen" /* Gen */,
-  "class": "class" /* Class */,
-  "dynamic": "dynamic" /* Dynamic */,
-  "abstract": "abstract" /* Abstract */,
-  "interface": "interface" /* Interface */,
-  "enum": "enum" /* Enum */,
-  "struct": "struct" /* Struct */,
-  "extern": "extern" /* Extern */,
-  "pub": "pub" /* Pub */,
-  "static": "static" /* Static */,
-  "type": "type" /* Type */,
-  "macro": "macro" /* Macro */,
-  "from": "from" /* From */,
-  "import": "import" /* Import */,
-  "prefer": "prefer" /* Prefer */,
-  "compiled": "compiled" /* Compiled */,
-  "as": "as" /* As */,
-  "in": "in" /* In */,
-  "is": "is" /* Is */,
-  "not": "not" /* Not */,
-  "instanceof": "instanceof" /* Instanceof */,
-  "typeof": "typeof" /* Typeof */,
-  "defer": "defer" /* Defer */,
-  "with": "with" /* With */,
-  "portal": "portal" /* Portal */,
-  "group": "group" /* Group */,
-  "js": "js" /* Js */,
-  "native": "native" /* Native */,
-  "val": "val" /* Val */,
-  "new": "new" /* New */,
-  "del": "del" /* Del */,
-  "global": "global" /* Global */,
-  "nonlocal": "nonlocal" /* Nonlocal */,
-  "implements": "implements" /* Implements */,
-  "operator": "operator" /* Operator */,
-  "fn": "fn" /* Fn */,
-  "get": "get" /* Get */,
-  "set": "set" /* Set */,
-  "box": "box" /* Box */,
-  "self": "self" /* Self */,
-  "bnot": "bnot" /* Bnot */,
-  "final": "final" /* Final */,
-  "lifetime": "lifetime" /* Lifetime */,
-  "module": "module" /* Module */,
-  "override": "override" /* Override */,
-  "package": "package" /* Package */,
-  "sealed": "sealed" /* Sealed */,
-  "super": "super" /* Super */,
-  "trait": "trait" /* Trait */,
-  "volatile": "volatile" /* Volatile */,
-  "where": "where" /* Where */,
-  "excl": "excl" /* Excl */,
-  "and": "&&" /* And */,
-  "or": "||" /* Or */,
-  "weak": "weak" /* Weak */,
-  "unowned": "unowned" /* Unowned */,
-  "borrow": "borrow" /* Borrow */,
-  "noescape": "noescape" /* Noescape */,
-  "true": "true" /* True */,
-  "false": "false" /* False */,
-  "none": "none" /* None */
+  let: "let" /* Let */,
+  var: "var" /* Var */,
+  const: "const" /* Const */,
+  fun: "fun" /* Fun */,
+  func: "fun" /* Fun */,
+  gen: "gen" /* Gen */,
+  macro: "macro" /* Macro */,
+  quote: "quote" /* Quote */,
+  return: "return" /* Return */,
+  yield: "yield" /* Yield */,
+  suspend: "suspend" /* Suspend */,
+  if: "if" /* If */,
+  else: "else" /* Else */,
+  for: "for" /* For */,
+  while: "while" /* While */,
+  do: "do" /* Do */,
+  match: "match" /* Match */,
+  break: "break" /* Break */,
+  continue: "continue" /* Continue */,
+  defer: "defer" /* Defer */,
+  with: "with" /* With */,
+  portal: "portal" /* Portal */,
+  async: "async" /* Async */,
+  await: "await" /* Await */,
+  spawn: "spawn" /* Spawn */,
+  group: "group" /* Group */,
+  concurrent: "concurrent" /* Concurrent */,
+  try: "try" /* Try */,
+  catch: "catch" /* Catch */,
+  finally: "finally" /* Finally */,
+  throw: "throw" /* Throw */,
+  attempt: "attempt" /* Attempt */,
+  unreachable: "unreachable" /* Unreachable */,
+  from: "from" /* From */,
+  import: "import" /* Import */,
+  as: "as" /* As */,
+  in: "in" /* In */,
+  is: "is" /* Is */,
+  instanceof: "instanceof" /* Instanceof */,
+  typeof: "typeof" /* Typeof */,
+  not: "not" /* Not */,
+  and: "&&" /* And */,
+  or: "||" /* Or */,
+  bnot: "bnot" /* Bnot */,
+  del: "del" /* Del */,
+  global: "global" /* Global */,
+  nonlocal: "nonlocal" /* Nonlocal */,
+  pub: "pub" /* Pub */,
+  static: "static" /* Static */,
+  override: "override" /* Override */,
+  final: "final" /* Final */,
+  sealed: "sealed" /* Sealed */,
+  class: "class" /* Class */,
+  struct: "struct" /* Struct */,
+  abstract: "abstract" /* Abstract */,
+  dynamic: "dynamic" /* Dynamic */,
+  interface: "interface" /* Interface */,
+  implements: "implements" /* Implements */,
+  enum: "enum" /* Enum */,
+  type: "type" /* Type */,
+  namespace: "namespace" /* Namespace */,
+  template: "template" /* Template */,
+  foundation: "foundation" /* Foundation */,
+  overlay: "overlay" /* Overlay */,
+  onto: "onto" /* Onto */,
+  part: "part" /* Part */,
+  extern: "extern" /* Extern */,
+  js: "js" /* Js */,
+  native: "native" /* Native */,
+  val: "val" /* Val */,
+  new: "new" /* New */,
+  box: "box" /* Box */,
+  true: "true" /* True */,
+  false: "false" /* False */,
+  None: "None" /* None */,
+  none: "None" /* None */,
+  this: "this" /* This */,
+  Self: "Self" /* Self */,
+  super: "super" /* Super */,
+  fn: "fn" /* Fn */,
+  once: "once" /* Once */,
+  operator: "operator" /* Operator */,
+  weak: "weak" /* Weak */,
+  unowned: "unowned" /* Unowned */,
+  arc: "arc" /* Arc */,
+  borrow: "borrow" /* Borrow */,
+  excl: "excl" /* Excl */,
+  unique: "unique" /* Unique */,
+  onstack: "onstack" /* Onstack */,
+  lifetime: "lifetime" /* Lifetime */,
+  noescape: "noescape" /* Noescape */,
+  consume: "consume" /* Consume */,
+  noreturn: "noreturn" /* Noreturn */,
+  impossible: "impossible" /* Impossible */,
+  prefer: "prefer" /* Prefer */,
+  compiled: "compiled" /* Compiled */,
+  scripted: "scripted" /* Scripted */,
+  dual: "dual" /* Dual */,
+  freestanding: "freestanding" /* Freestanding */,
+  portable: "portable" /* Portable */,
+  reads: "reads" /* Reads */,
+  edits: "edits" /* Edits */,
+  takes: "takes" /* Takes */,
+  shares: "shares" /* Shares */,
+  modifier: "modifier" /* Modifier */,
+  safe: "safe" /* Safe */,
+  synchronized: "synchronized" /* Synchronized */,
+  unsafe: "unsafe" /* Unsafe */,
+  requires: "requires" /* Requires */,
+  distinct: "distinct" /* Distinct */,
+  atomic: "atomic" /* Atomic */,
+  asm: "asm" /* Asm */,
+  volatile: "volatile" /* Volatile */,
+  where: "where" /* Where */,
+  size_of: "size_of" /* SizeOf */,
+  align_of: "align_of" /* AlignOf */,
+  reinterpret: "reinterpret" /* Reinterpret */,
+  reinterpretChecked: "reinterpretChecked" /* ReinterpretChecked */,
+  get: "get" /* Get */,
+  set: "set" /* Set */
 };
 var Lexer = class {
   source;
@@ -9222,15 +9259,6 @@ var Lexer = class {
   }
   tokenize() {
     this.tokens = [];
-    this.pos = 0;
-    this.line = 0;
-    this.column = 0;
-    if (this.source.startsWith("#!")) {
-      while (this.pos < this.source.length && this.source[this.pos] !== "\n") {
-        this.pos++;
-        this.column++;
-      }
-    }
     while (this.pos < this.source.length) {
       this.skipWhitespace();
       if (this.pos >= this.source.length)
@@ -9240,110 +9268,216 @@ var Lexer = class {
         this.tokens.push(token);
       }
     }
-    this.tokens.push(this.makeToken("EOF" /* EOF */, "", this.pos));
+    this.tokens.push({
+      kind: "EOF" /* EOF */,
+      text: "",
+      offset: this.pos,
+      line: this.line,
+      column: this.column,
+      length: 0
+    });
     return this.tokens;
   }
+  peek(offset = 0) {
+    return this.source[this.pos + offset] ?? "";
+  }
+  advance(count = 1) {
+    let result = "";
+    for (let i = 0; i < count && this.pos < this.source.length; i++) {
+      const ch = this.source[this.pos++];
+      result += ch;
+      if (ch === "\n") {
+        this.line++;
+        this.column = 0;
+      } else {
+        this.column++;
+      }
+    }
+    return result;
+  }
+  skipWhitespace() {
+    while (this.pos < this.source.length) {
+      const ch = this.peek();
+      if (ch === " " || ch === "	" || ch === "\r" || ch === "\n") {
+        this.advance();
+      } else {
+        break;
+      }
+    }
+  }
+  makeToken(kind, startOffset, startLine, startCol) {
+    const text = this.source.slice(startOffset, this.pos);
+    return {
+      kind,
+      text,
+      offset: startOffset,
+      line: startLine,
+      column: startCol,
+      length: this.pos - startOffset
+    };
+  }
   nextToken() {
-    const start = this.pos;
-    const ch = this.source[this.pos];
-    const next = this.pos + 1 < this.source.length ? this.source[this.pos + 1] : "";
-    if (ch === "/" && next === "/" && this.peek(2) === "/") {
-      return this.readDocComment();
+    const startOffset = this.pos;
+    const startLine = this.line;
+    const startCol = this.column;
+    const ch = this.peek();
+    if (ch === "#") {
+      if (this.peek(1) === "#") {
+        return this.readDocComment(startOffset, startLine, startCol);
+      }
+      return this.readHashLineComment(startOffset, startLine, startCol);
     }
-    if (ch === "/" && next === "/") {
-      return this.readLineComment();
+    if (ch === "/" && this.peek(1) === "*") {
+      return this.readBlockComment(startOffset, startLine, startCol);
     }
-    if (ch === "/" && next === "*") {
-      return this.readBlockComment();
+    if (ch === "`" && this.peek(1) === "`" && this.peek(2) === "`") {
+      return this.readTemplateFence(startOffset, startLine, startCol);
     }
-    if (ch === "`" && next === "`" && this.peek(2) === "`") {
-      return this.readTemplateFence();
+    if ((ch === "r" || ch === "i" || ch === "b" || ch === "c") && (this.peek(1) === '"' || this.peek(1) === "'")) {
+      const prefix = this.advance();
+      const q = this.peek();
+      if (this.peek(1) === q && this.peek(2) === q) {
+        return this.readMultilineString(startOffset, startLine, startCol, q, prefix);
+      }
+      const kind = prefix === "r" ? "RawStringLiteral" /* RawStringLiteral */ : prefix === "i" ? "InterpolatedStringLiteral" /* InterpolatedStringLiteral */ : prefix === "c" ? "CharLiteral" /* CharLiteral */ : "BytesLiteral" /* BytesLiteral */;
+      return this.readString(startOffset, startLine, startCol, q, kind);
     }
-    if (ch === '"' && next === '"' && this.peek(2) === '"') {
-      return this.readMultilineString('"');
+    if (ch === '"' && this.peek(1) === '"' && this.peek(2) === '"' || ch === "'" && this.peek(1) === "'" && this.peek(2) === "'") {
+      return this.readMultilineString(startOffset, startLine, startCol, ch, "");
     }
-    if (ch === "'" && next === "'" && this.peek(2) === "'") {
-      return this.readMultilineString("'");
+    if (ch === '"' || ch === "'") {
+      return this.readString(startOffset, startLine, startCol, ch, "StringLiteral" /* StringLiteral */);
     }
-    if (ch === "b" && (next === '"' || next === "'")) {
-      return this.readBytesLiteral(next);
+    if (this.isDigit(ch)) {
+      return this.readNumber(startOffset, startLine, startCol);
     }
-    if (ch === "r" && (next === '"' || next === "'")) {
-      return this.readRawString(next);
+    if (this.isIdentStart(ch)) {
+      return this.readIdentifier(startOffset, startLine, startCol);
     }
-    if (ch === "i" && (next === '"' || next === "'")) {
-      return this.readInterpolatedString(next);
+    if (ch === "!" && this.peek(1) === "{") {
+      this.advance(2);
+      return this.makeToken("!{" /* BangLeftBrace */, startOffset, startLine, startCol);
     }
-    if (ch === '"')
-      return this.readString('"');
-    if (ch === "'")
-      return this.readString("'");
-    if (this.isDigit(ch))
-      return this.readNumber();
-    if (this.isIdentStart(ch))
-      return this.readIdentifier();
-    if (ch === "@") {
-      this.pos++;
-      this.column++;
-      return this.makeToken("@" /* At */, "@", start);
+    if (ch === "~" && (this.peek(1) >= "a" && this.peek(1) <= "z" || this.peek(1) === "_")) {
+      this.advance();
+      while (this.pos < this.source.length && this.isIdentContinue(this.peek())) {
+        this.advance();
+      }
+      return this.makeToken("LifetimeLabel" /* LifetimeLabel */, startOffset, startLine, startCol);
     }
-    if (ch === "*" && next === "*" && this.peek(2) === "=")
-      return this.readFixed("**=" /* StarStarAssign */, 3);
-    if (ch === "<" && next === "<" && this.peek(2) === "=")
-      return this.readFixed("<<=" /* ShiftLeftAssign */, 3);
-    if (ch === ">" && next === ">" && this.peek(2) === "=")
-      return this.readFixed(">>=" /* ShiftRightAssign */, 3);
-    if (ch === "*" && next === "*")
-      return this.readFixed("**" /* StarStar */, 2);
-    if (ch === "<" && next === "<")
-      return this.readFixed("<<" /* ShiftLeft */, 2);
-    if (ch === ">" && next === ">")
-      return this.readFixed(">>" /* ShiftRight */, 2);
-    if (ch === "+" && next === "=")
-      return this.readFixed("+=" /* PlusAssign */, 2);
-    if (ch === "-" && next === "=")
-      return this.readFixed("-=" /* MinusAssign */, 2);
-    if (ch === "*" && next === "=")
-      return this.readFixed("*=" /* StarAssign */, 2);
-    if (ch === "/" && next === "=")
-      return this.readFixed("/=" /* SlashAssign */, 2);
-    if (ch === "%" && next === "=")
-      return this.readFixed("%=" /* PercentAssign */, 2);
-    if (ch === "&" && next === "=")
-      return this.readFixed("&=" /* AmpersandAssign */, 2);
-    if (ch === "|" && next === "=")
-      return this.readFixed("|=" /* PipeAssign */, 2);
-    if (ch === "^" && next === "=")
-      return this.readFixed("^=" /* CaretAssign */, 2);
-    if (ch === "=" && next === ">")
-      return this.readFixed("=>" /* Arrow */, 2);
-    if (ch === "=" && next === "=")
-      return this.readFixed("==" /* EqualEqual */, 2);
-    if (ch === "!" && next === "=")
-      return this.readFixed("!=" /* BangEqual */, 2);
-    if (ch === "!" && next === "{")
-      return this.readFixed("!{" /* BangLeftBrace */, 2);
-    if (ch === "<" && next === "=")
-      return this.readFixed("<=" /* LessEqual */, 2);
-    if (ch === ">" && next === "=")
-      return this.readFixed(">=" /* GreaterEqual */, 2);
-    if (ch === "&" && next === "&")
-      return this.readFixed("&&" /* And */, 2);
-    if (ch === "|" && next === "|")
-      return this.readFixed("||" /* Or */, 2);
-    if (ch === "?" && next === ".")
-      return this.readFixed("?." /* QuestionDot */, 2);
-    if (ch === "?" && next === "?")
-      return this.readFixed("??" /* QuestionQuestion */, 2);
-    if (ch === "{" && next === "$")
-      return this.readFixed("{$" /* ExprOpen */, 2);
-    if (ch === "$" && next === "}")
-      return this.readFixed("$}" /* ExprClose */, 2);
-    if (ch === "{" && next === "%")
-      return this.readFixed("{%" /* StmtOpen */, 2);
-    if (ch === "%" && next === "}")
-      return this.readFixed("%}" /* StmtClose */, 2);
-    const singleCharTokens = {
+    if (ch === "=" && this.peek(1) === ">") {
+      this.advance(2);
+      return this.makeToken("=>" /* Arrow */, startOffset, startLine, startCol);
+    }
+    if (ch === "=" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("==" /* EqualEqual */, startOffset, startLine, startCol);
+    }
+    if (ch === "!" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("!=" /* BangEqual */, startOffset, startLine, startCol);
+    }
+    if (ch === "<" && this.peek(1) === "<") {
+      if (this.peek(2) === "=") {
+        this.advance(3);
+        return this.makeToken("<<=" /* ShiftLeftAssign */, startOffset, startLine, startCol);
+      }
+      this.advance(2);
+      return this.makeToken("<<" /* ShiftLeft */, startOffset, startLine, startCol);
+    }
+    if (ch === ">" && this.peek(1) === ">") {
+      if (this.peek(2) === "=") {
+        this.advance(3);
+        return this.makeToken(">>=" /* ShiftRightAssign */, startOffset, startLine, startCol);
+      }
+      this.advance(2);
+      return this.makeToken(">>" /* ShiftRight */, startOffset, startLine, startCol);
+    }
+    if (ch === "<" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("<=" /* LessEqual */, startOffset, startLine, startCol);
+    }
+    if (ch === ">" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken(">=" /* GreaterEqual */, startOffset, startLine, startCol);
+    }
+    if (ch === "&" && this.peek(1) === "&") {
+      this.advance(2);
+      return this.makeToken("&&" /* And */, startOffset, startLine, startCol);
+    }
+    if (ch === "|" && this.peek(1) === "|") {
+      this.advance(2);
+      return this.makeToken("||" /* Or */, startOffset, startLine, startCol);
+    }
+    if (ch === "?" && this.peek(1) === ".") {
+      this.advance(2);
+      return this.makeToken("?." /* QuestionDot */, startOffset, startLine, startCol);
+    }
+    if (ch === "?" && this.peek(1) === "?") {
+      this.advance(2);
+      return this.makeToken("??" /* QuestionQuestion */, startOffset, startLine, startCol);
+    }
+    if (ch === "*" && this.peek(1) === "*") {
+      if (this.peek(2) === "=") {
+        this.advance(3);
+        return this.makeToken("**=" /* StarStarAssign */, startOffset, startLine, startCol);
+      }
+      this.advance(2);
+      return this.makeToken("**" /* StarStar */, startOffset, startLine, startCol);
+    }
+    if (ch === "/" && this.peek(1) === "/") {
+      if (this.peek(2) === "=") {
+        this.advance(3);
+        return this.makeToken("//=" /* SlashSlashAssign */, startOffset, startLine, startCol);
+      }
+      this.advance(2);
+      return this.makeToken("//" /* SlashSlash */, startOffset, startLine, startCol);
+    }
+    if (ch === "+" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("+=" /* PlusAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "-" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("-=" /* MinusAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "*" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("*=" /* StarAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "/" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("/=" /* SlashAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "%" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("%=" /* PercentAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "&" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("&=" /* AmpersandAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "|" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("|=" /* PipeAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "^" && this.peek(1) === "=") {
+      this.advance(2);
+      return this.makeToken("^=" /* CaretAssign */, startOffset, startLine, startCol);
+    }
+    if (ch === "." && this.peek(1) === ".") {
+      if (this.peek(2) === ".") {
+        this.advance(3);
+        return this.makeToken("..." /* DotDotDot */, startOffset, startLine, startCol);
+      }
+      if (this.peek(2) === "=") {
+        this.advance(3);
+        return this.makeToken("..=" /* DotDotEqual */, startOffset, startLine, startCol);
+      }
+      this.advance(2);
+      return this.makeToken(".." /* DotDot */, startOffset, startLine, startCol);
+    }
+    const singleCharMap = {
       "+": "+" /* Plus */,
       "-": "-" /* Minus */,
       "*": "*" /* Star */,
@@ -9353,349 +9487,231 @@ var Lexer = class {
       "<": "<" /* LessThan */,
       ">": ">" /* GreaterThan */,
       "!": "!" /* Bang */,
-      "?": "?" /* Question */,
-      "|": "|" /* Pipe */,
       "&": "&" /* Ampersand */,
       "^": "^" /* Caret */,
       "~": "~" /* Tilde */,
+      "?": "?" /* Question */,
+      "|": "|" /* Pipe */,
       ".": "." /* Dot */,
       ":": ":" /* Colon */,
+      ";": ";" /* Semicolon */,
+      ",": "," /* Comma */,
+      "@": "@" /* At */,
       "(": "(" /* LeftParen */,
       ")": ")" /* RightParen */,
       "{": "{" /* LeftBrace */,
       "}": "}" /* RightBrace */,
       "[": "[" /* LeftBracket */,
-      "]": "]" /* RightBracket */,
-      ",": "," /* Comma */,
-      ";": ";" /* Semicolon */
+      "]": "]" /* RightBracket */
     };
-    const kind = singleCharTokens[ch];
-    if (kind) {
-      this.pos++;
-      this.column++;
-      return this.makeToken(kind, ch, start);
+    if (ch in singleCharMap) {
+      this.advance();
+      return this.makeToken(singleCharMap[ch], startOffset, startLine, startCol);
     }
-    this.pos++;
-    this.column++;
-    return this.makeToken("Error" /* Error */, ch, start);
+    this.advance();
+    return this.makeToken("Error" /* Error */, startOffset, startLine, startCol);
   }
-  readDocComment() {
-    const start = this.pos;
-    while (this.pos < this.source.length && this.source[this.pos] !== "\n") {
-      this.pos++;
-      this.column++;
+  readDocComment(startOffset, startLine, startCol) {
+    this.advance(2);
+    while (this.pos < this.source.length && this.peek() !== "\n") {
+      this.advance();
     }
-    return this.makeToken("DocComment" /* DocComment */, this.source.slice(start, this.pos), start);
+    return this.makeToken("DocComment" /* DocComment */, startOffset, startLine, startCol);
   }
-  readLineComment() {
-    const start = this.pos;
-    while (this.pos < this.source.length && this.source[this.pos] !== "\n") {
-      this.pos++;
-      this.column++;
+  readHashLineComment(startOffset, startLine, startCol) {
+    this.advance(1);
+    while (this.pos < this.source.length && this.peek() !== "\n") {
+      this.advance();
     }
-    return this.makeToken("LineComment" /* LineComment */, this.source.slice(start, this.pos), start);
+    return this.makeToken("LineComment" /* LineComment */, startOffset, startLine, startCol);
   }
-  readBlockComment() {
-    const start = this.pos;
-    this.pos += 2;
-    this.column += 2;
-    let depth = 1;
-    while (this.pos < this.source.length && depth > 0) {
-      if (this.source[this.pos] === "/" && this.peek(1) === "*") {
-        depth++;
-        this.pos += 2;
-        this.column += 2;
-      } else if (this.source[this.pos] === "*" && this.peek(1) === "/") {
-        depth--;
-        this.pos += 2;
-        this.column += 2;
-      } else {
-        if (this.source[this.pos] === "\n") {
-          this.line++;
-          this.column = 0;
-        } else {
-          this.column++;
-        }
-        this.pos++;
-      }
-    }
-    return this.makeToken("BlockComment" /* BlockComment */, this.source.slice(start, this.pos), start);
-  }
-  readString(quote) {
-    const start = this.pos;
-    this.pos++;
-    this.column++;
-    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
-      if (this.source[this.pos] === "\\") {
-        this.pos++;
-        this.column++;
-      }
-      if (this.source[this.pos] === "\n") {
-        this.line++;
-        this.column = 0;
-      } else {
-        this.column++;
-      }
-      this.pos++;
-    }
-    if (this.pos < this.source.length) {
-      this.pos++;
-      this.column++;
-    }
-    return this.makeToken("StringLiteral" /* StringLiteral */, this.source.slice(start, this.pos), start);
-  }
-  readBytesLiteral(quote) {
-    const start = this.pos;
-    this.pos++;
-    this.column++;
-    this.pos++;
-    this.column++;
-    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
-      if (this.source[this.pos] === "\\") {
-        this.pos++;
-        this.column++;
-      }
-      if (this.pos < this.source.length) {
-        if (this.source[this.pos] === "\n") {
-          this.line++;
-          this.column = 0;
-        } else {
-          this.column++;
-        }
-        this.pos++;
-      }
-    }
-    if (this.pos < this.source.length) {
-      this.pos++;
-      this.column++;
-    }
-    return this.makeToken("BytesLiteral" /* BytesLiteral */, this.source.slice(start, this.pos), start);
-  }
-  readRawString(quote) {
-    const start = this.pos;
-    this.pos++;
-    this.column++;
-    this.pos++;
-    this.column++;
-    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
-      if (this.source[this.pos] === "\n") {
-        this.line++;
-        this.column = 0;
-      } else {
-        this.column++;
-      }
-      this.pos++;
-    }
-    if (this.pos < this.source.length) {
-      this.pos++;
-      this.column++;
-    }
-    return this.makeToken("RawStringLiteral" /* RawStringLiteral */, this.source.slice(start, this.pos), start);
-  }
-  readInterpolatedString(quote) {
-    const start = this.pos;
-    this.pos++;
-    this.column++;
-    this.pos++;
-    this.column++;
-    while (this.pos < this.source.length && this.source[this.pos] !== quote) {
-      if (this.source[this.pos] === "\\") {
-        this.pos++;
-        this.column++;
-      }
-      if (this.pos < this.source.length) {
-        if (this.source[this.pos] === "\n") {
-          this.line++;
-          this.column = 0;
-        } else {
-          this.column++;
-        }
-        this.pos++;
-      }
-    }
-    if (this.pos < this.source.length) {
-      this.pos++;
-      this.column++;
-    }
-    return this.makeToken("InterpolatedStringLiteral" /* InterpolatedStringLiteral */, this.source.slice(start, this.pos), start);
-  }
-  readMultilineString(quote) {
-    const start = this.pos;
-    const delimiter = quote + quote + quote;
-    this.pos += 3;
-    this.column += 3;
-    if (this.pos < this.source.length && this.source[this.pos] === "(") {
-      while (this.pos < this.source.length && this.source[this.pos] !== ")") {
-        this.pos++;
-        this.column++;
-      }
-      if (this.pos < this.source.length) {
-        this.pos++;
-        this.column++;
-      }
-    }
+  readBlockComment(startOffset, startLine, startCol) {
+    this.advance(2);
     while (this.pos < this.source.length) {
-      if (this.source.slice(this.pos, this.pos + 3) === delimiter) {
-        this.pos += 3;
-        this.column += 3;
+      if (this.peek() === "*" && this.peek(1) === "/") {
+        this.advance(2);
         break;
       }
-      if (this.source[this.pos] === "\n") {
-        this.line++;
-        this.column = 0;
-      } else {
-        this.column++;
-      }
-      this.pos++;
+      this.advance();
     }
-    return this.makeToken("MultilineStringLiteral" /* MultilineStringLiteral */, this.source.slice(start, this.pos), start);
+    return this.makeToken("BlockComment" /* BlockComment */, startOffset, startLine, startCol);
   }
-  readTemplateFence() {
-    const start = this.pos;
-    let fenceLen = 0;
-    while (this.pos < this.source.length && this.source[this.pos] === "`") {
-      fenceLen++;
-      this.pos++;
-      this.column++;
-    }
-    if (this.pos < this.source.length && this.source[this.pos] === "(") {
-      while (this.pos < this.source.length && this.source[this.pos] !== "\n") {
-        this.pos++;
-        this.column++;
-      }
-    }
+  readTemplateFence(startOffset, startLine, startCol) {
+    this.advance(3);
     while (this.pos < this.source.length) {
-      if (this.source[this.pos] === "`") {
-        let closeLen = 0;
-        const closeStart = this.pos;
-        while (this.pos < this.source.length && this.source[this.pos] === "`") {
-          closeLen++;
-          this.pos++;
-          this.column++;
-        }
-        if (closeLen === fenceLen) {
-          break;
-        }
-        continue;
+      if (this.peek() === "`" && this.peek(1) === "`" && this.peek(2) === "`") {
+        this.advance(3);
+        break;
       }
-      if (this.source[this.pos] === "\n") {
-        this.line++;
-        this.column = 0;
-      } else {
-        this.column++;
-      }
-      this.pos++;
+      this.advance();
     }
-    return this.makeToken("TemplateFenceOpen" /* TemplateFenceOpen */, this.source.slice(start, this.pos), start);
+    return this.makeToken("TemplateFenceOpen" /* TemplateFenceOpen */, startOffset, startLine, startCol);
   }
-  readNumber() {
-    const start = this.pos;
-    let isFloat = false;
-    if (this.source[this.pos] === "0" && this.pos + 1 < this.source.length) {
-      const prefix = this.source[this.pos + 1];
-      if (prefix === "x" || prefix === "X" || prefix === "b" || prefix === "B" || prefix === "o" || prefix === "O") {
-        this.pos += 2;
-        this.column += 2;
-        while (this.pos < this.source.length && (this.isHexDigit(this.source[this.pos]) || this.source[this.pos] === "_")) {
-          this.pos++;
-          this.column++;
-        }
-        return this.makeToken("IntLiteral" /* IntLiteral */, this.source.slice(start, this.pos), start);
-      }
-    }
-    while (this.pos < this.source.length && (this.isDigit(this.source[this.pos]) || this.source[this.pos] === "_")) {
-      this.pos++;
-      this.column++;
-    }
-    if (this.pos < this.source.length && this.source[this.pos] === "." && this.isDigit(this.peek(1) ?? "")) {
-      isFloat = true;
-      this.pos++;
-      this.column++;
-      while (this.pos < this.source.length && (this.isDigit(this.source[this.pos]) || this.source[this.pos] === "_")) {
-        this.pos++;
-        this.column++;
-      }
-    }
-    if (this.pos < this.source.length && (this.source[this.pos] === "e" || this.source[this.pos] === "E")) {
-      isFloat = true;
-      this.pos++;
-      this.column++;
-      if (this.pos < this.source.length && (this.source[this.pos] === "+" || this.source[this.pos] === "-")) {
-        this.pos++;
-        this.column++;
-      }
-      while (this.pos < this.source.length && (this.isDigit(this.source[this.pos]) || this.source[this.pos] === "_")) {
-        this.pos++;
-        this.column++;
-      }
-    }
-    const kind = isFloat ? "FloatLiteral" /* FloatLiteral */ : "IntLiteral" /* IntLiteral */;
-    return this.makeToken(kind, this.source.slice(start, this.pos), start);
-  }
-  readIdentifier() {
-    const start = this.pos;
-    while (this.pos < this.source.length && this.isIdentPart(this.source[this.pos])) {
-      this.pos++;
-      this.column++;
-    }
-    const text = this.source.slice(start, this.pos);
-    const keyword = KEYWORDS[text];
-    if (keyword) {
-      return this.makeToken(keyword, text, start);
-    }
-    const kind = text[0] >= "A" && text[0] <= "Z" ? "TypeIdentifier" /* TypeIdentifier */ : "Identifier" /* Identifier */;
-    return this.makeToken(kind, text, start);
-  }
-  readFixed(kind, length) {
-    const start = this.pos;
-    const text = this.source.slice(this.pos, this.pos + length);
-    this.pos += length;
-    this.column += length;
-    return this.makeToken(kind, text, start);
-  }
-  skipWhitespace() {
+  readMultilineString(startOffset, startLine, startCol, quote, prefix) {
+    this.advance(3);
     while (this.pos < this.source.length) {
-      const ch = this.source[this.pos];
-      if (ch === " " || ch === "	" || ch === "\r") {
-        this.pos++;
-        this.column++;
+      if (this.peek() === quote && this.peek(1) === quote && this.peek(2) === quote) {
+        this.advance(3);
+        break;
+      }
+      if (prefix !== "r" && this.peek() === "\\") {
+        this.advance(2);
+      } else {
+        this.advance();
+      }
+    }
+    const kind = prefix === "r" ? "RawStringLiteral" /* RawStringLiteral */ : prefix === "i" ? "InterpolatedStringLiteral" /* InterpolatedStringLiteral */ : "MultilineStringLiteral" /* MultilineStringLiteral */;
+    return this.makeToken(kind, startOffset, startLine, startCol);
+  }
+  readString(startOffset, startLine, startCol, quote, kind = "StringLiteral" /* StringLiteral */) {
+    this.advance();
+    const isRaw = kind === "RawStringLiteral" /* RawStringLiteral */;
+    while (this.pos < this.source.length) {
+      const ch = this.peek();
+      if (!isRaw && ch === "\\") {
+        this.advance(2);
+      } else if (ch === quote) {
+        this.advance();
+        break;
       } else if (ch === "\n") {
-        this.pos++;
-        this.line++;
-        this.column = 0;
-      } else {
         break;
+      } else {
+        this.advance();
       }
     }
+    return this.makeToken(kind, startOffset, startLine, startCol);
   }
-  peek(offset) {
-    const idx = this.pos + offset;
-    return idx < this.source.length ? this.source[idx] : "";
+  readNumber(startOffset, startLine, startCol) {
+    let isFloat = false;
+    if (this.peek() === "0") {
+      const next = this.peek(1);
+      if (next === "x" || next === "X") {
+        this.advance(2);
+        while (this.pos < this.source.length && (this.isHexDigit(this.peek()) || this.peek() === "_")) {
+          this.advance();
+        }
+        this.readIntTypeSuffix();
+        return this.makeToken("IntLiteral" /* IntLiteral */, startOffset, startLine, startCol);
+      }
+      if (next === "b" || next === "B") {
+        this.advance(2);
+        while (this.pos < this.source.length && (this.peek() === "0" || this.peek() === "1" || this.peek() === "_")) {
+          this.advance();
+        }
+        this.readIntTypeSuffix();
+        return this.makeToken("IntLiteral" /* IntLiteral */, startOffset, startLine, startCol);
+      }
+      if (next === "o" || next === "O") {
+        this.advance(2);
+        while (this.pos < this.source.length && (this.peek() >= "0" && this.peek() <= "7" || this.peek() === "_")) {
+          this.advance();
+        }
+        this.readIntTypeSuffix();
+        return this.makeToken("IntLiteral" /* IntLiteral */, startOffset, startLine, startCol);
+      }
+    }
+    while (this.pos < this.source.length && (this.isDigit(this.peek()) || this.peek() === "_")) {
+      this.advance();
+    }
+    if (this.peek() === "." && this.isDigit(this.peek(1))) {
+      isFloat = true;
+      this.advance();
+      while (this.pos < this.source.length && (this.isDigit(this.peek()) || this.peek() === "_")) {
+        this.advance();
+      }
+    }
+    if (this.peek() === "e" || this.peek() === "E") {
+      isFloat = true;
+      this.advance();
+      if (this.peek() === "+" || this.peek() === "-") {
+        this.advance();
+      }
+      while (this.pos < this.source.length && (this.isDigit(this.peek()) || this.peek() === "_")) {
+        this.advance();
+      }
+    }
+    if (this.readFloatOrComplexSuffix(isFloat)) {
+      isFloat = true;
+    } else if (!isFloat) {
+      this.readIntTypeSuffix();
+    }
+    return this.makeToken(
+      isFloat ? "FloatLiteral" /* FloatLiteral */ : "IntLiteral" /* IntLiteral */,
+      startOffset,
+      startLine,
+      startCol
+    );
+  }
+  readIntTypeSuffix() {
+    const ch = this.peek();
+    if (ch === "n" && !this.isIdentContinue(this.peek(1))) {
+      this.advance();
+      return true;
+    }
+    if (ch === "i" || ch === "u") {
+      const rest = this.source.slice(this.pos, this.pos + 4);
+      for (const sfx of ["i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64"]) {
+        if (rest.startsWith(sfx) && !this.isIdentContinue(this.peek(sfx.length))) {
+          this.advance(sfx.length);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  readFloatOrComplexSuffix(isFloatForm) {
+    const ch = this.peek();
+    if (ch === "d" && !this.isIdentContinue(this.peek(1))) {
+      this.advance();
+      return true;
+    }
+    if (ch === "f") {
+      const rest = this.source.slice(this.pos, this.pos + 4);
+      for (const sfx of ["f32", "f64"]) {
+        if (rest.startsWith(sfx) && !this.isIdentContinue(this.peek(sfx.length))) {
+          this.advance(sfx.length);
+          return true;
+        }
+      }
+    }
+    if (ch === "i") {
+      const rest = this.source.slice(this.pos, this.pos + 4);
+      for (const sfx of ["i32", "i64", "i"]) {
+        if (rest.startsWith(sfx) && !this.isIdentContinue(this.peek(sfx.length))) {
+          if (sfx === "i" || isFloatForm) {
+            this.advance(sfx.length);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  readIdentifier(startOffset, startLine, startCol) {
+    while (this.pos < this.source.length && this.isIdentContinue(this.peek())) {
+      this.advance();
+    }
+    const text = this.source.slice(startOffset, this.pos);
+    if (text in KEYWORDS) {
+      return this.makeToken(KEYWORDS[text], startOffset, startLine, startCol);
+    }
+    const firstChar = text[0];
+    if (firstChar >= "A" && firstChar <= "Z") {
+      return this.makeToken("TypeIdentifier" /* TypeIdentifier */, startOffset, startLine, startCol);
+    }
+    return this.makeToken("Identifier" /* Identifier */, startOffset, startLine, startCol);
   }
   isDigit(ch) {
     return ch >= "0" && ch <= "9";
   }
   isHexDigit(ch) {
-    return this.isDigit(ch) || ch >= "a" && ch <= "f" || ch >= "A" && ch <= "F";
+    return ch >= "0" && ch <= "9" || ch >= "a" && ch <= "f" || ch >= "A" && ch <= "F";
   }
   isIdentStart(ch) {
     return ch >= "a" && ch <= "z" || ch >= "A" && ch <= "Z" || ch === "_";
   }
-  isIdentPart(ch) {
+  isIdentContinue(ch) {
     return this.isIdentStart(ch) || this.isDigit(ch);
-  }
-  makeToken(kind, text, offset) {
-    let line = 0;
-    let col = 0;
-    for (let i = 0; i < offset; i++) {
-      if (this.source[i] === "\n") {
-        line++;
-        col = 0;
-      } else {
-        col++;
-      }
-    }
-    return { kind, text, offset, line, column: col, length: text.length };
   }
 };
 
@@ -9715,12 +9731,16 @@ var Parser = class {
     this.diagnostics = [];
     const statements = [];
     while (!this.isAtEnd()) {
+      const prevPos = this.pos;
       try {
         const stmt = this.parseStatement();
         if (stmt)
           statements.push(stmt);
       } catch {
         this.synchronize();
+      }
+      if (this.pos === prevPos && !this.isAtEnd()) {
+        this.advance();
       }
     }
     const program = {
@@ -9752,8 +9772,44 @@ var Parser = class {
         return this.parseLetDecl();
       case "var" /* Var */:
         return this.parseVarDecl();
+      case "const" /* Const */:
+        if (this.peekKind(1) === "fun" /* Fun */) {
+          this.advance();
+          return this.parseFunDecl(false, false, false);
+        }
+        return this.parseConstDecl();
       case "fun" /* Fun */:
         return this.parseFunDecl(false, false, false);
+      case "static" /* Static */: {
+        this.advance();
+        if (this.check("fun" /* Fun */))
+          return this.parseFunDecl(false, true, false);
+        if (this.check("async" /* Async */))
+          return this.parseAsyncFunDecl(false, true, false);
+        if (this.check("operator" /* Operator */))
+          return this.parseOperatorFunDecl(false, true);
+        if (this.check("let" /* Let */))
+          return this.parseLetDecl();
+        if (this.check("var" /* Var */))
+          return this.parseVarDecl();
+        return this.parseExpressionStmt();
+      }
+      case "safe" /* Safe */:
+        if (this.peekKind(1) === "fun" /* Fun */) {
+          this.advance();
+          return this.parseFunDecl(false, false, false);
+        }
+        if (this.peekKind(1) === "{" /* LeftBrace */) {
+          this.advance();
+          return this.parseBlock();
+        }
+        return this.parseExpressionStmt();
+      case "modifier" /* Modifier */:
+        if (this.peekKind(1) === "fun" /* Fun */) {
+          this.advance();
+          return this.parseFunDecl(false, false, false);
+        }
+        return this.parseExpressionStmt();
       case "async" /* Async */:
         if (this.peekKind(1) === "gen" /* Gen */)
           return this.parseAsyncGenFunDecl(false, false);
@@ -9764,6 +9820,32 @@ var Parser = class {
         return this.parseGenFunDecl(false, false);
       case "class" /* Class */:
         return this.parseClassDecl(false, false);
+      case "synchronized" /* Synchronized */:
+      case "sealed" /* Sealed */:
+      case "final" /* Final */:
+        if (this.peekKind(1) === "class" /* Class */) {
+          this.advance();
+          return this.parseClassDecl(false, false);
+        }
+        if (this.peekKind(1) === "interface" /* Interface */) {
+          this.advance();
+          return this.parseInterfaceDecl();
+        }
+        return this.parseExpressionStmt();
+      case "unique" /* Unique */:
+        if (this.peekKind(1) === "class" /* Class */) {
+          this.advance();
+          return this.parseClassDecl(false, false);
+        }
+        if (this.peekKind(1) === "let" /* Let */) {
+          this.advance();
+          return this.parseLetDecl();
+        }
+        if (this.peekKind(1) === "var" /* Var */) {
+          this.advance();
+          return this.parseVarDecl();
+        }
+        return this.parseExpressionStmt();
       case "abstract" /* Abstract */:
         if (this.peekKind(1) === "class" /* Class */)
           return this.parseClassDecl(false, true);
@@ -9782,6 +9864,8 @@ var Parser = class {
         return this.parseTypeAliasDecl();
       case "macro" /* Macro */:
         return this.parseMacroDecl();
+      case "namespace" /* Namespace */:
+        return this.parseNamespaceDecl();
       case "from" /* From */:
         return this.parseImportStmt();
       case "extern" /* Extern */:
@@ -9848,7 +9932,15 @@ var Parser = class {
       }
       this.expect(")" /* RightParen */);
     }
-    const declaration = this.parseStatement();
+    if (annotation === "mode" || annotation === "compiled" && (this.check("@" /* At */) || this.check("from" /* From */) || this.check("namespace" /* Namespace */) || this.isAtEnd())) {
+      return {
+        kind: "AnnotatedDecl",
+        annotation,
+        args,
+        range: this.rangeFrom(start)
+      };
+    }
+    const declaration = this.parseStatement() ?? void 0;
     return {
       kind: "AnnotatedDecl",
       annotation,
@@ -9870,6 +9962,19 @@ var Parser = class {
       if (this.check("operator" /* Operator */))
         return this.parseOperatorFunDecl(true, true);
     }
+    if (this.check("const" /* Const */)) {
+      this.advance();
+      if (this.check("fun" /* Fun */))
+        return this.parseFunDecl(true, false, false);
+      return this.parseConstDeclAfterKeyword(this.tokens[this.pos - 2] || this.current());
+    }
+    if (this.check("safe" /* Safe */) || this.check("modifier" /* Modifier */)) {
+      this.advance();
+      if (this.check("fun" /* Fun */))
+        return this.parseFunDecl(true, false, false);
+      if (this.check("operator" /* Operator */))
+        return this.parseOperatorFunDecl(true, false);
+    }
     if (this.check("abstract" /* Abstract */)) {
       this.advance();
       if (this.check("fun" /* Fun */))
@@ -9877,6 +9982,25 @@ var Parser = class {
       if (this.check("class" /* Class */))
         return this.parseClassDecl(false, true);
     }
+    if (this.check("synchronized" /* Synchronized */) || this.check("unique" /* Unique */) || this.check("sealed" /* Sealed */) || this.check("final" /* Final */)) {
+      this.advance();
+      if (this.check("class" /* Class */))
+        return this.parseClassDecl(false, false);
+      if (this.check("interface" /* Interface */))
+        return this.parseInterfaceDecl();
+    }
+    if (this.check("class" /* Class */))
+      return this.parseClassDecl(false, false);
+    if (this.check("struct" /* Struct */))
+      return this.parseStructDecl();
+    if (this.check("enum" /* Enum */))
+      return this.parseEnumDecl();
+    if (this.check("interface" /* Interface */))
+      return this.parseInterfaceDecl();
+    if (this.check("type" /* Type */))
+      return this.parseTypeAliasDecl();
+    if (this.check("macro" /* Macro */))
+      return this.parseMacroDecl();
     if (this.check("fun" /* Fun */))
       return this.parseFunDecl(true, false, false);
     if (this.check("async" /* Async */)) {
@@ -9980,29 +10104,75 @@ var Parser = class {
     this.expect(";" /* Semicolon */);
     return { kind: "VarDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
   }
+  parseConstDecl() {
+    const start = this.current();
+    this.expect("const" /* Const */);
+    return this.parseConstDeclAfterKeyword(start);
+  }
+  parseConstDeclAfterKeyword(start) {
+    const pattern = this.parseDestructPattern();
+    const typeAnnotation = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
+    const initializer = this.check("=" /* Assign */) ? (this.advance(), this.parseExpression()) : void 0;
+    this.expect(";" /* Semicolon */);
+    return { kind: "LetDecl", pattern, typeAnnotation, initializer, range: this.rangeFrom(start) };
+  }
+  parseNamespaceDecl() {
+    const start = this.current();
+    this.expect("namespace" /* Namespace */);
+    let name = "";
+    while (!this.check(";" /* Semicolon */) && !this.isAtEnd()) {
+      name += this.advance().text;
+    }
+    if (this.check(";" /* Semicolon */))
+      this.advance();
+    return {
+      kind: "ExpressionStmt",
+      expression: { kind: "Identifier", name: `namespace:${name}`, range: this.rangeFrom(start) },
+      range: this.rangeFrom(start)
+    };
+  }
   parseFunDecl(isPublic, isStatic, isAbstract) {
     const start = this.current();
     this.expect("fun" /* Fun */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+    const name = this.expectMethodOrIdentName();
     const typeParams = this.parseOptionalTypeParams();
     this.expect("(" /* LeftParen */);
     const params = this.parseParamList();
     this.expect(")" /* RightParen */);
     const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const body = this.parseBlock();
+    let body;
+    if (this.check(";" /* Semicolon */)) {
+      const semi = this.advance();
+      body = { kind: "Block", statements: [], range: this.tokenRange(semi) };
+    } else {
+      body = this.parseBlock();
+    }
     return { kind: "FunDecl", name, params, returnType, body, isPublic, isStatic, isAbstract, isOperator: false, typeParams, range: this.rangeFrom(start) };
+  }
+  expectMethodOrIdentName() {
+    const tok = this.current();
+    if (tok.kind === "Identifier" /* Identifier */ || tok.kind === "TypeIdentifier" /* TypeIdentifier */ || tok.kind === "from" /* From */ || tok.kind === "get" /* Get */ || tok.kind === "set" /* Set */ || tok.kind === "spawn" /* Spawn */ || tok.kind === "new" /* New */ || tok.kind === "template" /* Template */ || tok.kind === "modifier" /* Modifier */) {
+      return this.advance().text;
+    }
+    return this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
   }
   parseAsyncFunDecl(isPublic, isStatic, isAbstract) {
     const start = this.current();
     this.expect("async" /* Async */);
     this.expect("fun" /* Fun */);
-    const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
+    const name = this.expectMethodOrIdentName();
     const typeParams = this.parseOptionalTypeParams();
     this.expect("(" /* LeftParen */);
     const params = this.parseParamList();
     this.expect(")" /* RightParen */);
     const returnType = this.check(":" /* Colon */) ? (this.advance(), this.parseTypeExpr()) : void 0;
-    const body = this.parseBlock();
+    let body;
+    if (this.check(";" /* Semicolon */)) {
+      const semi = this.advance();
+      body = { kind: "Block", statements: [], range: this.tokenRange(semi) };
+    } else {
+      body = this.parseBlock();
+    }
     return { kind: "AsyncFunDecl", name, params, returnType, body, isPublic, isStatic, isAbstract, typeParams, range: this.rangeFrom(start) };
   }
   parseClassDecl(isDynamic, isAbstract) {
@@ -10031,9 +10201,12 @@ var Parser = class {
     this.expect("{" /* LeftBrace */);
     const members = [];
     while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
+      const prevPos = this.pos;
       const mem = this.parseStatement();
       if (mem)
         members.push(mem);
+      if (this.pos === prevPos && !this.isAtEnd())
+        this.advance();
     }
     this.expect("}" /* RightBrace */);
     return { kind: "ClassDecl", name, isDynamic, isAbstract, superClass, implements: implementsList.length > 0 ? implementsList : void 0, members, typeParams, range: this.rangeFrom(start) };
@@ -10046,20 +10219,26 @@ var Parser = class {
     this.expect("{" /* LeftBrace */);
     const variants = [];
     while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
+      const prevPos = this.pos;
       const varStart = this.current();
       const varName = this.expect("TypeIdentifier" /* TypeIdentifier */, "Identifier" /* Identifier */).text;
       const fields = [];
       if (this.check("(" /* LeftParen */)) {
         this.advance();
         while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+          const pPrev = this.pos;
           fields.push(this.parseParam());
           if (this.check("," /* Comma */))
+            this.advance();
+          if (this.pos === pPrev && !this.isAtEnd())
             this.advance();
         }
         this.expect(")" /* RightParen */);
       }
       variants.push({ kind: "EnumVariant", name: varName, fields, range: this.rangeFrom(varStart) });
       if (this.check("," /* Comma */))
+        this.advance();
+      if (this.pos === prevPos && !this.isAtEnd())
         this.advance();
     }
     this.expect("}" /* RightBrace */);
@@ -10073,13 +10252,16 @@ var Parser = class {
     this.expect("{" /* LeftBrace */);
     const methods = [];
     while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
-      if (this.check("fun" /* Fun */) || this.check("pub" /* Pub */) || this.check("static" /* Static */)) {
+      const prevPos = this.pos;
+      if (this.check("fun" /* Fun */) || this.check("pub" /* Pub */) || this.check("static" /* Static */) || this.check("async" /* Async */) || this.check("modifier" /* Modifier */)) {
         const stmt = this.parseStatement();
         if (stmt && stmt.kind === "FunDecl")
           methods.push(stmt);
       } else {
         this.advance();
       }
+      if (this.pos === prevPos && !this.isAtEnd())
+        this.advance();
     }
     this.expect("}" /* RightBrace */);
     return { kind: "InterfaceDecl", name, methods, typeParams, range: this.rangeFrom(start) };
@@ -10203,6 +10385,9 @@ var Parser = class {
   parseIfStmt() {
     const start = this.current();
     this.expect("if" /* If */);
+    if (this.check("const" /* Const */)) {
+      this.advance();
+    }
     this.expect("(" /* LeftParen */);
     const condition = this.parseExpression();
     this.expect(")" /* RightParen */);
@@ -10230,13 +10415,14 @@ var Parser = class {
   parseForStmt(label) {
     const start = this.current();
     this.expect("for" /* For */);
+    if (this.check("concurrent" /* Concurrent */)) {
+      this.advance();
+    }
     if (this.check("await" /* Await */)) {
       this.advance();
       this.expect("(" /* LeftParen */);
-      let isVarOrLet = false;
       if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
         this.advance();
-        isVarOrLet = true;
       }
       const pattern = this.parseDestructPattern();
       this.expect("in" /* In */);
@@ -10247,10 +10433,8 @@ var Parser = class {
     }
     this.expect("(" /* LeftParen */);
     if ((this.check("Identifier" /* Identifier */) || this.check("let" /* Let */) || this.check("var" /* Var */) || this.check("[" /* LeftBracket */) || this.check("(" /* LeftParen */) || this.check("{" /* LeftBrace */)) && this.hasInAhead()) {
-      let isVarOrLet = false;
       if (this.check("let" /* Let */) || this.check("var" /* Var */)) {
         this.advance();
-        isVarOrLet = true;
       }
       const pattern = this.parseDestructPattern();
       this.expect("in" /* In */);
@@ -10368,9 +10552,15 @@ var Parser = class {
   parseDynamicViewStmt() {
     const start = this.current();
     this.expect("dynamic" /* Dynamic */);
-    const object = this.parseExpression();
-    this.expect("as" /* As */);
-    const alias = this.expect("Identifier" /* Identifier */).text;
+    let object = this.parseExpression();
+    let alias;
+    if (object.kind === "CastExpr" && object.targetType.kind === "SimpleType") {
+      alias = object.targetType.name;
+      object = object.expression;
+    } else {
+      this.expect("as" /* As */);
+      alias = this.expect("Identifier" /* Identifier */).text;
+    }
     const body = this.parseBlock();
     return { kind: "DynamicViewStmt", object, alias, body, range: this.rangeFrom(start) };
   }
@@ -10631,6 +10821,7 @@ var Parser = class {
       "-=" /* MinusAssign */,
       "*=" /* StarAssign */,
       "/=" /* SlashAssign */,
+      "//=" /* SlashSlashAssign */,
       "%=" /* PercentAssign */,
       "**=" /* StarStarAssign */,
       "&=" /* AmpersandAssign */,
@@ -10756,8 +10947,17 @@ var Parser = class {
     return left;
   }
   parseShift() {
-    let left = this.parseAddition();
+    let left = this.parseRange();
     while (this.check("<<" /* ShiftLeft */) || this.check(">>" /* ShiftRight */)) {
+      const op = this.advance().text;
+      const right = this.parseRange();
+      left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
+    }
+    return left;
+  }
+  parseRange() {
+    let left = this.parseAddition();
+    while (this.check(".." /* DotDot */) || this.check("..=" /* DotDotEqual */)) {
       const op = this.advance().text;
       const right = this.parseAddition();
       left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
@@ -10775,7 +10975,7 @@ var Parser = class {
   }
   parseMultiplication() {
     let left = this.parseExponentiation();
-    while (this.check("*" /* Star */) || this.check("/" /* Slash */) || this.check("%" /* Percent */)) {
+    while (this.check("*" /* Star */) || this.check("/" /* Slash */) || this.check("//" /* SlashSlash */) || this.check("%" /* Percent */)) {
       const op = this.advance().text;
       const right = this.parseExponentiation();
       left = { kind: "BinaryExpr", operator: op, left, right, range: left.range };
@@ -10792,7 +10992,7 @@ var Parser = class {
     return left;
   }
   parseUnary() {
-    if (this.check("!" /* Bang */) || this.check("-" /* Minus */) || this.check("~" /* Tilde */) || this.check("not" /* Not */) || this.check("bnot" /* Bnot */) || this.check("typeof" /* Typeof */)) {
+    if (this.check("!" /* Bang */) || this.check("-" /* Minus */) || this.check("~" /* Tilde */) || this.check("not" /* Not */) || this.check("bnot" /* Bnot */) || this.check("typeof" /* Typeof */) || this.check("attempt" /* Attempt */) || this.check("consume" /* Consume */)) {
       const start = this.current();
       const op = this.advance().text;
       const operand = this.parseUnary();
@@ -10943,8 +11143,12 @@ var Parser = class {
         this.advance();
         return { kind: "FloatLiteral", value: token.text, range: this.tokenRange(token) };
       case "StringLiteral" /* StringLiteral */:
+      case "CharLiteral" /* CharLiteral */:
         this.advance();
         return { kind: "StringLiteral", value: token.text, hasInterpolation: false, range: this.tokenRange(token) };
+      case "unreachable" /* Unreachable */:
+        this.advance();
+        return { kind: "Identifier", name: "unreachable", range: this.tokenRange(token) };
       case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
         this.advance();
         return { kind: "StringLiteral", value: token.text, hasInterpolation: token.text.includes("{$"), range: this.tokenRange(token) };
@@ -10960,7 +11164,7 @@ var Parser = class {
       case "false" /* False */:
         this.advance();
         return { kind: "BoolLiteral", value: false, range: this.tokenRange(token) };
-      case "none" /* None */:
+      case "None" /* None */:
         this.advance();
         return { kind: "NoneLiteral", range: this.tokenRange(token) };
       case "Identifier" /* Identifier */:
@@ -10980,7 +11184,20 @@ var Parser = class {
         this.advance();
         return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
       case "TypeIdentifier" /* TypeIdentifier */:
-      case "self" /* Self */:
+      case "Self" /* Self */:
+      case "this" /* This */:
+      case "super" /* Super */:
+      case "freestanding" /* Freestanding */:
+      case "portable" /* Portable */:
+      case "scripted" /* Scripted */:
+      case "compiled" /* Compiled */:
+      case "dual" /* Dual */:
+      case "native" /* Native */:
+      case "group" /* Group */:
+      case "once" /* Once */:
+      case "distinct" /* Distinct */:
+      case "get" /* Get */:
+      case "set" /* Set */:
         this.advance();
         return { kind: "Identifier", name: token.text, range: this.tokenRange(token) };
       case "await" /* Await */: {
@@ -11330,9 +11547,13 @@ var Parser = class {
     this.expect("{" /* LeftBrace */);
     const statements = [];
     while (!this.check("}" /* RightBrace */) && !this.isAtEnd()) {
+      const prevPos = this.pos;
       const stmt = this.parseStatement();
       if (stmt)
         statements.push(stmt);
+      if (this.pos === prevPos && !this.isAtEnd()) {
+        this.advance();
+      }
     }
     this.expect("}" /* RightBrace */);
     return { kind: "Block", statements, range: this.rangeFrom(start) };
@@ -11340,15 +11561,22 @@ var Parser = class {
   parseParamList() {
     const params = [];
     while (!this.check(")" /* RightParen */) && !this.isAtEnd()) {
+      const prevPos = this.pos;
       params.push(this.parseParam());
       if (this.check("," /* Comma */))
         this.advance();
+      if (this.pos === prevPos && !this.isAtEnd()) {
+        this.advance();
+      }
     }
     return params;
   }
   parseParam() {
     const start = this.current();
     let qualifier;
+    if (this.check("reads" /* Reads */) || this.check("edits" /* Edits */) || this.check("takes" /* Takes */) || this.check("shares" /* Shares */)) {
+      this.advance();
+    }
     if (this.check("weak" /* Weak */)) {
       qualifier = "weak";
       this.advance();
@@ -11362,6 +11590,11 @@ var Parser = class {
     } else if (this.check("borrow" /* Borrow */)) {
       qualifier = "borrow";
       this.advance();
+    }
+    if (this.check("[" /* LeftBracket */) && this.peekKind(1) === "LifetimeLabel" /* LifetimeLabel */) {
+      this.advance();
+      this.advance();
+      this.expect("]" /* RightBracket */);
     }
     const name = this.expect("Identifier" /* Identifier */, "TypeIdentifier" /* TypeIdentifier */).text;
     let type;
@@ -11827,7 +12060,7 @@ var SymbolTable = class {
         return sym;
       }
       case "AnnotatedDecl":
-        return this.collectSymbol(stmt.declaration, scope);
+        return stmt.declaration ? this.collectSymbol(stmt.declaration, scope) : null;
       default:
         return null;
     }
@@ -11880,28 +12113,41 @@ var SymbolTable = class {
 // src/server.ts
 var connection = (0, import_node.createConnection)(import_node.ProposedFeatures.all);
 var documents = new import_node.TextDocuments(TextDocument);
-var parser = new Parser();
 var astCache = /* @__PURE__ */ new Map();
 var symbolCache = /* @__PURE__ */ new Map();
-var diagnosticsCache = /* @__PURE__ */ new Map();
-var symbolTableCache = /* @__PURE__ */ new Map();
+var scopeCache = /* @__PURE__ */ new Map();
 var tokenTypes = [
   "keyword",
   "type",
+  "class",
   "enum",
   "enumMember",
+  "interface",
+  "struct",
+  "typeParameter",
   "function",
+  "method",
+  "macro",
   "variable",
   "parameter",
   "property",
-  "namespace",
   "decorator",
+  "namespace",
   "string",
   "number",
   "operator",
   "comment"
 ];
-var tokenModifiers = ["declaration", "async", "static", "public"];
+var tokenModifiers = [
+  "declaration",
+  "definition",
+  "readonly",
+  "static",
+  "async",
+  "modification",
+  "documentation",
+  "defaultLibrary"
+];
 var semanticTokensLegend = {
   tokenTypes,
   tokenModifiers
@@ -11911,27 +12157,23 @@ connection.onInitialize((_params) => {
     capabilities: {
       textDocumentSync: import_node.TextDocumentSyncKind.Incremental,
       completionProvider: {
-        triggerCharacters: [".", ":", "{", "$", "%", "!", "@", '"', "'"],
-        resolveProvider: false
+        resolveProvider: false,
+        triggerCharacters: [".", ":", "@", "{", "("]
       },
       hoverProvider: true,
       documentSymbolProvider: true,
-      foldingRangeProvider: true,
       definitionProvider: true,
+      foldingRangeProvider: true,
       semanticTokensProvider: {
         legend: semanticTokensLegend,
         full: true
       },
       documentFormattingProvider: true,
       codeActionProvider: {
-        codeActionKinds: [
-          import_node.CodeActionKind.QuickFix,
-          import_node.CodeActionKind.Source
-        ]
+        codeActionKinds: [import_node.CodeActionKind.QuickFix]
       },
       signatureHelpProvider: {
-        triggerCharacters: ["(", ","],
-        retriggerCharacters: [","]
+        triggerCharacters: ["(", ","]
       },
       workspaceSymbolProvider: true
     }
@@ -11940,61 +12182,43 @@ connection.onInitialize((_params) => {
 documents.onDidChangeContent((change) => {
   validateDocument(change.document);
 });
-function validateDocument(document) {
-  const uri = document.uri;
-  const text = document.getText();
-  const result = parser.parse(text);
-  astCache.set(uri, result.program);
-  diagnosticsCache.set(uri, result.diagnostics);
-  const table = new SymbolTable();
-  const symbols = table.build(result.program);
+function validateDocument(textDocument) {
+  const text = textDocument.getText();
+  const uri = textDocument.uri;
+  if (uri.endsWith(".lppkg") || uri.endsWith("loup.pkg") || uri.endsWith(".pkg")) {
+    connection.sendDiagnostics({ uri, diagnostics: [] });
+    return;
+  }
+  const parser = new Parser();
+  const { program, diagnostics: parseDiags } = parser.parse(text);
+  astCache.set(uri, program);
+  const symTable = new SymbolTable();
+  const symbols = symTable.build(program);
   symbolCache.set(uri, symbols);
-  symbolTableCache.set(uri, table);
-  const diagnostics = result.diagnostics.map((d) => ({
+  scopeCache.set(uri, symTable);
+  const lspDiagnostics = parseDiags.map((d) => ({
     severity: d.severity === "error" ? import_node.DiagnosticSeverity.Error : d.severity === "warning" ? import_node.DiagnosticSeverity.Warning : import_node.DiagnosticSeverity.Information,
     range: {
       start: { line: d.range.start.line, character: d.range.start.column },
       end: { line: d.range.end.line, character: d.range.end.column }
     },
     message: d.message,
-    source: "loom"
+    source: "loup"
   }));
-  connection.sendDiagnostics({ uri, diagnostics });
+  connection.sendDiagnostics({ uri, diagnostics: lspDiagnostics });
 }
-var LOOM_BUILTINS = [
-  "print",
-  "println",
-  "len",
-  "assert",
-  "panic",
-  "args",
-  "env",
-  "readBytes",
-  "readText",
-  "writeBytes",
-  "writeText",
-  "exec",
-  "readBytesAsync",
-  "readTextAsync",
-  "writeBytesAsync",
-  "writeTextAsync",
-  "execAsync"
-];
-var LOOM_DUNDERS = [
-  "__name__",
-  "__file__",
-  "__execmode__",
-  "__module__"
-];
-var LOOM_KEYWORDS = [
+var LOUP_KEYWORDS = [
   "let",
   "var",
-  "fun",
+  "const",
   "func",
-  "async",
+  "fun",
   "gen",
-  "await",
+  "macro",
+  "quote",
   "return",
+  "yield",
+  "suspend",
   "if",
   "else",
   "for",
@@ -12003,61 +12227,117 @@ var LOOM_KEYWORDS = [
   "match",
   "break",
   "continue",
-  "throw",
-  "try",
-  "catch",
-  "finally",
   "defer",
   "with",
   "portal",
+  "async",
+  "await",
   "spawn",
-  "class",
-  "dynamic",
-  "abstract",
-  "struct",
-  "enum",
-  "interface",
+  "group",
+  "concurrent",
+  "try",
+  "catch",
+  "finally",
+  "throw",
+  "attempt",
+  "unreachable",
   "from",
   "import",
   "as",
   "in",
   "is",
-  "not",
   "instanceof",
   "typeof",
-  "pub",
-  "static",
-  "extern",
-  "true",
-  "false",
-  "none",
-  "new",
+  "not",
+  "and",
+  "or",
+  "bnot",
   "del",
   "global",
   "nonlocal",
-  "yield",
-  "suspend",
-  "type",
-  "macro",
+  "pub",
+  "static",
+  "override",
+  "final",
+  "sealed",
+  "class",
+  "struct",
+  "abstract",
+  "dynamic",
+  "interface",
   "implements",
-  "operator",
-  "fn",
-  "get",
-  "set",
-  "box",
-  "weak",
-  "unowned",
-  "borrow",
-  "noescape",
-  "raw",
-  "group",
+  "enum",
+  "type",
+  "namespace",
+  "template",
+  "foundation",
+  "overlay",
+  "onto",
+  "part",
+  "extern",
   "js",
   "native",
   "val",
+  "new",
+  "box",
+  "true",
+  "false",
+  "None",
+  "this",
+  "Self",
+  "super",
+  "fn",
+  "once",
+  "operator",
+  "weak",
+  "unowned",
+  "arc",
+  "borrow",
+  "excl",
+  "unique",
+  "onstack",
+  "lifetime",
+  "noescape",
+  "consume",
+  "noreturn",
+  "impossible",
   "prefer",
-  "compiled"
+  "compiled",
+  "scripted",
+  "dual",
+  "freestanding",
+  "portable",
+  "reads",
+  "edits",
+  "takes",
+  "shares",
+  "modifier",
+  "safe",
+  "synchronized",
+  "unsafe",
+  "requires",
+  "distinct",
+  "atomic",
+  "asm",
+  "volatile",
+  "where",
+  "size_of",
+  "align_of",
+  "reinterpret",
+  "reinterpretChecked",
+  "get",
+  "set"
 ];
-var LOOM_TYPES = [
+var LOUP_MODES = [
+  { label: "@mode(host.scripted)", detail: "Host JIT mode (default for .loup / .lpscr)", doc: "Write-and-run scripting on the host environment." },
+  { label: "@mode(host.dual)", detail: "Host hybrid mode \u2014 JIT or AOT (.lpscr / .lphc)", doc: "Compiles cleanly to either script JIT or AOT native binary." },
+  { label: "@mode(host.native)", detail: "Host AOT native binary (.lphc)", doc: "Full LLVM/Cranelift AOT with ARC, SIMD, inline asm, and C FFI." },
+  { label: "@mode(web.scripted)", detail: "Browser JIT mode (.lpweb)", doc: "Runs in browser Wasm JIT engine with DOM/WebComponent access." },
+  { label: "@mode(web.compiled)", detail: "Browser AOT Wasm mode (.lpweb)", doc: "Compiles ahead-of-time to a standalone Wasm module." },
+  { label: "@mode(freestanding)", detail: "Bare-metal mode \u2014 no runtime (.lpfree)", doc: "Compiles to bare-metal binary with @entry and manual @allocator." },
+  { label: "@mode(portable)", detail: "Portable library mode \u2014 compiled in importer's mode", doc: "Checked against PORTABLE-SUBSET (\xA71-2.4.7) and lowered in each importing unit's mode." }
+];
+var LOUP_TYPES = [
   "int",
   "int8",
   "int16",
@@ -12072,138 +12352,606 @@ var LOOM_TYPES = [
   "float32",
   "float64",
   "decimal",
+  "complex",
+  "complex32",
+  "complex64",
+  "fixed",
   "bool",
+  "char",
   "string",
   "bytes",
   "void",
+  "noreturn",
+  "impossible",
   "list",
   "dict",
   "set",
   "tuple",
   "fn",
+  "buffer",
+  "array",
   "Any",
+  "Self",
   "Task",
+  "TaskGroup",
   "Option",
   "Result",
-  "Signal",
-  "View",
-  "Template",
-  "Type",
-  "None",
   "Some",
+  "None",
   "Ok",
   "Err",
-  "Error",
-  "NativeHandle",
-  "StackFrame",
-  "Duration",
-  "Instant",
-  "Regex",
-  "Match",
-  "Actor",
-  "CancellationToken",
-  "TaskGroup",
-  "ComponentRegistry",
-  "MountHandle",
-  "EffectHandle",
-  "Window",
-  "WindowConfig",
-  "Tray",
-  "SafeHtml",
-  "Url",
-  "UrlError",
-  "StateSerializer",
-  "ModuleLoadError",
-  "Module",
-  "Sendable",
+  "Signal",
+  "ReadonlySignal",
+  "View",
+  "Template",
+  "Scoped",
+  "AsyncScoped",
+  "Channel",
+  "WaitGroup",
+  "Semaphore",
+  "Barrier",
   "Mutex",
   "RwLock",
-  "Atomic",
+  "CancellationToken",
+  "CancellationError",
+  "NativeHandle",
+  "Ptr",
+  "Equatable",
+  "Comparable",
+  "Hashable",
+  "Display",
+  "Debug",
+  "Iterable",
+  "Iterator",
+  "AsyncIterable",
+  "AsyncIterator",
+  "From",
+  "Into",
+  "Clone",
+  "Default",
+  "Index",
+  "IndexMut",
+  "Slice",
+  "Contains",
+  "Len",
+  "Sendable",
+  "ValueType",
+  "SharedRef",
+  "SharedBuffer",
+  "SharedArray",
+  "SharedMutex",
+  "SharedRwLock",
+  "SharedQueue",
+  "Serializable",
+  "Deserializable",
+  "RemoteException",
+  "MaybeUninit",
+  "PartialInit",
+  "Volatile",
+  "PinnedRef",
+  "OwnedHandle",
+  "BorrowedHandle",
   "Thread",
-  "ThreadHandle",
   "ThreadPool",
   "ThreadLocal",
-  "TaskLocal",
-  "Vec",
-  "StyleSheet",
-  "ClassName",
-  "ThreadSafeHandle",
-  "ExecutorConfig",
-  "RuntimeConfig"
+  "ScriptWorker",
+  "InterruptGuard",
+  "DmaBuffer",
+  "MemoryOrder",
+  "AlignmentError",
+  "DesktopGrant",
+  "Order",
+  "RoundingMode",
+  "OverflowPolicy",
+  "ComplexArithmeticError",
+  "ArrayShapeError",
+  "ArrayShapeErrorKind",
+  "ArrayIndexError",
+  "ConcurrentIterationError",
+  "Interchange",
+  "InterchangeError",
+  "InterchangeErrorKind",
+  "Encoding",
+  "Charset",
+  "Endianness",
+  "Sign",
+  "Padding",
+  "Justify",
+  "PriorityQueue",
+  "Mark"
 ];
-var SYSTEM_MODULES = [
-  { label: "system.text", detail: "String utilities", items: ["split", "join", "trim", "trimStart", "trimEnd", "startsWith", "endsWith", "contains", "indexOf", "toUpper", "toLower", "replace", "replaceAll", "padStart", "padEnd", "repeat", "reverse", "parseInt", "parseFloat", "parseBool", "toBytes", "fromBytes", "toHex", "fromHex", "toBase64", "fromBase64"] },
-  { label: "system.json", detail: "JSON parsing/serialisation", items: ["parse", "stringify", "getString", "getInt", "getFloat", "getBool", "getObject", "getArray"] },
-  { label: "system.time", detail: "Instants, durations, and async sleep", items: ["Instant", "Duration", "sleep"] },
-  { label: "system.collections", detail: "Higher-order collection utilities", items: ["map", "flatMap", "filter", "filterMap", "reduce", "find", "findIndex", "any", "all", "none", "sortBy", "sortByDesc", "reverse", "groupBy", "partition", "zip", "unzip", "unique", "uniqueBy", "flatten", "chunk", "range", "repeat", "tabulate", "sum", "sumFloat", "min", "max", "minBy", "maxBy", "countWhere", "mapValues", "filterKeys", "mergeWith", "fromEntries", "toEntries"] },
-  { label: "system.fs", detail: "Filesystem capability", items: ["read", "write", "readAsync", "writeAsync", "linesAsync"] },
-  { label: "system.proc", detail: "Process execution", items: ["run", "runAsync"] },
-  { label: "system.net", detail: "Networking", items: ["requestAsync"] },
-  { label: "system.debug", detail: "Tracing and time-travel debugging", items: ["tracingAvailable", "tracingActive", "setTraceHook", "activatePortal", "deactivatePortal", "activePortals", "startCaptureServer", "startMcpServer"] },
-  { label: "system.ui", detail: "Reactive UI (universal)", items: ["signal", "derived", "effect", "mount", "Signal", "View", "ComponentRegistry", "EffectHandle", "MountHandle", "MountTarget", "Axis", "Alignment", "TextStyle", "Color", "Insets", "Row", "Column", "Stack", "Scroll", "Text", "Button", "Image", "Icon", "Canvas", "TextField", "Checkbox", "Slider", "Select"] },
-  { label: "system.ui.web", detail: "Web-specific UI rendering and SSR", items: ["renderToString", "hydrate", "mount", "StateSerializer", "serializeState", "deserializeState"] },
-  { label: "system.ui.desktop", detail: "Desktop window management", items: ["Window", "WindowConfig", "Tray", "showWindow", "showDialog", "showNotification"] },
-  { label: "system.reflect", detail: "Structural reflection (universal)", items: ["typeOf", "is", "fields", "methods", "constructors", "annotations", "variants", "callableName"] },
-  { label: "system.inspect", detail: "Dynamic introspection (interpreted-only)", items: ["new", "get", "getAs", "set", "invoke", "invokeAs", "as"] },
-  { label: "system.regex", detail: "Regular expressions", items: ["Regex", "Match"] },
-  { label: "system.env", detail: "Environment variables", items: ["loadDotenv", "get", "getOrDefault", "platform", "validate"] },
-  { label: "system.template", detail: "Templates and rendering", items: ["Template", "RenderContext", "Renderable", "SafeHtml", "escapeHtml", "escapeAttribute", "Url"] },
-  { label: "system.lang.interop.js", detail: "Typed JS/native facades", items: ["fetch", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "querySelector", "querySelectorAll", "Request", "Response", "Element", "Event", "TimerHandle"] },
-  { label: "system.http", detail: "HTTP client and server", items: ["Client", "Server", "Request", "Response", "get", "post", "put", "patch", "delete"] },
-  { label: "system.ws", detail: "WebSockets", items: ["WebSocket", "connect", "Server", "Message"] },
-  { label: "system.simd", detail: "SIMD vector math", items: ["Vec", "add", "sub", "mul", "div", "dot", "sqrt", "abs", "max", "min"] },
-  { label: "system.css", detail: "CSS-in-Loom styling", items: ["StyleSheet", "ClassName", "css", "keyframes", "media"] },
-  { label: "system.thread", detail: "OS thread parallelism", items: ["Mutex", "MutexGuard", "RwLock", "Atomic", "Thread", "ThreadHandle", "ThreadPool", "spawnBlocking"] },
-  { label: "system.runtime", detail: "Runtime configuration", items: ["ExecutorConfig", "RuntimeConfig", "TaskLocal", "configure"] },
-  { label: "system.ffi", detail: "Foreign Function Interface", items: ["ThreadSafeHandle"] },
-  { label: "system.math", detail: "Extended numeric math", items: ["sin", "cos", "exp", "log", "tan", "atan", "sqrt", "pow"] },
-  { label: "system.gpu", detail: "WebGPU compute shaders", items: ["ComputeShader", "Buffer", "dispatch"] }
-];
-connection.onCompletion((_params) => {
+var STDLIB_MODULES = {
+  "core.text": {
+    label: "core.text",
+    detail: "String manipulation, formatting, and regex (\xA721.1)",
+    exports: ["split", "join", "trim", "trimStart", "trimEnd", "toUpper", "toLower", "startsWith", "endsWith", "contains", "replace", "replaceAll", "padStart", "padEnd", "repeat", "charAt", "indexOf", "substring", "format", "Regex", "Match"]
+  },
+  "core.math": {
+    label: "core.math",
+    detail: "Mathematical constants and functions (\xA721.2)",
+    exports: ["PI", "E", "TAU", "INF", "NAN", "abs", "min", "max", "clamp", "floor", "ceil", "round", "trunc", "sqrt", "cbrt", "pow", "exp", "log", "log2", "log10", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "hypot", "sign", " isNan", "isInf", "isFinite"]
+  },
+  "core.complex": {
+    label: "core.complex",
+    detail: "Complex numbers and transcendental functions (\xA721.9)",
+    exports: ["complex", "complex32", "complex64", "fromPolar", "abs", "arg", "conj", "norm", "polar", "sqrt", "exp", "log", "pow", "sin", "cos", "tan", "sinh", "cosh", "tanh", "ComplexArithmeticError"]
+  },
+  "core.array": {
+    label: "core.array",
+    detail: "Rank-typed N-dimensional arrays (\xA721.10)",
+    exports: ["zeros", "ones", "full", "fromBuffer", "fromList", "iota", "reshape", "transpose", "slice", "Order", "RowMajor", "ColumnMajor", "ArrayShapeError", "ArrayShapeErrorKind", "ArrayIndexError"]
+  },
+  "core.fpenv": {
+    label: "core.fpenv",
+    detail: "IEEE 754 floating-point environment control (\xA721.11)",
+    exports: ["RoundingMode", "withRounding", "getRounding", "testExceptions", "clearExceptions", "signalingNan"]
+  },
+  "core.numeric": {
+    label: "core.numeric",
+    detail: "Fixed-point and decimal rounding/overflow policies (\xA721.12)",
+    exports: ["RoundingMode", "OverflowPolicy"]
+  },
+  "core.interchange": {
+    label: "core.interchange",
+    detail: "Declarative binary/text record interchange (\xA74-2)",
+    exports: ["Interchange", "InterchangeError", "InterchangeErrorKind", "Encoding", "Charset", "Endianness", "Sign", "Padding", "Justify"]
+  },
+  "core.sensitivity": {
+    label: "core.sensitivity",
+    detail: "Zero-overhead data sensitivity marking (\xA73-3.20)",
+    exports: ["Mark", "mark", "unmark"]
+  },
+  "core.random": {
+    label: "core.random",
+    detail: "Random number generation (\xA721.3)",
+    exports: ["nextInt", "nextFloat", "nextBool", "nextBytes", "choice", "shuffle", "Rng", "SeededRng"]
+  },
+  "core.time": {
+    label: "core.time",
+    detail: "Clocks, durations, and timers (\xA721.4)",
+    exports: ["Instant", "Duration", "sleep", "timeout", "interval"]
+  },
+  "core.datetime": {
+    label: "core.datetime",
+    detail: "Calendar dates, times, and timezones (\xA721.5)",
+    exports: ["DateTime", "LocalDate", "LocalTime", "TimeZone", "Weekday", "parseIso", "formatIso"]
+  },
+  "core.uuid": {
+    label: "core.uuid",
+    detail: "UUID generation and parsing (\xA721.6)",
+    exports: ["Uuid", "v4", "v7", "parse", "NIL"]
+  },
+  "core.collections": {
+    label: "core.collections",
+    detail: "Functional collection utilities and iterators (\xA721.7)",
+    exports: ["map", "filter", "reduce", "fold", "flatMap", "zip", "enumerate", "range", "take", "skip", "chunk", "groupBy", "partition", "sortBy", "unique", "find", "any", "all", "count", "sum", "min", "max"]
+  },
+  "core.atomic": {
+    label: "core.atomic",
+    detail: "Lock-free atomic primitives (\xA721.8)",
+    exports: ["AtomicInt", "AtomicBool", "AtomicRef", "MemoryOrder"]
+  },
+  "core.reflect": {
+    label: "core.reflect",
+    detail: "Compile-time and runtime type reflection (\xA71-16)",
+    exports: ["typeOf", "TypeInfo", "FieldInfo", "MethodInfo", "getAnnotations"]
+  },
+  "core.inspect": {
+    label: "core.inspect",
+    detail: "Live runtime type and object inspection (\xA71-16)",
+    exports: ["inspect", "fields", "methods", "typeName", "isInstance"]
+  },
+  "core.serialization": {
+    label: "core.serialization",
+    detail: "Format-agnostic serialization framework (\xA74-1)",
+    exports: ["Value", "Serializer", "Deserializer", "Serializable", "Deserializable", "toValue", "fromValue"]
+  },
+  "core.waiting": {
+    label: "core.waiting",
+    detail: "Polling and backoff waiting helpers",
+    exports: ["waitFor", "Backoff", "ExponentialBackoff"]
+  },
+  "core.shlex": {
+    label: "core.shlex",
+    detail: "POSIX shell-style lexical splitting and quoting",
+    exports: ["split", "quote", "join"]
+  },
+  "io.fs": {
+    label: "io.fs",
+    detail: "Filesystem operations (host capability)",
+    exports: ["readText", "writeText", "readBytes", "writeBytes", "exists", "mkdir", "remove", "listDir", "stat", "open", "linesAsync", "watch", "File", "FileStat"]
+  },
+  "io.path": {
+    label: "io.path",
+    detail: "Cross-platform path manipulation",
+    exports: ["Path", "join", "resolve", "dirname", "basename", "extname", "normalize", "isAbsolute", "relative"]
+  },
+  "io.streams": {
+    label: "io.streams",
+    detail: "Buffered and async byte/text streams",
+    exports: ["Reader", "Writer", "BufferedReader", "BufferedWriter", "ByteStream", "pipe"]
+  },
+  "io.proc": {
+    label: "io.proc",
+    detail: "Process execution and environment (host capability)",
+    exports: ["exec", "spawn", "env", "args", "cwd", "exit", "pid", "Command", "ChildProcess"]
+  },
+  "net.http": {
+    label: "net.http",
+    detail: "HTTP client and server",
+    exports: ["fetch", "get", "post", "Request", "Response", "Headers", "Server", "serve", "StatusCode"]
+  },
+  "net.websocket": {
+    label: "net.websocket",
+    detail: "WebSocket client and server",
+    exports: ["WebSocket", "connect", "WebSocketServer", "Message"]
+  },
+  "net.addressing": {
+    label: "net.addressing",
+    detail: "IP addresses and socket endpoints",
+    exports: ["IpAddr", "Ipv4Addr", "Ipv6Addr", "SocketAddr", "Cidr"]
+  },
+  "net.tcp": {
+    label: "net.tcp",
+    detail: "TCP sockets and listeners",
+    exports: ["TcpStream", "TcpListener", "connect", "bind"]
+  },
+  "net.tls": {
+    label: "net.tls",
+    detail: "TLS streams and certificate configuration",
+    exports: ["TlsStream", "TlsConfig", "Certificate", "wrapClient", "wrapServer"]
+  },
+  "net.dns": {
+    label: "net.dns",
+    detail: "DNS resolution",
+    exports: ["lookupHost", "lookupIp", "resolveTxt", "resolveMx"]
+  },
+  "data.json": {
+    label: "data.json",
+    detail: "JSON parsing, serialization, and accessors",
+    exports: ["parse", "stringify", "getString", "getInt", "getFloat", "getBool", "getList", "getDict", "JsonValue", "JsonError"]
+  },
+  "data.csv": {
+    label: "data.csv",
+    detail: "CSV reader and writer",
+    exports: ["parse", "stringify", "CsvReader", "CsvWriter"]
+  },
+  "data.toml": {
+    label: "data.toml",
+    detail: "TOML configuration parsing and serialization",
+    exports: ["parse", "stringify", "TomlValue"]
+  },
+  "data.yaml": {
+    label: "data.yaml",
+    detail: "YAML parsing and serialization",
+    exports: ["parse", "stringify", "YamlValue"]
+  },
+  "data.xml": {
+    label: "data.xml",
+    detail: "XML DOM and streaming parser",
+    exports: ["parse", "stringify", "XmlElement", "XmlNode"]
+  },
+  "data.ini": {
+    label: "data.ini",
+    detail: "INI configuration file parser",
+    exports: ["parse", "stringify", "IniDocument"]
+  },
+  "data.query": {
+    label: "data.query",
+    detail: "Structured data querying and path selectors",
+    exports: ["select", "query", "QueryPath"]
+  },
+  "data.msgpack": {
+    label: "data.msgpack",
+    detail: "MessagePack binary serialization",
+    exports: ["encode", "decode", "pack", "unpack"]
+  },
+  "data.cbor": {
+    label: "data.cbor",
+    detail: "CBOR binary serialization (RFC 8949)",
+    exports: ["encode", "decode"]
+  },
+  "sync.primitives": {
+    label: "sync.primitives",
+    detail: "Synchronization primitives and shared locks",
+    exports: ["Mutex", "RwLock", "Semaphore", "Barrier", "WaitGroup", "Condvar", "SharedMutex", "SharedRwLock", "SharedQueue"]
+  },
+  "sync.channels": {
+    label: "sync.channels",
+    detail: "Typed async and cross-thread channels",
+    exports: ["Channel", "bounded", "unbounded", "oneshot", "select", "Sender", "Receiver"]
+  },
+  "structures.collections": {
+    label: "structures.collections",
+    detail: "Specialized data structures",
+    exports: ["Deque", "BTreeMap", "BTreeSet", "OrderedMap", "RingBuffer", "BitSet", "LruCache"]
+  },
+  "structures.priority_queue": {
+    label: "structures.priority_queue",
+    detail: "Binary heap priority queue",
+    exports: ["PriorityQueue", "MinHeap", "MaxHeap"]
+  },
+  "ui.web": {
+    label: "ui.web",
+    detail: "Browser reactive UI, signals, and Web Components (@mode(web.*))",
+    exports: ["signal", "derived", "effect", "batch", "View", "ComponentRegistry", "mount", "html"]
+  },
+  "ui.desktop": {
+    label: "ui.desktop",
+    detail: "Native desktop reactive UI (@mode(host.*))",
+    exports: ["signal", "derived", "effect", "batch", "View", "Window", "App", "runApp", "DesktopGrant"]
+  },
+  "debug.runtime": {
+    label: "debug.runtime",
+    detail: "Portals, trace capture, time-travel, and MCP debug server (\xA72-6)",
+    exports: ["DebugRuntime", "activatePortal", "deactivatePortal", "startCaptureServer", "startMcpServer", "TraceEvent"]
+  },
+  "debug.assert": {
+    label: "debug.assert",
+    detail: "Runtime assertions and invariant checks",
+    exports: ["assert", "assertEq", "assertNe", "assertThrows", "unreachable"]
+  },
+  "debug.profiler": {
+    label: "debug.profiler",
+    detail: "CPU and allocation profiling",
+    exports: ["startProfile", "stopProfile", "ProfileReport", "span"]
+  },
+  "debug.recording": {
+    label: "debug.recording",
+    detail: "Time-travel trace recording and replay",
+    exports: ["startRecording", "stopRecording", "saveRecording", "loadRecording", "Recording"]
+  },
+  "native.simd": {
+    label: "native.simd",
+    detail: "Hardware vector intrinsics (@mode(host.native) / @mode(freestanding))",
+    exports: ["Vec", "f32x4", "f64x2", "i32x4", "i64x2", "u8x16", "splat", "load", "store"]
+  },
+  "native.atomic": {
+    label: "native.atomic",
+    detail: "Hardware atomics and memory fences (@mode(host.native) / @mode(freestanding))",
+    exports: ["hwFence", "compilerFence", "MemoryOrder", "compareExchange", "fetchAdd"]
+  },
+  "native.mem": {
+    label: "native.mem",
+    detail: "Raw memory operations (@mode(host.native) / @mode(freestanding))",
+    exports: ["alloc", "free", "copy", "zero", "Ptr", "Volatile", "MaybeUninit", "PartialInit"]
+  },
+  "native.dma": {
+    label: "native.dma",
+    detail: "DMA-safe buffer management (@mode(freestanding), \xA73-3.20)",
+    exports: ["DmaBuffer", "allocCoherent", "syncForCpu", "syncForDevice"]
+  },
+  "native.mpu": {
+    label: "native.mpu",
+    detail: "Memory Protection Unit configuration (@mode(freestanding), \xA73-3.20)",
+    exports: ["installStackGuard", "configureRegion", "MpuRegion"]
+  },
+  "native.window": {
+    label: "native.window",
+    detail: "OS windowing and input events",
+    exports: ["Window", "WindowOptions", "EventLoop", "KeyEvent", "MouseEvent"]
+  },
+  "native.audio": {
+    label: "native.audio",
+    detail: "Low-latency native audio streams",
+    exports: ["AudioDevice", "AudioStream", "AudioFormat"]
+  },
+  "native.webgpu": {
+    label: "native.webgpu",
+    detail: "WebGPU compute and rendering pipeline",
+    exports: ["Adapter", "Device", "Queue", "Buffer", "ShaderModule", "ComputePipeline", "RenderPipeline"]
+  },
+  "testing": {
+    label: "testing",
+    detail: "Loup testing framework (loup-testing-reference-v1_10)",
+    exports: ["test", "describe", "it", "expect", "assertEqual", "assertThrows", "beforeEach", "afterEach", "mock", "spy"]
+  },
+  "loup.log": {
+    label: "loup.log",
+    detail: "Structured logging package",
+    exports: ["Logger", "info", "warn", "error", "debug", "trace", "withFields"]
+  },
+  "loup.config": {
+    label: "loup.config",
+    detail: "Layered configuration loader",
+    exports: ["Config", "load", "fromEnv", "fromFile"]
+  },
+  "loup.cli": {
+    label: "loup.cli",
+    detail: "Command-line argument parser and subcommands",
+    exports: ["App", "Command", "Arg", "Flag", "parse"]
+  },
+  "loup.tensor": {
+    label: "loup.tensor",
+    detail: "Multi-dimensional tensor operations and accelerator dispatch",
+    exports: ["Tensor", "zeros", "ones", "randn", "matmul", "einsum", "Device"]
+  },
+  "loup.autodiff": {
+    label: "loup.autodiff",
+    detail: "Reverse- and forward-mode automatic differentiation",
+    exports: ["grad", "valueAndGrad", "jvp", "vjp", " Dual"]
+  },
+  "loup.tpu": {
+    label: "loup.tpu",
+    detail: "TPU / accelerator compilation and mesh collectives",
+    exports: ["TpuDevice", "Mesh", "ShardSpec", "compileKernel", "allReduce"]
+  },
+  "loup.crypto": {
+    label: "loup.crypto",
+    detail: "Cryptographic primitives (loup-crypto-packages-v0_1)",
+    exports: ["sha256", "sha512", "blake3", "hmac", "aead", "ed25519", "x25519", "hkdf"]
+  },
+  "loup.fortran": {
+    label: "loup.fortran",
+    detail: "Fortran & HPC interop (loup-fortran-hpc-packages-v1_0)",
+    exports: ["FortranArray", "ColumnMajor", "blas", "lapack", "fftw", "mpi"]
+  },
+  "loup.ui": {
+    label: "loup.ui",
+    detail: "Loup Common UI portable packages (@mode(portable), \xA72-4)",
+    exports: ["Node", "Layout", "Style", "Color", "Event", "Widget", "Painter"]
+  }
+};
+connection.onCompletion((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document)
+    return [];
+  const text = document.getText();
+  const offset = document.offsetAt(params.position);
+  const lineText = text.split("\n")[params.position.line] || "";
+  const linePrefix = lineText.slice(0, params.position.character);
   const items = [];
-  for (const fn of LOOM_BUILTINS) {
-    items.push({ label: fn, kind: import_node.CompletionItemKind.Function, detail: "Built-in" });
+  if (linePrefix.trimStart().startsWith("@")) {
+    for (const m of LOUP_MODES) {
+      items.push({
+        label: m.label,
+        kind: import_node.CompletionItemKind.Keyword,
+        detail: m.detail,
+        documentation: m.doc,
+        insertText: m.label.slice(1)
+        // strip leading @ since user typed @
+      });
+    }
+    const annotations = [
+      { label: "jsexport", detail: "Export function to JS host" },
+      { label: 'unsafe("reason")', detail: "Mark declaration as unsafe with mandatory reason" },
+      { label: "compiled", detail: "Legacy compiled directive (use @mode)" },
+      { label: "inline", detail: "Hint inlining to compiler" },
+      { label: "repr(C)", detail: "C ABI struct layout (@mode(freestanding) / FFI)" },
+      { label: "repr(packed)", detail: "Packed struct layout" },
+      { label: "entry", detail: "Bare-metal entry point (@mode(freestanding))" },
+      { label: "panic_handler", detail: "Bare-metal panic handler (@mode(freestanding))" },
+      { label: "interrupt", detail: "Hardware interrupt handler (@mode(freestanding))" },
+      { label: "interruptSafe", detail: "Callable from interrupt context (\xA73-3.24)" },
+      { label: "allocator", detail: "Register custom heap allocator (@mode(freestanding))" },
+      { label: "deallocator", detail: "Register custom heap deallocator (@mode(freestanding))" },
+      { label: "scheduler", detail: "Register custom scheduler for for concurrent (@mode(freestanding), \xA73-3.16a)" },
+      { label: "vectorize", detail: "SIMD vectorization hint (@mode(host.native))" },
+      { label: "signalSafe", detail: "Signal-safe function verification" },
+      { label: 'webcomponent("tag-name")', detail: "Register class as Custom Element (@mode(web.*))" },
+      { label: "polymorphic", detail: "Enable polymorphic serialization (\xA74-1)" },
+      { label: 'tagged("field")', detail: "Discriminator tag for polymorphic serialization" },
+      { label: 'serialField("name")', detail: "Custom serialized field name" },
+      { label: "sensitive", detail: "Redact field in Debug/logs" },
+      { label: "total", detail: "Verify function is total \u2014 no panic, throw, or divergence (\xA71-8.12)" },
+      { label: "complete", detail: "Verify match/enum handling has no wildcard fallback (\xA71-8.12)" },
+      { label: "must_resolve", detail: "Require Result/Option return value to be explicitly handled (\xA71-8.12)" },
+      { label: "noderef", detail: "Pointer/address value that must not be dereferenced directly (\xA71-8.12)" },
+      { label: "strategy(threadPool)", detail: "Execution strategy for for concurrent (\xA72-1.11)" },
+      { label: "assume(ivdep)", detail: "Loop independence assumption for for concurrent (\xA72-1.11)" },
+      { label: "domain", detail: "Declare execution domain constraint" },
+      { label: "interchange", detail: "Declarative binary/text record layout (\xA74-2)" },
+      { label: "field", detail: "Field descriptor inside @interchange struct (\xA74-2)" }
+    ];
+    for (const a of annotations) {
+      items.push({
+        label: `@${a.label}`,
+        kind: import_node.CompletionItemKind.Property,
+        detail: a.detail,
+        insertText: a.label
+      });
+    }
+    return items;
   }
-  for (const dunder of LOOM_DUNDERS) {
-    items.push({ label: dunder, kind: import_node.CompletionItemKind.Constant, detail: "Built-in Dunder" });
+  const fromMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]*)$/);
+  if (fromMatch) {
+    for (const mod of Object.values(STDLIB_MODULES)) {
+      items.push({
+        label: mod.label,
+        kind: import_node.CompletionItemKind.Module,
+        detail: mod.detail
+      });
+    }
+    return items;
   }
-  for (const kw of LOOM_KEYWORDS) {
-    items.push({ label: kw, kind: import_node.CompletionItemKind.Keyword });
+  const importMatch = linePrefix.match(/\bfrom\s+([a-zA-Z0-9_.]+)\s+(?:defer\s+)?import\s*\([^)]*$/);
+  if (importMatch) {
+    const modName = importMatch[1];
+    const mod = STDLIB_MODULES[modName];
+    if (mod) {
+      for (const exp of mod.exports) {
+        items.push({
+          label: exp.trim(),
+          kind: import_node.CompletionItemKind.Function,
+          detail: `from ${modName}`
+        });
+      }
+      return items;
+    }
   }
-  for (const t of LOOM_TYPES) {
-    items.push({ label: t, kind: import_node.CompletionItemKind.Class });
+  const nsDotMatch = linePrefix.match(/\b(core|io|net|data|sync|structures|ui|debug|native|loup)\.\s*([a-zA-Z0-9_]*)$/);
+  if (nsDotMatch) {
+    const prefix = `${nsDotMatch[1]}.`;
+    for (const [key, mod] of Object.entries(STDLIB_MODULES)) {
+      if (key.startsWith(prefix)) {
+        const subName = key.slice(prefix.length);
+        items.push({
+          label: subName,
+          kind: import_node.CompletionItemKind.Module,
+          detail: mod.detail
+        });
+      }
+    }
   }
-  for (const mod of SYSTEM_MODULES) {
+  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
+    const escaped = modName.replace(".", "\\.");
+    if (new RegExp(`\\b${escaped}\\.\\s*$`).test(linePrefix)) {
+      for (const exp of mod.exports) {
+        items.push({
+          label: exp.trim(),
+          kind: import_node.CompletionItemKind.Function,
+          detail: `${modName}.${exp.trim()}`
+        });
+      }
+      return items;
+    }
+  }
+  if (/\bruntime\.\s*$/.test(linePrefix)) {
+    const runtimeMethods = [
+      { name: "fs", detail: "func fs(): FileSystem \u2014 Host filesystem access" },
+      { name: "proc", detail: "func proc(): Process \u2014 Host process & env access" },
+      { name: "net", detail: "func net(): Network \u2014 Host network access" },
+      { name: "ui", detail: "func ui(): UiRuntime \u2014 Reactive UI runtime" },
+      { name: "debug", detail: "func debug(): DebugRuntime \u2014 Debug & portal runtime" },
+      { name: "compile", detail: "func compile(source: string): Module \u2014 Dynamic JIT compilation" },
+      { name: "configure", detail: "func configure(opts: RuntimeOptions): void \u2014 Executor configuration" },
+      { name: "args", detail: "func args(): list[string] \u2014 Command-line arguments (\xA72-5.1)" }
+    ];
+    for (const m of runtimeMethods) {
+      items.push({
+        label: m.name,
+        kind: import_node.CompletionItemKind.Method,
+        detail: m.detail
+      });
+    }
+    return items;
+  }
+  const symbols = symbolCache.get(params.textDocument.uri) || [];
+  for (const sym of symbols) {
+    items.push({
+      label: sym.name,
+      kind: symbolKindToCompletionKind(sym.kind),
+      detail: sym.type || sym.kind
+    });
+  }
+  for (const kw of LOUP_KEYWORDS) {
+    items.push({
+      label: kw,
+      kind: import_node.CompletionItemKind.Keyword
+    });
+  }
+  for (const t of LOUP_TYPES) {
+    items.push({
+      label: t,
+      kind: import_node.CompletionItemKind.TypeParameter
+    });
+  }
+  for (const mod of Object.values(STDLIB_MODULES)) {
     items.push({
       label: mod.label,
       kind: import_node.CompletionItemKind.Module,
       detail: mod.detail
     });
-    for (const fn of mod.items) {
-      items.push({
-        label: fn,
-        kind: import_node.CompletionItemKind.Function,
-        detail: mod.label
-      });
-    }
-  }
-  const uri = _params.textDocument.uri;
-  const symbols = symbolCache.get(uri) || [];
-  for (const sym of symbols) {
-    items.push({
-      label: sym.name,
-      kind: symbolKindToCompletionKind(sym.kind),
-      detail: sym.type
-    });
-    if (sym.children) {
-      for (const child of sym.children) {
-        items.push({
-          label: child.name,
-          kind: symbolKindToCompletionKind(child.kind),
-          detail: child.type
-        });
-      }
-    }
   }
   return items;
 });
@@ -12214,7 +12962,6 @@ function symbolKindToCompletionKind(kind) {
     case "GenFunction" /* GenFunction */:
     case "AsyncGenFunction" /* AsyncGenFunction */:
     case "ExternFunction" /* ExternFunction */:
-    case "Operator" /* Operator */:
       return import_node.CompletionItemKind.Function;
     case "Class" /* Class */:
       return import_node.CompletionItemKind.Class;
@@ -12229,71 +12976,123 @@ function symbolKindToCompletionKind(kind) {
     case "TypeAlias" /* TypeAlias */:
       return import_node.CompletionItemKind.TypeParameter;
     case "Macro" /* Macro */:
-      return import_node.CompletionItemKind.Function;
+      return import_node.CompletionItemKind.Keyword;
     case "Variable" /* Variable */:
     case "ExternValue" /* ExternValue */:
       return import_node.CompletionItemKind.Variable;
     case "Parameter" /* Parameter */:
       return import_node.CompletionItemKind.Variable;
+    case "Field" /* Field */:
+      return import_node.CompletionItemKind.Field;
+    case "Operator" /* Operator */:
+      return import_node.CompletionItemKind.Operator;
     case "Portal" /* Portal */:
       return import_node.CompletionItemKind.Event;
     case "Import" /* Import */:
-      return import_node.CompletionItemKind.Module;
-    case "Field" /* Field */:
-      return import_node.CompletionItemKind.Field;
-    default:
-      return import_node.CompletionItemKind.Text;
+      return import_node.CompletionItemKind.Reference;
   }
 }
+var KEYWORD_DOCS = {
+  portal: "**`portal`** \u2014 Named diagnostic and debug observation point (\xA72-6).\n\nZero cost when inactive; can be activated at runtime or in the debugger with optional conditions.",
+  defer: "**`defer`** \u2014 Schedules a call or block to execute when the enclosing scope exits (\xA71-6.5).",
+  with: "**`with`** \u2014 Scoped resource management (`Scoped[T]` / `AsyncScoped[T]`, \xA71-6.6). Automatically closes the resource on scope exit.",
+  spawn: "**`spawn`** \u2014 Starts a concurrent child task inside an `await group` block (\xA72-1.2).",
+  concurrent: "**`for concurrent`** \u2014 Structured parallel iteration over a range or array (\xA72-1.11). Supports `@strategy(threadPool)` and `@strategy(accelerator)`.",
+  match: "**`match`** \u2014 Exhaustive pattern matching expression (\xA71-5.5).",
+  attempt: "**`attempt`** \u2014 Unwraps `Ok(v)` from a `Result[T, E]` or branches to the enclosing `try ... catch Err` arm (\xA71-5.10).",
+  unreachable: "**`unreachable`** \u2014 Expression of type `noreturn` asserting that control flow can never reach this point (\xA71-5.11). Panics in all build profiles if reached.",
+  noreturn: "**`noreturn`** \u2014 Return-type marker for functions that never return normally (\xA71-4.4a).",
+  impossible: "**`impossible`** \u2014 Uninhabited type with no values, legal in enum payload type arguments such as `Result[T, impossible]` (\xA71-4.4b).",
+  const: "**`const`** \u2014 Compile-time constant binding (`const N = ...`), compile-time evaluable function (`const func`), or compile-time conditional (`if const (...)`) (\xA71-6.2, \xA71-6.3, \xA71-7.1).",
+  dynamic: "**`dynamic`** \u2014 Declares a dynamic class supporting `!{field}` access, or opens a `dynamic obj as alias` view block.",
+  extern: '**`extern`** \u2014 Foreign Function Interface declaration (`extern js` or `extern native "lib"`).',
+  box: "**`box`** \u2014 Explicitly widens a value type to `Any` (\xA71-4.3). Prohibited in `@mode(freestanding)`.",
+  gen: "**`gen`** \u2014 Declares a generator function (`gen func` or `async gen func`) that yields values lazily via `yield`.",
+  yield: "**`yield`** \u2014 Produces a value from a generator function (`yield expr;`) or delegates to another generator (`yield* iterable;`).",
+  macro: "**`macro`** \u2014 Declares a hygienic compile-time AST macro using `quote { ... }` (\xA71-17).",
+  struct: "**`struct`** \u2014 Declares a stack-allocated value type with copy semantics (\xA71-8).",
+  type: "**`type`** \u2014 Declares a type alias (`type Name[T] = TargetType;`, \xA71-4.6).",
+  del: "**`del`** \u2014 Deletes a key/slice from a mutable collection (`del dict[key];`).",
+  borrow: "**`borrow`** \u2014 Non-owning parameter or field reference (\xA73-2.4.1). Use `excl borrow` for exclusive mutable access.",
+  unique: "**`unique`** \u2014 Single-owner binding (`unique let`/`unique var`) or class (`unique class`) with zero ARC overhead (\xA71-8.11, \xA73-2.4.7).",
+  onstack: "**`onstack`** \u2014 Guarantees local aggregate storage is materialized in the stack frame (`@mode(freestanding)`, \xA73-3.17c).",
+  consume: "**`consume`** \u2014 Explicitly transfers a `unique` binding into an ARC-managed reference (`@mode(host.native)` / `@mode(host.dual)`, \xA73-2.4.7).",
+  lifetime: "**`lifetime`** \u2014 Declares a named lifetime region parameter (`[lifetime ~a]`, \xA73-2.4.2).",
+  noescape: "**`noescape`** \u2014 Guarantees a closure parameter does not escape the call (`noescape fn(...)`, \xA73-2.4.3).",
+  reads: "**`reads`** \u2014 Ownership verb: function inspects the parameter without mutating or retaining it (default, \xA73-2.4.9).",
+  edits: "**`edits`** \u2014 Ownership verb: function mutates the parameter in place (\xA73-2.4.9).",
+  takes: "**`takes`** \u2014 Ownership verb: function consumes ownership of the parameter (\xA73-2.4.9).",
+  shares: "**`shares`** \u2014 Ownership verb: function retains a shared reference to the parameter (\xA73-2.4.9).",
+  modifier: "**`modifier`** \u2014 Marks a class method that mutates `var` fields on `this` (\xA73-2.4.11).",
+  safe: "**`safe`** \u2014 Introduces a compile-time verified safe ownership context (`safe {}` or `safe func`, \xA73-2.4.12).",
+  synchronized: "**`synchronized`** \u2014 Equips a class with a mutex serializing all `modifier` methods (\xA73-2.4.13).",
+  unsafe: '**`unsafe`** \u2014 Programmer-audited unsafe block (`unsafe("reason") { ... }`, \xA73-2.4.6).',
+  requires: "**`requires`** \u2014 Function contract precondition clause (`requires distinct(a, b)`, \xA73-2.4.10).",
+  atomic: "**`atomic`** \u2014 Cooperative atomicity block verified to contain no suspension points (`await`, `spawn`) (\xA72-1.7).",
+  volatile: "**`volatile`** \u2014 Hardware register / memory-mapped access qualifier (`@mode(host.native)` / `@mode(freestanding)`, \xA73-3.8).",
+  portable: "**`@mode(portable)`** \u2014 Portable library mode (\xA71-2.4.7). Checked against the PORTABLE-SUBSET and compiled in each importing unit's mode.",
+  complex: "**`complex`** \u2014 128-bit complex floating-point primitive (`complex64`, pair of `float64` real/imaginary parts, \xA71-4.1.6). Also `complex32` (pair of `float32`).",
+  fixed: "**`fixed`** \u2014 Signed 64-bit Q32.32 fixed-point primitive type.",
+  array: "**`array[T, rank]`** \u2014 Rank-typed N-dimensional dense array type (\xA71-4.10, `core.array`).",
+  reinterpretChecked: "**`reinterpretChecked[T, U](expr)`** \u2014 Safe bit-cast with runtime alignment check returning `Result[U, AlignmentError]` (\xA73-3.18)."
+};
 connection.onHover((params) => {
-  const uri = params.textDocument.uri;
-  const symbols = symbolCache.get(uri) || [];
-  const pos = params.position;
-  const sym = findSymbolAtPosition(symbols, pos.line, pos.character);
-  if (!sym)
+  const document = documents.get(params.textDocument.uri);
+  if (!document)
     return null;
-  const typeStr = sym.type ? `\`\`\`loom
-${sym.type}
-\`\`\`` : "";
-  const kindStr = sym.kind.toString();
-  return {
-    contents: {
-      kind: import_node.MarkupKind.Markdown,
-      value: `**${sym.name}** *(${kindStr})*
-
-${typeStr}`
-    }
-  };
-});
-function findSymbolAtPosition(symbols, line, character) {
-  for (const sym of symbols) {
-    if (isInRange(sym.range, line, character)) {
-      if (sym.children) {
-        const child = findSymbolAtPosition(sym.children, line, character);
-        if (child)
-          return child;
+  const text = document.getText();
+  const offset = document.offsetAt(params.position);
+  const word = getWordAtOffset(text, offset);
+  if (!word)
+    return null;
+  if (word in KEYWORD_DOCS) {
+    return {
+      contents: {
+        kind: import_node.MarkupKind.Markdown,
+        value: KEYWORD_DOCS[word]
       }
-      return sym;
+    };
+  }
+  const symTable = scopeCache.get(params.textDocument.uri);
+  if (symTable) {
+    const sym = symTable.findSymbol(word);
+    if (sym) {
+      const codeBlock = sym.type ? `\`\`\`loup
+${sym.name}: ${sym.type}
+\`\`\`` : `\`\`\`loup
+(${sym.kind}) ${sym.name}
+\`\`\``;
+      return {
+        contents: {
+          kind: import_node.MarkupKind.Markdown,
+          value: codeBlock
+        }
+      };
+    }
+  }
+  for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
+    if (mod.exports.map((e) => e.trim()).includes(word)) {
+      return {
+        contents: {
+          kind: import_node.MarkupKind.Markdown,
+          value: `\`\`\`loup
+from ${modName} import (${word})
+\`\`\`
+${mod.detail}`
+        }
+      };
     }
   }
   return null;
-}
-function isInRange(range, line, character) {
-  if (line < range.start.line || line > range.end.line)
-    return false;
-  if (line === range.start.line && character < range.start.column)
-    return false;
-  if (line === range.end.line && character > range.end.column)
-    return false;
-  return true;
-}
+});
 connection.onDocumentSymbol((params) => {
   const symbols = symbolCache.get(params.textDocument.uri) || [];
-  return symbols.map(symbolToDocumentSymbol);
+  return symbols.map((sym) => symbolInfoToDocumentSymbol(sym));
 });
-function symbolToDocumentSymbol(sym) {
+function symbolInfoToDocumentSymbol(sym) {
   return {
     name: sym.name,
+    detail: sym.type,
     kind: symbolKindToLspKind(sym.kind),
     range: {
       start: { line: sym.range.start.line, character: sym.range.start.column },
@@ -12303,8 +13102,7 @@ function symbolToDocumentSymbol(sym) {
       start: { line: sym.selectionRange.start.line, character: sym.selectionRange.start.column },
       end: { line: sym.selectionRange.end.line, character: sym.selectionRange.end.column }
     },
-    detail: sym.type,
-    children: sym.children?.map(symbolToDocumentSymbol)
+    children: sym.children?.map((c) => symbolInfoToDocumentSymbol(c))
   };
 }
 function symbolKindToLspKind(kind) {
@@ -12314,7 +13112,6 @@ function symbolKindToLspKind(kind) {
     case "GenFunction" /* GenFunction */:
     case "AsyncGenFunction" /* AsyncGenFunction */:
     case "ExternFunction" /* ExternFunction */:
-    case "Operator" /* Operator */:
       return import_node.SymbolKind.Function;
     case "Class" /* Class */:
       return import_node.SymbolKind.Class;
@@ -12331,25 +13128,22 @@ function symbolKindToLspKind(kind) {
     case "Macro" /* Macro */:
       return import_node.SymbolKind.Function;
     case "Variable" /* Variable */:
-      return import_node.SymbolKind.Variable;
     case "ExternValue" /* ExternValue */:
       return import_node.SymbolKind.Variable;
     case "Parameter" /* Parameter */:
       return import_node.SymbolKind.Variable;
+    case "Field" /* Field */:
+      return import_node.SymbolKind.Field;
+    case "Operator" /* Operator */:
+      return import_node.SymbolKind.Operator;
     case "Portal" /* Portal */:
       return import_node.SymbolKind.Event;
     case "Import" /* Import */:
-      return import_node.SymbolKind.Module;
-    case "Field" /* Field */:
-      return import_node.SymbolKind.Field;
-    default:
-      return import_node.SymbolKind.Variable;
+      return import_node.SymbolKind.Package;
   }
 }
 connection.onDefinition((params) => {
-  const uri = params.textDocument.uri;
-  const symbols = symbolCache.get(uri) || [];
-  const document = documents.get(uri);
+  const document = documents.get(params.textDocument.uri);
   if (!document)
     return null;
   const text = document.getText();
@@ -12357,189 +13151,206 @@ connection.onDefinition((params) => {
   const word = getWordAtOffset(text, offset);
   if (!word)
     return null;
-  const sym = findSymbolByName(symbols, word);
+  const symTable = scopeCache.get(params.textDocument.uri);
+  if (!symTable)
+    return null;
+  const sym = symTable.findSymbol(word) || symTable.findSymbol(`portal:${word}`);
   if (!sym)
     return null;
   return {
-    uri,
+    uri: params.textDocument.uri,
     range: {
       start: { line: sym.range.start.line, character: sym.range.start.column },
       end: { line: sym.range.end.line, character: sym.range.end.column }
     }
   };
 });
+connection.onFoldingRanges((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document)
+    return [];
+  const ranges = [];
+  const text = document.getText();
+  const lines = text.split("\n");
+  const stack = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith("/*") && !line.includes("*/")) {
+      stack.push({ line: i, kind: import_node.FoldingRangeKind.Comment });
+      continue;
+    }
+    if (line.includes("*/") && stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Comment) {
+      const start = stack.pop();
+      ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Comment });
+      continue;
+    }
+    if (line.startsWith("```") && stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Region) {
+      const start = stack.pop();
+      ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Region });
+      continue;
+    }
+    if (line.startsWith("```")) {
+      stack.push({ line: i, kind: import_node.FoldingRangeKind.Region });
+      continue;
+    }
+    if (line.includes('"""') || line.includes("'''")) {
+      if (stack.length > 0 && stack[stack.length - 1].kind === import_node.FoldingRangeKind.Region) {
+        const start = stack.pop();
+        ranges.push({ startLine: start.line, endLine: i, kind: import_node.FoldingRangeKind.Region });
+      } else {
+        stack.push({ line: i, kind: import_node.FoldingRangeKind.Region });
+      }
+      continue;
+    }
+    for (const ch of line) {
+      if (ch === "{") {
+        stack.push({ line: i });
+      } else if (ch === "}" && stack.length > 0) {
+        const start = stack.pop();
+        if (i > start.line) {
+          ranges.push({ startLine: start.line, endLine: i, kind: start.kind });
+        }
+      }
+    }
+  }
+  return ranges;
+});
 function getWordAtOffset(text, offset) {
   let start = offset;
   let end = offset;
-  while (start > 0 && isIdentChar(text[start - 1]))
+  while (start > 0 && /[a-zA-Z0-9_]/.test(text[start - 1])) {
     start--;
-  while (end < text.length && isIdentChar(text[end]))
+  }
+  while (end < text.length && /[a-zA-Z0-9_]/.test(text[end])) {
     end++;
-  if (start === end)
-    return null;
-  return text.slice(start, end);
-}
-function isIdentChar(ch) {
-  return ch >= "a" && ch <= "z" || ch >= "A" && ch <= "Z" || ch >= "0" && ch <= "9" || ch === "_";
-}
-function findSymbolByName(symbols, name) {
-  for (const sym of symbols) {
-    if (sym.name === name)
-      return sym;
-    if (sym.children) {
-      const child = findSymbolByName(sym.children, name);
-      if (child)
-        return child;
-    }
   }
-  return null;
+  const word = text.slice(start, end);
+  return word.length > 0 ? word : null;
 }
-connection.onFoldingRanges((params) => {
-  const uri = params.textDocument.uri;
-  const program = astCache.get(uri);
-  if (!program)
-    return [];
-  const ranges = [];
-  collectFoldingRanges(program, ranges);
-  return ranges;
-});
-function collectFoldingRanges(node, ranges) {
-  if ("body" in node && node.body && typeof node.body === "object" && "kind" in node.body) {
-    const body = node.body;
-    if (body.kind === "Block" && body.range.start.line !== body.range.end.line) {
-      ranges.push({
-        startLine: body.range.start.line,
-        endLine: body.range.end.line,
-        kind: import_node.FoldingRangeKind.Region
-      });
-    }
-  }
-  if (node.kind === "MatchExpr") {
-    const match = node;
-    if (match.range.start.line !== match.range.end.line) {
-      ranges.push({
-        startLine: match.range.start.line,
-        endLine: match.range.end.line,
-        kind: import_node.FoldingRangeKind.Region
-      });
-    }
-  }
-  for (const key of Object.keys(node)) {
-    const val = node[key];
-    if (Array.isArray(val)) {
-      for (const item of val) {
-        if (item && typeof item === "object" && "kind" in item) {
-          collectFoldingRanges(item, ranges);
-        }
-      }
-    } else if (val && typeof val === "object" && "kind" in val) {
-      collectFoldingRanges(val, ranges);
-    }
-  }
-}
+var tokenTypeMap = /* @__PURE__ */ new Map();
+tokenTypes.forEach((t, i) => tokenTypeMap.set(t, i));
+var tokenModMap = /* @__PURE__ */ new Map();
+tokenModifiers.forEach((m, i) => tokenModMap.set(m, 1 << i));
 connection.languages.semanticTokens.on((params) => {
-  const uri = params.textDocument.uri;
-  const document = documents.get(uri);
+  const document = documents.get(params.textDocument.uri);
   if (!document)
     return { data: [] };
   const text = document.getText();
   const lexer = new Lexer(text);
   const tokens = lexer.tokenize();
   const builder = new import_node.SemanticTokensBuilder();
-  for (const token of tokens) {
-    let tokenType = -1;
-    const modifiers = 0;
-    switch (token.kind) {
-      case "if":
-      case "else":
-      case "for":
-      case "while":
-      case "do":
-      case "match":
-      case "break":
-      case "continue":
-      case "return":
-      case "throw":
-      case "try":
-      case "catch":
-      case "finally":
-      case "await":
-      case "spawn":
-      case "yield":
-      case "suspend":
-      case "let":
-      case "var":
-      case "fun":
-      case "async":
-      case "gen":
-      case "macro":
-      case "class":
-      case "dynamic":
-      case "abstract":
-      case "struct":
-      case "interface":
-      case "enum":
-      case "extern":
-      case "type":
-      case "pub":
-      case "static":
-      case "operator":
-      case "from":
-      case "import":
-      case "as":
-      case "in":
-      case "is":
-      case "not":
-      case "instanceof":
-      case "typeof":
-      case "defer":
-      case "with":
-      case "portal":
-      case "group":
-      case "js":
-      case "native":
-      case "val":
-      case "true":
-      case "false":
-      case "none":
-      case "new":
-      case "del":
-      case "global":
-      case "nonlocal":
-      case "implements":
-      case "fn":
-      case "get":
-      case "set":
-      case "box":
-      case "weak":
-      case "unowned":
-        tokenType = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    if (tok.kind === "EOF" /* EOF */)
+      continue;
+    if (tok.text.includes("\n"))
+      continue;
+    let typeIdx;
+    let modBits = 0;
+    switch (tok.kind) {
+      case "LineComment" /* LineComment */:
+      case "BlockComment" /* BlockComment */:
+        typeIdx = tokenTypeMap.get("comment");
         break;
-      case "TypeIdentifier":
-        tokenType = 1;
+      case "DocComment" /* DocComment */:
+        typeIdx = tokenTypeMap.get("comment");
+        modBits |= tokenModMap.get("documentation") || 0;
         break;
-      case "Identifier":
-        tokenType = 5;
+      case "StringLiteral" /* StringLiteral */:
+      case "CharLiteral" /* CharLiteral */:
+      case "InterpolatedStringLiteral" /* InterpolatedStringLiteral */:
+      case "RawStringLiteral" /* RawStringLiteral */:
+      case "BytesLiteral" /* BytesLiteral */:
+        typeIdx = tokenTypeMap.get("string");
         break;
-      case "IntLiteral":
-      case "FloatLiteral":
-        tokenType = 11;
+      case "IntLiteral" /* IntLiteral */:
+      case "FloatLiteral" /* FloatLiteral */:
+        typeIdx = tokenTypeMap.get("number");
         break;
-      case "StringLiteral":
-      case "MultilineStringLiteral":
-      case "BytesLiteral":
-      case "RawStringLiteral":
-      case "TemplateFenceOpen":
-        tokenType = 10;
+      case "@" /* At */: {
+        typeIdx = tokenTypeMap.get("decorator");
+        if (tokens[i + 1]?.kind === "Identifier" /* Identifier */) {
+          builder.push(tok.line, tok.column, tok.length + tokens[i + 1].length, typeIdx, 0);
+          i++;
+          continue;
+        }
         break;
-      case "LineComment":
-      case "BlockComment":
-      case "DocComment":
-        tokenType = 13;
+      }
+      case "portal" /* Portal */:
+        typeIdx = tokenTypeMap.get("keyword");
+        break;
+      case "async" /* Async */:
+        typeIdx = tokenTypeMap.get("keyword");
+        modBits |= tokenModMap.get("async") || 0;
+        break;
+      case "static" /* Static */:
+        typeIdx = tokenTypeMap.get("keyword");
+        modBits |= tokenModMap.get("static") || 0;
+        break;
+      case "let" /* Let */:
+      case "const" /* Const */:
+        typeIdx = tokenTypeMap.get("keyword");
+        modBits |= tokenModMap.get("readonly") || 0;
+        break;
+      case "var" /* Var */:
+        typeIdx = tokenTypeMap.get("keyword");
+        modBits |= tokenModMap.get("modification") || 0;
+        break;
+      case "TypeIdentifier" /* TypeIdentifier */:
+        if (LOUP_TYPES.includes(tok.text)) {
+          typeIdx = tokenTypeMap.get("type");
+          modBits |= tokenModMap.get("defaultLibrary") || 0;
+        } else if (tokens[i - 1]?.kind === "class" /* Class */) {
+          typeIdx = tokenTypeMap.get("class");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i - 1]?.kind === "struct" /* Struct */) {
+          typeIdx = tokenTypeMap.get("struct");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i - 1]?.kind === "enum" /* Enum */) {
+          typeIdx = tokenTypeMap.get("enum");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i - 1]?.kind === "interface" /* Interface */) {
+          typeIdx = tokenTypeMap.get("interface");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i - 1]?.kind === "type" /* Type */) {
+          typeIdx = tokenTypeMap.get("type");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else {
+          typeIdx = tokenTypeMap.get("type");
+        }
+        break;
+      case "Identifier" /* Identifier */:
+        if (LOUP_TYPES.includes(tok.text)) {
+          typeIdx = tokenTypeMap.get("type");
+          modBits |= tokenModMap.get("defaultLibrary") || 0;
+        } else if (tokens[i - 1]?.kind === "fun" /* Fun */) {
+          typeIdx = tokenTypeMap.get("function");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i - 1]?.kind === "macro" /* Macro */) {
+          typeIdx = tokenTypeMap.get("macro");
+          modBits |= tokenModMap.get("declaration") || 0;
+        } else if (tokens[i + 1]?.kind === "!" /* Bang */ && tokens[i + 2]?.kind === "(" /* LeftParen */) {
+          typeIdx = tokenTypeMap.get("macro");
+        } else if (tokens[i + 1]?.kind === "(" /* LeftParen */) {
+          typeIdx = tokenTypeMap.get("function");
+        } else if (tokens[i - 1]?.kind === "." /* Dot */ || tokens[i - 1]?.kind === "?." /* QuestionDot */) {
+          typeIdx = tokens[i + 1]?.kind === "(" /* LeftParen */ ? tokenTypeMap.get("method") : tokenTypeMap.get("property");
+        } else if (tokens[i - 1]?.kind === "let" /* Let */ || tokens[i - 1]?.kind === "const" /* Const */) {
+          typeIdx = tokenTypeMap.get("variable");
+          modBits |= (tokenModMap.get("declaration") || 0) | (tokenModMap.get("readonly") || 0);
+        } else if (tokens[i - 1]?.kind === "var" /* Var */) {
+          typeIdx = tokenTypeMap.get("variable");
+          modBits |= (tokenModMap.get("declaration") || 0) | (tokenModMap.get("modification") || 0);
+        }
+        break;
+      default:
+        if (LOUP_KEYWORDS.includes(tok.text)) {
+          typeIdx = tokenTypeMap.get("keyword");
+        }
         break;
     }
-    if (tokenType >= 0) {
-      builder.push(token.line, token.column, token.length, tokenType, modifiers);
+    if (typeIdx !== void 0) {
+      builder.push(tok.line, tok.column, tok.length, typeIdx, modBits);
     }
   }
   return builder.build();
@@ -12550,116 +13361,95 @@ connection.onDocumentFormatting((params) => {
     return [];
   const text = document.getText();
   const lines = text.split("\n");
-  const edits = [];
-  const tabSize = params.options.tabSize || 2;
-  const indent = params.options.insertSpaces ? " ".repeat(tabSize) : "	";
-  let depth = 0;
+  const indentUnit = params.options.insertSpaces ? " ".repeat(params.options.tabSize || 2) : "	";
+  let indentLevel = 0;
+  let inTemplateFence = false;
+  let inMultilineString = false;
+  const formattedLines = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed.length === 0)
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) {
+      formattedLines.push("");
       continue;
-    if (trimmed.startsWith("}") || trimmed.startsWith(")") || trimmed.startsWith("]")) {
-      depth = Math.max(0, depth - 1);
     }
-    const expectedIndent = indent.repeat(depth);
-    const currentIndent = line.match(/^(\s*)/)?.[1] || "";
-    if (currentIndent !== expectedIndent) {
-      edits.push({
-        range: {
-          start: { line: i, character: 0 },
-          end: { line: i, character: currentIndent.length }
-        },
-        newText: expectedIndent
-      });
-    }
-    for (const ch of trimmed) {
-      if (ch === "{" || ch === "(" || ch === "[")
-        depth++;
-      if (ch === "}" || ch === ")" || ch === "]")
-        depth = Math.max(0, depth - 1);
-    }
-    const opens = (trimmed.match(/[{(\[]/g) || []).length;
-    const closes = (trimmed.match(/[})\]]/g) || []).length;
-    depth = Math.max(0, depth - opens - closes + opens);
-    depth = 0;
-    for (let j = 0; j <= i; j++) {
-      const t = lines[j].trim();
-      for (const ch of t) {
-        if (ch === "{")
-          depth++;
-        if (ch === "}")
-          depth = Math.max(0, depth - 1);
+    if (trimmed.startsWith("```")) {
+      if (inTemplateFence) {
+        inTemplateFence = false;
+        indentLevel = Math.max(0, indentLevel - 1);
+        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
+        continue;
+      } else {
+        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
+        inTemplateFence = true;
+        indentLevel++;
+        continue;
       }
     }
-  }
-  if (!text.endsWith("\n")) {
-    edits.push({
-      range: {
-        start: { line: lines.length - 1, character: lines[lines.length - 1].length },
-        end: { line: lines.length - 1, character: lines[lines.length - 1].length }
-      },
-      newText: "\n"
-    });
-  }
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmedRight = line.replace(/\s+$/, "");
-    if (trimmedRight.length < line.length) {
-      edits.push({
-        range: {
-          start: { line: i, character: trimmedRight.length },
-          end: { line: i, character: line.length }
-        },
-        newText: ""
-      });
+    if (inTemplateFence || inMultilineString) {
+      if (trimmed.startsWith('"""') || trimmed.startsWith("'''")) {
+        inMultilineString = false;
+        indentLevel = Math.max(0, indentLevel - 1);
+        formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
+        continue;
+      }
+      formattedLines.push(raw);
+      continue;
+    }
+    if ((trimmed.includes('"""') || trimmed.includes("'''")) && !trimmed.endsWith('"""') && !trimmed.endsWith("'''")) {
+      formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
+      inMultilineString = true;
+      indentLevel++;
+      continue;
+    }
+    if (/^[}\])]/.test(trimmed)) {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+    formattedLines.push(indentUnit.repeat(indentLevel) + trimmed);
+    const withoutComment = trimmed.replace(/#.*$/, "").trim();
+    if (/[{[(]\s*$/.test(withoutComment)) {
+      indentLevel++;
     }
   }
-  return edits;
+  const formatted = formattedLines.join("\n");
+  if (formatted === text)
+    return [];
+  return [
+    import_node.TextEdit.replace(
+      {
+        start: { line: 0, character: 0 },
+        end: { line: lines.length, character: 0 }
+      },
+      formatted
+    )
+  ];
 });
 connection.onCodeAction((params) => {
-  const uri = params.textDocument.uri;
-  const diagnostics = params.context.diagnostics;
+  const document = documents.get(params.textDocument.uri);
+  if (!document)
+    return [];
   const actions = [];
-  for (const diag of diagnostics) {
-    if (diag.message.includes("await") || diag.message.includes("Task")) {
-      actions.push({
-        title: "Add 'await' keyword",
-        kind: import_node.CodeActionKind.QuickFix,
-        diagnostics: [diag],
-        edit: {
-          changes: {
-            [uri]: [{
-              range: {
-                start: diag.range.start,
-                end: diag.range.start
-              },
-              newText: "await "
-            }]
-          }
-        }
-      });
-    }
-    if (diag.message.includes("not defined") || diag.message.includes("undeclared")) {
-      const document = documents.get(uri);
-      if (document) {
-        const word = document.getText(diag.range);
-        for (const mod of SYSTEM_MODULES) {
-          if (mod.items.includes(word)) {
+  const text = document.getText();
+  const uri = params.textDocument.uri;
+  for (const diag of params.context.diagnostics) {
+    const word = getWordAtOffset(text, document.offsetAt(diag.range.start));
+    if (word) {
+      for (const [modName, mod] of Object.entries(STDLIB_MODULES)) {
+        if (mod.exports.map((e) => e.trim()).includes(word)) {
+          if (!text.includes(`from ${modName}`)) {
             actions.push({
-              title: `Import '${word}' from '${mod.label}'`,
+              title: `Import '${word}' from ${modName}`,
               kind: import_node.CodeActionKind.QuickFix,
               diagnostics: [diag],
               edit: {
                 changes: {
-                  [uri]: [{
-                    range: {
-                      start: { line: 0, character: 0 },
-                      end: { line: 0, character: 0 }
-                    },
-                    newText: `from ${mod.label} import ${word}
+                  [uri]: [
+                    import_node.TextEdit.insert(
+                      { line: 0, character: 0 },
+                      `from ${modName} import (${word});
 `
-                  }]
+                    )
+                  ]
                 }
               }
             });
@@ -12679,7 +13469,7 @@ connection.onCodeAction((params) => {
                 start: diag.range.end,
                 end: diag.range.end
               },
-              newText: "\n  _ => { /* TODO */ }"
+              newText: "\n  _ => { # TODO }"
             }]
           }
         }
@@ -12739,6 +13529,18 @@ connection.onSignatureHelp((params) => {
     activeParameter: commaCount
   };
 });
+function findSymbolByName(symbols, name) {
+  for (const sym of symbols) {
+    if (sym.name === name)
+      return sym;
+    if (sym.children) {
+      const found = findSymbolByName(sym.children, name);
+      if (found)
+        return found;
+    }
+  }
+  return void 0;
+}
 connection.onWorkspaceSymbol((_params) => {
   const results = [];
   const query = (_params.query || "").toLowerCase();
@@ -12781,3 +13583,4 @@ connection.onWorkspaceSymbol((_params) => {
 });
 documents.listen(connection);
 connection.listen();
+//# sourceMappingURL=server.js.map

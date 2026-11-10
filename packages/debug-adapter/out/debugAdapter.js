@@ -1413,13 +1413,13 @@ var require_main = __commonJS({
   }
 });
 
-// src/loomDebugSession.ts
+// src/loupDebugSession.ts
 var import_debugadapter = __toESM(require_main());
 
-// src/loomRuntime.ts
+// src/loupRuntime.ts
 var import_events = require("events");
 var import_child_process = require("child_process");
-var LoomRuntime = class extends import_events.EventEmitter {
+var LoupRuntime = class extends import_events.EventEmitter {
   process = null;
   breakpoints = /* @__PURE__ */ new Map();
   breakpointIdCounter = 1;
@@ -1429,20 +1429,20 @@ var LoomRuntime = class extends import_events.EventEmitter {
   running = false;
   // ---- Lifecycle ----
   async launch(program, args, target, env, enableTimeTravel, traceLevel) {
-    const loomArgs = ["run", program, "--target", target];
+    const loupArgs = ["run", program, "--target", target];
     if (enableTimeTravel) {
-      loomArgs.push("--enable-time-travel");
+      loupArgs.push("--enable-time-travel");
     }
     if (traceLevel && traceLevel !== "off") {
-      loomArgs.push("--trace-level", traceLevel);
+      loupArgs.push("--trace-level", traceLevel);
     }
     if (args.length > 0) {
-      loomArgs.push("--", ...args);
+      loupArgs.push("--", ...args);
     }
-    const loomPath = process.env["LOOM_PATH"] || "loom";
-    this.process = (0, import_child_process.spawn)(loomPath, loomArgs, {
+    const loupPath = process.env["LOUP_PATH"] || "loup";
+    this.process = (0, import_child_process.spawn)(loupPath, loupArgs, {
       cwd: this.workingDir(program),
-      env: { ...process.env, ...env, LOOM_DEBUG: "1" },
+      env: { ...process.env, ...env, LOUP_DEBUG: "1" },
       stdio: ["pipe", "pipe", "pipe"]
     });
     this.running = true;
@@ -1474,7 +1474,7 @@ var LoomRuntime = class extends import_events.EventEmitter {
     });
     this.process.on("error", (err) => {
       this.running = false;
-      this.emit("error", `Failed to launch Loom: ${err.message}`);
+      this.emit("error", `Failed to launch Loup: ${err.message}`);
       this.emit("end");
     });
   }
@@ -1636,16 +1636,16 @@ var LoomRuntime = class extends import_events.EventEmitter {
   }
 };
 
-// src/loomDebugSession.ts
+// src/loupDebugSession.ts
 var path = __toESM(require("path"));
 var THREAD_ID = 1;
-var LoomDebugSession = class extends import_debugadapter.LoggingDebugSession {
+var LoupDebugSession = class extends import_debugadapter.LoggingDebugSession {
   runtime;
   constructor() {
-    super("loom-debug.log");
+    super("loup-debug.log");
     this.setDebuggerLinesStartAt1(true);
     this.setDebuggerColumnsStartAt1(true);
-    this.runtime = new LoomRuntime();
+    this.runtime = new LoupRuntime();
     this.runtime.on("stopOnBreakpoint", (threadId, reason) => {
       this.sendEvent(new import_debugadapter.StoppedEvent(reason, threadId));
     });
@@ -1880,7 +1880,7 @@ var LoomDebugSession = class extends import_debugadapter.LoggingDebugSession {
   // ---- Exception info ----
   exceptionInfoRequest(response, _args) {
     response.body = {
-      exceptionId: "LoomException",
+      exceptionId: "LoupException",
       description: "An exception was thrown",
       breakMode: "always"
     };
@@ -1889,4 +1889,5 @@ var LoomDebugSession = class extends import_debugadapter.LoggingDebugSession {
 };
 
 // src/debugAdapter.ts
-LoomDebugSession.run(LoomDebugSession);
+LoupDebugSession.run(LoupDebugSession);
+//# sourceMappingURL=debugAdapter.js.map

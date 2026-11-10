@@ -1,18 +1,23 @@
 {
-  "name": "loom-vscode-extension",
+  "name": "loup-vscode-extension",
+  "version": "1.20.0",
   "private": true,
+  "description": "VSCode extension for the Loup programming language (v1.20)",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
     "watch": "npm run watch --workspaces --if-present",
+    "test": "esbuild packages/language-server/src/__tests__/loup.test.ts --bundle --platform=node --outfile=/tmp/loup-test.cjs && node --test /tmp/loup-test.cjs",
+    "test:watch": "vitest",
     "lint": "eslint packages/*/src/**/*.ts",
-    "test": "npm run test --workspaces --if-present"
+    "clean": "npm run clean --workspaces --if-present"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "esbuild": "^0.20.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

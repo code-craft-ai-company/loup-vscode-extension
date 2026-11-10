@@ -1,8 +1,8 @@
 // ============================================================================
-// Loom Debug Adapter — DAP entry point
+// Loup Debug Adapter — DAP entry point
 // ============================================================================
 
-import { LoomDebugSession } from './loomDebugSession.js';
+import { LoupDebugSession } from './loupDebugSession.js';
 
 // Start the debug adapter using stdin/stdout
-LoomDebugSession.run(LoomDebugSession);
+LoupDebugSession.run(LoupDebugSession);

@@ -1,0 +1,29 @@
+# Loup v1.20 Syntax Test file
+
+@mode(host.dual)
+
+@unsafe("sendable: manually synchronized")
+class TestClass implements Sendable {
+  var rawText: string = r"this \n is raw";
+  var normalText: string = "no {\$ interpolation \$}";
+  var interpText: string = i"hello {\$ name \$}";
+}
+
+struct ValueBox[T: ValueType] {
+  var value: T;
+}
+
+const MAX_ITEMS: int = 128;
+
+const func computeLimit(n: int): int {
+  return n // 2;
+}
+
+func doSomething(excl borrow buf: Buffer): void {
+  let text = i"interpolated {\$ buf.pos \$}";
+  let z: complex = 1.5 + 2.3i;
+  let ch: char = c"A";
+}
+
+@unsafe("escapingBorrow: test")
+extern native "libtest" func libtest_init(): void;

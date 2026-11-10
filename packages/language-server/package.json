@@ -1,12 +1,13 @@
 {
-  "name": "loom-language-server",
-  "version": "0.1.0",
-  "description": "Language Server Protocol implementation for the Loom programming language",
+  "name": "loup-language-server",
+  "version": "1.20.0",
+  "description": "Language Server Protocol implementation for the Loup programming language",
+  "private": true,
   "main": "./out/server.js",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --outfile=out/server.js --external:vscode --format=cjs --platform=node",
+    "build": "esbuild src/server.ts --bundle --outfile=out/server.js --format=cjs --platform=node --sourcemap",
     "watch": "npm run build -- --watch",
-    "test": "echo \"No tests yet\""
+    "clean": "rm -rf out"
   },
   "dependencies": {
     "vscode-languageserver": "^9.0.1",
@@ -15,6 +16,6 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "esbuild": "^0.20.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.3.3"
   }
 }

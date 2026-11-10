@@ -3,7 +3,7 @@
   "displayName": "Loup Language",
   "description": "Language support for the Loup programming language (v1.20)",
   "version": "1.20.0",
-  "publisher": "loup-lang",
+  "publisher": "code-craft-ai",
   "author": {
     "name": "Code Craft AI LLC"
   },

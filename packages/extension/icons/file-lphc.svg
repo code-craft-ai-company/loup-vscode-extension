@@ -1,36 +1,37 @@
 <svg width="16" height="16" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="hc_crimson" x1="16" y1="12" x2="70" y2="112" gradientUnits="userSpaceOnUse">
+    <linearGradient id="b_hc_crimson" x1="16" y1="12" x2="70" y2="112" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FDA4AF"/>
       <stop offset="50%" stop-color="#F43F5E"/>
       <stop offset="100%" stop-color="#9F1239"/>
     </linearGradient>
-    <linearGradient id="hc_steel" x1="58" y1="12" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+    <linearGradient id="b_hc_steel" x1="58" y1="12" x2="112" y2="112" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#94A3B8"/>
       <stop offset="50%" stop-color="#475569"/>
       <stop offset="100%" stop-color="#0F172A"/>
     </linearGradient>
   </defs>
-  <!-- Left Ear -->
-  <polygon points="24,10 55,35 20,57" fill="#FB7185"/>
-  <polygon points="28,18 46,34 26,48" fill="#4C0519" fill-opacity="0.75"/>
-  <!-- Right Ear -->
-  <polygon points="104,10 73,35 108,57" fill="url(#hc_steel)"/>
-  <polygon points="100,18 82,34 102,48" fill="#0F172A" fill-opacity="0.8"/>
-  <!-- Left Cheek (Molten Crimson) & Right Cheek (Titanium Steel) -->
-  <polygon points="20,56 54,34 65,48 49,98 14,76" fill="url(#hc_crimson)"/>
-  <polygon points="108,56 74,34 63,48 79,98 114,76" fill="url(#hc_steel)"/>
-  <!-- Steel Hex-Nut Forehead Diamond -->
-  <polygon points="54,34 64,22 74,34 64,50" fill="#38BDF8"/>
-  <circle cx="64" cy="36" r="4" fill="#0F172A"/>
-  <!-- Right Snout Plane -->
-  <polygon points="63,44 80,50 80,96 63,96" fill="#1E293B"/>
-  <!-- L Snout Bridge -->
-  <polygon points="48,50 64,44 64,94 80,94 76,105 48,105" fill="#F1F5F9"/>
-  <!-- Nose & Jaw Tip -->
-  <polygon points="48,105 76,105 64,120" fill="#0F172A"/>
-  <polygon points="54,101 72,101 64,112" fill="#F43F5E"/>
-  <!-- Glowing Eyes -->
-  <polygon points="33,61 50,66 39,72" fill="#38BDF8"/>
-  <polygon points="95,61 78,66 89,72" fill="#F43F5E"/>
+  <!-- Document Sheet (Centered x=16..112) -->
+  <path d="M24 6 H86 L112 32 V114 C112 118.4 108.4 122 104 122 H24 C19.6 122 16 118.4 16 114 V14 C16 9.6 19.6 6 24 6 Z" fill="#1F121B" stroke="#F43F5E" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M86 6 V32 H112 Z" fill="#F43F5E" stroke="#F43F5E" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Full Crimson & Steel Cyber-Origami Wolf Centered in Sheet -->
+  <g transform="translate(26.88, 15) scale(0.58)">
+    <polygon points="24,10 55,35 20,57" fill="#FB7185"/>
+    <polygon points="28,18 46,34 26,48" fill="#4C0519" fill-opacity="0.75"/>
+    <polygon points="104,10 73,35 108,57" fill="url(#b_hc_steel)"/>
+    <polygon points="100,18 82,34 102,48" fill="#0F172A" fill-opacity="0.8"/>
+    <polygon points="20,56 54,34 65,48 49,98 14,76" fill="url(#b_hc_crimson)"/>
+    <polygon points="108,56 74,34 63,48 79,98 114,76" fill="url(#b_hc_steel)"/>
+    <polygon points="54,34 64,22 74,34 64,50" fill="#38BDF8"/>
+    <circle cx="64" cy="36" r="4" fill="#0F172A"/>
+    <polygon points="63,44 80,50 80,96 63,96" fill="#1E293B"/>
+    <polygon points="48,50 64,44 64,94 80,94 76,105 48,105" fill="#F1F5F9"/>
+    <polygon points="48,105 76,105 64,120" fill="#0F172A"/>
+    <polygon points="54,101 72,101 64,112" fill="#F43F5E"/>
+    <polygon points="33,61 50,66 39,72" fill="#38BDF8"/>
+    <polygon points="95,61 78,66 89,72" fill="#F43F5E"/>
+  </g>
+  <!-- Centered Footer Pill -->
+  <rect x="23" y="91" width="82" height="23" rx="6" fill="#F43F5E"/>
+  <text x="64" y="108" text-anchor="middle" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="15" letter-spacing="0.5">.LPHC</text>
 </svg>

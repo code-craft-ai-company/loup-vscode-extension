@@ -18,7 +18,7 @@ describe('Loup VSCode Extension Manifest & Grammars', () => {
       fs.readFileSync(path.join(ROOT, 'packages/extension/package.json'), 'utf8')
     );
     assert.equal(extPkg.name, 'loup-lang');
-    assert.equal(extPkg.version, '1.21.0');
+    assert.equal(extPkg.version, '1.21.1');
 
     const loupLang = extPkg.contributes.languages.find((l: { id: string }) => l.id === 'loup');
     assert.ok(loupLang);

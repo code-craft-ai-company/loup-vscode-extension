@@ -1,0 +1,20 @@
+@mode(host.scripted)
+# samples/traces/src/pricing.loup — see shop.loup.
+
+
+## The discount, in percent, from the shop's configuration file.
+## Nothing checks that it is at most 100: that is the seeded bug.
+pub func loadDiscount(): int {
+    let text = readText("/etc/app.toml");
+    return text.split("=")[1].trim().to_int();
+}
+
+
+
+
+
+## The price after the discount.
+pub func total(price: int, discount: int): int {
+    let cut = price * discount / 100;
+        return price - cut;
+}

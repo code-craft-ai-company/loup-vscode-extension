@@ -1,0 +1,61 @@
+@mode(host.scripted)
+# samples/traces/src/shop.loup — the program the sample trace `demo.ltrace` was written about.
+# The trace is a demonstration built by `loup_debug demo`; this source gives its sites lines to land on.
+
+from pricing import (loadDiscount, total);
+
+class Cart { pub var items: int = 0; pub var price: int = 0; pub var card: string = ""; }
+class Order { pub var total: int = 0; }
+
+
+## The shop: three carts, then the audit.
+func main(): void {
+    checkout(Cart(items = 2, price = 100));
+    try {
+        checkout(Cart(items = 1, price = 24, card = "4111-…"));
+    } catch (ValueError as e) {
+        printErr("checkout failed: " + e.message);
+    }
+    audit();
+}
+
+
+
+
+
+
+
+
+## Price a cart, print the receipt and bill it.
+func checkout(cart: Cart): void {
+    portal shop.checkout {
+        let discount = loadDiscount();
+        var order = Order();
+        order.total = total(cart.price, discount);
+        receipt(order);
+        if (order.total < 0) {
+            throw ValueError("negative total");
+        }
+    }
+}
+
+## Print the receipt; warn about a total that cannot be right.
+func receipt(order: Order): void {
+        println("Total: " + order.total.to_string());
+        if (order.total < 0) { warn(order); }
+}
+
+
+
+
+
+
+
+
+
+## Append the day's totals to the shop log.
+func audit(): void {
+    portal shop.audit { writeLog(now()); }
+}
+
+main();

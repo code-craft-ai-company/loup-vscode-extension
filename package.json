@@ -9,10 +9,11 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "watch": "npm run watch --workspaces --if-present",
-    "test": "esbuild packages/language-server/src/__tests__/loup.test.ts --bundle --platform=node --outfile=/tmp/loup-test.cjs && node --test /tmp/loup-test.cjs",
+    "test": "esbuild packages/language-server/src/__tests__/loup.test.ts packages/extension/src/__tests__/traceView.test.ts --bundle --platform=node --outdir=.test-out --entry-names=[name] --out-extension:.js=.cjs && node --test .test-out/loup.test.cjs .test-out/traceView.test.cjs",
     "test:watch": "vitest",
     "lint": "eslint packages/*/src/**/*.ts",
-    "clean": "npm run clean --workspaces --if-present"
+    "clean": "npm run clean --workspaces --if-present",
+    "typecheck": "tsc --noEmit -p packages/extension && tsc --noEmit -p packages/debug-adapter && tsc --noEmit -p packages/language-server"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

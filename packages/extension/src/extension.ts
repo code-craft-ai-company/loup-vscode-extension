@@ -1,6 +1,6 @@
 // ============================================================================
 // Loup Language Extension for Visual Studio Code
-// Entry point — P0–P5: Grammar, LSP, DAP, Portals, Time-Travel, Tasks, Deps
+// Entry point — P0–P5: Grammar, LSP, DAP, Portals, Trace viewer, Tasks, Deps
 // ============================================================================
 
 import * as path from 'path';
@@ -18,16 +18,13 @@ import {
   PortalCodeLensProvider,
   PortalBreakpointItem,
 } from './portalBreakpoints';
-import { TimeTravelManager } from './timeTravelManager';
-import { TimelinePanel } from './timelinePanel';
+import { TraceEditorProvider, TraceViewerPanel, openTraceViewer } from './traceViewerPanel';
 import { TaskGroupPanel } from './taskGroupPanel';
 import { LoupTaskProvider } from './taskProvider';
 import { DependencyTreeProvider } from './dependencyTree';
 
 let client: LanguageClient | undefined;
 let portalManager: PortalBreakpointManager;
-let timeTravelManager: TimeTravelManager;
-let timelinePanel: TimelinePanel;
 let taskGroupPanel: TaskGroupPanel;
 let depTreeProvider: DependencyTreeProvider;
 
@@ -157,60 +154,52 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // ---- P3: Time-Travel Debugging ----
-  timeTravelManager = new TimeTravelManager();
-  timelinePanel = new TimelinePanel(context, timeTravelManager);
+  // ---- P3: Time travel — the trace viewer ----
+  //
+  // A `.ltrace` file opens in the trace viewer (a custom editor). The Loup
+  // toolchain reads the file; the viewer moves over what it holds.
+  const withViewer = (act: (v: TraceViewerPanel) => void | Promise<void>) => async () => {
+    const viewer = TraceViewerPanel.active;
+    if (!viewer) {
+      vscode.window.showInformationMessage('Open a .ltrace file first (Loup: Open Trace).');
+      return;
+    }
+    await act(viewer);
+  };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('loup.timeTravel.start', () => {
-      timeTravelManager.startCapture();
-      vscode.window.showInformationMessage('Time-travel capture started.');
-    }),
-    vscode.commands.registerCommand('loup.timeTravel.stop', () => {
-      timeTravelManager.stopCapture();
-      vscode.window.showInformationMessage(
-        `Time-travel capture stopped. ${timeTravelManager.getEvents().length} events recorded.`
-      );
-    }),
-    vscode.commands.registerCommand('loup.timeTravel.showTimeline', () => {
-      timelinePanel.show();
-    }),
-    vscode.commands.registerCommand('loup.timeTravel.openTrace', async () => {
-      const uris = await vscode.window.showOpenDialog({
-        canSelectMany: false,
-        filters: { 'Loup Trace': ['loup-trace', 'json'] },
-        openLabel: 'Open Trace Recording',
-      });
-      if (uris && uris[0]) {
-        try {
-          await timeTravelManager.loadRecording(uris[0]);
-          timelinePanel.show();
-          vscode.window.showInformationMessage('Trace recording loaded.');
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to load trace: ${err}`);
-        }
-      }
-    }),
-    vscode.commands.registerCommand('loup.timeTravel.saveTrace', async () => {
-      const uri = await vscode.window.showSaveDialog({
-        filters: { 'Loup Trace': ['loup-trace', 'json'] },
-        saveLabel: 'Save Trace Recording',
-      });
-      if (uri) {
-        await timeTravelManager.saveRecording(uri);
-        vscode.window.showInformationMessage('Trace recording saved.');
-      }
-    }),
-    vscode.commands.registerCommand('loup.timeTravel.navigateTo', async (seq: number) => {
-      const event = timeTravelManager.stepTo(seq);
-      if (event?.source && event.line !== undefined) {
-        const doc = await vscode.workspace.openTextDocument(event.source);
-        await vscode.window.showTextDocument(doc, {
-          selection: new vscode.Range(event.line - 1, 0, event.line - 1, 0),
-          preserveFocus: true,
+    vscode.window.registerCustomEditorProvider(
+      TraceEditorProvider.viewType,
+      new TraceEditorProvider(context, outputChannel),
+      { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false }
+    ),
+    vscode.commands.registerCommand('loup.trace.open', async (uri?: vscode.Uri) => {
+      let target = uri;
+      if (!target) {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          filters: { 'Loup trace': ['ltrace'], 'Exported trace view': ['json'] },
+          openLabel: 'Open Trace',
         });
+        target = picked?.[0];
       }
-    })
+      if (target) await openTraceViewer(target);
+    }),
+    vscode.commands.registerCommand('loup.trace.stepBack', withViewer((v) => v.step('backward'))),
+    vscode.commands.registerCommand('loup.trace.stepForward', withViewer((v) => v.step('forward'))),
+    vscode.commands.registerCommand(
+      'loup.trace.previousException',
+      withViewer((v) => v.stepKind('backward', ['Exception']))
+    ),
+    vscode.commands.registerCommand(
+      'loup.trace.nextException',
+      withViewer((v) => v.stepKind('forward', ['Exception']))
+    ),
+    vscode.commands.registerCommand('loup.trace.previousCapture', withViewer((v) => v.stepCapture('backward'))),
+    vscode.commands.registerCommand('loup.trace.nextCapture', withViewer((v) => v.stepCapture('forward'))),
+    vscode.commands.registerCommand('loup.trace.gotoPoint', withViewer((v) => v.promptGotoPoint())),
+    vscode.commands.registerCommand('loup.trace.query', withViewer((v) => v.promptQuery())),
+    vscode.commands.registerCommand('loup.trace.reload', withViewer((v) => v.reload()))
   );
 
   // ---- P4: Task Group Visualizer ----

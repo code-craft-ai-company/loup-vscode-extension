@@ -3104,7 +3104,7 @@ var require_main = __commonJS({
     exports2.createMessageConnection = exports2.createServerSocketTransport = exports2.createClientSocketTransport = exports2.createServerPipeTransport = exports2.createClientPipeTransport = exports2.generateRandomPipeName = exports2.StreamMessageWriter = exports2.StreamMessageReader = exports2.SocketMessageWriter = exports2.SocketMessageReader = exports2.PortMessageWriter = exports2.PortMessageReader = exports2.IPCMessageWriter = exports2.IPCMessageReader = void 0;
     var ril_1 = require_ril();
     ril_1.default.install();
-    var path4 = require("path");
+    var path6 = require("path");
     var os = require("os");
     var crypto_1 = require("crypto");
     var net_1 = require("net");
@@ -3240,9 +3240,9 @@ var require_main = __commonJS({
       }
       let result;
       if (XDG_RUNTIME_DIR) {
-        result = path4.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
+        result = path6.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
       } else {
-        result = path4.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
+        result = path6.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
       }
       const limit = safeIpcPathLengths.get(process.platform);
       if (limit !== void 0 && result.length > limit) {
@@ -6697,8 +6697,8 @@ var require_protocolCodeAction = __commonJS({
   "../../node_modules/vscode-languageclient/lib/common/protocolCodeAction.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var vscode8 = require("vscode");
-    var ProtocolCodeAction = class extends vscode8.CodeAction {
+    var vscode7 = require("vscode");
+    var ProtocolCodeAction = class extends vscode7.CodeAction {
       constructor(title, data) {
         super(title);
         this.data = data;
@@ -6714,7 +6714,7 @@ var require_protocolDiagnostic = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ProtocolDiagnostic = exports2.DiagnosticCode = void 0;
-    var vscode8 = require("vscode");
+    var vscode7 = require("vscode");
     var Is = require_is();
     var DiagnosticCode;
     (function(DiagnosticCode2) {
@@ -6724,7 +6724,7 @@ var require_protocolDiagnostic = __commonJS({
       }
       DiagnosticCode2.is = is;
     })(DiagnosticCode || (exports2.DiagnosticCode = DiagnosticCode = {}));
-    var ProtocolDiagnostic = class extends vscode8.Diagnostic {
+    var ProtocolDiagnostic = class extends vscode7.Diagnostic {
       constructor(range, message, severity, data) {
         super(range, message, severity);
         this.data = data;
@@ -9218,40 +9218,40 @@ var require_balanced_match = __commonJS({
   "../../node_modules/balanced-match/index.js"(exports2, module2) {
     "use strict";
     module2.exports = balanced;
-    function balanced(a, b, str) {
+    function balanced(a, b, str2) {
       if (a instanceof RegExp)
-        a = maybeMatch(a, str);
+        a = maybeMatch(a, str2);
       if (b instanceof RegExp)
-        b = maybeMatch(b, str);
-      var r = range(a, b, str);
+        b = maybeMatch(b, str2);
+      var r = range(a, b, str2);
       return r && {
         start: r[0],
         end: r[1],
-        pre: str.slice(0, r[0]),
-        body: str.slice(r[0] + a.length, r[1]),
-        post: str.slice(r[1] + b.length)
+        pre: str2.slice(0, r[0]),
+        body: str2.slice(r[0] + a.length, r[1]),
+        post: str2.slice(r[1] + b.length)
       };
     }
-    function maybeMatch(reg, str) {
-      var m = str.match(reg);
+    function maybeMatch(reg, str2) {
+      var m = str2.match(reg);
       return m ? m[0] : null;
     }
     balanced.range = range;
-    function range(a, b, str) {
+    function range(a, b, str2) {
       var begs, beg, left, right, result;
-      var ai = str.indexOf(a);
-      var bi = str.indexOf(b, ai + 1);
+      var ai = str2.indexOf(a);
+      var bi = str2.indexOf(b, ai + 1);
       var i = ai;
       if (ai >= 0 && bi > 0) {
         if (a === b) {
           return [ai, bi];
         }
         begs = [];
-        left = str.length;
+        left = str2.length;
         while (i >= 0 && !result) {
           if (i == ai) {
             begs.push(i);
-            ai = str.indexOf(a, i + 1);
+            ai = str2.indexOf(a, i + 1);
           } else if (begs.length == 1) {
             result = [begs.pop(), bi];
           } else {
@@ -9260,7 +9260,7 @@ var require_balanced_match = __commonJS({
               left = beg;
               right = bi;
             }
-            bi = str.indexOf(b, i + 1);
+            bi = str2.indexOf(b, i + 1);
           }
           i = ai < bi && ai >= 0 ? ai : bi;
         }
@@ -9283,22 +9283,22 @@ var require_brace_expansion = __commonJS({
     var escClose = "\0CLOSE" + Math.random() + "\0";
     var escComma = "\0COMMA" + Math.random() + "\0";
     var escPeriod = "\0PERIOD" + Math.random() + "\0";
-    function numeric(str) {
-      return parseInt(str, 10) == str ? parseInt(str, 10) : str.charCodeAt(0);
+    function numeric(str2) {
+      return parseInt(str2, 10) == str2 ? parseInt(str2, 10) : str2.charCodeAt(0);
     }
-    function escapeBraces(str) {
-      return str.split("\\\\").join(escSlash).split("\\{").join(escOpen).split("\\}").join(escClose).split("\\,").join(escComma).split("\\.").join(escPeriod);
+    function escapeBraces(str2) {
+      return str2.split("\\\\").join(escSlash).split("\\{").join(escOpen).split("\\}").join(escClose).split("\\,").join(escComma).split("\\.").join(escPeriod);
     }
-    function unescapeBraces(str) {
-      return str.split(escSlash).join("\\").split(escOpen).join("{").split(escClose).join("}").split(escComma).join(",").split(escPeriod).join(".");
+    function unescapeBraces(str2) {
+      return str2.split(escSlash).join("\\").split(escOpen).join("{").split(escClose).join("}").split(escComma).join(",").split(escPeriod).join(".");
     }
-    function parseCommaParts(str) {
-      if (!str)
+    function parseCommaParts(str2) {
+      if (!str2)
         return [""];
       var parts = [];
-      var m = balanced("{", "}", str);
+      var m = balanced("{", "}", str2);
       if (!m)
-        return str.split(",");
+        return str2.split(",");
       var pre = m.pre;
       var body = m.body;
       var post = m.post;
@@ -9312,16 +9312,16 @@ var require_brace_expansion = __commonJS({
       parts.push.apply(parts, p);
       return parts;
     }
-    function expandTop(str) {
-      if (!str)
+    function expandTop(str2) {
+      if (!str2)
         return [];
-      if (str.substr(0, 2) === "{}") {
-        str = "\\{\\}" + str.substr(2);
+      if (str2.substr(0, 2) === "{}") {
+        str2 = "\\{\\}" + str2.substr(2);
       }
-      return expand(escapeBraces(str), true).map(unescapeBraces);
+      return expand(escapeBraces(str2), true).map(unescapeBraces);
     }
-    function embrace(str) {
-      return "{" + str + "}";
+    function embrace(str2) {
+      return "{" + str2 + "}";
     }
     function isPadded(el) {
       return /^-?0\d/.test(el);
@@ -9332,11 +9332,11 @@ var require_brace_expansion = __commonJS({
     function gte(i, y) {
       return i >= y;
     }
-    function expand(str, isTop) {
+    function expand(str2, isTop) {
       var expansions = [];
-      var m = balanced("{", "}", str);
+      var m = balanced("{", "}", str2);
       if (!m)
-        return [str];
+        return [str2];
       var pre = m.pre;
       var post = m.post.length ? expand(m.post, false) : [""];
       if (/\$$/.test(m.pre)) {
@@ -9351,10 +9351,10 @@ var require_brace_expansion = __commonJS({
         var isOptions = m.body.indexOf(",") >= 0;
         if (!isSequence && !isOptions) {
           if (m.post.match(/,(?!,).*\}/)) {
-            str = m.pre + "{" + m.body + escClose + m.post;
-            return expand(str);
+            str2 = m.pre + "{" + m.body + escClose + m.post;
+            return expand(str2);
           }
-          return [str];
+          return [str2];
         }
         var n;
         if (isSequence) {
@@ -9393,9 +9393,9 @@ var require_brace_expansion = __commonJS({
             } else {
               c = String(i);
               if (pad) {
-                var need = width - c.length;
-                if (need > 0) {
-                  var z = new Array(need + 1).join("0");
+                var need2 = width - c.length;
+                if (need2 > 0) {
+                  var z = new Array(need2 + 1).join("0");
                   if (i < 0)
                     c = "-" + z + c.slice(1);
                   else
@@ -9435,8 +9435,8 @@ var require_minimatch = __commonJS({
       return new Minimatch(pattern, options).match(p);
     };
     module2.exports = minimatch;
-    var path4 = require_path();
-    minimatch.sep = path4.sep;
+    var path6 = require_path();
+    minimatch.sep = path6.sep;
     var GLOBSTAR = Symbol("globstar **");
     minimatch.GLOBSTAR = GLOBSTAR;
     var expand = require_brace_expansion();
@@ -10054,8 +10054,8 @@ var require_minimatch = __commonJS({
         if (f === "/" && partial)
           return true;
         const options = this.options;
-        if (path4.sep !== "/") {
-          f = f.split(path4.sep).join("/");
+        if (path6.sep !== "/") {
+          f = f.split(path6.sep).join("/");
         }
         f = f.split(slashSplit);
         this.debug(this.pattern, "split", f);
@@ -10843,7 +10843,7 @@ var require_notebook = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.NotebookDocumentSyncFeature = void 0;
-    var vscode8 = require("vscode");
+    var vscode7 = require("vscode");
     var minimatch = require_minimatch();
     var proto = require_main3();
     var UUID = require_uuid();
@@ -10898,9 +10898,9 @@ var require_notebook = __commonJS({
         c2p2.asNotebookCell = asNotebookCell;
         function asNotebookCellKind(kind) {
           switch (kind) {
-            case vscode8.NotebookCellKind.Markup:
+            case vscode7.NotebookCellKind.Markup:
               return proto.NotebookCellKind.Markup;
-            case vscode8.NotebookCellKind.Code:
+            case vscode7.NotebookCellKind.Code:
               return proto.NotebookCellKind.Code;
           }
         }
@@ -11151,25 +11151,25 @@ var require_notebook = __commonJS({
         this.notebookDidOpen = /* @__PURE__ */ new Set();
         this.disposables = [];
         this.selector = client2.protocol2CodeConverter.asDocumentSelector($NotebookDocumentSyncOptions.asDocumentSelector(options));
-        vscode8.workspace.onDidOpenNotebookDocument((notebookDocument) => {
+        vscode7.workspace.onDidOpenNotebookDocument((notebookDocument) => {
           this.notebookDidOpen.add(notebookDocument.uri.toString());
           this.didOpen(notebookDocument);
         }, void 0, this.disposables);
-        for (const notebookDocument of vscode8.workspace.notebookDocuments) {
+        for (const notebookDocument of vscode7.workspace.notebookDocuments) {
           this.notebookDidOpen.add(notebookDocument.uri.toString());
           this.didOpen(notebookDocument);
         }
-        vscode8.workspace.onDidChangeNotebookDocument((event) => this.didChangeNotebookDocument(event), void 0, this.disposables);
+        vscode7.workspace.onDidChangeNotebookDocument((event) => this.didChangeNotebookDocument(event), void 0, this.disposables);
         if (this.options.save === true) {
-          vscode8.workspace.onDidSaveNotebookDocument((notebookDocument) => this.didSave(notebookDocument), void 0, this.disposables);
+          vscode7.workspace.onDidSaveNotebookDocument((notebookDocument) => this.didSave(notebookDocument), void 0, this.disposables);
         }
-        vscode8.workspace.onDidCloseNotebookDocument((notebookDocument) => {
+        vscode7.workspace.onDidCloseNotebookDocument((notebookDocument) => {
           this.didClose(notebookDocument);
           this.notebookDidOpen.delete(notebookDocument.uri.toString());
         }, void 0, this.disposables);
       }
       getState() {
-        for (const notebook of vscode8.workspace.notebookDocuments) {
+        for (const notebook of vscode7.workspace.notebookDocuments) {
           const matchingCells = this.getMatchingCells(notebook);
           if (matchingCells !== void 0) {
             return { kind: "document", id: "$internal", registrations: true, matches: true };
@@ -11181,10 +11181,10 @@ var require_notebook = __commonJS({
         return "notebook";
       }
       handles(textDocument) {
-        return vscode8.languages.match(this.selector, textDocument) > 0;
+        return vscode7.languages.match(this.selector, textDocument) > 0;
       }
       didOpenNotebookCellTextDocument(notebookDocument, cell) {
-        if (vscode8.languages.match(this.selector, cell.document) === 0) {
+        if (vscode7.languages.match(this.selector, cell.document) === 0) {
           return;
         }
         if (!this.notebookDidOpen.has(notebookDocument.uri.toString())) {
@@ -11215,7 +11215,7 @@ var require_notebook = __commonJS({
         }
       }
       didChangeNotebookCellTextDocument(notebookDocument, event) {
-        if (vscode8.languages.match(this.selector, event.document) === 0) {
+        if (vscode7.languages.match(this.selector, event.document) === 0) {
           return;
         }
         this.doSendChange({
@@ -11488,7 +11488,7 @@ var require_notebook = __commonJS({
         this.client = client2;
         this.registrations = /* @__PURE__ */ new Map();
         this.registrationType = proto.NotebookDocumentSyncRegistrationType.type;
-        vscode8.workspace.onDidOpenTextDocument((textDocument) => {
+        vscode7.workspace.onDidOpenTextDocument((textDocument) => {
           if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
             return;
           }
@@ -11502,7 +11502,7 @@ var require_notebook = __commonJS({
             }
           }
         });
-        vscode8.workspace.onDidChangeTextDocument((event) => {
+        vscode7.workspace.onDidChangeTextDocument((event) => {
           if (event.contentChanges.length === 0) {
             return;
           }
@@ -11520,7 +11520,7 @@ var require_notebook = __commonJS({
             }
           }
         });
-        vscode8.workspace.onDidCloseTextDocument((textDocument) => {
+        vscode7.workspace.onDidCloseTextDocument((textDocument) => {
           if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
             return;
           }
@@ -11585,7 +11585,7 @@ var require_notebook = __commonJS({
         if (textDocument.uri.scheme !== _NotebookDocumentSyncFeature.CellScheme) {
           return false;
         }
-        if (this.dedicatedChannel !== void 0 && vscode8.languages.match(this.dedicatedChannel, textDocument) > 0) {
+        if (this.dedicatedChannel !== void 0 && vscode7.languages.match(this.dedicatedChannel, textDocument) > 0) {
           return true;
         }
         for (const provider of this.registrations.values()) {
@@ -11605,7 +11605,7 @@ var require_notebook = __commonJS({
       }
       findNotebookDocumentAndCell(textDocument) {
         const uri = textDocument.uri.toString();
-        for (const notebookDocument of vscode8.workspace.notebookDocuments) {
+        for (const notebookDocument of vscode7.workspace.notebookDocuments) {
           for (const cell of notebookDocument.getCells()) {
             if (cell.document.uri.toString() === uri) {
               return [notebookDocument, cell];
@@ -11783,13 +11783,13 @@ var require_configuration = __commonJS({
         });
       }
       extractSettingsInformation(keys) {
-        function ensurePath(config, path4) {
+        function ensurePath(config, path6) {
           let current = config;
-          for (let i = 0; i < path4.length - 1; i++) {
-            let obj = current[path4[i]];
+          for (let i = 0; i < path6.length - 1; i++) {
+            let obj = current[path6[i]];
             if (!obj) {
               obj = /* @__PURE__ */ Object.create(null);
-              current[path4[i]] = obj;
+              current[path6[i]] = obj;
             }
             current = obj;
           }
@@ -11807,8 +11807,8 @@ var require_configuration = __commonJS({
             config = vscode_1.workspace.getConfiguration(void 0, resource).get(key);
           }
           if (config) {
-            let path4 = keys[i].split(".");
-            ensurePath(result, path4)[path4[path4.length - 1]] = toJSONObject(config);
+            let path6 = keys[i].split(".");
+            ensurePath(result, path6)[path6[path6.length - 1]] = toJSONObject(config);
           }
         }
         return result;
@@ -11985,7 +11985,7 @@ var require_textSynchronization = __commonJS({
         }
         const uri = event.document.uri;
         const version = event.document.version;
-        const promises = [];
+        const promises2 = [];
         for (const changeData of this._changeData.values()) {
           if (vscode_1.languages.match(changeData.documentSelector, event.document) > 0 && !this._client.hasDedicatedTextSynchronizationFeature(event.document)) {
             const middleware = this._client.middleware;
@@ -11995,18 +11995,18 @@ var require_textSynchronization = __commonJS({
                 await this._client.sendNotification(vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, params);
                 this.notificationSent(event2.document, vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type, params);
               };
-              promises.push(middleware.didChange ? middleware.didChange(event, (event2) => didChange(event2)) : didChange(event));
+              promises2.push(middleware.didChange ? middleware.didChange(event, (event2) => didChange(event2)) : didChange(event));
             } else if (changeData.syncKind === vscode_languageserver_protocol_1.TextDocumentSyncKind.Full) {
               const didChange = async (event2) => {
                 const eventUri = event2.document.uri.toString();
                 this._pendingTextDocumentChanges.set(eventUri, event2.document);
                 this._onPendingChangeAdded.fire();
               };
-              promises.push(middleware.didChange ? middleware.didChange(event, (event2) => didChange(event2)) : didChange(event));
+              promises2.push(middleware.didChange ? middleware.didChange(event, (event2) => didChange(event2)) : didChange(event));
             }
           }
         }
-        return Promise.all(promises).then(void 0, (error) => {
+        return Promise.all(promises2).then(void 0, (error) => {
           this._client.error(`Sending document notification ${vscode_languageserver_protocol_1.DidChangeTextDocumentNotification.type.method} failed`, error);
           throw error;
         });
@@ -14121,7 +14121,7 @@ var require_semanticTokens = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SemanticTokensFeature = void 0;
-    var vscode8 = require("vscode");
+    var vscode7 = require("vscode");
     var vscode_languageserver_protocol_1 = require_main3();
     var features_1 = require_features();
     var Is = require_is();
@@ -14199,7 +14199,7 @@ var require_semanticTokens = __commonJS({
         const selector = options.documentSelector;
         const fullProvider = Is.boolean(options.full) ? options.full : options.full !== void 0;
         const hasEditProvider = options.full !== void 0 && typeof options.full !== "boolean" && options.full.delta === true;
-        const eventEmitter = new vscode8.EventEmitter();
+        const eventEmitter = new vscode7.EventEmitter();
         const documentProvider = fullProvider ? {
           onDidChangeSemanticTokens: eventEmitter.event,
           provideDocumentSemanticTokens: (document, token) => {
@@ -14271,12 +14271,12 @@ var require_semanticTokens = __commonJS({
         const legend = client2.protocol2CodeConverter.asSemanticTokensLegend(options.legend);
         const documentSelector = client2.protocol2CodeConverter.asDocumentSelector(selector);
         if (documentProvider !== void 0) {
-          disposables.push(vscode8.languages.registerDocumentSemanticTokensProvider(documentSelector, documentProvider, legend));
+          disposables.push(vscode7.languages.registerDocumentSemanticTokensProvider(documentSelector, documentProvider, legend));
         }
         if (rangeProvider !== void 0) {
-          disposables.push(vscode8.languages.registerDocumentRangeSemanticTokensProvider(documentSelector, rangeProvider, legend));
+          disposables.push(vscode7.languages.registerDocumentRangeSemanticTokensProvider(documentSelector, rangeProvider, legend));
         }
-        return [new vscode8.Disposable(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
+        return [new vscode7.Disposable(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
       }
     };
     exports2.SemanticTokensFeature = SemanticTokensFeature;
@@ -14375,13 +14375,13 @@ var require_fileOperations = __commonJS({
       async filter(event, prop) {
         const fileMatches = await Promise.all(event.files.map(async (item) => {
           const uri = prop(item);
-          const path4 = uri.fsPath.replace(/\\/g, "/");
+          const path6 = uri.fsPath.replace(/\\/g, "/");
           for (const filters of this._filters.values()) {
             for (const filter of filters) {
               if (filter.scheme !== void 0 && filter.scheme !== uri.scheme) {
                 continue;
               }
-              if (filter.matcher.match(path4)) {
+              if (filter.matcher.match(path6)) {
                 if (filter.kind === void 0) {
                   return true;
                 }
@@ -14395,7 +14395,7 @@ var require_fileOperations = __commonJS({
                 }
               } else if (filter.kind === proto.FileOperationPatternKind.folder) {
                 const fileType = await _FileOperationFeature.getFileType(uri);
-                if (fileType === code.FileType.Directory && filter.matcher.match(`${path4}/`)) {
+                if (fileType === code.FileType.Directory && filter.matcher.match(`${path6}/`)) {
                   return true;
                 }
               }
@@ -16649,9 +16649,9 @@ var require_semver = __commonJS({
         } else {
           this.prerelease = m[4].split(".").map((id) => {
             if (/^[0-9]+$/.test(id)) {
-              const num = +id;
-              if (num >= 0 && num < MAX_SAFE_INTEGER) {
-                return num;
+              const num2 = +id;
+              if (num2 >= 0 && num2 < MAX_SAFE_INTEGER) {
+                return num2;
               }
             }
             return id;
@@ -17625,8 +17625,8 @@ var require_main4 = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SettingMonitor = exports2.LanguageClient = exports2.TransportKind = void 0;
     var cp = require("child_process");
-    var fs3 = require("fs");
-    var path4 = require("path");
+    var fs4 = require("fs");
+    var path6 = require("path");
     var vscode_1 = require("vscode");
     var Is = require_is();
     var client_1 = require_client();
@@ -17779,8 +17779,8 @@ var require_main4 = __commonJS({
         }
       }
       createMessageTransports(encoding) {
-        function getEnvironment(env, fork) {
-          if (!env && !fork) {
+        function getEnvironment(env2, fork) {
+          if (!env2 && !fork) {
             return void 0;
           }
           const result = /* @__PURE__ */ Object.create(null);
@@ -17789,8 +17789,8 @@ var require_main4 = __commonJS({
             result["ELECTRON_RUN_AS_NODE"] = "1";
             result["ELECTRON_NO_ASAR"] = "1";
           }
-          if (env) {
-            Object.keys(env).forEach((key) => result[key] = env[key]);
+          if (env2) {
+            Object.keys(env2).forEach((key) => result[key] = env2[key]);
           }
           return result;
         }
@@ -18044,19 +18044,19 @@ var require_main4 = __commonJS({
         });
       }
       _getRuntimePath(runtime, serverWorkingDirectory) {
-        if (path4.isAbsolute(runtime)) {
+        if (path6.isAbsolute(runtime)) {
           return runtime;
         }
         const mainRootPath = this._mainGetRootPath();
         if (mainRootPath !== void 0) {
-          const result = path4.join(mainRootPath, runtime);
-          if (fs3.existsSync(result)) {
+          const result = path6.join(mainRootPath, runtime);
+          if (fs4.existsSync(result)) {
             return result;
           }
         }
         if (serverWorkingDirectory !== void 0) {
-          const result = path4.join(serverWorkingDirectory, runtime);
-          if (fs3.existsSync(result)) {
+          const result = path6.join(serverWorkingDirectory, runtime);
+          if (fs4.existsSync(result)) {
             return result;
           }
         }
@@ -18080,7 +18080,7 @@ var require_main4 = __commonJS({
         }
         if (cwd) {
           return new Promise((s) => {
-            fs3.lstat(cwd, (err, stats) => {
+            fs4.lstat(cwd, (err, stats) => {
               s(!err && stats.isDirectory() ? cwd : void 0);
             });
           });
@@ -18146,8 +18146,8 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var path3 = __toESM(require("path"));
-var vscode7 = __toESM(require("vscode"));
+var path5 = __toESM(require("path"));
+var vscode6 = __toESM(require("vscode"));
 var import_node = __toESM(require_node3());
 
 // src/portalBreakpoints.ts
@@ -18275,566 +18275,872 @@ var PortalCodeLensProvider = class {
   }
 };
 
-// src/timeTravelManager.ts
+// src/traceViewerPanel.ts
+var fs = __toESM(require("fs"));
+var path2 = __toESM(require("path"));
 var vscode2 = __toESM(require("vscode"));
-var TimeTravelManager = class {
-  state = {
-    capturing: false,
-    replaying: false,
-    events: [],
-    currentIndex: -1,
-    totalEvents: 0
+
+// src/traceTool.ts
+var import_child_process = require("child_process");
+var path = __toESM(require("path"));
+
+// src/traceView.ts
+var TRACE_VIEW_SCHEMA_VERSION = 1;
+var TraceViewError = class extends Error {
+  constructor(message, kind = "format") {
+    super(message);
+    this.kind = kind;
+    this.name = "TraceViewError";
+  }
+};
+function isObject(v) {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+function need(cond, what) {
+  if (cond === void 0 || cond === null || cond === false) {
+    throw new TraceViewError(`not a trace view: ${what}`);
+  }
+  return cond;
+}
+function str(v, what) {
+  if (typeof v !== "string")
+    throw new TraceViewError(`not a trace view: ${what} is not a string`);
+  return v;
+}
+function num(v, what) {
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    throw new TraceViewError(`not a trace view: ${what} is not a number`);
+  }
+  return v;
+}
+function arr(v, what) {
+  if (!Array.isArray(v))
+    throw new TraceViewError(`not a trace view: ${what} is not a list`);
+  return v;
+}
+function toolErrorOf(doc) {
+  if (isObject(doc) && isObject(doc.error)) {
+    return {
+      kind: typeof doc.error.kind === "string" ? doc.error.kind : "other",
+      message: typeof doc.error.message === "string" ? doc.error.message : "the trace tool failed"
+    };
+  }
+  return void 0;
+}
+function checkVersion(doc) {
+  const v = doc.schema_version;
+  if (v !== TRACE_VIEW_SCHEMA_VERSION) {
+    throw new TraceViewError(
+      `this trace view has schema_version ${JSON.stringify(v)}; this extension reads version ${TRACE_VIEW_SCHEMA_VERSION}. Update the extension or the Loup toolchain so they match.`,
+      "version"
+    );
+  }
+}
+function parseItem(v, where) {
+  const o = need(isObject(v) && v, `${where} is not an object`);
+  const detail = {};
+  if (isObject(o.detail)) {
+    for (const [k, val] of Object.entries(o.detail)) {
+      detail[k] = typeof val === "string" ? val : JSON.stringify(val);
+    }
+  }
+  return {
+    seq: num(o.seq, `${where}.seq`),
+    kind: str(o.kind, `${where}.kind`),
+    task: num(o.task, `${where}.task`),
+    site: typeof o.site === "number" ? o.site : -1,
+    step: typeof o.step === "number" ? o.step : null,
+    point: typeof o.point === "string" ? o.point : null,
+    summary: typeof o.summary === "string" ? o.summary : "",
+    detail
   };
-  _onDidUpdate = new vscode2.EventEmitter();
-  onDidUpdate = this._onDidUpdate.event;
-  getState() {
-    return { ...this.state };
+}
+function parseCapture(v, i) {
+  const where = `captures[${i}]`;
+  const o = need(isObject(v) && v, `${where} is not an object`);
+  const items = arr(o.items, `${where}.items`).map((it, k) => parseItem(it, `${where}.items[${k}]`));
+  const lanes = Array.isArray(o.lanes) ? o.lanes.filter(isObject).map((l) => ({
+    lane: typeof l.lane === "string" ? l.lane : "",
+    baseStep: typeof l.baseStep === "number" ? l.baseStep : 0,
+    checkpoints: typeof l.checkpoints === "number" ? l.checkpoints : 0
+  })) : [];
+  return {
+    id: num(o.id, `${where}.id`),
+    portal: str(o.portal, `${where}.portal`),
+    ordinal: num(o.ordinal, `${where}.ordinal`),
+    anchor: str(o.anchor, `${where}.anchor`),
+    task: typeof o.task === "number" ? o.task : 0,
+    site: typeof o.site === "number" ? o.site : -1,
+    exit: typeof o.exit === "string" ? o.exit : "",
+    tasks: Array.isArray(o.tasks) ? o.tasks.filter((t) => typeof t === "number") : [],
+    bytes: typeof o.bytes === "number" ? o.bytes : 0,
+    hasCheckpoint: o.hasCheckpoint === true,
+    items,
+    lanes
+  };
+}
+function parseTraceView(text) {
+  let doc;
+  try {
+    doc = JSON.parse(text);
+  } catch (e) {
+    throw new TraceViewError(`the trace tool did not print JSON: ${e.message}`);
   }
-  // ---- Capture lifecycle ----
-  startCapture() {
-    this.state.capturing = true;
-    this.state.events = [];
-    this.state.currentIndex = -1;
-    this.state.totalEvents = 0;
-    this._onDidUpdate.fire(this.state);
+  const o = need(isObject(doc) && doc, "the document is not an object");
+  const err = toolErrorOf(o);
+  if (err)
+    throw new TraceViewError(err.message, err.kind);
+  checkVersion(o);
+  const t = need(isObject(o.trace) && o.trace, "no `trace` member");
+  const identity = isObject(t.identity) ? t.identity : {};
+  const recording = isObject(t.recording) ? t.recording : {};
+  const sites = arr(o.sites, "sites").map((s, i) => {
+    const so = need(isObject(s) && s, `sites[${i}] is not an object`);
+    return {
+      file: typeof so.file === "string" ? so.file : "",
+      line: typeof so.line === "number" ? so.line : 0,
+      column: typeof so.column === "number" ? so.column : 0,
+      callable: typeof so.callable === "string" ? so.callable : ""
+    };
+  });
+  return {
+    schema_version: TRACE_VIEW_SCHEMA_VERSION,
+    trace: {
+      id: str(t.id, "trace.id"),
+      file: typeof t.file === "string" ? t.file : "",
+      identity: {
+        toolchain: typeof identity.toolchain === "string" ? identity.toolchain : "",
+        modules: Array.isArray(identity.modules) ? identity.modules.filter(isObject).map((m) => ({
+          path: typeof m.path === "string" ? m.path : "",
+          hash: typeof m.hash === "string" ? m.hash : ""
+        })) : []
+      },
+      recording: {
+        mode: typeof recording.mode === "string" ? recording.mode : "",
+        executionMode: typeof recording.executionMode === "string" ? recording.executionMode : "",
+        target: typeof recording.target === "string" ? recording.target : "",
+        lane: typeof recording.lane === "string" ? recording.lane : "",
+        threadQuantum: typeof recording.threadQuantum === "number" ? recording.threadQuantum : 0,
+        chaosSeed: typeof recording.chaosSeed === "number" ? recording.chaosSeed : null
+      }
+    },
+    sites,
+    captures: arr(o.captures, "captures").map(parseCapture),
+    bookmarks: Array.isArray(o.bookmarks) ? o.bookmarks.filter(isObject).map((b) => ({
+      name: typeof b.name === "string" ? b.name : "",
+      anchor: typeof b.anchor === "string" ? b.anchor : "",
+      note: typeof b.note === "string" ? b.note : "",
+      capture: typeof b.capture === "number" ? b.capture : -1
+    })) : [],
+    gaps: Array.isArray(o.gaps) ? o.gaps.filter(isObject).map((g) => ({
+      capture: typeof g.capture === "number" ? g.capture : -1,
+      seq: typeof g.seq === "number" ? g.seq : 0,
+      seam: typeof g.seam === "string" ? g.seam : "",
+      reason: typeof g.reason === "string" ? g.reason : ""
+    })) : []
+  };
+}
+function parseQueryResult(text) {
+  let doc;
+  try {
+    doc = JSON.parse(text);
+  } catch (e) {
+    throw new TraceViewError(`the trace tool did not print JSON: ${e.message}`);
   }
-  stopCapture() {
-    this.state.capturing = false;
-    this._onDidUpdate.fire(this.state);
-  }
-  addEvent(event) {
-    this.state.events.push(event);
-    this.state.totalEvents = this.state.events.length;
-    if (!this.state.replaying) {
-      this.state.currentIndex = this.state.events.length - 1;
+  const o = need(isObject(doc) && doc, "the document is not an object");
+  const err = toolErrorOf(o);
+  if (err)
+    throw new TraceViewError(err.message, err.kind);
+  checkVersion(o);
+  return {
+    schema_version: TRACE_VIEW_SCHEMA_VERSION,
+    query: typeof o.query === "string" ? o.query : "",
+    count: num(o.count, "count"),
+    truncated: o.truncated === true,
+    unavailable: typeof o.unavailable === "number" ? o.unavailable : 0,
+    hits: arr(o.hits, "hits").filter(isObject).map((h) => ({
+      capture: typeof h.capture === "number" ? h.capture : -1,
+      seq: typeof h.seq === "number" ? h.seq : -1,
+      point: typeof h.point === "string" ? h.point : null,
+      kind: typeof h.kind === "string" ? h.kind : "",
+      site: typeof h.site === "number" ? h.site : -1,
+      summary: typeof h.summary === "string" ? h.summary : ""
+    }))
+  };
+}
+function stripAgentPoint(text, traceId) {
+  const t = text.trim();
+  const prefix = `pt:${traceId}:`;
+  if (t.startsWith(prefix))
+    return t.slice(prefix.length);
+  if (t.startsWith("pt:")) {
+    const rest = t.slice(3);
+    const colon = rest.indexOf(":");
+    if (colon > 0) {
+      throw new TraceViewError(
+        `that point belongs to trace ${rest.slice(0, colon)}, and this is trace ${traceId}`,
+        "other-trace"
+      );
     }
-    this._onDidUpdate.fire(this.state);
   }
-  // ---- Replay navigation ----
-  stepTo(seq) {
-    const idx = this.state.events.findIndex((e) => e.seq === seq);
-    if (idx >= 0) {
-      this.state.replaying = true;
-      this.state.currentIndex = idx;
-      this._onDidUpdate.fire(this.state);
-      return this.state.events[idx];
+  return t;
+}
+var TraceSession = class {
+  constructor(view) {
+    this.view = view;
+    this.cursor = this.firstInteresting();
+  }
+  cursor = { capture: 0, item: 0 };
+  // ---- Where am I ----
+  position() {
+    return { ...this.cursor };
+  }
+  currentCapture() {
+    return this.view.captures[this.cursor.capture];
+  }
+  currentItem() {
+    return this.currentCapture()?.items[this.cursor.item];
+  }
+  siteOf(item) {
+    if (!item || item.site < 0)
+      return void 0;
+    return this.view.sites[item.site];
+  }
+  /** The point to show for the cursor: the item's own, else `<capture anchor> + seq`. */
+  currentPointLabel() {
+    const c = this.currentCapture();
+    const it = this.currentItem();
+    if (!c)
+      return "";
+    if (it?.point)
+      return it.point;
+    return it ? `${c.anchor} \xB7 seq ${it.seq}` : c.anchor;
+  }
+  /** `pt:<trace>:<point>`, when the cursor is on an anchor (what an agent tool accepts). */
+  currentAgentPoint() {
+    const it = this.currentItem();
+    return it?.point ? `pt:${this.view.trace.id}:${it.point}` : void 0;
+  }
+  // ---- Summaries ----
+  /** Item kinds of one capture (or all), with counts, most frequent first. */
+  kindCounts(capture) {
+    const counts = /* @__PURE__ */ new Map();
+    const caps = capture === void 0 ? this.view.captures : [this.view.captures[capture]];
+    for (const c of caps) {
+      if (!c)
+        continue;
+      for (const it of c.items)
+        counts.set(it.kind, (counts.get(it.kind) ?? 0) + 1);
     }
-    return void 0;
+    return [...counts.entries()].map(([kind, count]) => ({ kind, count })).sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind));
   }
-  stepForward() {
-    if (this.state.currentIndex < this.state.events.length - 1) {
-      this.state.replaying = true;
-      this.state.currentIndex++;
-      this._onDidUpdate.fire(this.state);
-      return this.state.events[this.state.currentIndex];
-    }
-    return void 0;
+  /** Every item of `kind` across the trace, in order. */
+  itemsOfKind(kind) {
+    const out = [];
+    this.view.captures.forEach(
+      (c, ci) => c.items.forEach((it, ii) => {
+        if (it.kind === kind)
+          out.push({ capture: ci, item: ii, value: it });
+      })
+    );
+    return out;
   }
-  stepBackward() {
-    if (this.state.currentIndex > 0) {
-      this.state.replaying = true;
-      this.state.currentIndex--;
-      this._onDidUpdate.fire(this.state);
-      return this.state.events[this.state.currentIndex];
-    }
-    return void 0;
+  /** Where a reader should start: the first exception if there is one, else the start. */
+  firstInteresting() {
+    const ex = this.itemsOfKind("Exception")[0];
+    if (ex)
+      return { capture: ex.capture, item: ex.item };
+    return { capture: 0, item: 0 };
   }
-  stepBackToCall() {
-    for (let i = this.state.currentIndex - 1; i >= 0; i--) {
-      if (this.state.events[i].kind === "Call") {
-        this.state.replaying = true;
-        this.state.currentIndex = i;
-        this._onDidUpdate.fire(this.state);
-        return this.state.events[i];
+  // ---- Moving ----
+  set(c) {
+    this.cursor = c;
+    return this.currentItem();
+  }
+  /** Go to capture index `capture`, item index `item` (clamped). */
+  goto(capture, item) {
+    const caps = this.view.captures;
+    if (caps.length === 0)
+      return void 0;
+    const ci = Math.min(Math.max(0, capture), caps.length - 1);
+    const n = caps[ci].items.length;
+    const ii = n === 0 ? 0 : Math.min(Math.max(0, item), n - 1);
+    return this.set({ capture: ci, item: ii });
+  }
+  /** Go to the item with sequence number `seq` in the capture with id `captureId`. */
+  gotoSeq(captureId, seq) {
+    const ci = this.view.captures.findIndex((c) => c.id === captureId);
+    if (ci < 0)
+      return void 0;
+    const ii = this.view.captures[ci].items.findIndex((it) => it.seq === seq);
+    if (ii < 0)
+      return void 0;
+    return this.set({ capture: ci, item: ii });
+  }
+  /**
+   * One item forward or backward. Crosses into the neighbouring capture at an
+   * edge; the time between captures was not recorded, and the caller can tell
+   * from the changed `position().capture`.
+   */
+  step(dir) {
+    return this.find(dir, () => true);
+  }
+  /** The nearest item in `dir` that satisfies `pred`, searching across captures. */
+  find(dir, pred) {
+    const caps = this.view.captures;
+    const delta = dir === "forward" ? 1 : -1;
+    let ci = this.cursor.capture;
+    let ii = this.cursor.item + delta;
+    while (ci >= 0 && ci < caps.length) {
+      const items = caps[ci].items;
+      while (ii >= 0 && ii < items.length) {
+        if (pred(items[ii], caps[ci]))
+          return this.set({ capture: ci, item: ii });
+        ii += delta;
+      }
+      ci += delta;
+      if (ci >= 0 && ci < caps.length) {
+        ii = delta > 0 ? 0 : caps[ci].items.length - 1;
       }
     }
     return void 0;
   }
-  stepForwardToReturn() {
-    for (let i = this.state.currentIndex + 1; i < this.state.events.length; i++) {
-      if (this.state.events[i].kind === "Return") {
-        this.state.replaying = true;
-        this.state.currentIndex = i;
-        this._onDidUpdate.fire(this.state);
-        return this.state.events[i];
+  /** The nearest item of one of `kinds` in `dir`. */
+  stepToKind(dir, kinds) {
+    return this.find(dir, (it) => kinds.includes(it.kind));
+  }
+  /** The nearest item in `dir` at the same source line as the cursor (another hit of this line). */
+  stepToSameLine(dir) {
+    const here = this.siteOf(this.currentItem());
+    if (!here)
+      return void 0;
+    return this.find(dir, (it) => {
+      const s = this.siteOf(it);
+      return !!s && s.file === here.file && s.line === here.line;
+    });
+  }
+  /** The first item of the next or previous capture. */
+  stepCapture(dir) {
+    const ci = this.cursor.capture + (dir === "forward" ? 1 : -1);
+    if (ci < 0 || ci >= this.view.captures.length)
+      return void 0;
+    return this.set({ capture: ci, item: 0 });
+  }
+  /**
+   * Go to a point written the one way points are written: an anchor
+   * (`exception#0`, `portal(shop.checkout)#2`, `output#3`), a bookmark name, or
+   * the agent form `pt:<trace>:<point>`. Throws `TraceViewError` naming what the
+   * file does hold when the point is not in it.
+   */
+  gotoPoint(text) {
+    const point = stripAgentPoint(text, this.view.trace.id);
+    if (point.length === 0)
+      throw new TraceViewError("no point given", "usage");
+    const bookmark = this.view.bookmarks.find((b) => b.name === point);
+    const target = bookmark ? bookmark.anchor : point;
+    for (let ci2 = 0; ci2 < this.view.captures.length; ci2++) {
+      const c = this.view.captures[ci2];
+      const ii = c.items.findIndex((it) => it.point === target);
+      if (ii >= 0)
+        return this.set({ capture: ci2, item: ii });
+    }
+    const ci = this.view.captures.findIndex((c) => c.anchor === target);
+    if (ci >= 0)
+      return this.set({ capture: ci, item: 0 });
+    if (/@\d+$/.test(target) || /^\d+$/.test(target)) {
+      throw new TraceViewError(
+        `${target} is a lane-local step. A step is resolved by a replay engine, and this view shows the file alone. Use an anchor such as ${this.sampleAnchors().join(", ")}.`,
+        "needs-engine"
+      );
+    }
+    throw new TraceViewError(
+      `no point ${target} in this trace. It holds ${this.sampleAnchors().join(", ")}` + (this.view.bookmarks.length > 0 ? ` and the bookmarks ${this.view.bookmarks.map((b) => b.name).join(", ")}.` : "."),
+      "no-such-point"
+    );
+  }
+  sampleAnchors() {
+    const out = [];
+    for (const c of this.view.captures) {
+      out.push(c.anchor);
+      for (const it of c.items) {
+        if (it.point && it.point !== c.anchor && out.length < 6)
+          out.push(it.point);
       }
+      if (out.length >= 6)
+        break;
     }
-    return void 0;
-  }
-  stepToNextPortal() {
-    for (let i = this.state.currentIndex + 1; i < this.state.events.length; i++) {
-      if (this.state.events[i].kind === "Portal") {
-        this.state.replaying = true;
-        this.state.currentIndex = i;
-        this._onDidUpdate.fire(this.state);
-        return this.state.events[i];
-      }
-    }
-    return void 0;
-  }
-  stepToPrevPortal() {
-    for (let i = this.state.currentIndex - 1; i >= 0; i--) {
-      if (this.state.events[i].kind === "Portal") {
-        this.state.replaying = true;
-        this.state.currentIndex = i;
-        this._onDidUpdate.fire(this.state);
-        return this.state.events[i];
-      }
-    }
-    return void 0;
-  }
-  exitReplay() {
-    this.state.replaying = false;
-    this.state.currentIndex = this.state.events.length - 1;
-    this._onDidUpdate.fire(this.state);
-  }
-  // ---- Filtering ----
-  getEventsByKind(kind) {
-    return this.state.events.filter((e) => e.kind === kind);
-  }
-  getCurrentEvent() {
-    return this.state.events[this.state.currentIndex];
-  }
-  getEvents() {
-    return this.state.events;
-  }
-  // ---- Load / Save trace recordings (.loup-trace) ----
-  async saveRecording(uri) {
-    const data = JSON.stringify({
-      version: "1.20",
-      timestamp: Date.now(),
-      events: this.state.events
-    }, null, 2);
-    await vscode2.workspace.fs.writeFile(uri, Buffer.from(data, "utf-8"));
-  }
-  async loadRecording(uri) {
-    const raw = await vscode2.workspace.fs.readFile(uri);
-    const data = JSON.parse(Buffer.from(raw).toString("utf-8"));
-    if (Array.isArray(data.events)) {
-      this.state.events = data.events;
-      this.state.totalEvents = data.events.length;
-      this.state.currentIndex = 0;
-      this.state.replaying = true;
-      this.state.capturing = false;
-      this._onDidUpdate.fire(this.state);
-    }
+    return out.slice(0, 6);
   }
 };
 
-// src/timelinePanel.ts
-var vscode3 = __toESM(require("vscode"));
-var TimelinePanel = class _TimelinePanel {
-  constructor(context, manager) {
-    this.context = context;
-    this.manager = manager;
-    manager.onDidUpdate(() => this.updateWebview());
+// src/traceTool.ts
+var TOOL_SCRIPT = path.join("source", "runtime", "tools", "loup_debug", "main.loup");
+function toolInvocation(settings, toolArgs) {
+  if (settings.toolCommand.length > 0) {
+    return { command: settings.toolCommand[0], args: [...settings.toolCommand.slice(1), ...toolArgs], env: {} };
   }
-  static viewType = "loup.timeTravelTimeline";
-  panel;
-  show() {
-    if (this.panel) {
-      this.panel.reveal(vscode3.ViewColumn.Two);
-      return;
-    }
-    this.panel = vscode3.window.createWebviewPanel(
-      _TimelinePanel.viewType,
-      "Loup Time-Travel Timeline",
-      vscode3.ViewColumn.Two,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
+  const exe = settings.executable.length > 0 ? settings.executable : "loup";
+  if (settings.toolchainRoot.length > 0) {
+    const root = settings.toolchainRoot;
+    const louppath = [
+      path.join(root, "source", "packages"),
+      path.join(root, "source", "runtime"),
+      path.join(root, "source")
+    ].join(path.delimiter);
+    return {
+      command: exe,
+      args: ["run", path.join(root, TOOL_SCRIPT), "--allow-fs", "--", ...toolArgs],
+      env: { LOUPPATH: louppath }
+    };
+  }
+  return { command: exe, args: ["debug", ...toolArgs], env: {} };
+}
+function describe(inv) {
+  return [inv.command, ...inv.args].join(" ");
+}
+function run(inv, timeoutMs, cwd) {
+  return new Promise((resolve, reject) => {
+    (0, import_child_process.execFile)(
+      inv.command,
+      inv.args,
+      { cwd, timeout: timeoutMs, maxBuffer: 256 * 1024 * 1024, env: { ...process.env, ...inv.env } },
+      (err, stdout, stderr) => {
+        const out = String(stdout ?? "");
+        if (!err)
+          return resolve(out);
+        const e = err;
+        if (e.code === "ENOENT") {
+          return reject(
+            new TraceViewError(
+              `could not run \`${inv.command}\`. Set "loup.executable" to the loup binary, or "loup.trace.toolCommand" to the full trace tool command.`,
+              "no-tool"
+            )
+          );
+        }
+        if (e.killed) {
+          return reject(
+            new TraceViewError(
+              `the trace tool did not finish in ${Math.round(timeoutMs / 1e3)} s (\`${describe(inv)}\`). Raise "loup.trace.timeoutMs" for a large trace.`,
+              "timeout"
+            )
+          );
+        }
+        if (out.trimStart().startsWith("{"))
+          return resolve(out);
+        const detail = String(stderr ?? "").trim().split("\n").slice(0, 6).join("\n");
+        reject(
+          new TraceViewError(
+            `the trace tool failed (\`${describe(inv)}\`)` + (detail.length > 0 ? `:
+${detail}` : "."),
+            "tool"
+          )
+        );
       }
     );
-    this.updateWebview();
-    this.panel.webview.onDidReceiveMessage(
-      (msg) => {
-        switch (msg.command) {
-          case "stepTo":
-            if (msg.seq !== void 0) {
-              const ev = this.manager.stepTo(msg.seq);
-              if (ev)
-                this.navigateToEvent(ev);
-            }
-            break;
-          case "stepForward": {
-            const ev = this.manager.stepForward();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "stepBackward": {
-            const ev = this.manager.stepBackward();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "stepBackToCall": {
-            const ev = this.manager.stepBackToCall();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "stepForwardToReturn": {
-            const ev = this.manager.stepForwardToReturn();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "nextPortal": {
-            const ev = this.manager.stepToNextPortal();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "prevPortal": {
-            const ev = this.manager.stepToPrevPortal();
-            if (ev)
-              this.navigateToEvent(ev);
-            break;
-          }
-          case "startCapture":
-            this.manager.startCapture();
-            break;
-          case "stopCapture":
-            this.manager.stopCapture();
-            break;
-          case "exitReplay":
-            this.manager.exitReplay();
-            break;
-        }
-      },
-      void 0,
-      this.context.subscriptions
+  });
+}
+function toolPath(file) {
+  const name = path.basename(file);
+  if (!/^[A-Za-z0-9._+@%=,-]+$/.test(name)) {
+    throw new TraceViewError(
+      `the Loup trace library does not open a file whose name has spaces or special characters (${JSON.stringify(name)}). Rename the file; its folder may be named anything.`,
+      "usage"
     );
-    this.panel.onDidDispose(() => {
-      this.panel = void 0;
+  }
+  return name;
+}
+async function loadTraceView(settings, file) {
+  const inv = toolInvocation(settings, ["view", toolPath(file)]);
+  const text = await run(inv, settings.timeoutMs, path.dirname(file));
+  return parseTraceView(text);
+}
+async function queryTrace(settings, file, query, limit) {
+  const inv = toolInvocation(settings, ["query", toolPath(file), query, "--limit", String(limit)]);
+  const text = await run(inv, settings.timeoutMs, path.dirname(file));
+  return parseQueryResult(text);
+}
+
+// src/traceViewerPanel.ts
+function traceToolSettings() {
+  const cfg = vscode2.workspace.getConfiguration("loup");
+  return {
+    executable: cfg.get("executable", "") || process.env["LOUP_PATH"] || "loup",
+    toolchainRoot: cfg.get("toolchainRoot", ""),
+    toolCommand: cfg.get("trace.toolCommand", []),
+    timeoutMs: cfg.get("trace.timeoutMs", 6e4)
+  };
+}
+function isViewJson(file) {
+  return file.toLowerCase().endsWith(".json");
+}
+var TraceViewerPanel = class _TraceViewerPanel {
+  constructor(context, file, panel, log) {
+    this.context = context;
+    this.file = file;
+    this.panel = panel;
+    this.log = log;
+    _TraceViewerPanel.all.add(this);
+    _TraceViewerPanel.active = this;
+    this.lineDecoration = vscode2.window.createTextEditorDecorationType({
+      isWholeLine: true,
+      backgroundColor: new vscode2.ThemeColor("editor.stackFrameHighlightBackground"),
+      overviewRulerColor: new vscode2.ThemeColor("editorOverviewRuler.infoForeground"),
+      overviewRulerLane: vscode2.OverviewRulerLane.Full
+    });
+    const media = vscode2.Uri.joinPath(context.extensionUri, "media");
+    panel.webview.options = { enableScripts: true, localResourceRoots: [media] };
+    panel.webview.html = this.html(media);
+    this.disposables.push(
+      panel.webview.onDidReceiveMessage((m) => this.onMessage(m)),
+      panel.onDidChangeViewState((e) => {
+        if (e.webviewPanel.active)
+          _TraceViewerPanel.active = this;
+      }),
+      panel.onDidDispose(() => this.dispose())
+    );
+    void this.load();
+  }
+  /** The viewer that last had focus; the `loup.trace.*` commands act on it. */
+  static active;
+  static all = /* @__PURE__ */ new Set();
+  session;
+  lineDecoration;
+  disposables = [];
+  ready = false;
+  loadError;
+  // ---- Loading ----
+  async load() {
+    this.loadError = void 0;
+    this.post({ type: "loading", file: path2.basename(this.file) });
+    try {
+      let view;
+      if (isViewJson(this.file)) {
+        view = parseTraceView(await fs.promises.readFile(this.file, "utf8"));
+      } else {
+        view = await loadTraceView(traceToolSettings(), this.file);
+      }
+      this.session = new TraceSession(view);
+      this.panel.title = `${path2.basename(this.file)} \u2014 Loup trace`;
+      this.postView();
+      void this.revealSource(false);
+    } catch (e) {
+      this.session = void 0;
+      this.loadError = this.explain(e);
+      this.log.appendLine(`[trace] ${this.file}: ${this.loadError}`);
+      this.post({ type: "loadError", message: this.loadError, canConfigure: true });
+    }
+  }
+  explain(e) {
+    if (e instanceof TraceViewError) {
+      if (e.kind === "no-tool" || e.kind === "tool") {
+        return e.message + '\n\nA `.ltrace` file is read by the Loup toolchain. If `loup debug` is not available in your toolchain yet, set "loup.toolchainRoot" to a Loup source checkout.';
+      }
+      return e.message;
+    }
+    return e instanceof Error ? e.message : String(e);
+  }
+  // ---- Webview traffic ----
+  post(message) {
+    if (this.ready)
+      void this.panel.webview.postMessage(message);
+  }
+  postView() {
+    if (!this.session)
+      return;
+    this.post({
+      type: "view",
+      view: this.session.view,
+      file: this.file,
+      canQuery: !isViewJson(this.file),
+      cursor: this.cursorMessage()
     });
   }
-  async navigateToEvent(event) {
-    if (event.source && event.line !== void 0) {
-      try {
-        const doc = await vscode3.workspace.openTextDocument(event.source);
-        const editor = await vscode3.window.showTextDocument(doc, vscode3.ViewColumn.One, true);
-        const pos = new vscode3.Position(Math.max(0, event.line - 1), event.column || 0);
-        editor.selection = new vscode3.Selection(pos, pos);
-        editor.revealRange(new vscode3.Range(pos, pos), vscode3.TextEditorRevealType.InCenter);
-      } catch {
-      }
+  cursorMessage() {
+    const s = this.session;
+    return {
+      ...s.position(),
+      pointLabel: s.currentPointLabel(),
+      agentPoint: s.currentAgentPoint() ?? null
+    };
+  }
+  moved(found, missMessage, crossedFrom) {
+    if (!this.session)
+      return;
+    if (found === void 0) {
+      this.post({ type: "note", message: missMessage });
+      return;
+    }
+    const pos = this.session.position();
+    this.post({
+      type: "cursor",
+      cursor: this.cursorMessage(),
+      note: crossedFrom !== void 0 && crossedFrom !== pos.capture ? "Moved to another capture. The time between captures was not recorded." : ""
+    });
+    void this.revealSource(false);
+  }
+  async onMessage(m) {
+    if (m.type === "ready") {
+      this.ready = true;
+      if (this.session)
+        this.postView();
+      else if (this.loadError)
+        this.post({ type: "loadError", message: this.loadError, canConfigure: true });
+      else
+        this.post({ type: "loading", file: path2.basename(this.file) });
+      return;
+    }
+    if (m.type === "reload")
+      return this.load();
+    if (m.type === "settings") {
+      await vscode2.commands.executeCommand("workbench.action.openSettings", "loup.toolchainRoot");
+      return;
+    }
+    if (m.type === "copy") {
+      await vscode2.env.clipboard.writeText(m.text);
+      this.post({ type: "note", message: `Copied ${m.text}` });
+      return;
+    }
+    if (!this.session)
+      return;
+    const from = this.session.position().capture;
+    switch (m.type) {
+      case "goto":
+        return this.moved(this.session.goto(m.capture, m.item), "Nothing there.");
+      case "gotoSeq":
+        return this.moved(this.session.gotoSeq(m.capture, m.seq), "That record is not in this view.");
+      case "step":
+        return this.step(m.dir);
+      case "stepKind":
+        return this.stepKind(m.dir, m.kinds);
+      case "stepLine":
+        return this.moved(
+          this.session.stepToSameLine(m.dir),
+          `No ${m.dir === "forward" ? "later" : "earlier"} record at this source line.`,
+          from
+        );
+      case "stepCapture":
+        return this.stepCapture(m.dir);
+      case "gotoPoint":
+        return this.gotoPoint(m.text);
+      case "query":
+        return this.query(m.text);
+      case "openSite":
+        return void this.revealSite(this.session.view.sites[m.site], true);
     }
   }
-  updateWebview() {
-    if (!this.panel)
+  // ---- Commands (also reachable from the command palette and keybindings) ----
+  step(dir) {
+    if (!this.session)
       return;
-    const state = this.manager.getState();
-    this.panel.webview.html = this.getHtml(state);
+    const from = this.session.position().capture;
+    this.moved(
+      this.session.step(dir),
+      dir === "forward" ? "This is the last record of the trace." : "This is the first record of the trace.",
+      from
+    );
   }
-  getHtml(state) {
-    const eventsJson = JSON.stringify(state.events.slice(-500));
-    const currentIdx = state.currentIndex;
-    const currentEvent = state.events[currentIdx];
-    const kindBadgeColors = {
-      Call: "#4ec9b0",
-      Return: "#569cd6",
-      Line: "#808080",
-      Exception: "#f44747",
-      Await: "#dcdcaa",
-      Resume: "#c586c0",
-      Portal: "#ce9178",
-      Signal: "#9cdcfe"
-    };
+  stepKind(dir, kinds) {
+    if (!this.session)
+      return;
+    const from = this.session.position().capture;
+    this.moved(
+      this.session.stepToKind(dir, kinds),
+      `No ${dir === "forward" ? "later" : "earlier"} ${kinds.join(" / ")} record.`,
+      from
+    );
+  }
+  stepCapture(dir) {
+    if (!this.session)
+      return;
+    this.moved(
+      this.session.stepCapture(dir),
+      dir === "forward" ? "This is the last capture." : "This is the first capture."
+    );
+  }
+  gotoPoint(text) {
+    if (!this.session)
+      return;
+    try {
+      this.moved(this.session.gotoPoint(text), "That point has no record in this trace.");
+    } catch (e) {
+      this.post({ type: "note", message: this.explain(e), error: true });
+    }
+  }
+  async promptGotoPoint() {
+    if (!this.session)
+      return;
+    const text = await vscode2.window.showInputBox({
+      prompt: "Go to a point in the trace",
+      placeHolder: "exception#0, portal(shop.checkout)#2, output#3, a bookmark name, or pt:<trace>:<point>"
+    });
+    if (text)
+      this.gotoPoint(text);
+  }
+  async promptQuery() {
+    if (!this.session)
+      return;
+    const text = await vscode2.window.showInputBox({
+      prompt: "Trace query",
+      placeHolder: 'exception(ValueError) \xB7 seam(fs.read) where path.endsWith(".toml") \xB7 output(stderr)'
+    });
+    if (text) {
+      this.panel.reveal(void 0, true);
+      await this.query(text);
+    }
+  }
+  async query(text) {
+    const q = text.trim();
+    if (q.length === 0)
+      return;
+    if (isViewJson(this.file)) {
+      this.post({
+        type: "queryResult",
+        query: q,
+        error: "Queries run against the `.ltrace` file. This is an exported view; open the trace itself to query it."
+      });
+      return;
+    }
+    this.post({ type: "queryBusy", query: q });
+    try {
+      const limit = vscode2.workspace.getConfiguration("loup").get("trace.queryLimit", 200);
+      const result = await queryTrace(traceToolSettings(), this.file, q, limit);
+      this.post({ type: "queryResult", query: q, result });
+    } catch (e) {
+      this.post({ type: "queryResult", query: q, error: this.explain(e) });
+    }
+  }
+  reload() {
+    void this.load();
+  }
+  // ---- The source editor ----
+  /**
+   * Where a site's file is on disk. Site paths are relative to the package root,
+   * which is a workspace folder or a directory above the trace file.
+   */
+  resolveSiteFile(site) {
+    if (site.file.length === 0)
+      return void 0;
+    if (path2.isAbsolute(site.file))
+      return fs.existsSync(site.file) ? site.file : void 0;
+    const roots = [];
+    for (const f of vscode2.workspace.workspaceFolders ?? [])
+      roots.push(f.uri.fsPath);
+    let dir = path2.dirname(this.file);
+    for (let i = 0; i < 8; i++) {
+      roots.push(dir);
+      const up = path2.dirname(dir);
+      if (up === dir)
+        break;
+      dir = up;
+    }
+    for (const root of roots) {
+      const candidate = path2.join(root, site.file);
+      if (fs.existsSync(candidate))
+        return candidate;
+    }
+    return void 0;
+  }
+  async revealSource(takeFocus) {
+    if (!this.session)
+      return;
+    await this.revealSite(this.session.siteOf(this.session.currentItem()), takeFocus);
+  }
+  async revealSite(site, takeFocus) {
+    if (!site)
+      return;
+    const file = this.resolveSiteFile(site);
+    if (!file) {
+      if (takeFocus) {
+        this.post({
+          type: "note",
+          message: `${site.file} is not in this workspace, so the source cannot be shown.`,
+          error: true
+        });
+      }
+      return;
+    }
+    try {
+      const doc = await vscode2.workspace.openTextDocument(file);
+      const line = Math.min(Math.max(0, site.line - 1), Math.max(0, doc.lineCount - 1));
+      const column = this.panel.viewColumn === vscode2.ViewColumn.One ? vscode2.ViewColumn.Beside : vscode2.ViewColumn.One;
+      const editor = await vscode2.window.showTextDocument(doc, {
+        viewColumn: column,
+        preserveFocus: !takeFocus,
+        preview: true
+      });
+      const pos = new vscode2.Position(line, Math.max(0, site.column - 1));
+      editor.selection = new vscode2.Selection(pos, pos);
+      editor.revealRange(new vscode2.Range(pos, pos), vscode2.TextEditorRevealType.InCenterIfOutsideViewport);
+      for (const ed of vscode2.window.visibleTextEditors)
+        ed.setDecorations(this.lineDecoration, []);
+      editor.setDecorations(this.lineDecoration, [new vscode2.Range(line, 0, line, 0)]);
+    } catch (e) {
+      this.log.appendLine(`[trace] could not show ${file}: ${e}`);
+    }
+  }
+  // ---- HTML ----
+  html(media) {
+    const w = this.panel.webview;
+    const nonce = Array.from(
+      { length: 32 },
+      () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(Math.floor(Math.random() * 62))
+    ).join("");
+    const css = w.asWebviewUri(vscode2.Uri.joinPath(media, "traceViewer.css"));
+    const js = w.asWebviewUri(vscode2.Uri.joinPath(media, "traceViewer.js"));
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src ${w.cspSource}; script-src 'nonce-${nonce}';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loup Time-Travel Timeline</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
-      font-size: var(--vscode-font-size, 13px);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-      padding: 12px;
-    }
-
-    /* Controls bar */
-    .controls {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      padding: 8px 12px;
-      background: var(--vscode-sideBar-background);
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 6px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .controls button {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: none;
-      padding: 5px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .controls button:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-    .controls button.primary {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-    }
-    .controls .status {
-      margin-left: auto;
-      font-size: 11px;
-      opacity: 0.8;
-    }
-
-    /* Scrubber */
-    .scrubber-container {
-      margin-bottom: 12px;
-    }
-    .scrubber {
-      width: 100%;
-      height: 6px;
-      -webkit-appearance: none;
-      appearance: none;
-      background: var(--vscode-scrollbarSlider-background);
-      border-radius: 3px;
-      outline: none;
-    }
-    .scrubber::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--vscode-button-background);
-      cursor: pointer;
-    }
-
-    /* Filter tabs */
-    .filters {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 10px;
-      border: 1px solid var(--vscode-panel-border);
-      background: transparent;
-      color: var(--vscode-foreground);
-      cursor: pointer;
-    }
-    .filter-btn.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border-color: var(--vscode-button-background);
-    }
-
-    /* Current event inspector */
-    .inspector {
-      background: var(--vscode-sideBar-background);
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
-    .inspector h3 {
-      font-size: 12px;
-      opacity: 0.7;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .inspector .field {
-      display: flex;
-      gap: 8px;
-      padding: 2px 0;
-      font-size: 12px;
-    }
-    .inspector .field .label {
-      opacity: 0.6;
-      min-width: 80px;
-    }
-
-    /* Event list */
-    .event-list {
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 6px;
-    }
-    .event-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 10px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      cursor: pointer;
-      font-size: 12px;
-      font-family: var(--vscode-editor-font-family, monospace);
-    }
-    .event-row:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-    .event-row.current {
-      background: var(--vscode-list-activeSelectionBackground);
-      color: var(--vscode-list-activeSelectionForeground);
-    }
-    .badge {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 3px;
-      font-weight: 600;
-      min-width: 56px;
-      text-align: center;
-      color: #1e1e1e;
-    }
-    .seq {
-      opacity: 0.5;
-      min-width: 40px;
-      font-size: 11px;
-    }
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      opacity: 0.5;
-    }
-  </style>
+  <link rel="stylesheet" href="${css}">
+  <title>Loup trace</title>
 </head>
 <body>
-  <!-- Controls -->
-  <div class="controls">
-    ${state.capturing ? `<button onclick="send('stopCapture')">\u23F9 Stop Capture</button>` : `<button class="primary" onclick="send('startCapture')">\u23FA Start Capture</button>`}
-    <button onclick="send('stepBackToCall')" title="Step back to previous Call">\u23EE Call</button>
-    <button onclick="send('prevPortal')" title="Previous Portal">\u23EA Portal</button>
-    <button onclick="send('stepBackward')" title="Step backward">\u25C0 Back</button>
-    <button onclick="send('stepForward')" title="Step forward">\u25B6 Forward</button>
-    <button onclick="send('nextPortal')" title="Next Portal">\u23E9 Portal</button>
-    <button onclick="send('stepForwardToReturn')" title="Step forward to Return">\u23ED Return</button>
-    ${state.replaying ? `<button onclick="send('exitReplay')">\u{1F534} Live</button>` : ""}
-    <span class="status">
-      ${state.capturing ? "\u{1F534} Capturing" : state.replaying ? "\u23EA Replaying" : "\u23F8 Idle"}
-      \u2014 ${state.currentIndex + 1} / ${state.totalEvents} events
-    </span>
-  </div>
-
-  <!-- Scrubber -->
-  ${state.totalEvents > 0 ? `
-  <div class="scrubber-container">
-    <input type="range" class="scrubber" min="0" max="${state.totalEvents - 1}" value="${Math.max(0, currentIdx)}"
-           oninput="scrubTo(this.value)" />
-  </div>
-  ` : ""}
-
-  <!-- Filter buttons -->
-  <div class="filters">
-    <button class="filter-btn active" onclick="filterKind('ALL')">All (${state.totalEvents})</button>
-    <button class="filter-btn" onclick="filterKind('Portal')" style="border-color:#ce9178">Portals</button>
-    <button class="filter-btn" onclick="filterKind('Call')" style="border-color:#4ec9b0">Calls</button>
-    <button class="filter-btn" onclick="filterKind('Return')" style="border-color:#569cd6">Returns</button>
-    <button class="filter-btn" onclick="filterKind('Await')" style="border-color:#dcdcaa">Await/Resume</button>
-    <button class="filter-btn" onclick="filterKind('Signal')" style="border-color:#9cdcfe">Signals</button>
-    <button class="filter-btn" onclick="filterKind('Exception')" style="border-color:#f44747">Exceptions</button>
-  </div>
-
-  <!-- Current event detail -->
-  ${currentEvent ? `
-  <div class="inspector">
-    <h3>Current Event #${currentEvent.seq}</h3>
-    <div class="field"><span class="label">Kind:</span><span>${currentEvent.kind}</span></div>
-    ${currentEvent.functionName ? `<div class="field"><span class="label">Function:</span><span>${currentEvent.functionName}</span></div>` : ""}
-    ${currentEvent.portalName ? `<div class="field"><span class="label">Portal:</span><span>${currentEvent.portalName}</span></div>` : ""}
-    ${currentEvent.signalName ? `<div class="field"><span class="label">Signal:</span><span>${currentEvent.signalName} = ${currentEvent.signalValue || ""}</span></div>` : ""}
-    ${currentEvent.returnValue ? `<div class="field"><span class="label">Return:</span><span>${currentEvent.returnValue}</span></div>` : ""}
-    ${currentEvent.exceptionMessage ? `<div class="field"><span class="label">Exception:</span><span>${currentEvent.exceptionType}: ${currentEvent.exceptionMessage}</span></div>` : ""}
-    ${currentEvent.source ? `<div class="field"><span class="label">Location:</span><span>${currentEvent.source}:${currentEvent.line || 0}</span></div>` : ""}
-    ${currentEvent.variables ? `
-      <h3 style="margin-top:8px">Variables</h3>
-      ${Object.entries(currentEvent.variables).map(
-      ([k, v]) => `<div class="field"><span class="label">${k}:</span><span>${v.value} <em>(${v.type})</em></span></div>`
-    ).join("")}
-    ` : ""}
-  </div>
-  ` : ""}
-
-  <!-- Event list -->
-  <div class="event-list" id="eventList">
-    ${state.events.length === 0 ? '<div class="empty-state">No trace events recorded yet. Click "Start Capture" or open a .loup-trace file.</div>' : ""}
-  </div>
-
-  <script>
-    const vscode = acquireVsCodeApi();
-    const events = ${eventsJson};
-    const currentSeq = ${currentEvent?.seq ?? -1};
-    const badgeColors = ${JSON.stringify(kindBadgeColors)};
-    let activeFilter = 'ALL';
-
-    function send(command, data = {}) {
-      vscode.postMessage({ command, ...data });
-    }
-
-    function scrubTo(idx) {
-      const ev = events[Number(idx)];
-      if (ev) send('stepTo', { seq: ev.seq });
-    }
-
-    function filterKind(kind) {
-      activeFilter = kind;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      renderList();
-    }
-
-    function renderList() {
-      const container = document.getElementById('eventList');
-      if (events.length === 0) return;
-
-      const filtered = activeFilter === 'ALL'
-        ? events
-        : activeFilter === 'Await'
-          ? events.filter(e => e.kind === 'Await' || e.kind === 'Resume')
-          : events.filter(e => e.kind === activeFilter);
-
-      container.innerHTML = filtered.map(ev => {
-        const isCurrent = ev.seq === currentSeq;
-        const detail = ev.portalName
-          ? 'portal ' + ev.portalName
-          : ev.signalName
-            ? 'signal ' + ev.signalName + ' = ' + (ev.signalValue || '')
-            : ev.functionName
-              ? ev.functionName + (ev.returnValue ? ' \u2192 ' + ev.returnValue : '')
-              : ev.exceptionMessage
-                ? (ev.exceptionType || 'Error') + ': ' + ev.exceptionMessage
-                : ev.source
-                  ? ev.source.split('/').pop() + ':' + (ev.line || '')
-                  : '';
-
-        return '<div class="event-row ' + (isCurrent ? 'current' : '') + '" onclick="send('stepTo', {seq:' + ev.seq + '})">'
-          + '<span class="seq">#' + ev.seq + '</span>'
-          + '<span class="badge" style="background:' + (badgeColors[ev.kind] || '#888') + '">' + ev.kind + '</span>'
-          + '<span>' + detail + '</span>'
-          + '</div>';
-      }).join('');
-    }
-
-    renderList();
-  </script>
+  <div id="app"></div>
+  <script nonce="${nonce}" src="${js}"></script>
 </body>
 </html>`;
   }
+  dispose() {
+    _TraceViewerPanel.all.delete(this);
+    if (_TraceViewerPanel.active === this) {
+      _TraceViewerPanel.active = [..._TraceViewerPanel.all].pop();
+    }
+    for (const ed of vscode2.window.visibleTextEditors)
+      ed.setDecorations(this.lineDecoration, []);
+    this.lineDecoration.dispose();
+    for (const d of this.disposables)
+      d.dispose();
+  }
 };
+var TraceDocument = class {
+  constructor(uri) {
+    this.uri = uri;
+  }
+  dispose() {
+  }
+};
+var TraceEditorProvider = class {
+  constructor(context, log) {
+    this.context = context;
+    this.log = log;
+  }
+  static viewType = "loup.traceViewer";
+  openCustomDocument(uri) {
+    return new TraceDocument(uri);
+  }
+  resolveCustomEditor(document, panel) {
+    new TraceViewerPanel(this.context, document.uri.fsPath, panel, this.log);
+  }
+};
+async function openTraceViewer(uri) {
+  await vscode2.commands.executeCommand("vscode.openWith", uri, TraceEditorProvider.viewType, vscode2.ViewColumn.Beside);
+}
 
 // src/taskGroupPanel.ts
-var vscode4 = __toESM(require("vscode"));
+var vscode3 = __toESM(require("vscode"));
 var TaskGroupPanel = class _TaskGroupPanel {
   constructor(context) {
     this.context = context;
@@ -18848,13 +19154,13 @@ var TaskGroupPanel = class _TaskGroupPanel {
   }
   show() {
     if (this.panel) {
-      this.panel.reveal(vscode4.ViewColumn.Beside);
+      this.panel.reveal(vscode3.ViewColumn.Beside);
       return;
     }
-    this.panel = vscode4.window.createWebviewPanel(
+    this.panel = vscode3.window.createWebviewPanel(
       _TaskGroupPanel.viewType,
       "Loup Task Groups",
-      vscode4.ViewColumn.Beside,
+      vscode3.ViewColumn.Beside,
       { enableScripts: true }
     );
     this.updateWebview();
@@ -18985,26 +19291,26 @@ var TaskGroupPanel = class _TaskGroupPanel {
 };
 
 // src/taskProvider.ts
-var vscode5 = __toESM(require("vscode"));
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
+var vscode4 = __toESM(require("vscode"));
+var fs2 = __toESM(require("fs"));
+var path3 = __toESM(require("path"));
 var LoupTaskProvider = class _LoupTaskProvider {
   static type = "loup";
   async provideTasks() {
     const tasks2 = [];
-    const workspaceFolders = vscode5.workspace.workspaceFolders;
+    const workspaceFolders = vscode4.workspace.workspaceFolders;
     if (!workspaceFolders)
       return tasks2;
     for (const folder of workspaceFolders) {
       const manifestPath = this.findManifest(folder.uri.fsPath);
       if (manifestPath) {
-        const pkgContent = fs.readFileSync(manifestPath, "utf-8");
+        const pkgContent = fs2.readFileSync(manifestPath, "utf-8");
         const pkgName = this.parsePackageName(pkgContent) || folder.name;
-        tasks2.push(this.createTask("run", `loup run`, folder, pkgName, vscode5.TaskGroup.Build));
-        tasks2.push(this.createTask("build", `loup build`, folder, pkgName, vscode5.TaskGroup.Build));
-        tasks2.push(this.createTask("test", `loup test`, folder, pkgName, vscode5.TaskGroup.Test));
+        tasks2.push(this.createTask("run", `loup run`, folder, pkgName, vscode4.TaskGroup.Build));
+        tasks2.push(this.createTask("build", `loup build`, folder, pkgName, vscode4.TaskGroup.Build));
+        tasks2.push(this.createTask("test", `loup test`, folder, pkgName, vscode4.TaskGroup.Test));
         tasks2.push(this.createTask("fmt", `loup fmt`, folder, pkgName));
-        tasks2.push(this.createTask("check", `loup check`, folder, pkgName, vscode5.TaskGroup.Build));
+        tasks2.push(this.createTask("check", `loup check`, folder, pkgName, vscode4.TaskGroup.Build));
         const targets = this.parseTargets(pkgContent);
         for (const target of targets) {
           tasks2.push(
@@ -19013,7 +19319,7 @@ var LoupTaskProvider = class _LoupTaskProvider {
               `loup build --target ${target}`,
               folder,
               pkgName,
-              vscode5.TaskGroup.Build
+              vscode4.TaskGroup.Build
             )
           );
         }
@@ -19024,10 +19330,10 @@ var LoupTaskProvider = class _LoupTaskProvider {
   resolveTask(task) {
     const definition = task.definition;
     if (definition.type === _LoupTaskProvider.type && definition.command) {
-      const execution = new vscode5.ShellExecution(definition.command);
-      return new vscode5.Task(
+      const execution = new vscode4.ShellExecution(definition.command);
+      return new vscode4.Task(
         definition,
-        task.scope ?? vscode5.TaskScope.Workspace,
+        task.scope ?? vscode4.TaskScope.Workspace,
         definition.task || definition.command,
         "loup",
         execution,
@@ -19039,16 +19345,16 @@ var LoupTaskProvider = class _LoupTaskProvider {
   findManifest(dir) {
     const candidates = ["package.lppkg", "loup.pkg"];
     for (const candidate of candidates) {
-      const fullPath = path.join(dir, candidate);
-      if (fs.existsSync(fullPath)) {
+      const fullPath = path3.join(dir, candidate);
+      if (fs2.existsSync(fullPath)) {
         return fullPath;
       }
     }
     try {
-      const entries = fs.readdirSync(dir);
+      const entries = fs2.readdirSync(dir);
       const lppkg = entries.find((e) => e.endsWith(".lppkg"));
       if (lppkg) {
-        return path.join(dir, lppkg);
+        return path3.join(dir, lppkg);
       }
     } catch {
     }
@@ -19060,8 +19366,8 @@ var LoupTaskProvider = class _LoupTaskProvider {
       task: name,
       command
     };
-    const execution = new vscode5.ShellExecution(command, { cwd: folder.uri.fsPath });
-    const task = new vscode5.Task(
+    const execution = new vscode4.ShellExecution(command, { cwd: folder.uri.fsPath });
+    const task = new vscode4.Task(
       definition,
       folder,
       `${pkgName}: ${name}`,
@@ -19090,11 +19396,11 @@ var LoupTaskProvider = class _LoupTaskProvider {
 };
 
 // src/dependencyTree.ts
-var vscode6 = __toESM(require("vscode"));
-var fs2 = __toESM(require("fs"));
-var path2 = __toESM(require("path"));
+var vscode5 = __toESM(require("vscode"));
+var fs3 = __toESM(require("fs"));
+var path4 = __toESM(require("path"));
 var DependencyTreeProvider = class {
-  _onDidChangeTreeData = new vscode6.EventEmitter();
+  _onDidChangeTreeData = new vscode5.EventEmitter();
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   manifest = null;
   constructor() {
@@ -19105,16 +19411,16 @@ var DependencyTreeProvider = class {
     this._onDidChangeTreeData.fire(void 0);
   }
   async reload() {
-    const pkgFiles = await vscode6.workspace.findFiles("**/*.{lppkg,pkg}", "**/node_modules/**", 5);
+    const pkgFiles = await vscode5.workspace.findFiles("**/*.{lppkg,pkg}", "**/node_modules/**", 5);
     const loupPkg = pkgFiles.find(
-      (u) => u.fsPath.endsWith(".lppkg") || path2.basename(u.fsPath) === "loup.pkg"
+      (u) => u.fsPath.endsWith(".lppkg") || path4.basename(u.fsPath) === "loup.pkg"
     );
     if (!loupPkg) {
       this.manifest = null;
       return;
     }
     try {
-      const content = fs2.readFileSync(loupPkg.fsPath, "utf-8");
+      const content = fs3.readFileSync(loupPkg.fsPath, "utf-8");
       this.manifest = this.parse(content);
       this._onDidChangeTreeData.fire(void 0);
     } catch {
@@ -19235,7 +19541,7 @@ var DependencyTreeProvider = class {
   }
   getChildren(element) {
     if (!this.manifest) {
-      return [new DepTreeItem("No package.lppkg found", "", vscode6.TreeItemCollapsibleState.None)];
+      return [new DepTreeItem("No package.lppkg found", "", vscode5.TreeItemCollapsibleState.None)];
     }
     if (!element) {
       const items = [];
@@ -19245,8 +19551,8 @@ var DependencyTreeProvider = class {
         new DepTreeItem(
           `${this.manifest.packageName} v${this.manifest.version}${modeSuffix}`,
           `Package${loupConstraint}`,
-          vscode6.TreeItemCollapsibleState.None,
-          new vscode6.ThemeIcon("package")
+          vscode5.TreeItemCollapsibleState.None,
+          new vscode5.ThemeIcon("package")
         )
       );
       if (this.manifest.deps.length > 0) {
@@ -19254,8 +19560,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dependencies",
             `${this.manifest.deps.length}`,
-            vscode6.TreeItemCollapsibleState.Expanded,
-            new vscode6.ThemeIcon("library"),
+            vscode5.TreeItemCollapsibleState.Expanded,
+            new vscode5.ThemeIcon("library"),
             "deps"
           )
         );
@@ -19265,8 +19571,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dev Dependencies",
             `${this.manifest.devDeps.length}`,
-            vscode6.TreeItemCollapsibleState.Collapsed,
-            new vscode6.ThemeIcon("tools"),
+            vscode5.TreeItemCollapsibleState.Collapsed,
+            new vscode5.ThemeIcon("tools"),
             "dev-deps"
           )
         );
@@ -19276,8 +19582,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Dev Overrides",
             `${this.manifest.devOverrides.length}`,
-            vscode6.TreeItemCollapsibleState.Collapsed,
-            new vscode6.ThemeIcon("DebugStepOver"),
+            vscode5.TreeItemCollapsibleState.Collapsed,
+            new vscode5.ThemeIcon("DebugStepOver"),
             "dev-overrides"
           )
         );
@@ -19287,8 +19593,8 @@ var DependencyTreeProvider = class {
           new DepTreeItem(
             "Delivery Targets",
             `${this.manifest.targets.length}`,
-            vscode6.TreeItemCollapsibleState.Collapsed,
-            new vscode6.ThemeIcon("server-environment"),
+            vscode5.TreeItemCollapsibleState.Collapsed,
+            new vscode5.ThemeIcon("server-environment"),
             "targets"
           )
         );
@@ -19297,17 +19603,17 @@ var DependencyTreeProvider = class {
     }
     if (element.section === "deps") {
       return this.manifest.deps.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode6.TreeItemCollapsibleState.None, new vscode6.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "dev-deps") {
       return this.manifest.devDeps.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode6.TreeItemCollapsibleState.None, new vscode6.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "dev-overrides") {
       return this.manifest.devOverrides.map(
-        (d) => new DepTreeItem(d.name, d.version, vscode6.TreeItemCollapsibleState.None, new vscode6.ThemeIcon("symbol-package"))
+        (d) => new DepTreeItem(d.name, d.version, vscode5.TreeItemCollapsibleState.None, new vscode5.ThemeIcon("symbol-package"))
       );
     }
     if (element.section === "targets") {
@@ -19319,15 +19625,15 @@ var DependencyTreeProvider = class {
         return new DepTreeItem(
           t.name,
           desc || "default",
-          vscode6.TreeItemCollapsibleState.None,
-          new vscode6.ThemeIcon("device-desktop")
+          vscode5.TreeItemCollapsibleState.None,
+          new vscode5.ThemeIcon("device-desktop")
         );
       });
     }
     return [];
   }
 };
-var DepTreeItem = class extends vscode6.TreeItem {
+var DepTreeItem = class extends vscode5.TreeItem {
   constructor(label, description, collapsibleState, icon, section) {
     super(label, collapsibleState);
     this.section = section;
@@ -19340,8 +19646,6 @@ var DepTreeItem = class extends vscode6.TreeItem {
 // src/extension.ts
 var client;
 var portalManager;
-var timeTravelManager;
-var timelinePanel;
 var taskGroupPanel;
 var depTreeProvider;
 var EXTENSION_MODE_INFO = {
@@ -19372,10 +19676,10 @@ var EXTENSION_MODE_INFO = {
   }
 };
 function activate(context) {
-  const outputChannel = vscode7.window.createOutputChannel("Loup Language");
+  const outputChannel = vscode6.window.createOutputChannel("Loup Language");
   outputChannel.appendLine("Loup Language extension v1.20.0 activated.");
-  const statusBarItem = vscode7.window.createStatusBarItem(
-    vscode7.StatusBarAlignment.Right,
+  const statusBarItem = vscode6.window.createStatusBarItem(
+    vscode6.StatusBarAlignment.Right,
     100
   );
   statusBarItem.text = "$(symbol-misc) Loup";
@@ -19387,9 +19691,9 @@ function activate(context) {
         statusBarItem.text = "$(package) Loup Manifest";
         statusBarItem.tooltip = "Loup Package Manifest (.lppkg) \u2014 v1.20";
       } else {
-        const ext = path3.extname(editor.document.fileName).toLowerCase();
+        const ext = path5.extname(editor.document.fileName).toLowerCase();
         const extInfo = EXTENSION_MODE_INFO[ext] ?? EXTENSION_MODE_INFO[".loup"];
-        const firstLines = editor.document.getText(new vscode7.Range(0, 0, 20, 0));
+        const firstLines = editor.document.getText(new vscode6.Range(0, 0, 20, 0));
         const modeMatch = firstLines.match(/@mode\(\s*([a-zA-Z0-9_.]+)\s*\)/);
         const activeMode = modeMatch ? modeMatch[1] : extInfo.defaultMode;
         statusBarItem.text = `$(symbol-misc) Loup [${activeMode}]`;
@@ -19402,136 +19706,126 @@ Active mode: @mode(${activeMode})`;
     }
   };
   context.subscriptions.push(
-    vscode7.window.onDidChangeActiveTextEditor(updateStatusBar),
-    vscode7.workspace.onDidChangeTextDocument((e) => {
-      if (vscode7.window.activeTextEditor?.document === e.document) {
-        updateStatusBar(vscode7.window.activeTextEditor);
+    vscode6.window.onDidChangeActiveTextEditor(updateStatusBar),
+    vscode6.workspace.onDidChangeTextDocument((e) => {
+      if (vscode6.window.activeTextEditor?.document === e.document) {
+        updateStatusBar(vscode6.window.activeTextEditor);
       }
     })
   );
-  updateStatusBar(vscode7.window.activeTextEditor);
+  updateStatusBar(vscode6.window.activeTextEditor);
   startLanguageClient(context, outputChannel);
   context.subscriptions.push(
-    vscode7.debug.registerDebugConfigurationProvider("loup", new LoupDebugConfigurationProvider())
+    vscode6.debug.registerDebugConfigurationProvider("loup", new LoupDebugConfigurationProvider())
   );
   portalManager = new PortalBreakpointManager(context);
   const portalTreeProvider = new PortalBreakpointsTreeProvider(portalManager);
   const portalCodeLens = new PortalCodeLensProvider(portalManager);
   context.subscriptions.push(
-    vscode7.window.registerTreeDataProvider("loupPortalBreakpoints", portalTreeProvider),
-    vscode7.languages.registerCodeLensProvider({ language: "loup" }, portalCodeLens)
+    vscode6.window.registerTreeDataProvider("loupPortalBreakpoints", portalTreeProvider),
+    vscode6.languages.registerCodeLensProvider({ language: "loup" }, portalCodeLens)
   );
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loup.portal.toggle", (name) => {
+    vscode6.commands.registerCommand("loup.portal.toggle", (name) => {
       portalManager.toggle(name);
     }),
-    vscode7.commands.registerCommand("loup.portal.add", async () => {
-      const name = await vscode7.window.showInputBox({
+    vscode6.commands.registerCommand("loup.portal.add", async () => {
+      const name = await vscode6.window.showInputBox({
         prompt: "Enter portal name to break on",
         placeHolder: "e.g., request_start or checkout.enter"
       });
       if (!name)
         return;
-      const condition = await vscode7.window.showInputBox({
+      const condition = await vscode6.window.showInputBox({
         prompt: "Optional condition expression (leave empty for unconditional)",
         placeHolder: "e.g., user.id == 42"
       });
-      const oncePick = await vscode7.window.showQuickPick(["Every time", "Once only"], {
+      const oncePick = await vscode6.window.showQuickPick(["Every time", "Once only"], {
         placeHolder: "Break every time or only once?"
       });
       portalManager.add(name, condition || void 0, oncePick === "Once only");
     }),
-    vscode7.commands.registerCommand("loup.portal.remove", (item) => {
+    vscode6.commands.registerCommand("loup.portal.remove", (item) => {
       if (item?.portal?.name) {
         portalManager.remove(item.portal.name);
       }
     }),
-    vscode7.commands.registerCommand("loup.portal.clearAll", () => {
+    vscode6.commands.registerCommand("loup.portal.clearAll", () => {
       portalManager.clear();
     })
   );
-  timeTravelManager = new TimeTravelManager();
-  timelinePanel = new TimelinePanel(context, timeTravelManager);
+  const withViewer = (act) => async () => {
+    const viewer = TraceViewerPanel.active;
+    if (!viewer) {
+      vscode6.window.showInformationMessage("Open a .ltrace file first (Loup: Open Trace).");
+      return;
+    }
+    await act(viewer);
+  };
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loup.timeTravel.start", () => {
-      timeTravelManager.startCapture();
-      vscode7.window.showInformationMessage("Time-travel capture started.");
-    }),
-    vscode7.commands.registerCommand("loup.timeTravel.stop", () => {
-      timeTravelManager.stopCapture();
-      vscode7.window.showInformationMessage(
-        `Time-travel capture stopped. ${timeTravelManager.getEvents().length} events recorded.`
-      );
-    }),
-    vscode7.commands.registerCommand("loup.timeTravel.showTimeline", () => {
-      timelinePanel.show();
-    }),
-    vscode7.commands.registerCommand("loup.timeTravel.openTrace", async () => {
-      const uris = await vscode7.window.showOpenDialog({
-        canSelectMany: false,
-        filters: { "Loup Trace": ["loup-trace", "json"] },
-        openLabel: "Open Trace Recording"
-      });
-      if (uris && uris[0]) {
-        try {
-          await timeTravelManager.loadRecording(uris[0]);
-          timelinePanel.show();
-          vscode7.window.showInformationMessage("Trace recording loaded.");
-        } catch (err) {
-          vscode7.window.showErrorMessage(`Failed to load trace: ${err}`);
-        }
-      }
-    }),
-    vscode7.commands.registerCommand("loup.timeTravel.saveTrace", async () => {
-      const uri = await vscode7.window.showSaveDialog({
-        filters: { "Loup Trace": ["loup-trace", "json"] },
-        saveLabel: "Save Trace Recording"
-      });
-      if (uri) {
-        await timeTravelManager.saveRecording(uri);
-        vscode7.window.showInformationMessage("Trace recording saved.");
-      }
-    }),
-    vscode7.commands.registerCommand("loup.timeTravel.navigateTo", async (seq) => {
-      const event = timeTravelManager.stepTo(seq);
-      if (event?.source && event.line !== void 0) {
-        const doc = await vscode7.workspace.openTextDocument(event.source);
-        await vscode7.window.showTextDocument(doc, {
-          selection: new vscode7.Range(event.line - 1, 0, event.line - 1, 0),
-          preserveFocus: true
+    vscode6.window.registerCustomEditorProvider(
+      TraceEditorProvider.viewType,
+      new TraceEditorProvider(context, outputChannel),
+      { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false }
+    ),
+    vscode6.commands.registerCommand("loup.trace.open", async (uri) => {
+      let target = uri;
+      if (!target) {
+        const picked = await vscode6.window.showOpenDialog({
+          canSelectMany: false,
+          filters: { "Loup trace": ["ltrace"], "Exported trace view": ["json"] },
+          openLabel: "Open Trace"
         });
+        target = picked?.[0];
       }
-    })
+      if (target)
+        await openTraceViewer(target);
+    }),
+    vscode6.commands.registerCommand("loup.trace.stepBack", withViewer((v) => v.step("backward"))),
+    vscode6.commands.registerCommand("loup.trace.stepForward", withViewer((v) => v.step("forward"))),
+    vscode6.commands.registerCommand(
+      "loup.trace.previousException",
+      withViewer((v) => v.stepKind("backward", ["Exception"]))
+    ),
+    vscode6.commands.registerCommand(
+      "loup.trace.nextException",
+      withViewer((v) => v.stepKind("forward", ["Exception"]))
+    ),
+    vscode6.commands.registerCommand("loup.trace.previousCapture", withViewer((v) => v.stepCapture("backward"))),
+    vscode6.commands.registerCommand("loup.trace.nextCapture", withViewer((v) => v.stepCapture("forward"))),
+    vscode6.commands.registerCommand("loup.trace.gotoPoint", withViewer((v) => v.promptGotoPoint())),
+    vscode6.commands.registerCommand("loup.trace.query", withViewer((v) => v.promptQuery())),
+    vscode6.commands.registerCommand("loup.trace.reload", withViewer((v) => v.reload()))
   );
   taskGroupPanel = new TaskGroupPanel(context);
   context.subscriptions.push(
-    vscode7.commands.registerCommand("loup.showTaskGroups", () => {
+    vscode6.commands.registerCommand("loup.showTaskGroups", () => {
       taskGroupPanel.show();
     })
   );
   context.subscriptions.push(
-    vscode7.tasks.registerTaskProvider(LoupTaskProvider.type, new LoupTaskProvider())
+    vscode6.tasks.registerTaskProvider(LoupTaskProvider.type, new LoupTaskProvider())
   );
   depTreeProvider = new DependencyTreeProvider();
   context.subscriptions.push(
-    vscode7.window.registerTreeDataProvider("loupDependencies", depTreeProvider),
-    vscode7.commands.registerCommand("loup.refreshDependencies", () => {
+    vscode6.window.registerTreeDataProvider("loupDependencies", depTreeProvider),
+    vscode6.commands.registerCommand("loup.refreshDependencies", () => {
       depTreeProvider.refresh();
     })
   );
   context.subscriptions.push(
-    vscode7.window.registerTerminalProfileProvider("loup.repl", {
+    vscode6.window.registerTerminalProfileProvider("loup.repl", {
       provideTerminalProfile() {
-        return new vscode7.TerminalProfile({
+        return new vscode6.TerminalProfile({
           name: "Loup REPL",
           shellPath: process.env["LOUP_PATH"] || "loup",
           shellArgs: ["repl"],
-          iconPath: new vscode7.ThemeIcon("terminal")
+          iconPath: new vscode6.ThemeIcon("terminal")
         });
       }
     }),
-    vscode7.commands.registerCommand("loup.openRepl", () => {
-      const terminal = vscode7.window.createTerminal({
+    vscode6.commands.registerCommand("loup.openRepl", () => {
+      const terminal = vscode6.window.createTerminal({
         name: "Loup REPL",
         shellPath: process.env["LOUP_PATH"] || "loup",
         shellArgs: ["repl"]
@@ -19544,7 +19838,7 @@ Active mode: @mode(${activeMode})`;
 var LoupDebugConfigurationProvider = class {
   resolveDebugConfiguration(_folder, config, _token) {
     if (!config.type && !config.request && !config.name) {
-      const editor = vscode7.window.activeTextEditor;
+      const editor = vscode6.window.activeTextEditor;
       if (editor && editor.document.languageId === "loup") {
         config.type = "loup";
         config.name = "Run Loup File";
@@ -19554,7 +19848,7 @@ var LoupDebugConfigurationProvider = class {
       }
     }
     if (!config.program) {
-      return vscode7.window.showInformationMessage("Cannot find a Loup program to debug").then((_) => {
+      return vscode6.window.showInformationMessage("Cannot find a Loup program to debug").then((_) => {
         return void 0;
       });
     }
@@ -19569,7 +19863,7 @@ var LoupDebugConfigurationProvider = class {
 };
 function startLanguageClient(context, outputChannel) {
   const serverModule = context.asAbsolutePath(
-    path3.join("..", "language-server", "out", "server.js")
+    path5.join("..", "language-server", "out", "server.js")
   );
   const serverOptions = {
     run: {
@@ -19588,7 +19882,7 @@ function startLanguageClient(context, outputChannel) {
       { scheme: "file", language: "loup-pkg" }
     ],
     synchronize: {
-      fileEvents: vscode7.workspace.createFileSystemWatcher("**/*.{loup,lpscr,lpfree,lpweb,lphc,lppkg}")
+      fileEvents: vscode6.workspace.createFileSystemWatcher("**/*.{loup,lpscr,lpfree,lpweb,lphc,lppkg}")
     },
     outputChannel
   };

@@ -6,9 +6,9 @@ This repository implements a Visual Studio Code extension providing first-class 
 
 | Package | Path | Purpose |
 |---|---|---|
-| **Extension Client** | `packages/extension/` | VSCode activation, commands, contributed grammars, snippets, status bar, webview panels |
+| **Extension Client** | `packages/extension/` | VSCode activation, commands, contributed grammars, snippets, status bar, the trace viewer (`.ltrace`) |
 | **Language Server** | `packages/language-server/` | Out-of-process LSP server — diagnostics, completions, hover, navigation, formatting |
-| **Debug Adapter** | `packages/debug-adapter/` | DAP server — breakpoints, stepping, variables, portal breakpoints, time-travel debugging |
+| **Debug Adapter** | `packages/debug-adapter/` | DAP server — breakpoints, stepping, variables, portal breakpoints (provisional protocol) |
 
 The extension supports all five mode-flavored Loup source file extensions (`.loup`, `.lpscr`, `.lpfree`, `.lpweb`, `.lphc`) and package manifests (`.lppkg`, `package.lppkg`, `loup.pkg`).
 
@@ -47,6 +47,20 @@ The extension supports all five mode-flavored Loup source file extensions (`.lou
 - **LSP and DAP** use the official `vscode-languageserver` and `@vscode/debugadapter` libraries
 - **Template fence injection grammars** must set `embeddedLanguages` in the extension manifest to enable inner language features
 - **Loup-specific syntax** like `!{...}` (dynamic fields), `{$ $}` (template expressions), `{% %}` (template directives), `@mode(...)`, and `portal` must be highlighted distinctly
+
+### Trace viewer (`.ltrace`)
+- `packages/extension/src/traceView.ts` — the view model and navigation (`TraceSession`). No `vscode` import; it is
+  unit-tested under Node (`src/__tests__/traceView.test.ts`).
+- `packages/extension/src/traceTool.ts` — runs the Loup toolchain's trace tool (`loup_debug view|query`, JSON with
+  `schema_version` 1). **The extension never parses `.ltrace` bytes**: the toolchain's trace library is the single
+  reader of that format, and points (`exception#1`, `portal(name)#2`) are spelled only by the toolchain.
+- `packages/extension/src/traceViewerPanel.ts` — the custom editor (`loup.traceViewer`) and the source-line reveal.
+- `packages/extension/media/traceViewer.{js,css}` — the page. Trace text reaches the DOM through `textContent` only
+  (a test forbids `innerHTML`); colours come from `--vscode-*` theme variables.
+- The JSON contract is `specs/1-bootstrap-4-loup-debug-view/` in the Loup repository. Change the contract there first.
+- `samples/traces/demo.ltrace` and `demo.ltrace.view.json` come from `loup_debug demo` / `view`; regenerate both
+  together.
+- The debug adapter (`packages/debug-adapter`) still speaks a provisional protocol. Do not build viewer features on it.
 
 ### Build & Test
 ```bash

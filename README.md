@@ -1,6 +1,6 @@
 # Loup for Visual Studio Code
 
-First-class language support for the **Loup programming language (v1.20)**, including syntax highlighting across all execution-mode file extensions, an out-of-process Language Server (LSP), a Debug Adapter (DAP), portal breakpoints, and time-travel debugging.
+First-class language support for the **Loup programming language (v1.20)**, including syntax highlighting across all execution-mode file extensions, an out-of-process Language Server (LSP), a Debug Adapter (DAP), portal breakpoints, and a viewer for time-travel recordings.
 
 ## Supported File Extensions
 
@@ -27,7 +27,55 @@ Loup v1.20 defines five mode-flavored source file extensions (§1-13.0.0) plus t
   - Comments: `#` single-line comments, `##` documentation comments, `/* ... */` block comments (`//` is floor division)
 - **Package Manifests (`.lppkg`)**: Syntax highlighting, dependency tree view, and task auto-detection for `package.lppkg` and `loup.pkg`
 - **Language Server (LSP)**: Diagnostics, context-aware completions (`@mode`, annotations, `core.*` / `io.*` / `net.*` / `data.*` / `sync.*` / `structures.*` / `ui.*` / `debug.*` / `native.*` / `loup.*` stdlib & packages), hover docs, outline symbols, go-to-definition, folding, semantic tokens, formatting, quick-fix code actions, and signature help
-- **Debugging (DAP)**: Launch/attach debugging, portal breakpoints, structured concurrency task group visualizer, and time-travel trace capture & replay (`.loup-trace`)
+- **Debugging (DAP)**: Launch/attach debugging, portal breakpoints, and a structured concurrency task group visualizer
+- **Trace viewer**: opens a Loup time-travel recording (`.ltrace`) — see below
+
+## Trace viewer
+
+A `.ltrace` file is a Loup time-travel recording: one **capture** for each hit of an activated portal, holding the
+inputs the program received from outside (file reads, the clock, entropy, process results, scheduling), its outputs,
+and anchors such as exceptions. Opening one shows:
+
+- the captures, and the unrecorded time between them;
+- every record of the current capture, filterable by kind;
+- the current record's fields, with secret and private values masked as the recording marked them;
+- bookmarks, gaps (inputs the recording could not capture), and a query box for the Loup trace query language
+  (`exception(ValueError)`, `seam(fs.read) where path.endsWith(".toml")`, `output(stderr)`).
+
+Moving through the trace moves the source editor to the line of the current record.
+
+| Action | In the viewer | Command |
+|---|---|---|
+| Previous / next record | `←` `→` (or `K` `J`) | **Loup: Trace: Step Back / Step Forward** (`Alt+←` / `Alt+→`) |
+| Previous / next exception | `Shift+E` / `E` | **Loup: Trace: Previous / Next Exception** |
+| Previous / next capture | `[` / `]` | **Loup: Trace: Previous / Next Capture** |
+| Other records at this source line | `Shift+L` / `L` | — |
+| Go to a point | the box in the toolbar | **Loup: Trace: Go to Point…** |
+| Query | the box in the side panel | **Loup: Trace: Query…** |
+
+A point is written the way the Loup tools write it: `exception#1`, `portal(shop.checkout)#2`, `output#3`, a bookmark
+name, or the agent form `pt:<trace>:<point>`. **Copy** beside a point copies the agent form.
+
+**What it does not show.** Locals and the call stack at a point are produced by replaying a capture. No replay engine
+is connected yet, so the viewer shows what the file itself holds.
+
+### Setup
+
+The Loup toolchain reads the file; the extension never parses `.ltrace` bytes. Until the toolchain ships the
+`loup debug` command, point the extension at a Loup source checkout:
+
+```jsonc
+// settings.json
+"loup.toolchainRoot": "/path/to/loup",      // runs source/runtime/tools/loup_debug/main.loup from it
+"loup.executable": "/path/to/bin/loup"      // optional; default: `loup` on PATH
+```
+
+`loup.trace.toolCommand` replaces the whole command if neither fits. The file's name must not contain spaces (its
+folder may).
+
+To try it: open [`samples/traces/demo.ltrace`](samples/traces/demo.ltrace). Without a toolchain,
+`samples/traces/demo.ltrace.view.json` is the same trace already exported: right-click it, **Open With…**, **Loup
+Trace Viewer (exported view)**. Queries need the `.ltrace` itself.
 
 ## Development
 
@@ -53,4 +101,4 @@ Press **F5** in VSCode to launch the Extension Development Host and open [`sampl
 |---|---|
 | `packages/extension` | VSCode extension client (activation, grammar, snippets, status bar, commands, views) |
 | `packages/language-server` | LSP server (lexer, parser, symbol table, diagnostics, completions, hover, navigation) |
-| `packages/debug-adapter` | DAP server (breakpoints, stepping, portal breakpoints, time-travel trace integration) |
+| `packages/debug-adapter` | DAP server (breakpoints, stepping, portal breakpoints). It speaks a provisional protocol and is not yet connected to the Loup debug wire. |

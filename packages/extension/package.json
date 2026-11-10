@@ -208,17 +208,6 @@
               "program": "^\"\\${file}\"",
               "target": "${2|cli,browser,wasm,node,bun,deno,service,desktop,native,freestanding|}"
             }
-          },
-          {
-            "label": "Loup: Launch with Time-Travel",
-            "description": "Run a Loup file with time-travel debugging enabled",
-            "body": {
-              "type": "loup",
-              "request": "launch",
-              "name": "Time-Travel ${1:Loup Script}",
-              "program": "^\"\\${file}\"",
-              "enableTimeTravel": true
-            }
           }
         ]
       }
@@ -270,38 +259,57 @@
         "icon": "$(clear-all)"
       },
       {
-        "command": "loup.timeTravel.start",
-        "title": "Start Time-Travel Capture",
-        "category": "Loup",
-        "icon": "$(record)"
-      },
-      {
-        "command": "loup.timeTravel.stop",
-        "title": "Stop Time-Travel Capture",
-        "category": "Loup",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "loup.timeTravel.showTimeline",
-        "title": "Show Time-Travel Timeline",
+        "command": "loup.trace.open",
+        "title": "Open Trace",
         "category": "Loup",
         "icon": "$(history)"
       },
       {
-        "command": "loup.timeTravel.openTrace",
-        "title": "Open Trace Recording",
+        "command": "loup.trace.stepBack",
+        "title": "Trace: Step Back",
         "category": "Loup",
-        "icon": "$(folder-opened)"
+        "icon": "$(arrow-left)"
       },
       {
-        "command": "loup.timeTravel.saveTrace",
-        "title": "Save Trace Recording",
+        "command": "loup.trace.stepForward",
+        "title": "Trace: Step Forward",
         "category": "Loup",
-        "icon": "$(save)"
+        "icon": "$(arrow-right)"
       },
       {
-        "command": "loup.timeTravel.navigateTo",
-        "title": "Navigate to Trace Point",
+        "command": "loup.trace.previousException",
+        "title": "Trace: Previous Exception",
+        "category": "Loup"
+      },
+      {
+        "command": "loup.trace.nextException",
+        "title": "Trace: Next Exception",
+        "category": "Loup"
+      },
+      {
+        "command": "loup.trace.previousCapture",
+        "title": "Trace: Previous Capture",
+        "category": "Loup"
+      },
+      {
+        "command": "loup.trace.nextCapture",
+        "title": "Trace: Next Capture",
+        "category": "Loup"
+      },
+      {
+        "command": "loup.trace.gotoPoint",
+        "title": "Trace: Go to Point\u2026",
+        "category": "Loup"
+      },
+      {
+        "command": "loup.trace.query",
+        "title": "Trace: Query\u2026",
+        "category": "Loup",
+        "icon": "$(search)"
+      },
+      {
+        "command": "loup.trace.reload",
+        "title": "Trace: Reload",
         "category": "Loup"
       },
       {
@@ -346,6 +354,51 @@
           "command": "loup.portal.remove",
           "when": "view == loupPortalBreakpoints",
           "group": "inline"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "loup.trace.open",
+          "when": "resourceExtname == .ltrace",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "loup.trace.stepBack",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.stepForward",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.previousException",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.nextException",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.previousCapture",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.nextCapture",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.gotoPoint",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.query",
+          "when": "activeCustomEditorId == loup.traceViewer"
+        },
+        {
+          "command": "loup.trace.reload",
+          "when": "activeCustomEditorId == loup.traceViewer"
         }
       ]
     },
@@ -394,7 +447,76 @@
           "icon": "$(terminal)"
         }
       ]
-    }
+    },
+    "customEditors": [
+      {
+        "viewType": "loup.traceViewer",
+        "displayName": "Loup Trace Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.ltrace"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "loup.traceViewer",
+        "displayName": "Loup Trace Viewer (exported view)",
+        "selector": [
+          {
+            "filenamePattern": "*.ltrace.view.json"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "configuration": {
+      "title": "Loup",
+      "properties": {
+        "loup.executable": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The `loup` executable. Empty means `loup` on `PATH` (or `$LOUP_PATH`)."
+        },
+        "loup.toolchainRoot": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "A Loup source checkout. When set, the trace viewer runs the trace tool from it (`source/runtime/tools/loup_debug/main.loup`). Needed until the toolchain ships the `loup debug` command."
+        },
+        "loup.trace.toolCommand": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "The full command of the trace tool, when neither of the above fits. The viewer appends `view <file>` or `query <file> <query> --limit <n>` and reads JSON from its standard output."
+        },
+        "loup.trace.timeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "markdownDescription": "How long the trace tool may run before it is stopped, in milliseconds."
+        },
+        "loup.trace.queryLimit": {
+          "type": "number",
+          "default": 200,
+          "minimum": 1,
+          "markdownDescription": "The most hits a trace query returns."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "loup.trace.stepBack",
+        "key": "alt+left",
+        "when": "activeCustomEditorId == loup.traceViewer"
+      },
+      {
+        "command": "loup.trace.stepForward",
+        "key": "alt+right",
+        "when": "activeCustomEditorId == loup.traceViewer"
+      }
+    ]
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",

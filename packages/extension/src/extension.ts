@@ -295,7 +295,7 @@ function startLanguageClient(
   outputChannel: vscode.OutputChannel
 ): void {
   const serverModule = context.asAbsolutePath(
-    path.join('..', 'language-server', 'out', 'server.js')
+    path.join('out', 'server.js')
   );
 
   const serverOptions: ServerOptions = {

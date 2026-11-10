@@ -19863,7 +19863,7 @@ var LoupDebugConfigurationProvider = class {
 };
 function startLanguageClient(context, outputChannel) {
   const serverModule = context.asAbsolutePath(
-    path5.join("..", "language-server", "out", "server.js")
+    path5.join("out", "server.js")
   );
   const serverOptions = {
     run: {

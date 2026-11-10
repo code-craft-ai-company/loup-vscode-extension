@@ -100,7 +100,7 @@
       {
         "type": "loup",
         "label": "Loup Debug",
-        "program": "../debug-adapter/out/debugAdapter.js",
+        "program": "./out/debugAdapter.js",
         "runtime": "node",
         "languages": [
           "loup"

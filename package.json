@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces && node scripts/bundle.mjs",
+    "package": "npm run build && cd packages/extension && npx --yes @vscode/vsce package --no-dependencies --out ../../.vsix/",
     "watch": "npm run watch --workspaces --if-present",
     "test": "esbuild packages/language-server/src/__tests__/loup.test.ts packages/extension/src/__tests__/traceView.test.ts --bundle --platform=node --outdir=.test-out --entry-names=[name] --out-extension:.js=.cjs && node --test .test-out/loup.test.cjs .test-out/traceView.test.cjs",
     "test:watch": "vitest",

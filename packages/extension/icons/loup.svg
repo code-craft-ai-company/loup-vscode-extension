@@ -1,6 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="256" height="256">
-  <rect width="128" height="128" rx="24" fill="#1b1f2a"/>
-  <g fill="#e8ecf4"><path d="M20 14 L40 44 L64 34 L88 44 L108 14 L104 62 L84 100 L64 114 L44 100 L24 62 Z"/></g>
-  <path d="M40 60 L56 66 L46 74 Z M88 60 L72 66 L82 74 Z" fill="#f2b84b"/>
-  <path d="M56 98 L64 106 L72 98 Z" fill="#1b1f2a"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a3663"/>
+      <stop offset="1" stop-color="#0e1322"/>
+    </linearGradient>
+    <linearGradient id="l" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#cfd7ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- braces -->
+  <g fill="none" stroke="#7f92d6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M33 26 h-5 a8 8 0 0 0 -8 8 v20 a8 8 0 0 1 -7 8 a8 8 0 0 1 7 8 v24 a8 8 0 0 0 8 8 h5"/>
+    <path d="M95 26 h5 a8 8 0 0 1 8 8 v20 a8 8 0 0 0 7 8 a8 8 0 0 0 -7 8 v24 a8 8 0 0 1 -8 8 h-5"/>
+  </g>
+  <!-- L -->
+  <path d="M41 30 h18 v50 h18 v18 h-36 Z" fill="url(#l)"/>
+  <!-- text cursor -->
+  <rect x="81" y="74" width="9" height="24" rx="1.5" fill="#ffb347"/>
 </svg>
